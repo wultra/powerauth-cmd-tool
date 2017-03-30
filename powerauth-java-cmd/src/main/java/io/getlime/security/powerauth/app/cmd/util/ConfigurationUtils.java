@@ -41,8 +41,8 @@ public class ConfigurationUtils {
      * @return Application key.
      */
     public static String getApplicationKey(JSONObject clientConfigObject) {
-        if (clientConfigObject.get("applicationId") != null) {
-            return (String) clientConfigObject.get("applicationId");
+        if (clientConfigObject.get("applicationKey") != null) {
+            return (String) clientConfigObject.get("applicationKey");
         } else {
             return expectedApplicationKey;
         }

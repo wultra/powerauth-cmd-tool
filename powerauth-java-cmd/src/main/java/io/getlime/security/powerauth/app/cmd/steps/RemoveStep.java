@@ -72,7 +72,7 @@ public class RemoveStep {
         String uriString = (String) context.get("URI_STRING");
         JSONObject resultStatusObject = (JSONObject) context.get("STATUS_OBJECT");
         String statusFileName = (String) context.get("STATUS_FILENAME");
-        String applicationId = (String) context.get("APPLICATION_ID");
+        String applicationKey = (String) context.get("APPLICATION_KEY");
         String applicationSecret = (String) context.get("APPLICATION_SECRET");
         String passwordProvided = (String) context.get("PASSWORD");
 
@@ -113,7 +113,7 @@ public class RemoveStep {
         // and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/activation/remove", pa_nonce, null) + "&" + applicationSecret;
         String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), Arrays.asList(signaturePossessionKey, signatureKnowledgeKey), counter);
-        String httpAuhtorizationHeader = PowerAuthHttpHeader.getPowerAuthSignatureHTTPHeader(activationId, applicationId, BaseEncoding.base64().encode(pa_nonce), PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE.toString(), pa_signature, "2.0");
+        String httpAuhtorizationHeader = PowerAuthHttpHeader.getPowerAuthSignatureHTTPHeader(activationId, applicationKey, BaseEncoding.base64().encode(pa_nonce), PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE.toString(), pa_signature, "2.0");
 
         // Increment the counter
         counter += 1;

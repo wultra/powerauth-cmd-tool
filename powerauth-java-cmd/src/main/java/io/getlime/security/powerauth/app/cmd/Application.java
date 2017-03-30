@@ -175,7 +175,7 @@ public class Application {
                     context.put("ACTIVATION_CODE", cmd.getOptionValue("a"));
                     context.put("PASSWORD", cmd.getOptionValue("p"));
                     context.put("ACTIVATION_NAME", ConfigurationUtils.getApplicationName(clientConfigObject));
-                    context.put("APPLICATION_ID", ConfigurationUtils.getApplicationKey(clientConfigObject));
+                    context.put("APPLICATION_KEY", ConfigurationUtils.getApplicationKey(clientConfigObject));
                     context.put("APPLICATION_SECRET", ConfigurationUtils.getApplicationSecret(clientConfigObject));
 
                     PrepareActivationStep.execute(context);
@@ -200,7 +200,7 @@ public class Application {
                     context.put("URI_STRING", uriString);
                     context.put("STATUS_OBJECT", resultStatusObject);
                     context.put("STATUS_FILENAME", statusFileName);
-                    context.put("APPLICATION_ID", ConfigurationUtils.getApplicationKey(clientConfigObject));
+                    context.put("APPLICATION_KEY", ConfigurationUtils.getApplicationKey(clientConfigObject));
                     context.put("APPLICATION_SECRET", ConfigurationUtils.getApplicationSecret(clientConfigObject));
                     context.put("PASSWORD", cmd.getOptionValue("p"));
 
@@ -215,7 +215,7 @@ public class Application {
                     context.put("URI_STRING", uriString);
                     context.put("STATUS_OBJECT", resultStatusObject);
                     context.put("STATUS_FILENAME", statusFileName);
-                    context.put("APPLICATION_ID", ConfigurationUtils.getApplicationKey(clientConfigObject));
+                    context.put("APPLICATION_KEY", ConfigurationUtils.getApplicationKey(clientConfigObject));
                     context.put("APPLICATION_SECRET", ConfigurationUtils.getApplicationSecret(clientConfigObject));
                     context.put("HTTP_METHOD", cmd.getOptionValue("t"));
                     context.put("ENDPOINT", cmd.getOptionValue("e"));
@@ -234,7 +234,7 @@ public class Application {
                     context.put("URI_STRING", uriString);
                     context.put("STATUS_OBJECT", resultStatusObject);
                     context.put("STATUS_FILENAME", statusFileName);
-                    context.put("APPLICATION_ID", ConfigurationUtils.getApplicationKey(clientConfigObject));
+                    context.put("APPLICATION_KEY", ConfigurationUtils.getApplicationKey(clientConfigObject));
                     context.put("APPLICATION_SECRET", ConfigurationUtils.getApplicationSecret(clientConfigObject));
                     context.put("SIGNATURE_TYPE", cmd.getOptionValue("l"));
                     context.put("PASSWORD", cmd.getOptionValue("p"));

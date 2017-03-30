@@ -76,7 +76,7 @@ public class VerifySignatureStep {
         JSONObject resultStatusObject = (JSONObject) context.get("STATUS_OBJECT");
         String uri = (String) context.get("URI_STRING");
         String statusFileName = (String) context.get("STATUS_FILENAME");
-        String applicationId = (String) context.get("APPLICATION_ID");
+        String applicationKey = (String) context.get("APPLICATION_KEY");
         String applicationSecret = (String) context.get("APPLICATION_SECRET");
         String httpMethod = ((String) context.get("HTTP_METHOD")).toUpperCase();
         String endpoint = (String) context.get("ENDPOINT");
@@ -148,7 +148,7 @@ public class VerifySignatureStep {
         // Compute the current PowerAuth 2.0 signature for possession and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString(httpMethod.toUpperCase(), endpoint, pa_nonce, dataFileBytes) + "&" + applicationSecret;
         String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(signatureType, signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), counter);
-        String httpAuhtorizationHeader = PowerAuthHttpHeader.getPowerAuthSignatureHTTPHeader(activationId, applicationId, BaseEncoding.base64().encode(pa_nonce), PowerAuthSignatureTypes.getEnumFromString(signatureType).toString(), pa_signature, "2.0");
+        String httpAuhtorizationHeader = PowerAuthHttpHeader.getPowerAuthSignatureHTTPHeader(activationId, applicationKey, BaseEncoding.base64().encode(pa_nonce), PowerAuthSignatureTypes.getEnumFromString(signatureType).toString(), pa_signature, "2.0");
 
         // Increment the counter
         counter += 1;

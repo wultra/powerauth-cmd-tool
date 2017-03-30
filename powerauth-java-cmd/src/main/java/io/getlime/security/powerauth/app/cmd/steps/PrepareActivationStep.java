@@ -76,7 +76,7 @@ public class PrepareActivationStep {
         // Read properties from "context"
         StepLogger stepLogger = (StepLogger) context.get("STEP_LOGGER");
         String activationName = (String) context.get("ACTIVATION_NAME");
-        String applicationId = (String) context.get("APPLICATION_ID");
+        String applicationKey = (String) context.get("APPLICATION_KEY");
         String applicationSecret = (String) context.get("APPLICATION_SECRET");
         String uriString = (String) context.get("URI_STRING");
         PublicKey masterPublicKey = (PublicKey) context.get("MASTER_PUBLIC_KEY");
@@ -135,7 +135,7 @@ public class PrepareActivationStep {
                 activationIdShort,
                 nonceDeviceBytes,
                 cDevicePublicKeyBytes,
-                BaseEncoding.base64().decode(applicationId),
+                BaseEncoding.base64().decode(applicationKey),
                 BaseEncoding.base64().decode(applicationSecret)
         );
         byte[] ephemeralPublicKeyBytes = keyConversion.convertPublicKeyToBytes(clientEphemeralKeyPair.getPublic());
@@ -143,7 +143,7 @@ public class PrepareActivationStep {
         // Prepare the server request
         ActivationCreateRequest requestObject = new ActivationCreateRequest();
         requestObject.setActivationIdShort(activationIdShort);
-        requestObject.setApplicationKey(applicationId);
+        requestObject.setApplicationKey(applicationKey);
         requestObject.setActivationName(activationName);
         requestObject.setActivationNonce(BaseEncoding.base64().encode(nonceDeviceBytes));
         requestObject.setEphemeralPublicKey(BaseEncoding.base64().encode(ephemeralPublicKeyBytes));
