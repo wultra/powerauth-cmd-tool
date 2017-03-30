@@ -192,15 +192,11 @@ public class VerifySignatureStep {
                 stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
 
                 // Print the results
-                Map<String, Object> objectMap = new HashMap<>();
-                objectMap.put("activationId", activationId);
-                objectMap.put("responseHeaders", response.getHeaders());
-                objectMap.put("responseBody", responseWrapper);
                 stepLogger.writeItem(
                         "Signature verified",
                         "Activation signature was verified successfully",
                         "OK",
-                        objectMap
+                        null
 
                 );
 
