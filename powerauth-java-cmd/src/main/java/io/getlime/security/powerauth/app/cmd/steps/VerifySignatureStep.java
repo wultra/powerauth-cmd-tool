@@ -15,9 +15,16 @@
  */
 package io.getlime.security.powerauth.app.cmd.steps;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
+import com.mashape.unirest.http.HttpResponse;
+import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
+import io.getlime.security.powerauth.app.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.app.cmd.util.EncryptedStorageUtil;
+import io.getlime.security.powerauth.app.cmd.util.HttpUtil;
+import io.getlime.security.powerauth.app.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
@@ -27,16 +34,10 @@ import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthHttpHeader;
 import io.getlime.security.powerauth.http.PowerAuthRequestCanonizationUtils;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
+import io.getlime.security.powerauth.rest.api.model.base.PowerAuthApiResponse;
+import io.getlime.security.powerauth.rest.api.model.response.ActivationCreateResponse;
+import org.apache.commons.io.IOUtils;
 import org.json.simple.JSONObject;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.RequestEntity;
-import org.springframework.http.ResponseEntity;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.RestTemplate;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
@@ -44,6 +45,7 @@ import java.io.FileWriter;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -70,22 +72,24 @@ public class VerifySignatureStep {
     public static JSONObject execute(Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
-        String uriString = (String) context.get("URI_STRING");
+        StepLogger stepLogger = (StepLogger) context.get("STEP_LOGGER");
         JSONObject resultStatusObject = (JSONObject) context.get("STATUS_OBJECT");
+        String uri = (String) context.get("URI_STRING");
         String statusFileName = (String) context.get("STATUS_FILENAME");
         String applicationId = (String) context.get("APPLICATION_ID");
         String applicationSecret = (String) context.get("APPLICATION_SECRET");
-        String httpMethodString = ((String) context.get("HTTP_METHOD")).toUpperCase();
+        String httpMethod = ((String) context.get("HTTP_METHOD")).toUpperCase();
         String endpoint = (String) context.get("ENDPOINT");
         String signatureType = (String) context.get("SIGNATURE_TYPE");
         String dataFileName = (String) context.get("DATA_FILE_NAME");
         String passwordProvided = (String) context.get("PASSWORD");
 
-        System.out.println("### PowerAuth 2.0 Client Signature Verification");
-        System.out.println();
-
-        // Prepare the activation URI
-        URI uri = new URI(uriString);
+        stepLogger.writeItem(
+                "Signature Validation Started",
+                null,
+                "OK",
+                null
+        );
 
         // Get data from status
         String activationId = (String) resultStatusObject.get("activationId");
@@ -96,7 +100,7 @@ public class VerifySignatureStep {
         byte[] signatureKnowledgeKeyEncryptedBytes = BaseEncoding.base64().decode((String) resultStatusObject.get("signatureKnowledgeKeyEncrypted"));
 
         // Ask for the password to unlock knowledge factor key
-        char[] password = null;
+        char[] password;
         if (passwordProvided == null) {
             Console console = System.console();
             password = console.readPassword("Enter your password to unlock the knowledge related key: ");
@@ -112,38 +116,43 @@ public class VerifySignatureStep {
         // Generate nonce
         byte[] pa_nonce = keyGenerator.generateRandomBytes(16);
 
-        // Parse HTTP method
-        HttpMethod httpMethod = HttpMethod.valueOf(httpMethodString);
-
         // Construct the signature base string data part based on HTTP method (GET requires different code).
         byte[] dataFileBytes = null;
-        if (HttpMethod.GET.equals(httpMethod)) {
-            String query = uri.getRawQuery();
+        if ("GET".equals(httpMethod.toUpperCase())) {
+            String query = new URI(uri).getRawQuery();
             String canonizedQuery = PowerAuthRequestCanonizationUtils.canonizeGetParameters(query);
             if (canonizedQuery != null) {
                 dataFileBytes = canonizedQuery.getBytes("UTF-8");
             } else {
-                System.out.println("[WARN] No GET query parameters found!");
-                System.out.println();
+                stepLogger.writeItem(
+                        "Empty data",
+                        "No GET query parameters found in provided URL, signature will contain no data",
+                        "WARNING",
+                        null
+                );
             }
         } else {
             // Read data input file
             if (dataFileName != null && Files.exists(Paths.get(dataFileName))) {
                 dataFileBytes = Files.readAllBytes(Paths.get(dataFileName));
             } else {
-                System.out.println("[WARN] Data file was not found!");
-                System.out.println();
+                stepLogger.writeItem(
+                        "Empty data",
+                        "Data file was not found, signature will contain no data",
+                        "WARNING",
+                        null
+                );
             }
         }
 
         // Compute the current PowerAuth 2.0 signature for possession and knowledge factor
-        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString(httpMethod.name().toUpperCase(), endpoint, pa_nonce, dataFileBytes) + "&" + applicationSecret;
+        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString(httpMethod.toUpperCase(), endpoint, pa_nonce, dataFileBytes) + "&" + applicationSecret;
         String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(signatureType, signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), counter);
         String httpAuhtorizationHeader = PowerAuthHttpHeader.getPowerAuthSignatureHTTPHeader(activationId, applicationId, BaseEncoding.base64().encode(pa_nonce), PowerAuthSignatureTypes.getEnumFromString(signatureType).toString(), pa_signature, "2.0");
 
         // Increment the counter
         counter += 1;
-        resultStatusObject.put("counter", new Long(counter));
+        resultStatusObject.put("counter", counter);
 
         // Store the activation status (updated counter)
         String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(resultStatusObject);
@@ -151,63 +160,66 @@ public class VerifySignatureStep {
             file.write(formatted);
         }
 
-        // Prepare HTTP headers
-        MultiValueMap<String, String> headers = new HttpHeaders();
-        headers.add(PowerAuthHttpHeader.HEADER_NAME, httpAuhtorizationHeader);
-
-        RequestEntity<byte[]> request = new RequestEntity<byte[]>(dataFileBytes, headers, httpMethod, uri);
-
-        RestTemplate template = new RestTemplate();
-
         // Call the server with activation data
-        System.out.println("Calling PowerAuth 2.0 Standard RESTful API at " + uriString + " ...");
-        System.out.println("Request headers: " + request.getHeaders().toString());
-        System.out.println("Request method: " + httpMethod.toString());
-        if (dataFileBytes != null) {
-            System.out.println("Request body: " + new String(dataFileBytes, "UTF-8"));
-        }
-        System.out.println();
         try {
-            ResponseEntity<Map<String, Object>> response = template.exchange(request, new ParameterizedTypeReference<Map<String, Object>>() {
-            });
-            System.out.println("Done.");
-            System.out.println();
 
-            // Print the results
-            System.out.println("Activation ID: " + activationId);
-            System.out.println();
-            System.out.println("Response received");
-            System.out.println("Response code: " + response.getStatusCode());
-            System.out.println("Response headers: " + response.getHeaders().toString());
-            System.out.println("Response body: " + response.getBody());
-            System.out.println();
-            System.out.println("Signature verification complete.");
-            System.out.println("### Done.");
-            System.out.println();
-            return resultStatusObject;
-        } catch (HttpClientErrorException exception) {
-            String responseString = exception.getResponseBodyAsString();
-            try {
-                Map<String, Object> errorMap = mapper.readValue(responseString, Map.class);
-                System.out.println(((Map<String, Object>) errorMap.get("error")).get("message"));
-            } catch (Exception e) {
-                System.out.println("Service error - HTTP " + exception.getStatusCode().toString() + ": " + exception.getStatusText());
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Accept", "application/json");
+            headers.put("Content-Type", "application/json");
+            headers.put(PowerAuthHttpHeader.HEADER_NAME, httpAuhtorizationHeader);
+
+            stepLogger.writeServerCall(uri, httpMethod.toUpperCase(), new String(dataFileBytes, "UTF-8"), headers);
+
+            HttpResponse response;
+            if ("GET".equals(httpMethod)) {
+                response = Unirest.get(uri)
+                        .headers(headers)
+                        .asString();
+            } else {
+                response = Unirest.post(uri)
+                        .headers(headers)
+                        .body(dataFileBytes)
+                        .asString();
             }
-            System.out.println();
-            System.out.println("### Failed.");
-            System.out.println();
-            System.exit(1);
-        } catch (ResourceAccessException exception) {
-            System.out.println("Connection error - connection refused");
-            System.out.println();
-            System.out.println("### Failed.");
-            System.out.println();
+
+            TypeReference<Map<String, Object>> typeReference = new TypeReference<Map<String, Object>>() {};
+            Map<String, Object> responseWrapper = RestClientConfiguration
+                    .defaultMapper()
+                    .readValue(response.getRawBody(), typeReference);
+
+            if (response.getStatus() == 200) {
+
+                stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+
+                // Print the results
+                Map<String, Object> objectMap = new HashMap<>();
+                objectMap.put("activationId", activationId);
+                objectMap.put("responseHeaders", response.getHeaders());
+                objectMap.put("responseBody", responseWrapper);
+                stepLogger.writeItem(
+                        "Signature verified",
+                        "Activation signature was verified successfully",
+                        "OK",
+                        objectMap
+
+                );
+
+                stepLogger.writeDoneOK();
+                return resultStatusObject;
+            } else {
+                stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                stepLogger.writeDoneFailed();
+                System.exit(1);
+            }
+
+
+        } catch (UnirestException exception) {
+            stepLogger.writeServerCallConnectionError(exception);
+            stepLogger.writeDoneFailed();
             System.exit(1);
         } catch (Exception exception) {
-            System.out.println("Unknown error - " + exception.getLocalizedMessage());
-            System.out.println();
-            System.out.println("### Failed.");
-            System.out.println();
+            stepLogger.writeError(exception);
+            stepLogger.writeDoneFailed();
             System.exit(1);
         }
         return null;

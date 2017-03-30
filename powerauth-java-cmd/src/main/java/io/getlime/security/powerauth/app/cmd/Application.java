@@ -15,17 +15,16 @@
  */
 package io.getlime.security.powerauth.app.cmd;
 
+import io.getlime.security.powerauth.app.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.app.cmd.steps.*;
 import io.getlime.security.powerauth.app.cmd.util.ConfigurationUtils;
+import io.getlime.security.powerauth.app.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtilFactory;
 import org.apache.commons.cli.*;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import javax.net.ssl.*;
 import java.nio.file.Files;
@@ -42,27 +41,26 @@ import java.util.Map;
  * @author Petr Dvorak
  *
  */
-@SpringBootApplication
-public class Application implements CommandLineRunner {
-
-    private JSONObject clientConfigObject = null;
+public class Application {
 
     /**
      * Application main
      * @param args Arguments, use --help to print expected arguments
      */
     public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
-    }
 
-    @Override
-    public void run(String... args) throws Exception {
+        StepLogger stepLogger = new StepLogger(System.out);
 
         try {
+
+            JSONObject clientConfigObject = null;
 
             // Add Bouncy Castle Security Provider
             Security.addProvider(new BouncyCastleProvider());
             PowerAuthConfiguration.INSTANCE.setKeyConvertor(CryptoProviderUtilFactory.getCryptoProviderUtils());
+
+            // Configure REST client
+            RestClientConfiguration.configure();
 
             // Options definition
             Options options = new Options();
@@ -90,6 +88,8 @@ public class Application implements CommandLineRunner {
                 return;
             }
 
+            stepLogger.start();
+
             // Allow invalid SSL certificates
             if (cmd.hasOption("i")) {
                 HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
@@ -116,6 +116,7 @@ public class Application implements CommandLineRunner {
                     sc.init(null, trustAllCerts, new java.security.SecureRandom());
                     HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
                 } catch (Exception e) {
+                    //
                 }
             }
 
@@ -131,25 +132,29 @@ public class Application implements CommandLineRunner {
                 try {
                     clientConfigObject = (JSONObject) JSONValue.parse(new String(configFileBytes));
                 } catch (Exception e) {
-                    System.out.println("Config file must be in a correct JSON format");
-                    System.out.println();
-                    System.out.println("### Failed.");
-                    System.out.println();
+                    stepLogger.writeItem(
+                            "Invalid config file",
+                            "Config file must be in a correct JSON format?",
+                            "ERROR",
+                            e
+                    );
                     System.exit(1);
                 }
             } else {
-                System.out.println("Unable to read client config file");
-                System.out.println();
-                System.out.println("### Failed.");
-                System.out.println();
+                stepLogger.writeItem(
+                        "Invalid config file",
+                        "Unable to read client config file - did you specify the correct path?",
+                        "ERROR",
+                        null
+                );
                 System.exit(1);
             }
 
             // Read master public key
-            PublicKey masterPublicKey = ConfigurationUtils.getMasterKey(clientConfigObject);
+            PublicKey masterPublicKey = ConfigurationUtils.getMasterKey(clientConfigObject, stepLogger);
 
             // Read current activation state from the activation state file or create an empty state
-            JSONObject resultStatusObject = null;
+            JSONObject resultStatusObject;
             if (Files.exists(Paths.get(statusFileName))) {
                 byte[] statusFileBytes = Files.readAllBytes(Paths.get(statusFileName));
                 resultStatusObject = (JSONObject) JSONValue.parse(new String(statusFileBytes));
@@ -158,81 +163,101 @@ public class Application implements CommandLineRunner {
             }
 
             // Execute the code for given methods
-            if (method.equals("prepare")) {
+            switch (method) {
+                case "prepare": {
 
-                Map<String, Object> context = new HashMap<>();
-                context.put("URI_STRING", uriString);
-                context.put("MASTER_PUBLIC_KEY", masterPublicKey);
-                context.put("STATUS_OBJECT", resultStatusObject);
-                context.put("STATUS_FILENAME", statusFileName);
-                context.put("ACTIVATION_CODE", cmd.getOptionValue("a"));
-                context.put("PASSWORD", cmd.getOptionValue("p"));
-                context.put("ACTIVATION_NAME", ConfigurationUtils.getApplicationName(clientConfigObject));
-                context.put("APPLICATION_ID", ConfigurationUtils.getApplicationKey(clientConfigObject));
-                context.put("APPLICATION_SECRET", ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    Map<String, Object> context = new HashMap<>();
+                    context.put("STEP_LOGGER", stepLogger);
+                    context.put("URI_STRING", uriString);
+                    context.put("MASTER_PUBLIC_KEY", masterPublicKey);
+                    context.put("STATUS_OBJECT", resultStatusObject);
+                    context.put("STATUS_FILENAME", statusFileName);
+                    context.put("ACTIVATION_CODE", cmd.getOptionValue("a"));
+                    context.put("PASSWORD", cmd.getOptionValue("p"));
+                    context.put("ACTIVATION_NAME", ConfigurationUtils.getApplicationName(clientConfigObject));
+                    context.put("APPLICATION_ID", ConfigurationUtils.getApplicationKey(clientConfigObject));
+                    context.put("APPLICATION_SECRET", ConfigurationUtils.getApplicationSecret(clientConfigObject));
 
-                PrepareActivationStep.execute(context);
+                    PrepareActivationStep.execute(context);
 
-            } else if (method.equals("status")) {
+                    break;
+                }
+                case "status": {
 
-                Map<String, Object> context = new HashMap<>();
-                context.put("URI_STRING", uriString);
-                context.put("STATUS_OBJECT", resultStatusObject);
+                    Map<String, Object> context = new HashMap<>();
+                    context.put("STEP_LOGGER", stepLogger);
+                    context.put("URI_STRING", uriString);
+                    context.put("STATUS_OBJECT", resultStatusObject);
 
-                GetStatusStep.execute(context);
+                    GetStatusStep.execute(context);
 
-            } else if (method.equals("remove")) {
+                    break;
+                }
+                case "remove": {
 
-                Map<String, Object> context = new HashMap<>();
-                context.put("URI_STRING", uriString);
-                context.put("STATUS_OBJECT", resultStatusObject);
-                context.put("STATUS_FILENAME", statusFileName);
-                context.put("APPLICATION_ID", ConfigurationUtils.getApplicationKey(clientConfigObject));
-                context.put("APPLICATION_SECRET", ConfigurationUtils.getApplicationSecret(clientConfigObject));
-                context.put("PASSWORD", cmd.getOptionValue("p"));
+                    Map<String, Object> context = new HashMap<>();
+                    context.put("STEP_LOGGER", stepLogger);
+                    context.put("URI_STRING", uriString);
+                    context.put("STATUS_OBJECT", resultStatusObject);
+                    context.put("STATUS_FILENAME", statusFileName);
+                    context.put("APPLICATION_ID", ConfigurationUtils.getApplicationKey(clientConfigObject));
+                    context.put("APPLICATION_SECRET", ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    context.put("PASSWORD", cmd.getOptionValue("p"));
 
-                RemoveStep.execute(context);
+                    RemoveStep.execute(context);
 
-            } else if (method.equals("sign")) {
+                    break;
+                }
+                case "sign": {
 
-                Map<String, Object> context = new HashMap<>();
-                context.put("URI_STRING", uriString);
-                context.put("STATUS_OBJECT", resultStatusObject);
-                context.put("STATUS_FILENAME", statusFileName);
-                context.put("APPLICATION_ID", ConfigurationUtils.getApplicationKey(clientConfigObject));
-                context.put("APPLICATION_SECRET", ConfigurationUtils.getApplicationSecret(clientConfigObject));
-                context.put("HTTP_METHOD", cmd.getOptionValue("t"));
-                context.put("ENDPOINT", cmd.getOptionValue("e"));
-                context.put("SIGNATURE_TYPE", cmd.getOptionValue("l"));
-                context.put("DATA_FILE_NAME", cmd.getOptionValue("d"));
-                context.put("PASSWORD", cmd.getOptionValue("p"));
+                    Map<String, Object> context = new HashMap<>();
+                    context.put("STEP_LOGGER", stepLogger);
+                    context.put("URI_STRING", uriString);
+                    context.put("STATUS_OBJECT", resultStatusObject);
+                    context.put("STATUS_FILENAME", statusFileName);
+                    context.put("APPLICATION_ID", ConfigurationUtils.getApplicationKey(clientConfigObject));
+                    context.put("APPLICATION_SECRET", ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    context.put("HTTP_METHOD", cmd.getOptionValue("t"));
+                    context.put("ENDPOINT", cmd.getOptionValue("e"));
+                    context.put("SIGNATURE_TYPE", cmd.getOptionValue("l"));
+                    context.put("DATA_FILE_NAME", cmd.getOptionValue("d"));
+                    context.put("PASSWORD", cmd.getOptionValue("p"));
 
-                VerifySignatureStep.execute(context);
+                    VerifySignatureStep.execute(context);
 
-            } else if (method.equals("unlock")) {
+                    break;
+                }
+                case "unlock": {
 
-                Map<String, Object> context = new HashMap<>();
-                context.put("URI_STRING", uriString);
-                context.put("STATUS_OBJECT", resultStatusObject);
-                context.put("STATUS_FILENAME", statusFileName);
-                context.put("APPLICATION_ID", ConfigurationUtils.getApplicationKey(clientConfigObject));
-                context.put("APPLICATION_SECRET", ConfigurationUtils.getApplicationSecret(clientConfigObject));
-                context.put("SIGNATURE_TYPE", cmd.getOptionValue("l"));
-                context.put("PASSWORD", cmd.getOptionValue("p"));
+                    Map<String, Object> context = new HashMap<>();
+                    context.put("STEP_LOGGER", stepLogger);
+                    context.put("URI_STRING", uriString);
+                    context.put("STATUS_OBJECT", resultStatusObject);
+                    context.put("STATUS_FILENAME", statusFileName);
+                    context.put("APPLICATION_ID", ConfigurationUtils.getApplicationKey(clientConfigObject));
+                    context.put("APPLICATION_SECRET", ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    context.put("SIGNATURE_TYPE", cmd.getOptionValue("l"));
+                    context.put("PASSWORD", cmd.getOptionValue("p"));
 
-                VaultUnlockStep.execute(context);
+                    VaultUnlockStep.execute(context);
 
-            } else {
-                HelpFormatter formatter = new HelpFormatter();
-                formatter.printHelp("java -jar powerauth-java-cmd.jar", options);
-                return;
+                    break;
+                }
+                default:
+                    HelpFormatter formatter = new HelpFormatter();
+                    formatter.printHelp("java -jar powerauth-java-cmd.jar", options);
+                    break;
             }
 
         } catch (Exception e) {
-            System.out.println("Unknown error - " + e.getLocalizedMessage());
-            System.out.println();
-            System.out.println("### Failed.");
-            System.out.println();
+            stepLogger.writeItem(
+                    "Unknown error occurred",
+                    e.getMessage(),
+                    "ERROR",
+                    e
+            );
+        } finally {
+            stepLogger.close();
         }
 
     }

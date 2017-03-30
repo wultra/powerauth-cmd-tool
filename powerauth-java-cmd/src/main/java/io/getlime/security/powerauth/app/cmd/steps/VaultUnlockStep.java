@@ -15,10 +15,16 @@
  */
 package io.getlime.security.powerauth.app.cmd.steps;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
+import com.mashape.unirest.http.HttpResponse;
+import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
+import io.getlime.security.powerauth.app.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.app.cmd.util.EncryptedStorageUtil;
-import io.getlime.security.powerauth.app.cmd.util.RestTemplateFactory;
+import io.getlime.security.powerauth.app.cmd.util.HttpUtil;
+import io.getlime.security.powerauth.app.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
 import io.getlime.security.powerauth.crypto.client.vault.PowerAuthClientVault;
@@ -30,23 +36,15 @@ import io.getlime.security.powerauth.http.PowerAuthHttpHeader;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.base.PowerAuthApiResponse;
 import io.getlime.security.powerauth.rest.api.model.response.VaultUnlockResponse;
+import org.apache.commons.io.IOUtils;
 import org.json.simple.JSONObject;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.RequestEntity;
-import org.springframework.http.ResponseEntity;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.RestTemplate;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
 import java.io.FileWriter;
-import java.net.URI;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -73,6 +71,7 @@ public class VaultUnlockStep {
     public static JSONObject execute(Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
+        StepLogger stepLogger = (StepLogger) context.get("STEP_LOGGER");
         String uriString = (String) context.get("URI_STRING");
         JSONObject resultStatusObject = (JSONObject) context.get("STATUS_OBJECT");
         String statusFileName = (String) context.get("STATUS_FILENAME");
@@ -81,12 +80,15 @@ public class VaultUnlockStep {
         String signatureType = (String) context.get("SIGNATURE_TYPE");
         String passwordProvided = (String) context.get("PASSWORD");
 
-        System.out.println("### PowerAuth 2.0 Client Vault Unlock");
-        System.out.println();
+        stepLogger.writeItem(
+                "Vault Unlock Started",
+                null,
+                "OK",
+                null
+        );
 
         // Prepare the activation URI
-        String fullURIString = uriString + "/pa/vault/unlock";
-        URI uri = new URI(fullURIString);
+        String uri = uriString + "/pa/vault/unlock";
 
         // Get data from status
         String activationId = (String) resultStatusObject.get("activationId");
@@ -100,7 +102,7 @@ public class VaultUnlockStep {
         byte[] serverPublicKeyBytes = BaseEncoding.base64().decode((String) resultStatusObject.get("serverPublicKey"));
 
         // Ask for the password to unlock knowledge factor key
-        char[] password = null;
+        char[] password;
         if (passwordProvided == null) {
             Console console = System.console();
             password = console.readPassword("Enter your password to unlock the knowledge related key: ");
@@ -126,7 +128,7 @@ public class VaultUnlockStep {
 
         // Increment the counter
         counter += 1;
-        resultStatusObject.put("counter", new Long(counter));
+        resultStatusObject.put("counter", counter);
 
         // Store the activation status (updated counter)
         String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(resultStatusObject);
@@ -134,72 +136,114 @@ public class VaultUnlockStep {
             file.write(formatted);
         }
 
-        // Prepare HTTP headers
-        MultiValueMap<String, String> headers = new HttpHeaders();
-        headers.add(PowerAuthHttpHeader.HEADER_NAME, httpAuhtorizationHeader);
-
-        RequestEntity<Void> request = new RequestEntity<>(null, headers, HttpMethod.POST, uri);
-
-        RestTemplate template = RestTemplateFactory.defaultRestTemplate();
-
         // Call the server with activation data
-        System.out.println("Calling PowerAuth 2.0 Standard RESTful API at " + fullURIString + " ...");
-        System.out.println("Request headers: " + request.getHeaders().toString());
-        System.out.println();
         try {
-            ResponseEntity<PowerAuthApiResponse<VaultUnlockResponse>> response = template.exchange(request, new ParameterizedTypeReference<PowerAuthApiResponse<VaultUnlockResponse>>() {
-            });
-            System.out.println("Done.");
-            System.out.println();
 
-            String activationIdServer = response.getBody().getResponseObject().getActivationId();
-            byte[] encryptedVaultEncryptionKey = BaseEncoding.base64().decode(response.getBody().getResponseObject().getEncryptedVaultEncryptionKey());
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Accept", "application/json");
+            headers.put("Content-Type", "application/json");
+            headers.put(PowerAuthHttpHeader.HEADER_NAME, httpAuhtorizationHeader);
 
-            PowerAuthClientVault vault = new PowerAuthClientVault();
-            SecretKey vaultEncryptionKey = vault.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey, counter);
-            PrivateKey devicePrivateKey = vault.decryptDevicePrivateKey(encryptedDevicePrivateKeyBytes, vaultEncryptionKey);
-            PublicKey serverPublicKey = keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
+            stepLogger.writeServerCall(uri, "POST", null, headers);
 
-            SecretKey masterSecretKey = keyFactory.generateClientMasterSecretKey(devicePrivateKey, serverPublicKey);
-            SecretKey transportKeyDeduced = keyFactory.generateServerTransportKey(masterSecretKey);
-            boolean equal = transportKeyDeduced.equals(transportMasterKey);
+            HttpResponse response = Unirest.post(uri)
+                    .headers(headers)
+                    .asString();
 
-            // Print the results
-            System.out.println("Activation ID: " + activationId);
-            System.out.println("Server activation ID: " + activationIdServer);
-            System.out.println("Encrypted vault encryption key: " + BaseEncoding.base64().encode(encryptedVaultEncryptionKey));
-            System.out.println("Transport master key: " + BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(transportMasterKey)));
-            System.out.println("Vault encryption key: " + BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(vaultEncryptionKey)));
-            System.out.println("Device Private Key: " + BaseEncoding.base64().encode(keyConversion.convertPrivateKeyToBytes(devicePrivateKey)));
-            System.out.println("Result: " + (equal ? "OK" : "Broken"));
-            System.out.println();
-            System.out.println("Vault unlocking complete.");
-            System.out.println("### Done.");
-            System.out.println();
-            return resultStatusObject;
-        } catch (HttpClientErrorException exception) {
-            String responseString = exception.getResponseBodyAsString();
-            try {
-                Map<String, Object> errorMap = mapper.readValue(responseString, Map.class);
-                System.out.println(((Map<String, Object>) errorMap.get("error")).get("message"));
-            } catch (Exception e) {
-                System.out.println("Service error - HTTP " + exception.getStatusCode().toString() + ": " + exception.getStatusText());
+            TypeReference<PowerAuthApiResponse<VaultUnlockResponse>> typeReference = new TypeReference<PowerAuthApiResponse<VaultUnlockResponse>>() {};
+            PowerAuthApiResponse<VaultUnlockResponse> responseWrapper = RestClientConfiguration
+                    .defaultMapper()
+                    .readValue(response.getRawBody(), typeReference);
+
+            if (response.getStatus() == 200) {
+
+                stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+
+                VaultUnlockResponse responseObject = responseWrapper.getResponseObject();
+                byte[] encryptedVaultEncryptionKey = BaseEncoding.base64().decode(responseObject.getEncryptedVaultEncryptionKey());
+
+                PowerAuthClientVault vault = new PowerAuthClientVault();
+                SecretKey vaultEncryptionKey = vault.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey, counter);
+                PrivateKey devicePrivateKey = vault.decryptDevicePrivateKey(encryptedDevicePrivateKeyBytes, vaultEncryptionKey);
+                PublicKey serverPublicKey = keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
+
+                // Increment the counter
+                counter += 1;
+                resultStatusObject.put("counter", counter);
+
+                // Store the activation status (updated counter)
+                formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(resultStatusObject);
+                try (FileWriter file = new FileWriter(statusFileName)) {
+                    file.write(formatted);
+                }
+
+                SecretKey masterSecretKey = keyFactory.generateClientMasterSecretKey(devicePrivateKey, serverPublicKey);
+                SecretKey transportKeyDeduced = keyFactory.generateServerTransportKey(masterSecretKey);
+                boolean equal = transportKeyDeduced.equals(transportMasterKey);
+
+                // Print the results
+                Map<String, Object> objectMap = new HashMap<>();
+                objectMap.put("activationId", activationId);
+                objectMap.put("encryptedVaultEncryptionKey", BaseEncoding.base64().encode(encryptedVaultEncryptionKey));
+                objectMap.put("transportMasterKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(transportMasterKey)));
+                objectMap.put("vaultEncryptionKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(vaultEncryptionKey)));
+                objectMap.put("devicePrivateKey", BaseEncoding.base64().encode(keyConversion.convertPrivateKeyToBytes(devicePrivateKey)));
+                objectMap.put("privateKeyDecryptionSuccessful", (equal ? "true" : "false"));
+                stepLogger.writeItem(
+                        "Vault Unlocked",
+                        "Secure vault was successfully unlocked",
+                        "OK",
+                        objectMap
+                );
+                stepLogger.writeDoneOK();
+                return resultStatusObject;
+            } else {
+
+                // Increment the counter
+                counter += 1;
+                resultStatusObject.put("counter", counter);
+
+                // Store the activation status (updated counter)
+                formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(resultStatusObject);
+                try (FileWriter file = new FileWriter(statusFileName)) {
+                    file.write(formatted);
+                }
+
+                stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                stepLogger.writeDoneFailed();
+                System.exit(1);
             }
-            System.out.println();
-            System.out.println("### Failed.");
-            System.out.println();
-            System.exit(1);
-        } catch (ResourceAccessException exception) {
-            System.out.println("Connection error - connection refused");
-            System.out.println();
-            System.out.println("### Failed.");
-            System.out.println();
+
+
+        } catch (UnirestException exception) {
+
+            // Increment the counter, second time for vault unlock
+            counter += 1;
+            resultStatusObject.put("counter", counter);
+
+            // Store the activation status (updated counter)
+            formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(resultStatusObject);
+            try (FileWriter file = new FileWriter(statusFileName)) {
+                file.write(formatted);
+            }
+
+            stepLogger.writeServerCallConnectionError(exception);
+            stepLogger.writeDoneFailed();
             System.exit(1);
         } catch (Exception exception) {
-            System.out.println("Unknown error - " + exception.getLocalizedMessage());
-            System.out.println();
-            System.out.println("### Failed.");
-            System.out.println();
+
+            // Increment the counter, second time for vault unlock
+            counter += 1;
+            resultStatusObject.put("counter", counter);
+
+            // Store the activation status (updated counter)
+            formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(resultStatusObject);
+            try (FileWriter file = new FileWriter(statusFileName)) {
+                file.write(formatted);
+            }
+
+            stepLogger.writeError(exception);
+            stepLogger.writeDoneFailed();
             System.exit(1);
         }
         return null;

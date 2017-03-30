@@ -16,6 +16,7 @@
 package io.getlime.security.powerauth.app.cmd.util;
 
 import com.google.common.io.BaseEncoding;
+import io.getlime.security.powerauth.app.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import org.json.simple.JSONObject;
 
@@ -78,29 +79,23 @@ public class ConfigurationUtils {
      * @param clientConfigObject Object with configuration.
      * @return Master public key.
      */
-    public static PublicKey getMasterKey(JSONObject clientConfigObject) {
+    public static PublicKey getMasterKey(JSONObject clientConfigObject, StepLogger stepLogger) {
         if (clientConfigObject != null && clientConfigObject.get("masterPublicKey") != null) {
             try {
                 byte[] masterKeyBytes = BaseEncoding.base64().decode((String) clientConfigObject.get("masterPublicKey"));
                 return PowerAuthConfiguration.INSTANCE.getKeyConvertor().convertBytesToPublicKey(masterKeyBytes);
             } catch (IllegalArgumentException e) {
-                System.out.println("Master Public Key must be stored in a valid Base64 encoding");
-                System.out.println();
-                System.out.println("### Failed.");
-                System.out.println();
+                stepLogger.writeError("Invalid Master Server Public Key", "Master Server Public Key must be stored in a valid Base64 encoding", e);
+                stepLogger.writeDoneFailed();
                 System.exit(1);
             } catch (InvalidKeySpecException e) {
-                System.out.println("Master Public Key was stored in an incorrect format");
-                System.out.println();
-                System.out.println("### Failed.");
-                System.out.println();
+                stepLogger.writeError("Invalid Master Server Public Key", "Master Server Public Key was stored in an incorrect format", e);
+                stepLogger.writeDoneFailed();
                 System.exit(1);
             }
         } else {
-            System.out.println("Master Public Key not found in the config file");
-            System.out.println();
-            System.out.println("### Failed.");
-            System.out.println();
+            stepLogger.writeError("Invalid Master Server Public Key", "Master Server Public Key not found in the config file");
+            stepLogger.writeDoneFailed();
             System.exit(1);
         }
         return null;
