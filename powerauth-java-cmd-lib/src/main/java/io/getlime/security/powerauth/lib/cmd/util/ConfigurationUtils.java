@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.getlime.security.powerauth.app.cmd.util;
+package io.getlime.security.powerauth.lib.cmd.util;
 
 import com.google.common.io.BaseEncoding;
-import io.getlime.security.powerauth.app.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import org.json.simple.JSONObject;
 

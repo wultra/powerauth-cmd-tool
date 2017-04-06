@@ -1,4 +1,4 @@
-package io.getlime.security.powerauth.app.cmd.util;
+package io.getlime.security.powerauth.lib.cmd.util;
 
 import com.mashape.unirest.http.Headers;
 

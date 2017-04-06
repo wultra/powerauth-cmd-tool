@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.getlime.security.powerauth.app.cmd.steps;
+package io.getlime.security.powerauth.lib.cmd.steps;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,10 +21,10 @@ import com.google.common.io.BaseEncoding;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
-import io.getlime.security.powerauth.app.cmd.logging.StepLogger;
-import io.getlime.security.powerauth.app.cmd.util.EncryptedStorageUtil;
-import io.getlime.security.powerauth.app.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.app.cmd.util.RestClientConfiguration;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
+import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
+import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
@@ -34,9 +34,6 @@ import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthHttpHeader;
 import io.getlime.security.powerauth.http.PowerAuthRequestCanonizationUtils;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
-import io.getlime.security.powerauth.rest.api.model.base.PowerAuthApiResponse;
-import io.getlime.security.powerauth.rest.api.model.response.ActivationCreateResponse;
-import org.apache.commons.io.IOUtils;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
@@ -54,7 +51,7 @@ import java.util.Map;
  * @author Petr Dvorak
  *
  */
-public class VerifySignatureStep {
+public class VerifySignatureStep implements BaseStep {
 
     private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
@@ -69,10 +66,9 @@ public class VerifySignatureStep {
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public static JSONObject execute(Map<String, Object> context) throws Exception {
+    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
-        StepLogger stepLogger = (StepLogger) context.get("STEP_LOGGER");
         JSONObject resultStatusObject = (JSONObject) context.get("STATUS_OBJECT");
         String uri = (String) context.get("URI_STRING");
         String statusFileName = (String) context.get("STATUS_FILENAME");
@@ -117,13 +113,14 @@ public class VerifySignatureStep {
         byte[] pa_nonce = keyGenerator.generateRandomBytes(16);
 
         // Construct the signature base string data part based on HTTP method (GET requires different code).
-        byte[] dataFileBytes = null;
+        byte[] dataFileBytes;
         if ("GET".equals(httpMethod.toUpperCase())) {
             String query = new URI(uri).getRawQuery();
             String canonizedQuery = PowerAuthRequestCanonizationUtils.canonizeGetParameters(query);
             if (canonizedQuery != null) {
                 dataFileBytes = canonizedQuery.getBytes("UTF-8");
             } else {
+                dataFileBytes = new byte[0];
                 stepLogger.writeItem(
                         "Empty data",
                         "No GET query parameters found in provided URL, signature will contain no data",
@@ -136,6 +133,7 @@ public class VerifySignatureStep {
             if (dataFileName != null && Files.exists(Paths.get(dataFileName))) {
                 dataFileBytes = Files.readAllBytes(Paths.get(dataFileName));
             } else {
+                dataFileBytes = new byte[0];
                 stepLogger.writeItem(
                         "Empty data",
                         "Data file was not found, signature will contain no data",
@@ -205,20 +203,17 @@ public class VerifySignatureStep {
             } else {
                 stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 stepLogger.writeDoneFailed();
-                System.exit(1);
+                return null;
             }
-
-
         } catch (UnirestException exception) {
             stepLogger.writeServerCallConnectionError(exception);
             stepLogger.writeDoneFailed();
-            System.exit(1);
+            return null;
         } catch (Exception exception) {
             stepLogger.writeError(exception);
             stepLogger.writeDoneFailed();
-            System.exit(1);
+            return null;
         }
-        return null;
     }
 
 }

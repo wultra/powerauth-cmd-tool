@@ -16,7 +16,7 @@
 
 package io.getlime.security.powerauth.app.cmd;
 
-import io.getlime.security.powerauth.app.cmd.util.EncryptedStorageUtil;
+import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;

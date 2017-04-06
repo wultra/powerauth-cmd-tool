@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.getlime.security.powerauth.app.cmd.steps;
+package io.getlime.security.powerauth.lib.cmd.steps;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,10 +21,10 @@ import com.google.common.io.BaseEncoding;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
-import io.getlime.security.powerauth.app.cmd.logging.StepLogger;
-import io.getlime.security.powerauth.app.cmd.util.EncryptedStorageUtil;
-import io.getlime.security.powerauth.app.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.app.cmd.util.RestClientConfiguration;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
+import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
+import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.vault.PowerAuthClientVault;
@@ -35,8 +35,6 @@ import io.getlime.security.powerauth.rest.api.model.base.PowerAuthApiRequest;
 import io.getlime.security.powerauth.rest.api.model.base.PowerAuthApiResponse;
 import io.getlime.security.powerauth.rest.api.model.request.ActivationCreateRequest;
 import io.getlime.security.powerauth.rest.api.model.response.ActivationCreateResponse;
-import io.getlime.security.powerauth.rest.api.model.response.ActivationStatusResponse;
-import org.apache.commons.io.IOUtils;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
@@ -55,7 +53,7 @@ import java.util.regex.Pattern;
  * @author Petr Dvorak
  *
  */
-public class PrepareActivationStep {
+public class PrepareActivationStep implements BaseStep {
 
     private static final PowerAuthClientActivation activation = new PowerAuthClientActivation();
     private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
@@ -71,10 +69,9 @@ public class PrepareActivationStep {
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public static JSONObject execute(Map<String, Object> context) throws Exception {
+    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
-        StepLogger stepLogger = (StepLogger) context.get("STEP_LOGGER");
         String activationName = (String) context.get("ACTIVATION_NAME");
         String applicationKey = (String) context.get("APPLICATION_KEY");
         String applicationSecret = (String) context.get("APPLICATION_SECRET");
@@ -253,24 +250,23 @@ public class PrepareActivationStep {
                     String message = "Activation data signature does not match. Either someone tried to spoof your connection, or your device master key is invalid.";
                     stepLogger.writeError(message);
                     stepLogger.writeDoneFailed();
-                    System.exit(1);
+                    return null;
                 }
             } else {
                 stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 stepLogger.writeDoneFailed();
-                System.exit(1);
+                return null;
             }
 
         } catch (UnirestException exception) {
             stepLogger.writeServerCallConnectionError(exception);
             stepLogger.writeDoneFailed();
-            System.exit(1);
+            return null;
         } catch (Exception exception) {
             stepLogger.writeError(exception);
             stepLogger.writeDoneFailed();
-            System.exit(1);
+            return null;
         }
-        return null;
     }
 
 }

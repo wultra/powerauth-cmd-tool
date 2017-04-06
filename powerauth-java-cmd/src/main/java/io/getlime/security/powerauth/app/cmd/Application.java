@@ -15,10 +15,13 @@
  */
 package io.getlime.security.powerauth.app.cmd;
 
-import io.getlime.security.powerauth.app.cmd.logging.StepLogger;
-import io.getlime.security.powerauth.app.cmd.steps.*;
-import io.getlime.security.powerauth.app.cmd.util.ConfigurationUtils;
-import io.getlime.security.powerauth.app.cmd.util.RestClientConfiguration;
+import io.getlime.security.powerauth.app.cmd.exception.ExecutionException;
+import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.steps.*;
+import io.getlime.security.powerauth.lib.cmd.steps.model.*;
+import io.getlime.security.powerauth.lib.cmd.util.ConfigurationUtils;
+import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtilFactory;
 import org.apache.commons.cli.*;
@@ -31,8 +34,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.PublicKey;
 import java.security.Security;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Command-line utility for testing PowerAuth implementation and for verification of
@@ -138,7 +139,7 @@ public class Application {
                             "ERROR",
                             e
                     );
-                    System.exit(1);
+                    throw new ExecutionException();
                 }
             } else {
                 stepLogger.writeItem(
@@ -147,7 +148,7 @@ public class Application {
                         "ERROR",
                         null
                 );
-                System.exit(1);
+                throw new ExecutionException();
             }
 
             // Read master public key
@@ -166,81 +167,90 @@ public class Application {
             switch (method) {
                 case "prepare": {
 
-                    Map<String, Object> context = new HashMap<>();
-                    context.put("STEP_LOGGER", stepLogger);
-                    context.put("URI_STRING", uriString);
-                    context.put("MASTER_PUBLIC_KEY", masterPublicKey);
-                    context.put("STATUS_OBJECT", resultStatusObject);
-                    context.put("STATUS_FILENAME", statusFileName);
-                    context.put("ACTIVATION_CODE", cmd.getOptionValue("a"));
-                    context.put("PASSWORD", cmd.getOptionValue("p"));
-                    context.put("ACTIVATION_NAME", ConfigurationUtils.getApplicationName(clientConfigObject));
-                    context.put("APPLICATION_KEY", ConfigurationUtils.getApplicationKey(clientConfigObject));
-                    context.put("APPLICATION_SECRET", ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    PrepareActivationStepModel model = new PrepareActivationStepModel();
+                    model.setActivationCode(cmd.getOptionValue("a"));
+                    model.setPassword(cmd.getOptionValue("p"));
+                    model.setStatusFileName(statusFileName);
+                    model.setMasterPublicKey(masterPublicKey);
+                    model.setActivationName(ConfigurationUtils.getApplicationName(clientConfigObject));
+                    model.setApplicationKey(ConfigurationUtils.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    model.setUriString(uriString);
+                    model.setResultStatusObject(resultStatusObject);
 
-                    PrepareActivationStep.execute(context);
+                    JSONObject result = new PrepareActivationStep().execute(stepLogger, model.toMap());
+                    if (result == null) {
+                        throw new ExecutionException();
+                    }
 
                     break;
                 }
                 case "status": {
 
-                    Map<String, Object> context = new HashMap<>();
-                    context.put("STEP_LOGGER", stepLogger);
-                    context.put("URI_STRING", uriString);
-                    context.put("STATUS_OBJECT", resultStatusObject);
+                    GetStatusStepModel model = new GetStatusStepModel();
+                    model.setUriString(uriString);
+                    model.setResultStatusObject(resultStatusObject);
 
-                    GetStatusStep.execute(context);
+                    JSONObject result = new GetStatusStep().execute(stepLogger, model.toMap());
+                    if (result == null) {
+                        throw new ExecutionException();
+                    }
 
                     break;
                 }
                 case "remove": {
 
-                    Map<String, Object> context = new HashMap<>();
-                    context.put("STEP_LOGGER", stepLogger);
-                    context.put("URI_STRING", uriString);
-                    context.put("STATUS_OBJECT", resultStatusObject);
-                    context.put("STATUS_FILENAME", statusFileName);
-                    context.put("APPLICATION_KEY", ConfigurationUtils.getApplicationKey(clientConfigObject));
-                    context.put("APPLICATION_SECRET", ConfigurationUtils.getApplicationSecret(clientConfigObject));
-                    context.put("PASSWORD", cmd.getOptionValue("p"));
+                    RemoveStepModel model = new RemoveStepModel();
+                    model.setUriString(uriString);
+                    model.setStatusFileName(statusFileName);
+                    model.setApplicationKey(ConfigurationUtils.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    model.setPassword(cmd.getOptionValue("p"));
+                    model.setResultStatusObject(resultStatusObject);
 
-                    RemoveStep.execute(context);
+                    JSONObject result = new RemoveStep().execute(stepLogger, model.toMap());
+                    if (result == null) {
+                        throw new ExecutionException();
+                    }
 
                     break;
                 }
                 case "sign": {
 
-                    Map<String, Object> context = new HashMap<>();
-                    context.put("STEP_LOGGER", stepLogger);
-                    context.put("URI_STRING", uriString);
-                    context.put("STATUS_OBJECT", resultStatusObject);
-                    context.put("STATUS_FILENAME", statusFileName);
-                    context.put("APPLICATION_KEY", ConfigurationUtils.getApplicationKey(clientConfigObject));
-                    context.put("APPLICATION_SECRET", ConfigurationUtils.getApplicationSecret(clientConfigObject));
-                    context.put("HTTP_METHOD", cmd.getOptionValue("t"));
-                    context.put("ENDPOINT", cmd.getOptionValue("e"));
-                    context.put("SIGNATURE_TYPE", cmd.getOptionValue("l"));
-                    context.put("DATA_FILE_NAME", cmd.getOptionValue("d"));
-                    context.put("PASSWORD", cmd.getOptionValue("p"));
+                    VerifySignatureStepModel model = new VerifySignatureStepModel();
+                    model.setUriString(uriString);
+                    model.setStatusFileName(statusFileName);
+                    model.setResultStatusObject(resultStatusObject);
+                    model.setApplicationKey(ConfigurationUtils.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    model.setHttpMethod(cmd.getOptionValue("t"));
+                    model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
+                    model.setDataDileName(cmd.getOptionValue("d"));
+                    model.setResourceId(cmd.getOptionValue("e"));
+                    model.setPassword(cmd.getOptionValue("p"));
 
-                    VerifySignatureStep.execute(context);
+                    JSONObject result = new VerifySignatureStep().execute(stepLogger, model.toMap());
+                    if (result == null) {
+                        throw new ExecutionException();
+                    }
 
                     break;
                 }
                 case "unlock": {
 
-                    Map<String, Object> context = new HashMap<>();
-                    context.put("STEP_LOGGER", stepLogger);
-                    context.put("URI_STRING", uriString);
-                    context.put("STATUS_OBJECT", resultStatusObject);
-                    context.put("STATUS_FILENAME", statusFileName);
-                    context.put("APPLICATION_KEY", ConfigurationUtils.getApplicationKey(clientConfigObject));
-                    context.put("APPLICATION_SECRET", ConfigurationUtils.getApplicationSecret(clientConfigObject));
-                    context.put("SIGNATURE_TYPE", cmd.getOptionValue("l"));
-                    context.put("PASSWORD", cmd.getOptionValue("p"));
+                    VaultUnlockStepModel model = new VaultUnlockStepModel();
+                    model.setUriString(uriString);
+                    model.setResultStatusObject(resultStatusObject);
+                    model.setApplicationKey(ConfigurationUtils.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    model.setStatusFileName(statusFileName);
+                    model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
+                    model.setPassword(cmd.getOptionValue("p"));
 
-                    VaultUnlockStep.execute(context);
-
+                    JSONObject result = new VaultUnlockStep().execute(stepLogger, model.toMap());
+                    if (result == null) {
+                        throw new ExecutionException();
+                    }
                     break;
                 }
                 default:
@@ -249,6 +259,8 @@ public class Application {
                     break;
             }
 
+        } catch (ExecutionException e) {
+            // silent, just let drop to "finally" clause...
         } catch (Exception e) {
             stepLogger.writeItem(
                     "Unknown error occurred",

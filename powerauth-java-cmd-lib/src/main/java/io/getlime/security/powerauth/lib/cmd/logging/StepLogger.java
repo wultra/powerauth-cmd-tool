@@ -1,4 +1,4 @@
-package io.getlime.security.powerauth.app.cmd.logging;
+package io.getlime.security.powerauth.lib.cmd.logging;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.util.DefaultIndenter;

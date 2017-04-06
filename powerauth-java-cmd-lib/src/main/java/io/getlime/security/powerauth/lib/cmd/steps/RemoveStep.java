@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.getlime.security.powerauth.app.cmd.steps;
+package io.getlime.security.powerauth.lib.cmd.steps;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,10 +21,10 @@ import com.google.common.io.BaseEncoding;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
-import io.getlime.security.powerauth.app.cmd.logging.StepLogger;
-import io.getlime.security.powerauth.app.cmd.util.EncryptedStorageUtil;
-import io.getlime.security.powerauth.app.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.app.cmd.util.RestClientConfiguration;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
+import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
+import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
@@ -34,8 +34,6 @@ import io.getlime.security.powerauth.http.PowerAuthHttpHeader;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.base.PowerAuthApiResponse;
 import io.getlime.security.powerauth.rest.api.model.response.ActivationRemoveResponse;
-import io.getlime.security.powerauth.rest.api.model.response.ActivationStatusResponse;
-import org.apache.commons.io.IOUtils;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
@@ -51,7 +49,7 @@ import java.util.Map;
  * @author Petr Dvorak
  *
  */
-public class RemoveStep {
+public class RemoveStep implements BaseStep {
 
     private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
@@ -65,10 +63,9 @@ public class RemoveStep {
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public static JSONObject execute(Map<String, Object> context) throws Exception {
+    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
-        StepLogger stepLogger = (StepLogger) context.get("STEP_LOGGER");
         String uriString = (String) context.get("URI_STRING");
         JSONObject resultStatusObject = (JSONObject) context.get("STATUS_OBJECT");
         String statusFileName = (String) context.get("STATUS_FILENAME");
@@ -162,19 +159,17 @@ public class RemoveStep {
             } else {
                 stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 stepLogger.writeDoneFailed();
-                System.exit(1);
+                return null;
             }
-
         } catch (UnirestException exception) {
             stepLogger.writeServerCallConnectionError(exception);
             stepLogger.writeDoneFailed();
-            System.exit(1);
+            return null;
         } catch (Exception exception) {
             stepLogger.writeError(exception);
             stepLogger.writeDoneFailed();
-            System.exit(1);
+            return null;
         }
-        return null;
     }
 
 }
