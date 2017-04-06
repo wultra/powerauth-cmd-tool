@@ -225,7 +225,7 @@ public class Application {
                     model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
                     model.setHttpMethod(cmd.getOptionValue("t"));
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
-                    model.setDataDileName(cmd.getOptionValue("d"));
+                    model.setDataFileName(cmd.getOptionValue("d"));
                     model.setResourceId(cmd.getOptionValue("e"));
                     model.setPassword(cmd.getOptionValue("p"));
 

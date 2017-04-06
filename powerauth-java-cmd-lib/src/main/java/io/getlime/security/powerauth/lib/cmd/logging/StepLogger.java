@@ -12,6 +12,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * Class responsible for logging the steps performed during the processes to the JSON structure.
+ *
  * @author Petr Dvorak, petr@lime-company.eu
  */
 public class StepLogger {
@@ -19,6 +21,10 @@ public class StepLogger {
     private JsonGenerator generator;
     private OutputStream outputStream;
 
+    /**
+     * Create a new logger that outputs to the stream.
+     * @param outputStream Output stream.
+     */
     public StepLogger(OutputStream outputStream) {
         ObjectMapper mapper = new ObjectMapper();
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
@@ -35,6 +41,9 @@ public class StepLogger {
         }
     }
 
+    /**
+     * Flush the logger buffer.
+     */
     private void flush() {
         try {
             generator.flush();
@@ -44,6 +53,13 @@ public class StepLogger {
         }
     }
 
+    /**
+     * Start the object streaming, outputs start of the JSON object:
+     *
+     * // {
+     * //    "steps" : [
+     *
+     */
     public void start() {
         try {
             generator.writeStartObject();
@@ -55,6 +71,13 @@ public class StepLogger {
         }
     }
 
+    /**
+     * Writes a JSON object representing the step of the execution.
+     * @param name Step name.
+     * @param description Step detailed description.
+     * @param status Step status result.
+     * @param object Custom object associated with the step.
+     */
     public void writeItem(String name, String description, String status, Object object) {
         try {
             Map<String, Object> map = new HashMap<>();
@@ -69,6 +92,13 @@ public class StepLogger {
         }
     }
 
+    /**
+     * Write the information about the server call. Uses "writeItem" method under the hood.
+     * @param uri URI that will be called.
+     * @param method HTTP method of the call.
+     * @param requestObject Request object, in case of the POST, PUT, DELETE method.
+     * @param headers HTTP request headers.
+     */
     public void writeServerCall(String uri, String method, Object requestObject, Map<String, ?> headers) {
         Map<String, Object> map = new HashMap<>();
         map.put("url", uri);
@@ -81,6 +111,11 @@ public class StepLogger {
         writeItem(name, desc, status, map);
     }
 
+    /**
+     * Write information about the successful server request. Uses "writeItem" method under the hood.
+     * @param responseObject HTTP response object.
+     * @param headers HTTP response headers.
+     */
     public void writeServerCallOK(Object responseObject, Map<String, ?> headers) {
         String name = "Response 200 - OK";
         String desc = "Endpoint was called successfully";
@@ -91,6 +126,12 @@ public class StepLogger {
         writeItem(name, desc, status, map);
     }
 
+    /**
+     * Write information about the failed server request. Uses "writeItem" method under the hood.
+     * @param statusCode HTTP response status code.
+     * @param responseObject HTTP response object.
+     * @param headers HTTP response headers.
+     */
     public void writeServerCallError(int statusCode, Object responseObject, Map<String, ?> headers) {
         String name = "Response " + statusCode + " - ERROR";
         String desc = "Endpoint was called with an error";
@@ -101,6 +142,13 @@ public class StepLogger {
         writeItem(name, desc, status, map);
     }
 
+    /**
+     * Closes the logger output, writes code to close the array and opened object:
+     *
+     * //     ]
+     * // }
+     *
+     */
     public void close() {
         try {
             generator.writeEndArray();
@@ -112,6 +160,10 @@ public class StepLogger {
         }
     }
 
+    /**
+     * Write error in case of a network issues.
+     * @param e Network exception.
+     */
     public void writeServerCallConnectionError(Exception e) {
         String name = "Connection Error";
         String desc = "Connection refused";
@@ -119,14 +171,28 @@ public class StepLogger {
         writeItem(name, desc, status, e);
     }
 
+    /**
+     * Write error with given error message. Error message is mapped as a step description.
+     * @param errorMessage Error message.
+     */
     public void writeError(String errorMessage) {
         writeError(null, errorMessage, null);
     }
 
+    /**
+     * Write error with given exception information. Exception description is mapped as a step description,
+     * exception is passed as a custom object.
+     * @param exception Exception that should be logged.
+     */
     public void writeError(Exception exception) {
         writeError(null, exception.getMessage(), exception);
     }
 
+    /**
+     * Write error with given error name and error message, that is used as a description.
+     * @param name Error name.
+     * @param errorMessage Error message.
+     */
     public void writeError(String name, String errorMessage) {
         writeError(name, errorMessage, null);
     }
@@ -137,6 +203,9 @@ public class StepLogger {
         writeItem(name, desc, status, exception);
     }
 
+    /**
+     * Write information about successfully finished execution.
+     */
     public void writeDoneOK() {
         String name = "Done";
         String desc = "Execution has successfully finished";
@@ -144,6 +213,9 @@ public class StepLogger {
         writeItem(name, desc, status, null);
     }
 
+    /**
+     * Write information about incorrectly finished execution.
+     */
     public void writeDoneFailed() {
         String name = "Done";
         String desc = "Execution has failed";

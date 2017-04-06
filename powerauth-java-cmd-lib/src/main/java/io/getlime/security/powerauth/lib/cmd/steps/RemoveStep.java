@@ -47,7 +47,6 @@ import java.util.Map;
  * Helper class with activation remove logic.
  *
  * @author Petr Dvorak
- *
  */
 public class RemoveStep implements BaseStep {
 

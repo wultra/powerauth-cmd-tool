@@ -35,7 +35,7 @@ public class EncryptedStorageUtil {
     /**
      * Encrypt the KEY_SIGNATURE_KNOWLEDGE key using a provided password.
      * @param password Password to be used for encryption.
-     * @param signatureKnoweldgeSecretKey Original KEY_SIGNATURE_KNOWLEDGE key.
+     * @param signatureKnowledgeSecretKey Original KEY_SIGNATURE_KNOWLEDGE key.
      * @param salt Random salt.
      * @param keyGenerator Key generator instance.
      * @return Encrypted KEY_SIGNATURE_KNOWLEDGE using password and random salt.
@@ -43,16 +43,16 @@ public class EncryptedStorageUtil {
      * @throws IllegalBlockSizeException In case invalid key is provided.
      * @throws BadPaddingException In case invalid padding is provided.
      */
-    public static byte[] storeSignatureKnowledgeKey(char[] password, SecretKey signatureKnoweldgeSecretKey, byte[] salt, KeyGenerator keyGenerator) throws InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+    public static byte[] storeSignatureKnowledgeKey(char[] password, SecretKey signatureKnowledgeSecretKey, byte[] salt, KeyGenerator keyGenerator) throws InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
         // Ask for the password and generate storage key
         SecretKey encryptionSignatureKnowledgeKey = keyGenerator.deriveSecretKeyFromPassword(new String(password), salt);
 
         // Encrypt the knowledge related key using the password derived key
         AESEncryptionUtils aes = new AESEncryptionUtils();
-        byte[] signatureKnoweldgeSecretKeyBytes = PowerAuthConfiguration.INSTANCE.getKeyConvertor().convertSharedSecretKeyToBytes(signatureKnoweldgeSecretKey);
+        byte[] signatureKnowledgeSecretKeyBytes = PowerAuthConfiguration.INSTANCE.getKeyConvertor().convertSharedSecretKeyToBytes(signatureKnowledgeSecretKey);
         byte[] iv = new byte[16];
-        byte[] cSignatureKnoweldgeSecretKey = aes.encrypt(signatureKnoweldgeSecretKeyBytes, iv, encryptionSignatureKnowledgeKey, "AES/CBC/NoPadding");
-        return cSignatureKnoweldgeSecretKey;
+        byte[] cSignatureKnowledgeSecretKey = aes.encrypt(signatureKnowledgeSecretKeyBytes, iv, encryptionSignatureKnowledgeKey, "AES/CBC/NoPadding");
+        return cSignatureKnowledgeSecretKey;
     }
 
     /**
@@ -73,8 +73,8 @@ public class EncryptedStorageUtil {
         // Encrypt the knowledge related key using the password derived key
         AESEncryptionUtils aes = new AESEncryptionUtils();
         byte[] iv = new byte[16];
-        byte[] signatureKnoweldgeSecretKeyBytes = aes.decrypt(cSignatureKnoweldgeSecretKeyBytes, iv, encryptionSignatureKnowledgeKey, "AES/CBC/NoPadding");
-        return PowerAuthConfiguration.INSTANCE.getKeyConvertor().convertBytesToSharedSecretKey(signatureKnoweldgeSecretKeyBytes);
+        byte[] signatureKnowledgeSecretKeyBytes = aes.decrypt(cSignatureKnoweldgeSecretKeyBytes, iv, encryptionSignatureKnowledgeKey, "AES/CBC/NoPadding");
+        return PowerAuthConfiguration.INSTANCE.getKeyConvertor().convertBytesToSharedSecretKey(signatureKnowledgeSecretKeyBytes);
     }
 
 }
