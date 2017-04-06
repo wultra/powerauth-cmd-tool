@@ -44,7 +44,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Helper class with activation remove logics.
+ * Helper class with activation remove logic.
  *
  * @author Petr Dvorak
  *
@@ -73,12 +73,14 @@ public class RemoveStep implements BaseStep {
         String applicationSecret = (String) context.get("APPLICATION_SECRET");
         String passwordProvided = (String) context.get("PASSWORD");
 
-        stepLogger.writeItem(
-                "Activation Removal Started",
-                null,
-                "OK",
-                null
-        );
+        if (stepLogger != null) {
+            stepLogger.writeItem(
+                    "Activation Removal Started",
+                    null,
+                    "OK",
+                    null
+            );
+        }
 
         // Prepare the activation URI
         String uri = uriString + "/pa/activation/remove";
@@ -130,7 +132,9 @@ public class RemoveStep implements BaseStep {
             headers.put("Content-Type", "application/json");
             headers.put(PowerAuthHttpHeader.HEADER_NAME, httpAuhtorizationHeader);
 
-            stepLogger.writeServerCall(uri, "POST", null, headers);
+            if (stepLogger != null) {
+                stepLogger.writeServerCall(uri, "POST", null, headers);
+            }
 
             HttpResponse response = Unirest.post(uri)
                     .headers(headers)
@@ -142,32 +146,43 @@ public class RemoveStep implements BaseStep {
                     .readValue(response.getRawBody(), typeReference);
 
             if (response.getStatus() == 200) {
-                stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                }
 
                 Map<String, Object> objectMap = new HashMap<>();
                 objectMap.put("activationId", activationId);
-                stepLogger.writeItem(
-                        "Activation Removed",
-                        "Activation was successfully removed from the server",
-                        "OK",
-                        objectMap
 
-                );
-                stepLogger.writeDoneOK();
+                if (stepLogger != null) {
+                    stepLogger.writeItem(
+                            "Activation Removed",
+                            "Activation was successfully removed from the server",
+                            "OK",
+                            objectMap
+
+                    );
+                    stepLogger.writeDoneOK();
+                }
 
                 return resultStatusObject;
             } else {
-                stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                stepLogger.writeDoneFailed();
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeDoneFailed();
+                }
                 return null;
             }
         } catch (UnirestException exception) {
-            stepLogger.writeServerCallConnectionError(exception);
-            stepLogger.writeDoneFailed();
+            if (stepLogger != null) {
+                stepLogger.writeServerCallConnectionError(exception);
+                stepLogger.writeDoneFailed();
+            }
             return null;
         } catch (Exception exception) {
-            stepLogger.writeError(exception);
-            stepLogger.writeDoneFailed();
+            if (stepLogger != null) {
+                stepLogger.writeError(exception);
+                stepLogger.writeDoneFailed();
+            }
             return null;
         }
     }

@@ -61,12 +61,14 @@ public class GetStatusStep implements BaseStep {
         String uriString = (String) context.get("URI_STRING");
         JSONObject resultStatusObject = (JSONObject) context.get("STATUS_OBJECT");
 
-        stepLogger.writeItem(
-                "Activation Status Check Started",
-                null,
-                "OK",
-                null
-        );
+        if (stepLogger != null) {
+            stepLogger.writeItem(
+                    "Activation Status Check Started",
+                    null,
+                    "OK",
+                    null
+            );
+        }
 
         // Prepare the activation URI
         String uri = uriString + "/pa/activation/status";
@@ -88,7 +90,9 @@ public class GetStatusStep implements BaseStep {
             headers.put("Accept", "application/json");
             headers.put("Content-Type", "application/json");
 
-            stepLogger.writeServerCall(uri, "POST", requestObject, headers);
+            if (stepLogger != null) {
+                stepLogger.writeServerCall(uri, "POST", requestObject, headers);
+            }
 
             HttpResponse response = Unirest.post(uri)
                     .headers(headers)
@@ -101,7 +105,9 @@ public class GetStatusStep implements BaseStep {
                     .readValue(response.getRawBody(), typeReference);
 
             if (response.getStatus() == 200) {
-                stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                }
 
                 // Process the server response
                 ActivationStatusResponse responseObject = responseWrapper.getResponseObject();
@@ -113,27 +119,35 @@ public class GetStatusStep implements BaseStep {
                 Map<String, Object> objectMap = new HashMap<>();
                 objectMap.put("activationId", activationId);
                 objectMap.put("statusBlob", statusBlob);
-                stepLogger.writeItem(
-                        "Avtivation Status",
-                        "Activation status successfully obtained",
-                        "OK",
-                        objectMap
-                );
+                if (stepLogger != null) {
+                    stepLogger.writeItem(
+                            "Avtivation Status",
+                            "Activation status successfully obtained",
+                            "OK",
+                            objectMap
+                    );
 
-                stepLogger.writeDoneOK();
+                    stepLogger.writeDoneOK();
+                }
                 return resultStatusObject;
             } else {
-                stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                stepLogger.writeDoneFailed();
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeDoneFailed();
+                }
                 return null;
             }
         } catch (UnirestException exception) {
-            stepLogger.writeServerCallConnectionError(exception);
-            stepLogger.writeDoneFailed();
+            if (stepLogger != null) {
+                stepLogger.writeServerCallConnectionError(exception);
+                stepLogger.writeDoneFailed();
+            }
             return null;
         } catch (Exception exception) {
-            stepLogger.writeError(exception);
-            stepLogger.writeDoneFailed();
+            if (stepLogger != null) {
+                stepLogger.writeError(exception);
+                stepLogger.writeDoneFailed();
+            }
             return null;
         }
     }

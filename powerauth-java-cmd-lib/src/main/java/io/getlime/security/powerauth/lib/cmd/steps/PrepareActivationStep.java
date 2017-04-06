@@ -48,7 +48,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Helper class with prepare activation logics.
+ * Helper class with prepare activation logic.
  *
  * @author Petr Dvorak
  *
@@ -82,12 +82,14 @@ public class PrepareActivationStep implements BaseStep {
         String statusFileName = (String) context.get("STATUS_FILENAME");
         String passwordProvided = (String) context.get("PASSWORD");
 
-        stepLogger.writeItem(
-                "Activation Started",
-                null,
-                "OK",
-                null
-        );
+        if (stepLogger != null) {
+            stepLogger.writeItem(
+                    "Activation Started",
+                    null,
+                    "OK",
+                    null
+            );
+        }
 
         // Prepare the activation URI
         String uri = uriString + "/pa/activation/create";
@@ -96,23 +98,28 @@ public class PrepareActivationStep implements BaseStep {
         Pattern p = Pattern.compile("^[A-Z2-7]{5}-[A-Z2-7]{5}-[A-Z2-7]{5}-[A-Z2-7]{5}(#.*)?$");
         Matcher m = p.matcher(activationCode);
         if (!m.find()) {
-            stepLogger.writeError("Activation failed", "Activation code has invalid format");
-            stepLogger.writeDoneFailed();
-            System.exit(1);
+            if (stepLogger != null) {
+                stepLogger.writeError("Activation failed", "Activation code has invalid format");
+                stepLogger.writeDoneFailed();
+                return null;
+            }
         }
         String activationIdShort = activationCode.substring(0, 11);
         String activationOTP = activationCode.substring(12, 23);
+
 
         Map<String, Object> objectMap = new HashMap<>();
         objectMap.put("activationCode", activationCode);
         objectMap.put("activationIdShort", activationIdShort);
         objectMap.put("activationOtp", activationOTP);
-        stepLogger.writeItem(
-                "Activation code",
-                "Parsing activation code to short activation ID and activation OTP",
-                "OK",
-                objectMap
-        );
+        if (stepLogger != null) {
+            stepLogger.writeItem(
+                    "Activation code",
+                    "Parsing activation code to short activation ID and activation OTP",
+                    "OK",
+                    objectMap
+            );
+        }
 
         // Generate device key pair and encrypt the device public key
         KeyPair clientEphemeralKeyPair = keyGenerator.generateKeyPair();
@@ -156,7 +163,9 @@ public class PrepareActivationStep implements BaseStep {
             headers.put("Accept", "application/json");
             headers.put("Content-Type", "application/json");
 
-            stepLogger.writeServerCall(uri, "POST", requestObject, headers);
+            if (stepLogger != null) {
+                stepLogger.writeServerCall(uri, "POST", requestObject, headers);
+            }
 
             HttpResponse response = Unirest.post(uri)
                     .headers(headers)
@@ -169,7 +178,9 @@ public class PrepareActivationStep implements BaseStep {
                     .readValue(response.getRawBody(), typeReference);
 
             if (response.getStatus() == 200) {
-                stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                }
 
                 // Process the server response
                 ActivationCreateResponse responseObject = responseWrapper.getResponseObject();
@@ -235,36 +246,45 @@ public class PrepareActivationStep implements BaseStep {
                     objectMap.put("activationStatusFile", statusFileName);
                     objectMap.put("activationStatusFileContent", resultStatusObject);
                     objectMap.put("deviceKeyFingerprint", activation.computeDevicePublicKeyFingerprint(deviceKeyPair.getPublic()));
-                    stepLogger.writeItem(
-                            "Activation Done",
-                            "Public key exchange was successfully completed, commit the activation on server",
-                            "OK",
-                            objectMap
-                    );
-
-                    stepLogger.writeDoneOK();
+                    if (stepLogger != null) {
+                        stepLogger.writeItem(
+                                "Activation Done",
+                                "Public key exchange was successfully completed, commit the activation on server",
+                                "OK",
+                                objectMap
+                        );
+                        stepLogger.writeDoneOK();
+                    }
 
                     return resultStatusObject;
 
                 } else {
-                    String message = "Activation data signature does not match. Either someone tried to spoof your connection, or your device master key is invalid.";
-                    stepLogger.writeError(message);
-                    stepLogger.writeDoneFailed();
+                    if (stepLogger != null) {
+                        String message = "Activation data signature does not match. Either someone tried to spoof your connection, or your device master key is invalid.";
+                        stepLogger.writeError(message);
+                        stepLogger.writeDoneFailed();
+                    }
                     return null;
                 }
             } else {
-                stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                stepLogger.writeDoneFailed();
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeDoneFailed();
+                }
                 return null;
             }
 
         } catch (UnirestException exception) {
-            stepLogger.writeServerCallConnectionError(exception);
-            stepLogger.writeDoneFailed();
+            if (stepLogger != null) {
+                stepLogger.writeServerCallConnectionError(exception);
+                stepLogger.writeDoneFailed();
+            }
             return null;
         } catch (Exception exception) {
-            stepLogger.writeError(exception);
-            stepLogger.writeDoneFailed();
+            if (stepLogger != null) {
+                stepLogger.writeError(exception);
+                stepLogger.writeDoneFailed();
+            }
             return null;
         }
     }

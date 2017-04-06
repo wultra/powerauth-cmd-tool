@@ -80,12 +80,14 @@ public class VerifySignatureStep implements BaseStep {
         String dataFileName = (String) context.get("DATA_FILE_NAME");
         String passwordProvided = (String) context.get("PASSWORD");
 
-        stepLogger.writeItem(
-                "Signature Validation Started",
-                null,
-                "OK",
-                null
-        );
+        if (stepLogger != null) {
+            stepLogger.writeItem(
+                    "Signature Validation Started",
+                    null,
+                    "OK",
+                    null
+            );
+        }
 
         // Get data from status
         String activationId = (String) resultStatusObject.get("activationId");
@@ -121,12 +123,14 @@ public class VerifySignatureStep implements BaseStep {
                 dataFileBytes = canonizedQuery.getBytes("UTF-8");
             } else {
                 dataFileBytes = new byte[0];
-                stepLogger.writeItem(
-                        "Empty data",
-                        "No GET query parameters found in provided URL, signature will contain no data",
-                        "WARNING",
-                        null
-                );
+                if (stepLogger != null) {
+                    stepLogger.writeItem(
+                            "Empty data",
+                            "No GET query parameters found in provided URL, signature will contain no data",
+                            "WARNING",
+                            null
+                    );
+                }
             }
         } else {
             // Read data input file
@@ -134,12 +138,14 @@ public class VerifySignatureStep implements BaseStep {
                 dataFileBytes = Files.readAllBytes(Paths.get(dataFileName));
             } else {
                 dataFileBytes = new byte[0];
-                stepLogger.writeItem(
-                        "Empty data",
-                        "Data file was not found, signature will contain no data",
-                        "WARNING",
-                        null
-                );
+                if (stepLogger != null) {
+                    stepLogger.writeItem(
+                            "Empty data",
+                            "Data file was not found, signature will contain no data",
+                            "WARNING",
+                            null
+                    );
+                }
             }
         }
 
@@ -166,7 +172,9 @@ public class VerifySignatureStep implements BaseStep {
             headers.put("Content-Type", "application/json");
             headers.put(PowerAuthHttpHeader.HEADER_NAME, httpAuhtorizationHeader);
 
-            stepLogger.writeServerCall(uri, httpMethod.toUpperCase(), new String(dataFileBytes, "UTF-8"), headers);
+            if (stepLogger != null) {
+                stepLogger.writeServerCall(uri, httpMethod.toUpperCase(), new String(dataFileBytes, "UTF-8"), headers);
+            }
 
             HttpResponse response;
             if ("GET".equals(httpMethod)) {
@@ -187,31 +195,39 @@ public class VerifySignatureStep implements BaseStep {
 
             if (response.getStatus() == 200) {
 
-                stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
 
-                // Print the results
-                stepLogger.writeItem(
-                        "Signature verified",
-                        "Activation signature was verified successfully",
-                        "OK",
-                        null
+                    // Print the results
+                    stepLogger.writeItem(
+                            "Signature verified",
+                            "Activation signature was verified successfully",
+                            "OK",
+                            null
 
-                );
+                    );
 
-                stepLogger.writeDoneOK();
+                    stepLogger.writeDoneOK();
+                }
                 return resultStatusObject;
             } else {
-                stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                stepLogger.writeDoneFailed();
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeDoneFailed();
+                }
                 return null;
             }
         } catch (UnirestException exception) {
-            stepLogger.writeServerCallConnectionError(exception);
-            stepLogger.writeDoneFailed();
+            if (stepLogger != null) {
+                stepLogger.writeServerCallConnectionError(exception);
+                stepLogger.writeDoneFailed();
+            }
             return null;
         } catch (Exception exception) {
-            stepLogger.writeError(exception);
-            stepLogger.writeDoneFailed();
+            if (stepLogger != null) {
+                stepLogger.writeError(exception);
+                stepLogger.writeDoneFailed();
+            }
             return null;
         }
     }

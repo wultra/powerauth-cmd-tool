@@ -78,12 +78,14 @@ public class VaultUnlockStep implements BaseStep {
         String signatureType = (String) context.get("SIGNATURE_TYPE");
         String passwordProvided = (String) context.get("PASSWORD");
 
-        stepLogger.writeItem(
-                "Vault Unlock Started",
-                null,
-                "OK",
-                null
-        );
+        if (stepLogger != null) {
+            stepLogger.writeItem(
+                    "Vault Unlock Started",
+                    null,
+                    "OK",
+                    null
+            );
+        }
 
         // Prepare the activation URI
         String uri = uriString + "/pa/vault/unlock";
@@ -142,7 +144,9 @@ public class VaultUnlockStep implements BaseStep {
             headers.put("Content-Type", "application/json");
             headers.put(PowerAuthHttpHeader.HEADER_NAME, httpAuhtorizationHeader);
 
-            stepLogger.writeServerCall(uri, "POST", null, headers);
+            if (stepLogger != null) {
+                stepLogger.writeServerCall(uri, "POST", null, headers);
+            }
 
             HttpResponse response = Unirest.post(uri)
                     .headers(headers)
@@ -155,7 +159,9 @@ public class VaultUnlockStep implements BaseStep {
 
             if (response.getStatus() == 200) {
 
-                stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                }
 
                 VaultUnlockResponse responseObject = responseWrapper.getResponseObject();
                 byte[] encryptedVaultEncryptionKey = BaseEncoding.base64().decode(responseObject.getEncryptedVaultEncryptionKey());
@@ -187,13 +193,16 @@ public class VaultUnlockStep implements BaseStep {
                 objectMap.put("vaultEncryptionKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(vaultEncryptionKey)));
                 objectMap.put("devicePrivateKey", BaseEncoding.base64().encode(keyConversion.convertPrivateKeyToBytes(devicePrivateKey)));
                 objectMap.put("privateKeyDecryptionSuccessful", (equal ? "true" : "false"));
-                stepLogger.writeItem(
-                        "Vault Unlocked",
-                        "Secure vault was successfully unlocked",
-                        "OK",
-                        objectMap
-                );
-                stepLogger.writeDoneOK();
+
+                if (stepLogger != null) {
+                    stepLogger.writeItem(
+                            "Vault Unlocked",
+                            "Secure vault was successfully unlocked",
+                            "OK",
+                            objectMap
+                    );
+                    stepLogger.writeDoneOK();
+                }
                 return resultStatusObject;
             } else {
 
@@ -207,8 +216,10 @@ public class VaultUnlockStep implements BaseStep {
                     file.write(formatted);
                 }
 
-                stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                stepLogger.writeDoneFailed();
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeDoneFailed();
+                }
                 return null;
             }
 
@@ -225,8 +236,10 @@ public class VaultUnlockStep implements BaseStep {
                 file.write(formatted);
             }
 
-            stepLogger.writeServerCallConnectionError(exception);
-            stepLogger.writeDoneFailed();
+            if (stepLogger != null) {
+                stepLogger.writeServerCallConnectionError(exception);
+                stepLogger.writeDoneFailed();
+            }
             return null;
         } catch (Exception exception) {
 
@@ -240,8 +253,10 @@ public class VaultUnlockStep implements BaseStep {
                 file.write(formatted);
             }
 
-            stepLogger.writeError(exception);
-            stepLogger.writeDoneFailed();
+            if (stepLogger != null) {
+                stepLogger.writeError(exception);
+                stepLogger.writeDoneFailed();
+            }
             return null;
         }
     }
