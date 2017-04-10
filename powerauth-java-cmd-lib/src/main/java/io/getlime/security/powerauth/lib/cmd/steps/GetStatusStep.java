@@ -20,12 +20,13 @@ import com.google.common.io.BaseEncoding;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
-import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
-import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.model.ActivationStatusBlobInfo;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.steps.model.GetStatusStepModel;
+import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
+import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.base.PowerAuthApiRequest;
 import io.getlime.security.powerauth.rest.api.model.base.PowerAuthApiResponse;
@@ -58,8 +59,8 @@ public class GetStatusStep implements BaseStep {
     public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
-        String uriString = (String) context.get("URI_STRING");
-        JSONObject resultStatusObject = (JSONObject) context.get("STATUS_OBJECT");
+        GetStatusStepModel model = new GetStatusStepModel();
+        model.fromMap(context);
 
         if (stepLogger != null) {
             stepLogger.writeItem(
@@ -71,11 +72,11 @@ public class GetStatusStep implements BaseStep {
         }
 
         // Prepare the activation URI
-        String uri = uriString + "/pa/activation/status";
+        String uri = model.getUriString() + "/pa/activation/status";
 
         // Get data from status
-        String activationId = (String) resultStatusObject.get("activationId");
-        String transportMasterKeyBase64 = (String) resultStatusObject.get("transportMasterKey");
+        String activationId = (String) model.getResultStatusObject().get("activationId");
+        String transportMasterKeyBase64 = (String) model.getResultStatusObject().get("transportMasterKey");
         SecretKey transportMasterKey = keyConversion.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKeyBase64));
 
         // Send the activation status request to the server
@@ -89,6 +90,7 @@ public class GetStatusStep implements BaseStep {
             Map<String, String> headers = new HashMap<>();
             headers.put("Accept", "application/json");
             headers.put("Content-Type", "application/json");
+            headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
                 stepLogger.writeServerCall(uri, "POST", requestObject, headers);
@@ -129,7 +131,7 @@ public class GetStatusStep implements BaseStep {
 
                     stepLogger.writeDoneOK();
                 }
-                return resultStatusObject;
+                return model.getResultStatusObject();
             } else {
                 if (stepLogger != null) {
                     stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));

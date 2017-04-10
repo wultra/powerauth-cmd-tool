@@ -16,8 +16,8 @@
 package io.getlime.security.powerauth.lib.cmd.util;
 
 import com.google.common.io.BaseEncoding;
-import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import org.json.simple.JSONObject;
 
 import java.security.PublicKey;

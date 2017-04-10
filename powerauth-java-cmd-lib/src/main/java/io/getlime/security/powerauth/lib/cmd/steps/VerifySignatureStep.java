@@ -21,18 +21,18 @@ import com.google.common.io.BaseEncoding;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
-import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
-import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
-import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
-import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthHttpHeader;
 import io.getlime.security.powerauth.http.PowerAuthRequestCanonizationUtils;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
+import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
+import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
+import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import org.json.simple.JSONObject;
 
@@ -46,7 +46,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Helper class with signature verification logics.
+ * Helper class with signature verification logic.
  *
  * @author Petr Dvorak
  *
@@ -69,16 +69,8 @@ public class VerifySignatureStep implements BaseStep {
     public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
-        JSONObject resultStatusObject = (JSONObject) context.get("STATUS_OBJECT");
-        String uri = (String) context.get("URI_STRING");
-        String statusFileName = (String) context.get("STATUS_FILENAME");
-        String applicationKey = (String) context.get("APPLICATION_KEY");
-        String applicationSecret = (String) context.get("APPLICATION_SECRET");
-        String httpMethod = ((String) context.get("HTTP_METHOD")).toUpperCase();
-        String endpoint = (String) context.get("ENDPOINT");
-        String signatureType = (String) context.get("SIGNATURE_TYPE");
-        String dataFileName = (String) context.get("DATA_FILE_NAME");
-        String passwordProvided = (String) context.get("PASSWORD");
+        VerifySignatureStepModel model = new VerifySignatureStepModel();
+        model.fromMap(context);
 
         if (stepLogger != null) {
             stepLogger.writeItem(
@@ -90,20 +82,20 @@ public class VerifySignatureStep implements BaseStep {
         }
 
         // Get data from status
-        String activationId = (String) resultStatusObject.get("activationId");
-        long counter = (long) resultStatusObject.get("counter");
-        byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode((String) resultStatusObject.get("signaturePossessionKey"));
-        byte[] signatureBiometryKeyBytes = BaseEncoding.base64().decode((String) resultStatusObject.get("signatureBiometryKey"));
-        byte[] signatureKnowledgeKeySalt = BaseEncoding.base64().decode((String) resultStatusObject.get("signatureKnowledgeKeySalt"));
-        byte[] signatureKnowledgeKeyEncryptedBytes = BaseEncoding.base64().decode((String) resultStatusObject.get("signatureKnowledgeKeyEncrypted"));
+        String activationId = (String) model.getResultStatusObject().get("activationId");
+        long counter = (long) model.getResultStatusObject().get("counter");
+        byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signaturePossessionKey"));
+        byte[] signatureBiometryKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signatureBiometryKey"));
+        byte[] signatureKnowledgeKeySalt = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signatureKnowledgeKeySalt"));
+        byte[] signatureKnowledgeKeyEncryptedBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signatureKnowledgeKeyEncrypted"));
 
         // Ask for the password to unlock knowledge factor key
         char[] password;
-        if (passwordProvided == null) {
+        if (model.getPassword() == null) {
             Console console = System.console();
             password = console.readPassword("Enter your password to unlock the knowledge related key: ");
         } else {
-            password = passwordProvided.toCharArray();
+            password = model.getPassword().toCharArray();
         }
 
         // Get the signature keys
@@ -116,8 +108,8 @@ public class VerifySignatureStep implements BaseStep {
 
         // Construct the signature base string data part based on HTTP method (GET requires different code).
         byte[] dataFileBytes;
-        if ("GET".equals(httpMethod.toUpperCase())) {
-            String query = new URI(uri).getRawQuery();
+        if ("GET".equals(model.getHttpMethod().toUpperCase())) {
+            String query = new URI(model.getUriString()).getRawQuery();
             String canonizedQuery = PowerAuthRequestCanonizationUtils.canonizeGetParameters(query);
             if (canonizedQuery != null) {
                 dataFileBytes = canonizedQuery.getBytes("UTF-8");
@@ -134,8 +126,8 @@ public class VerifySignatureStep implements BaseStep {
             }
         } else {
             // Read data input file
-            if (dataFileName != null && Files.exists(Paths.get(dataFileName))) {
-                dataFileBytes = Files.readAllBytes(Paths.get(dataFileName));
+            if (model.getDataFileName() != null && Files.exists(Paths.get(model.getDataFileName()))) {
+                dataFileBytes = Files.readAllBytes(Paths.get(model.getDataFileName()));
             } else {
                 dataFileBytes = new byte[0];
                 if (stepLogger != null) {
@@ -150,17 +142,17 @@ public class VerifySignatureStep implements BaseStep {
         }
 
         // Compute the current PowerAuth 2.0 signature for possession and knowledge factor
-        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString(httpMethod.toUpperCase(), endpoint, pa_nonce, dataFileBytes) + "&" + applicationSecret;
-        String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(signatureType, signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), counter);
-        String httpAuhtorizationHeader = PowerAuthHttpHeader.getPowerAuthSignatureHTTPHeader(activationId, applicationKey, BaseEncoding.base64().encode(pa_nonce), PowerAuthSignatureTypes.getEnumFromString(signatureType).toString(), pa_signature, "2.0");
+        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString(model.getHttpMethod().toUpperCase(), model.getResourceId(), pa_nonce, dataFileBytes) + "&" + model.getApplicationSecret();
+        String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(model.getSignatureType().toString(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), counter);
+        String httpAuhtorizationHeader = PowerAuthHttpHeader.getPowerAuthSignatureHTTPHeader(activationId, model.getApplicationKey(), BaseEncoding.base64().encode(pa_nonce), model.getSignatureType().toString(), pa_signature, "2.0");
 
         // Increment the counter
         counter += 1;
-        resultStatusObject.put("counter", counter);
+        model.getResultStatusObject().put("counter", counter);
 
         // Store the activation status (updated counter)
-        String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(resultStatusObject);
-        try (FileWriter file = new FileWriter(statusFileName)) {
+        String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+        try (FileWriter file = new FileWriter(model.getStatusFileName())) {
             file.write(formatted);
         }
 
@@ -171,18 +163,19 @@ public class VerifySignatureStep implements BaseStep {
             headers.put("Accept", "application/json");
             headers.put("Content-Type", "application/json");
             headers.put(PowerAuthHttpHeader.HEADER_NAME, httpAuhtorizationHeader);
+            headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall(uri, httpMethod.toUpperCase(), new String(dataFileBytes, "UTF-8"), headers);
+                stepLogger.writeServerCall(model.getUriString(), model.getHttpMethod().toUpperCase(), new String(dataFileBytes, "UTF-8"), headers);
             }
 
             HttpResponse response;
-            if ("GET".equals(httpMethod)) {
-                response = Unirest.get(uri)
+            if ("GET".equals(model.getHttpMethod().toUpperCase())) {
+                response = Unirest.get(model.getUriString())
                         .headers(headers)
                         .asString();
             } else {
-                response = Unirest.post(uri)
+                response = Unirest.post(model.getUriString())
                         .headers(headers)
                         .body(dataFileBytes)
                         .asString();
@@ -209,7 +202,7 @@ public class VerifySignatureStep implements BaseStep {
 
                     stepLogger.writeDoneOK();
                 }
-                return resultStatusObject;
+                return model.getResultStatusObject();
             } else {
                 if (stepLogger != null) {
                     stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));

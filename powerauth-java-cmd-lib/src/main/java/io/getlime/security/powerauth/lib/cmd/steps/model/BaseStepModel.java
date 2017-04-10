@@ -15,19 +15,79 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
+import org.json.simple.JSONObject;
+
+import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Interface defining a class representing a step model.
+ * Abstract class defining a base for a step model classes.
  *
  * @author Petr Dvorak, petr@lime-company.eu
  */
-public interface BaseStepModel {
+public class BaseStepModel {
+
+    private Map<String, String> headers;
+
+    /**
+     * Set HTTP headers used for requests.
+     * @param headers HTTP headers.
+     */
+    public void setHeaders(Map<String, String> headers) {
+        this.headers = headers;
+    }
+
+    private String uriString;
+    private JSONObject resultStatusObject;
+
+    /**
+     * Set base URI string of the PowerAuth 2.0 Standard RESTful API.
+     * @param uriString Base URI of PA2.0 Standard RESTful API.
+     */
+    public void setUriString(String uriString) {
+        this.uriString = uriString;
+    }
+
+    /**
+     * Set the object representing activation status.
+     * @param resultStatusObject Activation status object.
+     */
+    public void setResultStatusObject(JSONObject resultStatusObject) {
+        this.resultStatusObject = resultStatusObject;
+    }
+
+    public Map<String, String> getHeaders() {
+        return headers;
+    }
+
+    public String getUriString() {
+        return uriString;
+    }
+
+    public JSONObject getResultStatusObject() {
+        return resultStatusObject;
+    }
 
     /**
      * Convert this object to map.
      * @return Map representing this object.
      */
-    Map<String, Object> toMap();
+    public Map<String, Object> toMap() {
+        Map<String, Object> context = new HashMap<>();
+        context.put("HTTP_HEADERS", headers);
+        context.put("URI_STRING", uriString);
+        context.put("STATUS_OBJECT", resultStatusObject);
+        return context;
+    }
+
+    /**
+     * Initialize object with given attribute map.
+     * @param context Context with attributes.
+     */
+    public void fromMap(Map<String, Object> context) {
+        setHeaders((Map<String, String>) context.get("HTTP_HEADERS"));
+        setUriString((String) context.get("URI_STRING"));
+        setResultStatusObject((JSONObject) context.get("STATUS_OBJECT"));
+    }
 
 }

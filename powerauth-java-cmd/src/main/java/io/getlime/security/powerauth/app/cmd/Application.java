@@ -34,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.PublicKey;
 import java.security.Security;
+import java.util.*;
 
 /**
  * Command-line utility for testing PowerAuth implementation and for verification of
@@ -54,7 +55,7 @@ public class Application {
 
         try {
 
-            JSONObject clientConfigObject = null;
+            JSONObject clientConfigObject;
 
             // Add Bouncy Castle Security Provider
             Security.addProvider(new BouncyCastleProvider());
@@ -78,6 +79,16 @@ public class Application {
             options.addOption("p", "password", true, "Password used for a knowledge related key encryption. If not specified, an interactive input is required.");
             options.addOption("i", "invalidSsl", false, "Client may accept invalid SSL certificate in HTTPS communication.");
 
+            Option httpHeaderOption = Option.builder("H")
+                    .argName("key=value")
+                    .longOpt("http-header")
+                    .hasArg(true)
+                    .desc("Use provided HTTP header for communication")
+                    .numberOfArgs(2)
+                    .valueSeparator('=')
+                    .build();
+            options.addOption(httpHeaderOption);
+
             // Options parsing
             CommandLineParser parser = new DefaultParser();
             CommandLine cmd = parser.parse(options, args);
@@ -87,6 +98,16 @@ public class Application {
                 HelpFormatter formatter = new HelpFormatter();
                 formatter.printHelp("java -jar powerauth-java-cmd.jar", options);
                 return;
+            }
+
+            // Read HTTP headers
+            Map<String, String> httpHeaders = new HashMap<>();
+            if (cmd.hasOption("H")) {
+                Properties props = cmd.getOptionProperties("H");
+                final Set<String> propertyNames = props.stringPropertyNames();
+                for (String name: propertyNames) {
+                    httpHeaders.put(name, props.getProperty(name));
+                }
             }
 
             stepLogger.start();
@@ -177,6 +198,7 @@ public class Application {
                     model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
                     model.setUriString(uriString);
                     model.setResultStatusObject(resultStatusObject);
+                    model.setHeaders(httpHeaders);
 
                     JSONObject result = new PrepareActivationStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -190,6 +212,7 @@ public class Application {
                     GetStatusStepModel model = new GetStatusStepModel();
                     model.setUriString(uriString);
                     model.setResultStatusObject(resultStatusObject);
+                    model.setHeaders(httpHeaders);
 
                     JSONObject result = new GetStatusStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -207,6 +230,7 @@ public class Application {
                     model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatusObject(resultStatusObject);
+                    model.setHeaders(httpHeaders);
 
                     JSONObject result = new RemoveStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -228,6 +252,7 @@ public class Application {
                     model.setDataFileName(cmd.getOptionValue("d"));
                     model.setResourceId(cmd.getOptionValue("e"));
                     model.setPassword(cmd.getOptionValue("p"));
+                    model.setHeaders(httpHeaders);
 
                     JSONObject result = new VerifySignatureStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -246,6 +271,7 @@ public class Application {
                     model.setStatusFileName(statusFileName);
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
                     model.setPassword(cmd.getOptionValue("p"));
+                    model.setHeaders(httpHeaders);
 
                     JSONObject result = new VaultUnlockStep().execute(stepLogger, model.toMap());
                     if (result == null) {

@@ -21,15 +21,16 @@ import com.google.common.io.BaseEncoding;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
-import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
-import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
-import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.vault.PowerAuthClientVault;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.steps.model.PrepareActivationStepModel;
+import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
+import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
+import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.base.PowerAuthApiRequest;
 import io.getlime.security.powerauth.rest.api.model.base.PowerAuthApiResponse;
@@ -72,15 +73,8 @@ public class PrepareActivationStep implements BaseStep {
     public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
-        String activationName = (String) context.get("ACTIVATION_NAME");
-        String applicationKey = (String) context.get("APPLICATION_KEY");
-        String applicationSecret = (String) context.get("APPLICATION_SECRET");
-        String uriString = (String) context.get("URI_STRING");
-        PublicKey masterPublicKey = (PublicKey) context.get("MASTER_PUBLIC_KEY");
-        String activationCode = ((String) context.get("ACTIVATION_CODE")).toUpperCase();
-        JSONObject resultStatusObject = (JSONObject) context.get("STATUS_OBJECT");
-        String statusFileName = (String) context.get("STATUS_FILENAME");
-        String passwordProvided = (String) context.get("PASSWORD");
+        PrepareActivationStepModel model = new PrepareActivationStepModel();
+        model.fromMap(context);
 
         if (stepLogger != null) {
             stepLogger.writeItem(
@@ -92,11 +86,11 @@ public class PrepareActivationStep implements BaseStep {
         }
 
         // Prepare the activation URI
-        String uri = uriString + "/pa/activation/create";
+        String uri = model.getUriString() + "/pa/activation/create";
 
         // Fetch and parse the activation code
         Pattern p = Pattern.compile("^[A-Z2-7]{5}-[A-Z2-7]{5}-[A-Z2-7]{5}-[A-Z2-7]{5}(#.*)?$");
-        Matcher m = p.matcher(activationCode);
+        Matcher m = p.matcher(model.getActivationCode());
         if (!m.find()) {
             if (stepLogger != null) {
                 stepLogger.writeError("Activation failed", "Activation code has invalid format");
@@ -104,12 +98,12 @@ public class PrepareActivationStep implements BaseStep {
                 return null;
             }
         }
-        String activationIdShort = activationCode.substring(0, 11);
-        String activationOTP = activationCode.substring(12, 23);
+        String activationIdShort = model.getActivationCode().substring(0, 11);
+        String activationOTP = model.getActivationCode().substring(12, 23);
 
 
         Map<String, Object> objectMap = new HashMap<>();
-        objectMap.put("activationCode", activationCode);
+        objectMap.put("activationCode", model.getActivationCode());
         objectMap.put("activationIdShort", activationIdShort);
         objectMap.put("activationOtp", activationOTP);
         if (stepLogger != null) {
@@ -130,7 +124,7 @@ public class PrepareActivationStep implements BaseStep {
         byte[] cDevicePublicKeyBytes = activation.encryptDevicePublicKey(
                 deviceKeyPair.getPublic(),
                 clientEphemeralKeyPair.getPrivate(),
-                masterPublicKey,
+                model.getMasterPublicKey(),
                 activationOTP,
                 activationIdShort,
                 nonceDeviceBytes
@@ -139,16 +133,16 @@ public class PrepareActivationStep implements BaseStep {
                 activationIdShort,
                 nonceDeviceBytes,
                 cDevicePublicKeyBytes,
-                BaseEncoding.base64().decode(applicationKey),
-                BaseEncoding.base64().decode(applicationSecret)
+                BaseEncoding.base64().decode(model.getApplicationKey()),
+                BaseEncoding.base64().decode(model.getApplicationSecret())
         );
         byte[] ephemeralPublicKeyBytes = keyConversion.convertPublicKeyToBytes(clientEphemeralKeyPair.getPublic());
 
         // Prepare the server request
         ActivationCreateRequest requestObject = new ActivationCreateRequest();
         requestObject.setActivationIdShort(activationIdShort);
-        requestObject.setApplicationKey(applicationKey);
-        requestObject.setActivationName(activationName);
+        requestObject.setApplicationKey(model.getApplicationKey());
+        requestObject.setActivationName(model.getActivationName());
         requestObject.setActivationNonce(BaseEncoding.base64().encode(nonceDeviceBytes));
         requestObject.setEphemeralPublicKey(BaseEncoding.base64().encode(ephemeralPublicKeyBytes));
         requestObject.setEncryptedDevicePublicKey(BaseEncoding.base64().encode(cDevicePublicKeyBytes));
@@ -162,6 +156,7 @@ public class PrepareActivationStep implements BaseStep {
             Map<String, String> headers = new HashMap<>();
             headers.put("Accept", "application/json");
             headers.put("Content-Type", "application/json");
+            headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
                 stepLogger.writeServerCall(uri, "POST", requestObject, headers);
@@ -192,7 +187,7 @@ public class PrepareActivationStep implements BaseStep {
                 PublicKey ephemeralPublicKey = keyConversion.convertBytesToPublicKey(ephemeralKeyBytes);
 
                 // Verify that the server public key signature is valid
-                boolean isDataSignatureValid = activation.verifyServerDataSignature(activationId, cServerPubKeyBytes, cServerPubKeySignatureBytes, masterPublicKey);
+                boolean isDataSignatureValid = activation.verifyServerDataSignature(activationId, cServerPubKeyBytes, cServerPubKeySignatureBytes, model.getMasterPublicKey());
 
                 if (isDataSignatureValid) {
 
@@ -214,37 +209,37 @@ public class PrepareActivationStep implements BaseStep {
                     byte[] encryptedDevicePrivateKey = vault.encryptDevicePrivateKey(deviceKeyPair.getPrivate(), vaultUnlockMasterKey);
 
                     char[] password;
-                    if (passwordProvided == null) {
+                    if (model.getPassword() == null) {
                         Console console = System.console();
                         password = console.readPassword("Select a password to encrypt the knowledge related key: ");
                     } else {
-                        password = passwordProvided.toCharArray();
+                        password = model.getPassword().toCharArray();
                     }
 
                     byte[] salt = keyGenerator.generateRandomBytes(16);
                     byte[] cSignatureKnoweldgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, signatureKnoweldgeSecretKey, salt, keyGenerator);
 
                     // Prepare the status object to be stored
-                    resultStatusObject.put("activationId", activationId);
-                    resultStatusObject.put("serverPublicKey", BaseEncoding.base64().encode(keyConversion.convertPublicKeyToBytes(serverPublicKey)));
-                    resultStatusObject.put("encryptedDevicePrivateKey", BaseEncoding.base64().encode(encryptedDevicePrivateKey));
-                    resultStatusObject.put("signaturePossessionKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signaturePossessionSecretKey)));
-                    resultStatusObject.put("signatureKnowledgeKeyEncrypted", BaseEncoding.base64().encode(cSignatureKnoweldgeSecretKey));
-                    resultStatusObject.put("signatureKnowledgeKeySalt", BaseEncoding.base64().encode(salt));
-                    resultStatusObject.put("signatureBiometryKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signatureBiometrySecretKey)));
-                    resultStatusObject.put("transportMasterKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(transportMasterKey)));
-                    resultStatusObject.put("counter", 0);
+                    model.getResultStatusObject().put("activationId", activationId);
+                    model.getResultStatusObject().put("serverPublicKey", BaseEncoding.base64().encode(keyConversion.convertPublicKeyToBytes(serverPublicKey)));
+                    model.getResultStatusObject().put("encryptedDevicePrivateKey", BaseEncoding.base64().encode(encryptedDevicePrivateKey));
+                    model.getResultStatusObject().put("signaturePossessionKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signaturePossessionSecretKey)));
+                    model.getResultStatusObject().put("signatureKnowledgeKeyEncrypted", BaseEncoding.base64().encode(cSignatureKnoweldgeSecretKey));
+                    model.getResultStatusObject().put("signatureKnowledgeKeySalt", BaseEncoding.base64().encode(salt));
+                    model.getResultStatusObject().put("signatureBiometryKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signatureBiometrySecretKey)));
+                    model.getResultStatusObject().put("transportMasterKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(transportMasterKey)));
+                    model.getResultStatusObject().put("counter", 0);
 
                     // Store the resulting status
-                    String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(resultStatusObject);
-                    try (FileWriter file = new FileWriter(statusFileName)) {
+                    String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+                    try (FileWriter file = new FileWriter(model.getStatusFileName())) {
                         file.write(formatted);
                     }
 
                     objectMap = new HashMap<>();
                     objectMap.put("activationId", activationId);
-                    objectMap.put("activationStatusFile", statusFileName);
-                    objectMap.put("activationStatusFileContent", resultStatusObject);
+                    objectMap.put("activationStatusFile", model.getStatusFileName());
+                    objectMap.put("activationStatusFileContent", model.getResultStatusObject());
                     objectMap.put("deviceKeyFingerprint", activation.computeDevicePublicKeyFingerprint(deviceKeyPair.getPublic()));
                     if (stepLogger != null) {
                         stepLogger.writeItem(
@@ -256,7 +251,7 @@ public class PrepareActivationStep implements BaseStep {
                         stepLogger.writeDoneOK();
                     }
 
-                    return resultStatusObject;
+                    return model.getResultStatusObject();
 
                 } else {
                     if (stepLogger != null) {

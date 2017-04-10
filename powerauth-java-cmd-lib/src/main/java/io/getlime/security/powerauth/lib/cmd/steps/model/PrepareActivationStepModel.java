@@ -15,10 +15,7 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
-import org.json.simple.JSONObject;
-
 import java.security.PublicKey;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -26,9 +23,8 @@ import java.util.Map;
  *
  * @author Petr Dvorak, petr@lime-company.eu
  */
-public class PrepareActivationStepModel implements BaseStepModel {
+public class PrepareActivationStepModel extends BaseStepModel {
 
-    private String uriString;
     private String statusFileName;
     private String activationCode;
     private String activationName;
@@ -36,23 +32,6 @@ public class PrepareActivationStepModel implements BaseStepModel {
     private String applicationSecret;
     private String password;
     private PublicKey masterPublicKey;
-    private JSONObject resultStatusObject;
-
-    /**
-     * Set base URI string of the PowerAuth 2.0 Standard RESTful API.
-     * @param uriString Base URI of PA2.0 Standard RESTful API.
-     */
-    public void setUriString(String uriString) {
-        this.uriString = uriString;
-    }
-
-    /**
-     * Set the object representing activation status.
-     * @param resultStatusObject Activation status object.
-     */
-    public void setResultStatusObject(JSONObject resultStatusObject) {
-        this.resultStatusObject = resultStatusObject;
-    }
 
     /**
      * Set Master Server Public Key, a value specific for given application.
@@ -110,12 +89,38 @@ public class PrepareActivationStepModel implements BaseStepModel {
         this.password = password;
     }
 
+    public String getStatusFileName() {
+        return statusFileName;
+    }
+
+    public String getActivationCode() {
+        return activationCode;
+    }
+
+    public String getActivationName() {
+        return activationName;
+    }
+
+    public String getApplicationKey() {
+        return applicationKey;
+    }
+
+    public String getApplicationSecret() {
+        return applicationSecret;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public PublicKey getMasterPublicKey() {
+        return masterPublicKey;
+    }
+
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> context = new HashMap<>();
-        context.put("URI_STRING", uriString);
+        Map<String, Object> context = super.toMap();
         context.put("MASTER_PUBLIC_KEY", masterPublicKey);
-        context.put("STATUS_OBJECT", resultStatusObject);
         context.put("STATUS_FILENAME", statusFileName);
         context.put("ACTIVATION_CODE", activationCode);
         context.put("PASSWORD", password);
@@ -125,4 +130,15 @@ public class PrepareActivationStepModel implements BaseStepModel {
         return context;
     }
 
+    @Override
+    public void fromMap(Map<String, Object> context) {
+        super.fromMap(context);
+        setMasterPublicKey((PublicKey) context.get("MASTER_PUBLIC_KEY"));
+        setStatusFileName((String) context.get("STATUS_FILENAME"));
+        setActivationCode((String) context.get("ACTIVATION_CODE"));
+        setPassword((String) context.get("PASSWORD"));
+        setActivationName((String) context.get("ACTIVATION_NAME"));
+        setApplicationKey((String) context.get("APPLICATION_KEY"));
+        setApplicationSecret((String) context.get("APPLICATION_SECRET"));
+    }
 }

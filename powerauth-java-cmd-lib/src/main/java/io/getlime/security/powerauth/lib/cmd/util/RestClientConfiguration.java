@@ -16,9 +16,9 @@
 package io.getlime.security.powerauth.lib.cmd.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.mashape.unirest.http.Unirest;
 
 import java.io.IOException;

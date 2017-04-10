@@ -15,9 +15,6 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
-import org.json.simple.JSONObject;
-
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -25,32 +22,15 @@ import java.util.Map;
  *
  * @author Petr Dvorak, petr@lime-company.eu
  */
-public class GetStatusStepModel implements BaseStepModel {
-
-    private String uriString;
-    private JSONObject resultStatusObject;
-
-    /**
-     * Set base URI string of the PowerAuth 2.0 Standard RESTful API.
-     * @param uriString Base URI of PA2.0 Standard RESTful API.
-     */
-    public void setUriString(String uriString) {
-        this.uriString = uriString;
-    }
-
-    /**
-     * Set the object representing activation status.
-     * @param resultStatusObject Activation status object.
-     */
-    public void setResultStatusObject(JSONObject resultStatusObject) {
-        this.resultStatusObject = resultStatusObject;
-    }
+public class GetStatusStepModel extends BaseStepModel {
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> context = new HashMap<>();
-        context.put("URI_STRING", uriString);
-        context.put("STATUS_OBJECT", resultStatusObject);
-        return context;
+        return super.toMap();
+    }
+
+    @Override
+    public void fromMap(Map<String, Object> context) {
+        super.fromMap(context);
     }
 }

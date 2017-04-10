@@ -21,16 +21,17 @@ import com.google.common.io.BaseEncoding;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
-import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
-import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
-import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthHttpHeader;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.steps.model.RemoveStepModel;
+import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
+import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
+import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.base.PowerAuthApiResponse;
 import io.getlime.security.powerauth.rest.api.model.response.ActivationRemoveResponse;
@@ -65,12 +66,8 @@ public class RemoveStep implements BaseStep {
     public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
-        String uriString = (String) context.get("URI_STRING");
-        JSONObject resultStatusObject = (JSONObject) context.get("STATUS_OBJECT");
-        String statusFileName = (String) context.get("STATUS_FILENAME");
-        String applicationKey = (String) context.get("APPLICATION_KEY");
-        String applicationSecret = (String) context.get("APPLICATION_SECRET");
-        String passwordProvided = (String) context.get("PASSWORD");
+        RemoveStepModel model = new RemoveStepModel();
+        model.fromMap(context);
 
         if (stepLogger != null) {
             stepLogger.writeItem(
@@ -82,22 +79,22 @@ public class RemoveStep implements BaseStep {
         }
 
         // Prepare the activation URI
-        String uri = uriString + "/pa/activation/remove";
+        String uri = model.getUriString() + "/pa/activation/remove";
 
         // Get data from status
-        String activationId = (String) resultStatusObject.get("activationId");
-        long counter = (long) resultStatusObject.get("counter");
-        byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode((String) resultStatusObject.get("signaturePossessionKey"));
-        byte[] signatureKnowledgeKeySalt = BaseEncoding.base64().decode((String) resultStatusObject.get("signatureKnowledgeKeySalt"));
-        byte[] signatureKnowledgeKeyEncryptedBytes = BaseEncoding.base64().decode((String) resultStatusObject.get("signatureKnowledgeKeyEncrypted"));
+        String activationId = (String) model.getResultStatusObject().get("activationId");
+        long counter = (long) model.getResultStatusObject().get("counter");
+        byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signaturePossessionKey"));
+        byte[] signatureKnowledgeKeySalt = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signatureKnowledgeKeySalt"));
+        byte[] signatureKnowledgeKeyEncryptedBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signatureKnowledgeKeyEncrypted"));
 
         // Ask for the password to unlock knowledge factor key
         char[] password;
-        if (passwordProvided == null) {
+        if (model.getPassword() == null) {
             Console console = System.console();
             password = console.readPassword("Enter your password to unlock the knowledge related key: ");
         } else {
-            password = passwordProvided.toCharArray();
+            password = model.getPassword().toCharArray();
         }
 
         // Get the signature keys
@@ -109,17 +106,17 @@ public class RemoveStep implements BaseStep {
 
         // Compute the current PowerAuth 2.0 signature for possession
         // and knowledge factor
-        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/activation/remove", pa_nonce, null) + "&" + applicationSecret;
+        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/activation/remove", pa_nonce, null) + "&" + model.getApplicationSecret();
         String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), Arrays.asList(signaturePossessionKey, signatureKnowledgeKey), counter);
-        String httpAuhtorizationHeader = PowerAuthHttpHeader.getPowerAuthSignatureHTTPHeader(activationId, applicationKey, BaseEncoding.base64().encode(pa_nonce), PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE.toString(), pa_signature, "2.0");
+        String httpAuhtorizationHeader = PowerAuthHttpHeader.getPowerAuthSignatureHTTPHeader(activationId, model.getApplicationKey(), BaseEncoding.base64().encode(pa_nonce), PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE.toString(), pa_signature, "2.0");
 
         // Increment the counter
         counter += 1;
-        resultStatusObject.put("counter", counter);
+        model.getResultStatusObject().put("counter", counter);
 
         // Store the activation status (updated counter)
-        String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(resultStatusObject);
-        try (FileWriter file = new FileWriter(statusFileName)) {
+        String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+        try (FileWriter file = new FileWriter(model.getStatusFileName())) {
             file.write(formatted);
         }
 
@@ -130,6 +127,7 @@ public class RemoveStep implements BaseStep {
             headers.put("Accept", "application/json");
             headers.put("Content-Type", "application/json");
             headers.put(PowerAuthHttpHeader.HEADER_NAME, httpAuhtorizationHeader);
+            headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
                 stepLogger.writeServerCall(uri, "POST", null, headers);
@@ -163,7 +161,7 @@ public class RemoveStep implements BaseStep {
                     stepLogger.writeDoneOK();
                 }
 
-                return resultStatusObject;
+                return model.getResultStatusObject();
             } else {
                 if (stepLogger != null) {
                     stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));

@@ -16,9 +16,7 @@
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
-import org.json.simple.JSONObject;
 
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -26,31 +24,13 @@ import java.util.Map;
  *
  * @author Petr Dvorak, petr@lime-company.eu
  */
-public class VaultUnlockStepModel implements BaseStepModel {
+public class VaultUnlockStepModel extends BaseStepModel {
 
-    private String uriString;
     private String applicationKey;
     private String applicationSecret;
     private String statusFileName;
     private PowerAuthSignatureTypes signatureType;
     private String password;
-    private JSONObject resultStatusObject;
-
-    /**
-     * Set base URI string of the PowerAuth 2.0 Standard RESTful API.
-     * @param uriString Base URI of PA2.0 Standard RESTful API.
-     */
-    public void setUriString(String uriString) {
-        this.uriString = uriString;
-    }
-
-    /**
-     * Set the object representing activation status.
-     * @param resultStatusObject Activation status object.
-     */
-    public void setResultStatusObject(JSONObject resultStatusObject) {
-        this.resultStatusObject = resultStatusObject;
-    }
 
     /**
      * Application key.
@@ -92,11 +72,29 @@ public class VaultUnlockStepModel implements BaseStepModel {
         this.password = password;
     }
 
+    public String getApplicationKey() {
+        return applicationKey;
+    }
+
+    public String getApplicationSecret() {
+        return applicationSecret;
+    }
+
+    public String getStatusFileName() {
+        return statusFileName;
+    }
+
+    public PowerAuthSignatureTypes getSignatureType() {
+        return signatureType;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> context = new HashMap<>();
-        context.put("URI_STRING", uriString);
-        context.put("STATUS_OBJECT", resultStatusObject);
+        Map<String, Object> context = super.toMap();
         context.put("STATUS_FILENAME", statusFileName);
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
@@ -105,4 +103,13 @@ public class VaultUnlockStepModel implements BaseStepModel {
         return context;
     }
 
+    @Override
+    public void fromMap(Map<String, Object> context) {
+        super.fromMap(context);
+        setStatusFileName((String) context.get("STATUS_FILENAME"));
+        setApplicationKey((String) context.get("APPLICATION_KEY"));
+        setApplicationSecret((String) context.get("APPLICATION_SECRET"));
+        setSignatureType(PowerAuthSignatureTypes.getEnumFromString((String) context.get("SIGNATURE_TYPE")));
+        setPassword((String) context.get("PASSWORD"));
+    }
 }
