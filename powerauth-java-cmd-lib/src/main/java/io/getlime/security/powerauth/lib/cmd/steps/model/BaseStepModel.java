@@ -28,15 +28,6 @@ import java.util.Map;
 public class BaseStepModel {
 
     private Map<String, String> headers;
-
-    /**
-     * Set HTTP headers used for requests.
-     * @param headers HTTP headers.
-     */
-    public void setHeaders(Map<String, String> headers) {
-        this.headers = headers;
-    }
-
     private String uriString;
     private JSONObject resultStatusObject;
 
@@ -54,6 +45,14 @@ public class BaseStepModel {
      */
     public void setResultStatusObject(JSONObject resultStatusObject) {
         this.resultStatusObject = resultStatusObject;
+    }
+
+    /**
+     * Set HTTP headers used for requests.
+     * @param headers HTTP headers.
+     */
+    public void setHeaders(Map<String, String> headers) {
+        this.headers = headers;
     }
 
     public Map<String, String> getHeaders() {

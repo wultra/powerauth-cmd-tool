@@ -68,7 +68,7 @@ public class Application {
             Options options = new Options();
             options.addOption("h", "help", false, "Print this help manual.");
             options.addOption("u", "url", true, "Base URL of the PowerAuth 2.0 Standard RESTful API.");
-            options.addOption("m", "method", true, "What API method to call, available names are 'prepare', 'status', 'remove', 'sign' and 'unlock',");
+            options.addOption("m", "method", true, "What API method to call, available names are 'prepare', 'status', 'remove', 'sign', 'unlock' and 'create-custom'.");
             options.addOption("c", "config-file", true, "Specifies a path to the config file with Base64 encoded server master public key, application ID and application secret.");
             options.addOption("s", "status-file", true, "Path to the file with the activation status, serving as the data persistence.");
             options.addOption("a", "activation-code", true, "In case a specified method is 'prepare', this field contains the activation key (a concatenation of a short activation ID and activation OTP).");
@@ -77,6 +77,8 @@ public class Application {
             options.addOption("l", "signature-type", true, "In case a specified method is 'sign', this field specifies a signature type, as specified in PowerAuth signature process.");
             options.addOption("d", "data-file", true, "In case a specified method is 'sign', this field specifies a file with the input data to be signed and verified with the server, as specified in PowerAuth signature process.");
             options.addOption("p", "password", true, "Password used for a knowledge related key encryption. If not specified, an interactive input is required.");
+            options.addOption("I", "identity-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with identity attributes.");
+            options.addOption("C", "custom-attributes-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with custom attributes.");
             options.addOption("i", "invalidSsl", false, "Client may accept invalid SSL certificate in HTTPS communication.");
 
             Option httpHeaderOption = Option.builder("H")
@@ -94,8 +96,9 @@ public class Application {
             CommandLine cmd = parser.parse(options, args);
 
             // Check if help was invoked
-            if (cmd.hasOption("h")) {
+            if (cmd.hasOption("h") || !cmd.hasOption("m")) {
                 HelpFormatter formatter = new HelpFormatter();
+                formatter.setWidth(100);
                 formatter.printHelp("java -jar powerauth-java-cmd.jar", options);
                 return;
             }
@@ -190,15 +193,15 @@ public class Application {
 
                     PrepareActivationStepModel model = new PrepareActivationStepModel();
                     model.setActivationCode(cmd.getOptionValue("a"));
-                    model.setPassword(cmd.getOptionValue("p"));
-                    model.setStatusFileName(statusFileName);
-                    model.setMasterPublicKey(masterPublicKey);
                     model.setActivationName(ConfigurationUtils.getApplicationName(clientConfigObject));
                     model.setApplicationKey(ConfigurationUtils.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
-                    model.setUriString(uriString);
-                    model.setResultStatusObject(resultStatusObject);
                     model.setHeaders(httpHeaders);
+                    model.setMasterPublicKey(masterPublicKey);
+                    model.setPassword(cmd.getOptionValue("p"));
+                    model.setResultStatusObject(resultStatusObject);
+                    model.setStatusFileName(statusFileName);
+                    model.setUriString(uriString);
 
                     JSONObject result = new PrepareActivationStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -210,9 +213,9 @@ public class Application {
                 case "status": {
 
                     GetStatusStepModel model = new GetStatusStepModel();
-                    model.setUriString(uriString);
-                    model.setResultStatusObject(resultStatusObject);
                     model.setHeaders(httpHeaders);
+                    model.setResultStatusObject(resultStatusObject);
+                    model.setUriString(uriString);
 
                     JSONObject result = new GetStatusStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -224,13 +227,13 @@ public class Application {
                 case "remove": {
 
                     RemoveStepModel model = new RemoveStepModel();
-                    model.setUriString(uriString);
-                    model.setStatusFileName(statusFileName);
                     model.setApplicationKey(ConfigurationUtils.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    model.setHeaders(httpHeaders);
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatusObject(resultStatusObject);
-                    model.setHeaders(httpHeaders);
+                    model.setStatusFileName(statusFileName);
+                    model.setUriString(uriString);
 
                     JSONObject result = new RemoveStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -242,17 +245,17 @@ public class Application {
                 case "sign": {
 
                     VerifySignatureStepModel model = new VerifySignatureStepModel();
-                    model.setUriString(uriString);
-                    model.setStatusFileName(statusFileName);
-                    model.setResultStatusObject(resultStatusObject);
                     model.setApplicationKey(ConfigurationUtils.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
-                    model.setHttpMethod(cmd.getOptionValue("t"));
-                    model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
                     model.setDataFileName(cmd.getOptionValue("d"));
-                    model.setResourceId(cmd.getOptionValue("e"));
-                    model.setPassword(cmd.getOptionValue("p"));
                     model.setHeaders(httpHeaders);
+                    model.setHttpMethod(cmd.getOptionValue("t"));
+                    model.setPassword(cmd.getOptionValue("p"));
+                    model.setResourceId(cmd.getOptionValue("e"));
+                    model.setResultStatusObject(resultStatusObject);
+                    model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
+                    model.setStatusFileName(statusFileName);
+                    model.setUriString(uriString);
 
                     JSONObject result = new VerifySignatureStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -264,14 +267,14 @@ public class Application {
                 case "unlock": {
 
                     VaultUnlockStepModel model = new VaultUnlockStepModel();
-                    model.setUriString(uriString);
-                    model.setResultStatusObject(resultStatusObject);
                     model.setApplicationKey(ConfigurationUtils.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    model.setHeaders(httpHeaders);
+                    model.setPassword(cmd.getOptionValue("p"));
+                    model.setResultStatusObject(resultStatusObject);
                     model.setStatusFileName(statusFileName);
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
-                    model.setPassword(cmd.getOptionValue("p"));
-                    model.setHeaders(httpHeaders);
+                    model.setUriString(uriString);
 
                     JSONObject result = new VaultUnlockStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -279,8 +282,82 @@ public class Application {
                     }
                     break;
                 }
+                case "create-custom": {
+
+                    String identityAttributesFileName = cmd.getOptionValue("I");
+                    String customAttributesFileName = cmd.getOptionValue("C");
+
+                    Map<String,String> identityAttributes;
+                    if (Files.exists(Paths.get(identityAttributesFileName))) {
+                        byte[] identityAttributesFileBytes = Files.readAllBytes(Paths.get(identityAttributesFileName));
+                        try {
+                            identityAttributes = RestClientConfiguration.defaultMapper().readValue(identityAttributesFileBytes, HashMap.class);
+                        } catch (Exception e) {
+                            stepLogger.writeItem(
+                                    "Invalid identity attributes file",
+                                    "Identity attribute file must be in a correct JSON format",
+                                    "ERROR",
+                                    e
+                            );
+                            throw new ExecutionException();
+                        }
+                    } else {
+                        stepLogger.writeItem(
+                                "Invalid identity attributes file",
+                                "Unable to read identity attributes file - did you specify the correct path?",
+                                "ERROR",
+                                null
+                        );
+                        throw new ExecutionException();
+                    }
+
+                    Map<String,Object> customAttributes;
+                    if (Files.exists(Paths.get(customAttributesFileName))) {
+                        byte[] customAttributesFileBytes = Files.readAllBytes(Paths.get(customAttributesFileName));
+                        try {
+                            customAttributes = RestClientConfiguration.defaultMapper().readValue(customAttributesFileBytes, HashMap.class);
+                        } catch (Exception e) {
+                            stepLogger.writeItem(
+                                    "Invalid custom attributes file",
+                                    "Custom attribute file must be in a correct JSON format",
+                                    "ERROR",
+                                    e
+                            );
+                            throw new ExecutionException();
+                        }
+                    } else {
+                        stepLogger.writeItem(
+                                "Invalid custom attributes file",
+                                "Unable to read custom attributes file - did you specify the correct path?",
+                                "ERROR",
+                                null
+                        );
+                        throw new ExecutionException();
+                    }
+
+                    CreateActivationStepModel model = new CreateActivationStepModel();
+                    model.setActivationName(ConfigurationUtils.getApplicationName(clientConfigObject));
+                    model.setActivationOtp(cmd.getOptionValue("a"));
+                    model.setApplicationKey(ConfigurationUtils.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    model.setCustomAttributes(customAttributes);
+                    model.setHeaders(httpHeaders);
+                    model.setIdentityAttributes(identityAttributes);
+                    model.setMasterPublicKey(masterPublicKey);
+                    model.setStatusFileName(statusFileName);
+                    model.setPassword(cmd.getOptionValue("p"));
+                    model.setResultStatusObject(resultStatusObject);
+                    model.setUriString(uriString);
+
+                    JSONObject result = new CreateActivationStep().execute(stepLogger, model.toMap());
+                    if (result == null) {
+                        throw new ExecutionException();
+                    }
+                    break;
+                }
                 default:
                     HelpFormatter formatter = new HelpFormatter();
+                    formatter.setWidth(100);
                     formatter.printHelp("java -jar powerauth-java-cmd.jar", options);
                     break;
             }
