@@ -6,6 +6,8 @@ import com.google.common.io.BaseEncoding;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
+import io.getlime.core.rest.model.base.request.ObjectRequest;
+import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
 import io.getlime.security.powerauth.crypto.client.encryptor.ClientNonPersonalizedEncryptor;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
@@ -20,12 +22,10 @@ import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
-import io.getlime.security.powerauth.rest.api.model.base.PowerAuthApiRequest;
-import io.getlime.security.powerauth.rest.api.model.base.PowerAuthApiResponse;
 import io.getlime.security.powerauth.rest.api.model.entity.NonPersonalizedEncryptedPayloadModel;
 import io.getlime.security.powerauth.rest.api.model.request.ActivationCreateCustomRequest;
 import io.getlime.security.powerauth.rest.api.model.request.ActivationCreateRequest;
-import io.getlime.security.powerauth.rest.api.model.response.ActivationCreateCustomResponse;
+import io.getlime.security.powerauth.rest.api.model.response.ActivationCreateResponse;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
@@ -197,12 +197,12 @@ public class CreateActivationStep implements BaseStep {
         encryptedRequestObject.setNonce(BaseEncoding.base64().encode(encryptedMessage.getNonce()));
         encryptedRequestObject.setSessionIndex(BaseEncoding.base64().encode(encryptedMessage.getSessionIndex()));
 
-        PowerAuthApiRequest<NonPersonalizedEncryptedPayloadModel> body = new PowerAuthApiRequest<>();
+        ObjectRequest<NonPersonalizedEncryptedPayloadModel> body = new ObjectRequest<>();
         body.setRequestObject(encryptedRequestObject);
 
         if (stepLogger != null) {
             stepLogger.writeItem(
-                    "Encrypring request object",
+                    "Encrypting request object",
                     "Following encrypted object is used for activation",
                     "OK",
                     body
@@ -226,8 +226,8 @@ public class CreateActivationStep implements BaseStep {
                     .body(body)
                     .asString();
 
-            TypeReference<PowerAuthApiResponse<NonPersonalizedEncryptedPayloadModel>> typeReference = new TypeReference<PowerAuthApiResponse<NonPersonalizedEncryptedPayloadModel>>() {};
-            PowerAuthApiResponse<NonPersonalizedEncryptedPayloadModel> responseWrapper = RestClientConfiguration
+            TypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>> typeReference = new TypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>>() {};
+            ObjectResponse<NonPersonalizedEncryptedPayloadModel> responseWrapper = RestClientConfiguration
                     .defaultMapper()
                     .readValue(response.getRawBody(), typeReference);
 
@@ -247,7 +247,7 @@ public class CreateActivationStep implements BaseStep {
                 encryptedMessage.setNonce(BaseEncoding.base64().decode(encryptedResponseObject.getNonce()));
                 encryptedMessage.setSessionIndex(BaseEncoding.base64().decode(encryptedResponseObject.getSessionIndex()));
                 byte[] originalResponseObjectBytes = encryptor.decrypt(encryptedMessage);
-                ActivationCreateCustomResponse responseObject = mapper.readValue(originalResponseObjectBytes, ActivationCreateCustomResponse.class);
+                ActivationCreateResponse responseObject = mapper.readValue(originalResponseObjectBytes, ActivationCreateResponse.class);
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(

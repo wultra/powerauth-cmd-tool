@@ -21,6 +21,7 @@ import com.google.common.io.BaseEncoding;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
+import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
 import io.getlime.security.powerauth.crypto.client.vault.PowerAuthClientVault;
@@ -34,7 +35,6 @@ import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
-import io.getlime.security.powerauth.rest.api.model.base.PowerAuthApiResponse;
 import io.getlime.security.powerauth.rest.api.model.response.VaultUnlockResponse;
 import org.json.simple.JSONObject;
 
@@ -148,8 +148,8 @@ public class VaultUnlockStep implements BaseStep {
                     .headers(headers)
                     .asString();
 
-            TypeReference<PowerAuthApiResponse<VaultUnlockResponse>> typeReference = new TypeReference<PowerAuthApiResponse<VaultUnlockResponse>>() {};
-            PowerAuthApiResponse<VaultUnlockResponse> responseWrapper = RestClientConfiguration
+            TypeReference<ObjectResponse<VaultUnlockResponse>> typeReference = new TypeReference<ObjectResponse<VaultUnlockResponse>>() {};
+            ObjectResponse<VaultUnlockResponse> responseWrapper = RestClientConfiguration
                     .defaultMapper()
                     .readValue(response.getRawBody(), typeReference);
 

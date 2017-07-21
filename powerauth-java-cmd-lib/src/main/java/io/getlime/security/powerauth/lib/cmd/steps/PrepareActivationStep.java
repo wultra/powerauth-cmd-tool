@@ -21,6 +21,8 @@ import com.google.common.io.BaseEncoding;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
+import io.getlime.core.rest.model.base.request.ObjectRequest;
+import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.vault.PowerAuthClientVault;
@@ -32,8 +34,6 @@ import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
-import io.getlime.security.powerauth.rest.api.model.base.PowerAuthApiRequest;
-import io.getlime.security.powerauth.rest.api.model.base.PowerAuthApiResponse;
 import io.getlime.security.powerauth.rest.api.model.request.ActivationCreateRequest;
 import io.getlime.security.powerauth.rest.api.model.response.ActivationCreateResponse;
 import org.json.simple.JSONObject;
@@ -147,7 +147,7 @@ public class PrepareActivationStep implements BaseStep {
         requestObject.setEphemeralPublicKey(BaseEncoding.base64().encode(ephemeralPublicKeyBytes));
         requestObject.setEncryptedDevicePublicKey(BaseEncoding.base64().encode(cDevicePublicKeyBytes));
         requestObject.setApplicationSignature(BaseEncoding.base64().encode(signature));
-        PowerAuthApiRequest<ActivationCreateRequest> body = new PowerAuthApiRequest<>();
+        ObjectRequest<ActivationCreateRequest> body = new ObjectRequest<>();
         body.setRequestObject(requestObject);
 
         // Call the server with activation data
@@ -167,8 +167,8 @@ public class PrepareActivationStep implements BaseStep {
                     .body(body)
                     .asString();
 
-            TypeReference<PowerAuthApiResponse<ActivationCreateResponse>> typeReference = new TypeReference<PowerAuthApiResponse<ActivationCreateResponse>>() {};
-            PowerAuthApiResponse<ActivationCreateResponse> responseWrapper = RestClientConfiguration
+            TypeReference<ObjectResponse<ActivationCreateResponse>> typeReference = new TypeReference<ObjectResponse<ActivationCreateResponse>>() {};
+            ObjectResponse<ActivationCreateResponse> responseWrapper = RestClientConfiguration
                     .defaultMapper()
                     .readValue(response.getRawBody(), typeReference);
 

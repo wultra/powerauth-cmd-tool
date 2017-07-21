@@ -20,6 +20,8 @@ import com.google.common.io.BaseEncoding;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
+import io.getlime.core.rest.model.base.request.ObjectRequest;
+import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.model.ActivationStatusBlobInfo;
@@ -28,8 +30,6 @@ import io.getlime.security.powerauth.lib.cmd.steps.model.GetStatusStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
-import io.getlime.security.powerauth.rest.api.model.base.PowerAuthApiRequest;
-import io.getlime.security.powerauth.rest.api.model.base.PowerAuthApiResponse;
 import io.getlime.security.powerauth.rest.api.model.request.ActivationStatusRequest;
 import io.getlime.security.powerauth.rest.api.model.response.ActivationStatusResponse;
 import org.json.simple.JSONObject;
@@ -82,7 +82,7 @@ public class GetStatusStep implements BaseStep {
         // Send the activation status request to the server
         ActivationStatusRequest requestObject = new ActivationStatusRequest();
         requestObject.setActivationId(activationId);
-        PowerAuthApiRequest<ActivationStatusRequest> body = new PowerAuthApiRequest<>();
+        ObjectRequest<ActivationStatusRequest> body = new ObjectRequest<>();
         body.setRequestObject(requestObject);
 
         try {
@@ -101,8 +101,8 @@ public class GetStatusStep implements BaseStep {
                     .body(body)
                     .asString();
 
-            TypeReference<PowerAuthApiResponse<ActivationStatusResponse>> typeReference = new TypeReference<PowerAuthApiResponse<ActivationStatusResponse>>() {};
-            PowerAuthApiResponse<ActivationStatusResponse> responseWrapper = RestClientConfiguration
+            TypeReference<ObjectResponse<ActivationStatusResponse>> typeReference = new TypeReference<ObjectResponse<ActivationStatusResponse>>() {};
+            ObjectResponse<ActivationStatusResponse> responseWrapper = RestClientConfiguration
                     .defaultMapper()
                     .readValue(response.getRawBody(), typeReference);
 

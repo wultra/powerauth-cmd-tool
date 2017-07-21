@@ -21,6 +21,7 @@ import com.google.common.io.BaseEncoding;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
+import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
@@ -33,7 +34,6 @@ import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
-import io.getlime.security.powerauth.rest.api.model.base.PowerAuthApiResponse;
 import io.getlime.security.powerauth.rest.api.model.response.ActivationRemoveResponse;
 import org.json.simple.JSONObject;
 
@@ -137,8 +137,8 @@ public class RemoveStep implements BaseStep {
                     .headers(headers)
                     .asString();
 
-            TypeReference<PowerAuthApiResponse<ActivationRemoveResponse>> typeReference = new TypeReference<PowerAuthApiResponse<ActivationRemoveResponse>>() {};
-            PowerAuthApiResponse<ActivationRemoveResponse> responseWrapper = RestClientConfiguration
+            TypeReference<ObjectResponse<ActivationRemoveResponse>> typeReference = new TypeReference<ObjectResponse<ActivationRemoveResponse>>() {};
+            ObjectResponse<ActivationRemoveResponse> responseWrapper = RestClientConfiguration
                     .defaultMapper()
                     .readValue(response.getRawBody(), typeReference);
 
