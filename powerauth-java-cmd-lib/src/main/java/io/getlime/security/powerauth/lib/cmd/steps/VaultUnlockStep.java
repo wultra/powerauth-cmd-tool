@@ -118,7 +118,7 @@ public class VaultUnlockStep implements BaseStep {
 
         // Compute the current PowerAuth 2.0 signature for possession and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("post", "/pa/vault/unlock", pa_nonce, null) + "&" + model.getApplicationSecret();
-        String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(model.getSignatureType().toString(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), counter);
+        String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), counter);
         String httpAuhtorizationHeader = PowerAuthHttpHeader.getPowerAuthSignatureHTTPHeader(activationId, model.getApplicationKey(), BaseEncoding.base64().encode(pa_nonce), model.getSignatureType().toString(), pa_signature, "2.0");
 
         // Increment the counter

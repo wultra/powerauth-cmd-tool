@@ -20,14 +20,14 @@
 
 	<groupId>io.getlime.security</groupId>
 	<artifactId>powerauth-java-cmd</artifactId>
-	<version>0.16.1</version>
+	<version>0.16.2</version>
 	<name>powerauth-java-cmd</name>
 	<description>PowerAuth 2.0 Reference Client Application connected to PowerAuth 2.0 Standard RESTful API</description>
 
 	<parent>
 		<groupId>io.getlime.security</groupId>
 		<artifactId>powerauth-cmd-parent</artifactId>
-		<version>0.16.1</version>
+		<version>0.16.2</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
@@ -35,7 +35,7 @@
 		<dependency>
 			<groupId>io.getlime.security</groupId>
 			<artifactId>powerauth-java-cmd-lib</artifactId>
-			<version>0.16.1</version>
+			<version>0.16.2</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
@@ -46,7 +46,7 @@
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcprov-jdk15on</artifactId>
-			<version>1.57</version>
+			<version>1.58</version>
 		</dependency>
     </dependencies>
 
