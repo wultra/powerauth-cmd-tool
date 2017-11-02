@@ -123,7 +123,7 @@ public class GetStatusStep implements BaseStep {
                 objectMap.put("statusBlob", statusBlob);
                 if (stepLogger != null) {
                     stepLogger.writeItem(
-                            "Avtivation Status",
+                            "Activation Status",
                             "Activation status successfully obtained",
                             "OK",
                             objectMap
