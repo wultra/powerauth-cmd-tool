@@ -189,6 +189,26 @@ public class Application {
 
             // Execute the code for given methods
             switch (method) {
+                case "create-token": {
+
+                    CreateTokenStepModel model = new CreateTokenStepModel();
+                    model.setApplicationKey(ConfigurationUtils.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    model.setHeaders(httpHeaders);
+                    model.setMasterPublicKey(masterPublicKey);
+                    model.setPassword(cmd.getOptionValue("p"));
+                    model.setResultStatusObject(resultStatusObject);
+                    model.setStatusFileName(statusFileName);
+                    model.setUriString(uriString);
+                    model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
+
+                    JSONObject result = new CreateTokenStep().execute(stepLogger, model.toMap());
+                    if (result == null) {
+                        throw new ExecutionException();
+                    }
+
+                    break;
+                }
                 case "prepare": {
 
                     PrepareActivationStepModel model = new PrepareActivationStepModel();
