@@ -27,7 +27,7 @@ import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
-import io.getlime.security.powerauth.http.PowerAuthHttpHeader;
+import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.RemoveStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
@@ -108,7 +108,8 @@ public class RemoveStep implements BaseStep {
         // and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/activation/remove", pa_nonce, null) + "&" + model.getApplicationSecret();
         String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), Arrays.asList(signaturePossessionKey, signatureKnowledgeKey), counter);
-        String httpAuhtorizationHeader = PowerAuthHttpHeader.getPowerAuthSignatureHTTPHeader(activationId, model.getApplicationKey(), BaseEncoding.base64().encode(pa_nonce), PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE.toString(), pa_signature, "2.0");
+        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE.toString(), BaseEncoding.base64().encode(pa_nonce), "2.0");
+        String httpAuhtorizationHeader = header.buildHttpHeader();
 
         // Increment the counter
         counter += 1;
@@ -126,7 +127,7 @@ public class RemoveStep implements BaseStep {
             Map<String, String> headers = new HashMap<>();
             headers.put("Accept", "application/json");
             headers.put("Content-Type", "application/json");
-            headers.put(PowerAuthHttpHeader.HEADER_NAME, httpAuhtorizationHeader);
+            headers.put(PowerAuthSignatureHttpHeader.HEADER_NAME, httpAuhtorizationHeader);
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {

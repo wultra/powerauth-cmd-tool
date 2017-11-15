@@ -26,8 +26,8 @@ import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSign
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
-import io.getlime.security.powerauth.http.PowerAuthHttpHeader;
 import io.getlime.security.powerauth.http.PowerAuthRequestCanonizationUtils;
+import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
@@ -144,7 +144,8 @@ public class VerifySignatureStep implements BaseStep {
         // Compute the current PowerAuth 2.0 signature for possession and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString(model.getHttpMethod().toUpperCase(), model.getResourceId(), pa_nonce, dataFileBytes) + "&" + model.getApplicationSecret();
         String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), counter);
-        String httpAuhtorizationHeader = PowerAuthHttpHeader.getPowerAuthSignatureHTTPHeader(activationId, model.getApplicationKey(), BaseEncoding.base64().encode(pa_nonce), model.getSignatureType().toString(), pa_signature, "2.0");
+        final PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, model.getSignatureType().toString(), BaseEncoding.base64().encode(pa_nonce), "2.0");
+        String httpAuhtorizationHeader = header.buildHttpHeader();
 
         // Increment the counter
         counter += 1;
@@ -162,7 +163,7 @@ public class VerifySignatureStep implements BaseStep {
             Map<String, String> headers = new HashMap<>();
             headers.put("Accept", "application/json");
             headers.put("Content-Type", "application/json");
-            headers.put(PowerAuthHttpHeader.HEADER_NAME, httpAuhtorizationHeader);
+            headers.put(PowerAuthSignatureHttpHeader.HEADER_NAME, httpAuhtorizationHeader);
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {

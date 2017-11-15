@@ -24,7 +24,7 @@
 
 	<groupId>io.getlime.security</groupId>
 	<artifactId>powerauth-cmd-parent</artifactId>
-	<version>0.16.2</version>
+	<version>0.17.0</version>
 	<packaging>pom</packaging>
 
 	<inceptionYear>2016</inceptionYear>
@@ -70,8 +70,8 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<maven.compiler.source>1.7</maven.compiler.source>
-		<maven.compiler.target>1.7</maven.compiler.target>
+		<maven.compiler.source>1.8</maven.compiler.source>
+		<maven.compiler.target>1.8</maven.compiler.target>
 	</properties>
 
 	<build>
@@ -141,15 +141,6 @@
                     </plugin>
                 </plugins>
             </build>
-        </profile>
-        <profile>
-            <id>disable-java8-doclint</id>
-            <activation>
-                <jdk>[1.8,)</jdk>
-            </activation>
-            <properties>
-                <additionalparam>-Xdoclint:none</additionalparam>
-            </properties>
         </profile>
     </profiles>
 
