@@ -28,28 +28,23 @@ import io.getlime.security.powerauth.crypto.client.token.ClientTokenGenerator;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.BasicEciesEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesPayload;
-import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
-import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.CreateTokenStepModel;
-import io.getlime.security.powerauth.lib.cmd.steps.model.RemoveStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.entity.TokenResponsePayload;
 import io.getlime.security.powerauth.rest.api.model.request.TokenCreateRequest;
-import io.getlime.security.powerauth.rest.api.model.response.ActivationRemoveResponse;
 import io.getlime.security.powerauth.rest.api.model.response.TokenCreateResponse;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
 import java.io.FileWriter;
-import java.security.KeyPair;
-import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.interfaces.ECPublicKey;
 import java.util.Arrays;
@@ -77,7 +72,7 @@ public class CreateTokenStep implements BaseStep {
      */
     @SuppressWarnings("unchecked")
     @Override
-    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public JSONObject execute(JsonStepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         CreateTokenStepModel model = new CreateTokenStepModel();

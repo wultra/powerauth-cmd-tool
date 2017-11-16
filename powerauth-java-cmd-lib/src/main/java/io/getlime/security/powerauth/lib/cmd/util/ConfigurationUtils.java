@@ -17,7 +17,7 @@ package io.getlime.security.powerauth.lib.cmd.util;
 
 import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
-import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
 import org.json.simple.JSONObject;
 
 import java.security.PublicKey;
@@ -79,7 +79,7 @@ public class ConfigurationUtils {
      * @param clientConfigObject Object with configuration.
      * @return Master public key.
      */
-    public static PublicKey getMasterKey(JSONObject clientConfigObject, StepLogger stepLogger) {
+    public static PublicKey getMasterKey(JSONObject clientConfigObject, JsonStepLogger stepLogger) {
         if (clientConfigObject != null && clientConfigObject.get("masterPublicKey") != null) {
             try {
                 byte[] masterKeyBytes = BaseEncoding.base64().decode((String) clientConfigObject.get("masterPublicKey"));

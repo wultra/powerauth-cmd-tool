@@ -16,7 +16,7 @@ import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.encryptor.model.NonPersonalizedEncryptedMessage;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.http.PowerAuthRequestCanonizationUtils;
-import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.CreateActivationStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
@@ -50,7 +50,7 @@ public class CreateActivationStep implements BaseStep {
     private static final ObjectMapper mapper = new ObjectMapper();
 
     @Override
-    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public JSONObject execute(JsonStepLogger stepLogger, Map<String, Object> context) throws Exception {
         // Read properties from "context"
         CreateActivationStepModel model = new CreateActivationStepModel();
         model.fromMap(context);

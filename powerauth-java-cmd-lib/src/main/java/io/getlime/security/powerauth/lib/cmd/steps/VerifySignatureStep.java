@@ -28,7 +28,7 @@ import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthRequestCanonizationUtils;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
-import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
@@ -66,7 +66,7 @@ public class VerifySignatureStep implements BaseStep {
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public JSONObject execute(JsonStepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         VerifySignatureStepModel model = new VerifySignatureStepModel();

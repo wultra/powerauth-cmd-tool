@@ -17,7 +17,7 @@ package io.getlime.security.powerauth.app.cmd;
 
 import io.getlime.security.powerauth.app.cmd.exception.ExecutionException;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
-import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.*;
 import io.getlime.security.powerauth.lib.cmd.steps.model.*;
 import io.getlime.security.powerauth.lib.cmd.util.ConfigurationUtils;
@@ -51,7 +51,7 @@ public class Application {
      */
     public static void main(String[] args) {
 
-        StepLogger stepLogger = new StepLogger(System.out);
+        JsonStepLogger stepLogger = new JsonStepLogger(System.out);
 
         try {
 
