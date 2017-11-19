@@ -80,8 +80,8 @@ public class Application {
             options.addOption("I", "identity-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with identity attributes.");
             options.addOption("C", "custom-attributes-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with custom attributes.");
             options.addOption("i", "invalidSsl", false, "Client may accept invalid SSL certificate in HTTPS communication.");
-            options.addOption("T", "token-id", true, "Token ID, in case of 'token-validate' method.");
-            options.addOption("S", "token-secret", true, "Token secret, in case of 'token-validate' method.");
+            options.addOption("T", "token-id", true, "Token ID (UUID4), in case of 'token-validate' method.");
+            options.addOption("S", "token-secret", true, "Token secret (Base64 encoded bytes), in case of 'token-validate' method.");
 
             Option httpHeaderOption = Option.builder("H")
                     .argName("key=value")
