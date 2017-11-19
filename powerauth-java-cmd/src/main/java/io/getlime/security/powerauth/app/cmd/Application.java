@@ -68,7 +68,7 @@ public class Application {
             Options options = new Options();
             options.addOption("h", "help", false, "Print this help manual.");
             options.addOption("u", "url", true, "Base URL of the PowerAuth 2.0 Standard RESTful API.");
-            options.addOption("m", "method", true, "What API method to call, available names are 'prepare', 'status', 'remove', 'sign', 'unlock' and 'create-custom'.");
+            options.addOption("m", "method", true, "What API method to call, available names are 'prepare', 'status', 'remove', 'sign', 'unlock', 'create-custom', 'create-token', 'validate-token'.");
             options.addOption("c", "config-file", true, "Specifies a path to the config file with Base64 encoded server master public key, application ID and application secret.");
             options.addOption("s", "status-file", true, "Path to the file with the activation status, serving as the data persistence.");
             options.addOption("a", "activation-code", true, "In case a specified method is 'prepare', this field contains the activation key (a concatenation of a short activation ID and activation OTP).");
@@ -80,6 +80,8 @@ public class Application {
             options.addOption("I", "identity-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with identity attributes.");
             options.addOption("C", "custom-attributes-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with custom attributes.");
             options.addOption("i", "invalidSsl", false, "Client may accept invalid SSL certificate in HTTPS communication.");
+            options.addOption("T", "token-id", true, "Token ID (UUID4), in case of 'token-validate' method.");
+            options.addOption("S", "token-secret", true, "Token secret (Base64 encoded bytes), in case of 'token-validate' method.");
 
             Option httpHeaderOption = Option.builder("H")
                     .argName("key=value")
@@ -203,6 +205,24 @@ public class Application {
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
 
                     JSONObject result = new CreateTokenStep().execute(stepLogger, model.toMap());
+                    if (result == null) {
+                        throw new ExecutionException();
+                    }
+
+                    break;
+                }
+                case "validate-token": {
+
+                    VerifyTokenStepModel model = new VerifyTokenStepModel();
+                    model.setTokenId(cmd.getOptionValue("T"));
+                    model.setTokenSecret(cmd.getOptionValue("S"));
+                    model.setHeaders(httpHeaders);
+                    model.setDataFileName(cmd.getOptionValue("d"));
+                    model.setResultStatusObject(resultStatusObject);
+                    model.setUriString(uriString);
+                    model.setHttpMethod(cmd.getOptionValue("t"));
+
+                    JSONObject result = new VerifyTokenStep().execute(stepLogger, model.toMap());
                     if (result == null) {
                         throw new ExecutionException();
                     }
