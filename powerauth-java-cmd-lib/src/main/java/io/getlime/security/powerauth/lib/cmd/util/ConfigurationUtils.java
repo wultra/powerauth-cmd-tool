@@ -77,6 +77,7 @@ public class ConfigurationUtils {
     /**
      * Get master public key from the configuration object
      * @param clientConfigObject Object with configuration.
+     * @param stepLogger Step logger instance.
      * @return Master public key.
      */
     public static PublicKey getMasterKey(JSONObject clientConfigObject, JsonStepLogger stepLogger) {

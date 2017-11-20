@@ -83,6 +83,7 @@ public class BaseStepModel {
      * Initialize object with given attribute map.
      * @param context Context with attributes.
      */
+    @SuppressWarnings("unchecked")
     public void fromMap(Map<String, Object> context) {
         setHeaders((Map<String, String>) context.get("HTTP_HEADERS"));
         setUriString((String) context.get("URI_STRING"));
