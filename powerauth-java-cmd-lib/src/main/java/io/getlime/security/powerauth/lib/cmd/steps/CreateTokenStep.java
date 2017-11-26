@@ -61,7 +61,6 @@ public class CreateTokenStep implements BaseStep {
     private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientSignature signature = new PowerAuthClientSignature();
-    private static final ClientTokenGenerator tokenGenerator = new ClientTokenGenerator();
     private static final ObjectMapper mapper = new ObjectMapper();
 
     /**
@@ -185,7 +184,6 @@ public class CreateTokenStep implements BaseStep {
                 Map<String, Object> objectMap = new HashMap<>();
                 objectMap.put("tokenId", tokenResponsePayload.getTokenId());
                 objectMap.put("tokenSecret", tokenResponsePayload.getTokenSecret());
-                objectMap.put("expires", tokenResponsePayload.getExpires());
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
