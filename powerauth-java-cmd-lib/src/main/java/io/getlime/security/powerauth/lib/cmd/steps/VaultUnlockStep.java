@@ -119,7 +119,7 @@ public class VaultUnlockStep implements BaseStep {
         byte[] pa_nonce = keyGenerator.generateRandomBytes(16);
 
         // Get the vault unlocked reason
-        String vaultUnlockedReason = model.getVaultUnlockedReason();
+        String reason = model.getReason();
 
         // Compute the current PowerAuth 2.0 signature for possession and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("post", "/pa/vault/unlock", pa_nonce, null) + "&" + model.getApplicationSecret();
@@ -139,8 +139,7 @@ public class VaultUnlockStep implements BaseStep {
 
         // Send the vault unlock request to the server
         VaultUnlockRequest requestObject = new VaultUnlockRequest();
-        requestObject.setActivationId(activationId);
-        requestObject.setVaultUnlockedReason(vaultUnlockedReason);
+        requestObject.setReason(reason);
         ObjectRequest<VaultUnlockRequest> body = new ObjectRequest<>();
         body.setRequestObject(requestObject);
 

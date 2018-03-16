@@ -85,7 +85,7 @@ public class Application {
             options.addOption("i", "invalidSsl", false, "Client may accept invalid SSL certificate in HTTPS communication.");
             options.addOption("T", "token-id", true, "Token ID (UUID4), in case of 'token-validate' method.");
             options.addOption("S", "token-secret", true, "Token secret (Base64 encoded bytes), in case of 'token-validate' method.");
-            options.addOption("v", "vault-unlocked-reason", true, "Reason why vault is being unlocked.");
+            options.addOption("r", "reason", true, "Reason why vault is being unlocked.");
 
             Option httpHeaderOption = Option.builder("H")
                     .argName("key=value")
@@ -156,7 +156,7 @@ public class Application {
             String uriString = cmd.getOptionValue("u");
             String statusFileName = cmd.getOptionValue("s");
             String configFileName = cmd.getOptionValue("c");
-            String vaultUnlockedReason = cmd.getOptionValue("v");
+            String reason = cmd.getOptionValue("r");
 
             // Read config file
             if (Files.exists(Paths.get(configFileName))) {
@@ -320,7 +320,7 @@ public class Application {
                     model.setStatusFileName(statusFileName);
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
                     model.setUriString(uriString);
-                    model.setVaultUnlockedReason(vaultUnlockedReason);
+                    model.setReason(reason);
 
                     JSONObject result = new VaultUnlockStep().execute(stepLogger, model.toMap());
                     if (result == null) {

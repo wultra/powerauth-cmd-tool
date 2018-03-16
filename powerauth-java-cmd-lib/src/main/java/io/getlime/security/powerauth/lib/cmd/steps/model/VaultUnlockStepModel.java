@@ -31,7 +31,7 @@ public class VaultUnlockStepModel extends BaseStepModel {
     private String statusFileName;
     private PowerAuthSignatureTypes signatureType;
     private String password;
-    private String vaultUnlockedReason;
+    private String reason;
 
     /**
      * Application key.
@@ -94,19 +94,19 @@ public class VaultUnlockStepModel extends BaseStepModel {
     }
 
     /**
-     * Get reason why vault is unlocked.
-     * @return Reason why vault is unlocked.
+     * Get reason why vault is being unlocked.
+     * @return Reason why vault is being unlocked.
      */
-    public String getVaultUnlockedReason() {
-        return vaultUnlockedReason;
+    public String getReason() {
+        return reason;
     }
 
     /**
-     * Set reason why vault is unlocked.
-     * @param vaultUnlockedReason Reason why vault is unlocked.
+     * Set reason why vault is being unlocked.
+     * @param reason Reason why vault is being unlocked.
      */
-    public void setVaultUnlockedReason(String vaultUnlockedReason) {
-        this.vaultUnlockedReason = vaultUnlockedReason;
+    public void setReason(String reason) {
+        this.reason = reason;
     }
 
     @Override
@@ -117,7 +117,7 @@ public class VaultUnlockStepModel extends BaseStepModel {
         context.put("APPLICATION_SECRET", applicationSecret);
         context.put("SIGNATURE_TYPE", signatureType.toString());
         context.put("PASSWORD", password);
-        context.put("VAULT_UNLOCKED_REASON", vaultUnlockedReason);
+        context.put("REASON", reason);
         return context;
     }
 
@@ -129,6 +129,6 @@ public class VaultUnlockStepModel extends BaseStepModel {
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
         setSignatureType(PowerAuthSignatureTypes.getEnumFromString((String) context.get("SIGNATURE_TYPE")));
         setPassword((String) context.get("PASSWORD"));
-        setVaultUnlockedReason((String) context.get("VAULT_UNLOCKED_REASON"));
+        setReason((String) context.get("REASON"));
     }
 }
