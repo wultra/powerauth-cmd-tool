@@ -121,11 +121,17 @@ public class VaultUnlockStep implements BaseStep {
         // Get the vault unlocked reason
         String reason = model.getReason();
 
+        // Prepare vault unlock request
+        VaultUnlockRequest vaultUnlockRequest = new VaultUnlockRequest();
+        vaultUnlockRequest.setReason(reason);
+        ObjectRequest<VaultUnlockRequest> request = new ObjectRequest<>(vaultUnlockRequest);
+        final byte[] requestBytes = RestClientConfiguration.defaultMapper().writeValueAsBytes(request);
+
         // Compute the current PowerAuth 2.0 signature for possession and knowledge factor
-        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("post", "/pa/vault/unlock", pa_nonce, null) + "&" + model.getApplicationSecret();
+        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("post", "/pa/vault/unlock", pa_nonce, requestBytes) + "&" + model.getApplicationSecret();
         String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), counter);
         PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, model.getSignatureType().toString(), BaseEncoding.base64().encode(pa_nonce), "2.0");
-        String httpAuhtorizationHeader = header.buildHttpHeader();
+        String httpAuthorizationHeader = header.buildHttpHeader();
 
         // Increment the counter
         counter += 1;
@@ -149,7 +155,7 @@ public class VaultUnlockStep implements BaseStep {
             Map<String, String> headers = new HashMap<>();
             headers.put("Accept", "application/json");
             headers.put("Content-Type", "application/json");
-            headers.put(PowerAuthSignatureHttpHeader.HEADER_NAME, httpAuhtorizationHeader);
+            headers.put(PowerAuthSignatureHttpHeader.HEADER_NAME, httpAuthorizationHeader);
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
