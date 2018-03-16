@@ -16,13 +16,13 @@
 package io.getlime.security.powerauth.app.cmd;
 
 import io.getlime.security.powerauth.app.cmd.exception.ExecutionException;
+import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.*;
 import io.getlime.security.powerauth.lib.cmd.steps.model.*;
 import io.getlime.security.powerauth.lib.cmd.util.ConfigurationUtils;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
-import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtilFactory;
 import org.apache.commons.cli.*;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -34,7 +34,10 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.PublicKey;
 import java.security.Security;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 
 /**
  * Command-line utility for testing PowerAuth implementation and for verification of
@@ -82,6 +85,7 @@ public class Application {
             options.addOption("i", "invalidSsl", false, "Client may accept invalid SSL certificate in HTTPS communication.");
             options.addOption("T", "token-id", true, "Token ID (UUID4), in case of 'token-validate' method.");
             options.addOption("S", "token-secret", true, "Token secret (Base64 encoded bytes), in case of 'token-validate' method.");
+            options.addOption("r", "reason", true, "Reason why vault is being unlocked.");
 
             Option httpHeaderOption = Option.builder("H")
                     .argName("key=value")
@@ -152,6 +156,7 @@ public class Application {
             String uriString = cmd.getOptionValue("u");
             String statusFileName = cmd.getOptionValue("s");
             String configFileName = cmd.getOptionValue("c");
+            String reason = cmd.getOptionValue("r");
 
             // Read config file
             if (Files.exists(Paths.get(configFileName))) {
@@ -315,6 +320,7 @@ public class Application {
                     model.setStatusFileName(statusFileName);
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
                     model.setUriString(uriString);
+                    model.setReason(reason);
 
                     JSONObject result = new VaultUnlockStep().execute(stepLogger, model.toMap());
                     if (result == null) {

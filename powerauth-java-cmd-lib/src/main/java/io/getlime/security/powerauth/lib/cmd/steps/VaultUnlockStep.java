@@ -21,6 +21,7 @@ import com.google.common.io.BaseEncoding;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
+import io.getlime.core.rest.model.base.request.ObjectRequest;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
@@ -35,6 +36,7 @@ import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
+import io.getlime.security.powerauth.rest.api.model.request.VaultUnlockRequest;
 import io.getlime.security.powerauth.rest.api.model.response.VaultUnlockResponse;
 import org.json.simple.JSONObject;
 
@@ -116,6 +118,9 @@ public class VaultUnlockStep implements BaseStep {
         // Generate nonce
         byte[] pa_nonce = keyGenerator.generateRandomBytes(16);
 
+        // Get the vault unlocked reason
+        String reason = model.getReason();
+
         // Compute the current PowerAuth 2.0 signature for possession and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("post", "/pa/vault/unlock", pa_nonce, null) + "&" + model.getApplicationSecret();
         String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), counter);
@@ -132,6 +137,12 @@ public class VaultUnlockStep implements BaseStep {
             file.write(formatted);
         }
 
+        // Send the vault unlock request to the server
+        VaultUnlockRequest requestObject = new VaultUnlockRequest();
+        requestObject.setReason(reason);
+        ObjectRequest<VaultUnlockRequest> body = new ObjectRequest<>();
+        body.setRequestObject(requestObject);
+
         // Call the server with activation data
         try {
 
@@ -142,11 +153,12 @@ public class VaultUnlockStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall(uri, "POST", null, headers);
+                stepLogger.writeServerCall(uri, "POST", body, headers);
             }
 
             HttpResponse response = Unirest.post(uri)
                     .headers(headers)
+                    .body(body)
                     .asString();
 
             TypeReference<ObjectResponse<VaultUnlockResponse>> typeReference = new TypeReference<ObjectResponse<VaultUnlockResponse>>() {};
