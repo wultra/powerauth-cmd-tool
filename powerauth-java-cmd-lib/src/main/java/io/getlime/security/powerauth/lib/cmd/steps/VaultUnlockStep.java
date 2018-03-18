@@ -143,12 +143,6 @@ public class VaultUnlockStep implements BaseStep {
             file.write(formatted);
         }
 
-        // Send the vault unlock request to the server
-        VaultUnlockRequest requestObject = new VaultUnlockRequest();
-        requestObject.setReason(reason);
-        ObjectRequest<VaultUnlockRequest> body = new ObjectRequest<>();
-        body.setRequestObject(requestObject);
-
         // Call the server with activation data
         try {
 
@@ -159,12 +153,12 @@ public class VaultUnlockStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall(uri, "POST", body, headers);
+                stepLogger.writeServerCall(uri, "POST", request, headers);
             }
 
             HttpResponse response = Unirest.post(uri)
                     .headers(headers)
-                    .body(body)
+                    .body(requestBytes)
                     .asString();
 
             TypeReference<ObjectResponse<VaultUnlockResponse>> typeReference = new TypeReference<ObjectResponse<VaultUnlockResponse>>() {};
