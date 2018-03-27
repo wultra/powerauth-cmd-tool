@@ -31,6 +31,7 @@ public class VaultUnlockStepModel extends BaseStepModel {
     private String statusFileName;
     private PowerAuthSignatureTypes signatureType;
     private String password;
+    private String reason;
 
     /**
      * Application key.
@@ -92,6 +93,22 @@ public class VaultUnlockStepModel extends BaseStepModel {
         return password;
     }
 
+    /**
+     * Get reason why vault is being unlocked.
+     * @return Reason why vault is being unlocked.
+     */
+    public String getReason() {
+        return reason;
+    }
+
+    /**
+     * Set reason why vault is being unlocked.
+     * @param reason Reason why vault is being unlocked.
+     */
+    public void setReason(String reason) {
+        this.reason = reason;
+    }
+
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> context = super.toMap();
@@ -100,6 +117,7 @@ public class VaultUnlockStepModel extends BaseStepModel {
         context.put("APPLICATION_SECRET", applicationSecret);
         context.put("SIGNATURE_TYPE", signatureType.toString());
         context.put("PASSWORD", password);
+        context.put("REASON", reason);
         return context;
     }
 
@@ -111,5 +129,6 @@ public class VaultUnlockStepModel extends BaseStepModel {
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
         setSignatureType(PowerAuthSignatureTypes.getEnumFromString((String) context.get("SIGNATURE_TYPE")));
         setPassword((String) context.get("PASSWORD"));
+        setReason((String) context.get("REASON"));
     }
 }
