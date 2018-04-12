@@ -119,12 +119,11 @@ public class VerifyTokenStep implements BaseStep {
                         .asString();
             }
 
-            TypeReference<Map<String, Object>> typeReference = new TypeReference<Map<String, Object>>() {};
-            Map<String, Object> responseWrapper = RestClientConfiguration
-                    .defaultMapper()
-                    .readValue(response.getRawBody(), typeReference);
-
             if (response.getStatus() == 200) {
+                TypeReference<Map<String, Object>> typeReference = new TypeReference<Map<String, Object>>() {};
+                Map<String, Object> responseWrapper = RestClientConfiguration
+                        .defaultMapper()
+                        .readValue(response.getRawBody(), typeReference);
 
                 if (stepLogger != null) {
                     stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));

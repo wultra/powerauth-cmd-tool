@@ -138,12 +138,12 @@ public class RemoveStep implements BaseStep {
                     .headers(headers)
                     .asString();
 
-            TypeReference<ObjectResponse<ActivationRemoveResponse>> typeReference = new TypeReference<ObjectResponse<ActivationRemoveResponse>>() {};
-            ObjectResponse<ActivationRemoveResponse> responseWrapper = RestClientConfiguration
-                    .defaultMapper()
-                    .readValue(response.getRawBody(), typeReference);
-
             if (response.getStatus() == 200) {
+                TypeReference<ObjectResponse<ActivationRemoveResponse>> typeReference = new TypeReference<ObjectResponse<ActivationRemoveResponse>>() {};
+                ObjectResponse<ActivationRemoveResponse> responseWrapper = RestClientConfiguration
+                        .defaultMapper()
+                        .readValue(response.getRawBody(), typeReference);
+
                 if (stepLogger != null) {
                     stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }

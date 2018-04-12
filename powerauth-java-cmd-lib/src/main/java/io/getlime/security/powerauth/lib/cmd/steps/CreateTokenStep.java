@@ -160,12 +160,12 @@ public class CreateTokenStep implements BaseStep {
                     .body(requestBytes)
                     .asString();
 
-            TypeReference<ObjectResponse<TokenCreateResponse>> typeReference = new TypeReference<ObjectResponse<TokenCreateResponse>>() {};
-            ObjectResponse<TokenCreateResponse> responseWrapper = RestClientConfiguration
-                    .defaultMapper()
-                    .readValue(response.getRawBody(), typeReference);
-
             if (response.getStatus() == 200) {
+                TypeReference<ObjectResponse<TokenCreateResponse>> typeReference = new TypeReference<ObjectResponse<TokenCreateResponse>>() {};
+                ObjectResponse<TokenCreateResponse> responseWrapper = RestClientConfiguration
+                        .defaultMapper()
+                        .readValue(response.getRawBody(), typeReference);
+
                 if (stepLogger != null) {
                     stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
