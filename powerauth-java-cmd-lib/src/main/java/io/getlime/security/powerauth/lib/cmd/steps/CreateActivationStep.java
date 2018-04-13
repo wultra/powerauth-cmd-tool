@@ -226,12 +226,12 @@ public class CreateActivationStep implements BaseStep {
                     .body(body)
                     .asString();
 
-            TypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>> typeReference = new TypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>>() {};
-            ObjectResponse<NonPersonalizedEncryptedPayloadModel> responseWrapper = RestClientConfiguration
-                    .defaultMapper()
-                    .readValue(response.getRawBody(), typeReference);
-
             if (response.getStatus() == 200) {
+                TypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>> typeReference = new TypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>>() {};
+                ObjectResponse<NonPersonalizedEncryptedPayloadModel> responseWrapper = RestClientConfiguration
+                        .defaultMapper()
+                        .readValue(response.getRawBody(), typeReference);
+
                 if (stepLogger != null) {
                     stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
