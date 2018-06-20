@@ -89,6 +89,14 @@ public class EncryptStep implements BaseStep {
 
         // Encrypt the request data
         final NonPersonalizedEncryptedMessage encryptedMessage = encryptor.encrypt(requestData.getBytes());
+        if (encryptedMessage == null) {
+            if (stepLogger != null) {
+                stepLogger.writeError("Encryption failed", "Encrypted message is not available");
+                stepLogger.writeDoneFailed();
+            }
+            return null;
+        }
+
         NonPersonalizedEncryptedPayloadModel encryptedRequestObject = new NonPersonalizedEncryptedPayloadModel();
         encryptedRequestObject.setAdHocIndex(BaseEncoding.base64().encode(encryptedMessage.getAdHocIndex()));
         encryptedRequestObject.setApplicationKey(BaseEncoding.base64().encode(encryptedMessage.getApplicationKey()));
@@ -143,14 +151,25 @@ public class EncryptStep implements BaseStep {
                 encryptedMessage.setMacIndex(BaseEncoding.base64().decode(encryptedResponseObject.getMacIndex()));
                 encryptedMessage.setNonce(BaseEncoding.base64().decode(encryptedResponseObject.getNonce()));
                 encryptedMessage.setSessionIndex(BaseEncoding.base64().decode(encryptedResponseObject.getSessionIndex()));
+
                 byte[] decryptedMessageBytes = encryptor.decrypt(encryptedMessage);
+                if (decryptedMessageBytes == null) {
+                    if (stepLogger != null) {
+                        stepLogger.writeError("Decryption failed", "Decrypted response is not available");
+                        stepLogger.writeDoneFailed();
+                    }
+                    return null;
+                }
+
+                String decryptedMessage = new String(decryptedMessageBytes);
+                model.getResultStatusObject().put("responseData", decryptedMessage);
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
                             "Decrypted response",
                             "Following data were decrypted",
                             "OK",
-                            new String(decryptedMessageBytes)
+                            decryptedMessage
                     );
                     stepLogger.writeDoneOK();
                 }
