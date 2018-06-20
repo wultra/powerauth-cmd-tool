@@ -155,7 +155,7 @@ public class EncryptStep implements BaseStep {
                 byte[] decryptedMessageBytes = encryptor.decrypt(encryptedMessage);
                 if (decryptedMessageBytes == null) {
                     if (stepLogger != null) {
-                        stepLogger.writeError("Decryption failed", "Decrypted response is not available");
+                        stepLogger.writeError("Decryption failed", "Decrypted message is not available");
                         stepLogger.writeDoneFailed();
                     }
                     return null;
