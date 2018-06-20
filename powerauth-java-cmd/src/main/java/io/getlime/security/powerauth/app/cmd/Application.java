@@ -187,7 +187,7 @@ public class Application {
 
             // Read current activation state from the activation state file or create an empty state
             JSONObject resultStatusObject;
-            if (Files.exists(Paths.get(statusFileName))) {
+            if (statusFileName != null && Files.exists(Paths.get(statusFileName))) {
                 byte[] statusFileBytes = Files.readAllBytes(Paths.get(statusFileName));
                 resultStatusObject = (JSONObject) JSONValue.parse(new String(statusFileBytes));
             } else {
@@ -396,6 +396,22 @@ public class Application {
                     model.setUriString(uriString);
 
                     JSONObject result = new CreateActivationStep().execute(stepLogger, model.toMap());
+                    if (result == null) {
+                        throw new ExecutionException();
+                    }
+                    break;
+                }
+                case "encrypt": {
+                    EncryptStepModel model = new EncryptStepModel();
+                    model.setApplicationKey(ConfigurationUtils.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    model.setHeaders(httpHeaders);
+                    model.setMasterPublicKey(masterPublicKey);
+                    model.setResultStatusObject(resultStatusObject);
+                    model.setDataFileName(cmd.getOptionValue("d"));
+                    model.setUriString(uriString);
+
+                    JSONObject result = new EncryptStep().execute(stepLogger, model.toMap());
                     if (result == null) {
                         throw new ExecutionException();
                     }
