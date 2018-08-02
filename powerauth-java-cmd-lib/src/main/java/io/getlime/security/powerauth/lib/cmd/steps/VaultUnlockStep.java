@@ -161,12 +161,12 @@ public class VaultUnlockStep implements BaseStep {
                     .body(requestBytes)
                     .asString();
 
-            TypeReference<ObjectResponse<VaultUnlockResponse>> typeReference = new TypeReference<ObjectResponse<VaultUnlockResponse>>() {};
-            ObjectResponse<VaultUnlockResponse> responseWrapper = RestClientConfiguration
-                    .defaultMapper()
-                    .readValue(response.getRawBody(), typeReference);
-
             if (response.getStatus() == 200) {
+
+                TypeReference<ObjectResponse<VaultUnlockResponse>> typeReference = new TypeReference<ObjectResponse<VaultUnlockResponse>>() {};
+                ObjectResponse<VaultUnlockResponse> responseWrapper = RestClientConfiguration
+                        .defaultMapper()
+                        .readValue(response.getRawBody(), typeReference);
 
                 if (stepLogger != null) {
                     stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));

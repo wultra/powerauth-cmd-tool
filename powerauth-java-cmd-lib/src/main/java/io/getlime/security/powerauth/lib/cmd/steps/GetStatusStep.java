@@ -101,12 +101,12 @@ public class GetStatusStep implements BaseStep {
                     .body(body)
                     .asString();
 
-            TypeReference<ObjectResponse<ActivationStatusResponse>> typeReference = new TypeReference<ObjectResponse<ActivationStatusResponse>>() {};
-            ObjectResponse<ActivationStatusResponse> responseWrapper = RestClientConfiguration
-                    .defaultMapper()
-                    .readValue(response.getRawBody(), typeReference);
-
             if (response.getStatus() == 200) {
+                TypeReference<ObjectResponse<ActivationStatusResponse>> typeReference = new TypeReference<ObjectResponse<ActivationStatusResponse>>() {};
+                ObjectResponse<ActivationStatusResponse> responseWrapper = RestClientConfiguration
+                        .defaultMapper()
+                        .readValue(response.getRawBody(), typeReference);
+
                 if (stepLogger != null) {
                     stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }

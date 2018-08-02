@@ -15,6 +15,7 @@
  */
 package io.getlime.security.powerauth.app.cmd;
 
+import com.mashape.unirest.http.Unirest;
 import io.getlime.security.powerauth.app.cmd.exception.ExecutionException;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
@@ -25,6 +26,9 @@ import io.getlime.security.powerauth.lib.cmd.util.ConfigurationUtils;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtilFactory;
 import org.apache.commons.cli.*;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
@@ -123,12 +127,9 @@ public class Application {
 
             // Allow invalid SSL certificates
             if (cmd.hasOption("i")) {
-                HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
-                    @Override
-                    public boolean verify(String hostname, SSLSession session) {
-                        return true;
-                    }
-                });
+
+                // Configure default Java HTTP Client
+                HttpsURLConnection.setDefaultHostnameVerifier((hostname, session) -> true);
 
                 TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
                     public java.security.cert.X509Certificate[] getAcceptedIssuers() {
@@ -143,12 +144,20 @@ public class Application {
                 }};
 
                 try {
+                    // Disable certificate validation on
                     SSLContext sc = SSLContext.getInstance("SSL");
                     sc.init(null, trustAllCerts, new java.security.SecureRandom());
                     HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+
+                    // Set correct HTTP client for Unirest
+                    SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sc);
+                    CloseableHttpClient httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
+                    Unirest.setHttpClient(httpclient);
+
                 } catch (Exception e) {
                     //
                 }
+
             }
 
             // Read values
@@ -187,7 +196,7 @@ public class Application {
 
             // Read current activation state from the activation state file or create an empty state
             JSONObject resultStatusObject;
-            if (Files.exists(Paths.get(statusFileName))) {
+            if (statusFileName != null && Files.exists(Paths.get(statusFileName))) {
                 byte[] statusFileBytes = Files.readAllBytes(Paths.get(statusFileName));
                 resultStatusObject = (JSONObject) JSONValue.parse(new String(statusFileBytes));
             } else {
@@ -396,6 +405,22 @@ public class Application {
                     model.setUriString(uriString);
 
                     JSONObject result = new CreateActivationStep().execute(stepLogger, model.toMap());
+                    if (result == null) {
+                        throw new ExecutionException();
+                    }
+                    break;
+                }
+                case "encrypt": {
+                    EncryptStepModel model = new EncryptStepModel();
+                    model.setApplicationKey(ConfigurationUtils.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    model.setHeaders(httpHeaders);
+                    model.setMasterPublicKey(masterPublicKey);
+                    model.setResultStatusObject(resultStatusObject);
+                    model.setDataFileName(cmd.getOptionValue("d"));
+                    model.setUriString(uriString);
+
+                    JSONObject result = new EncryptStep().execute(stepLogger, model.toMap());
                     if (result == null) {
                         throw new ExecutionException();
                     }

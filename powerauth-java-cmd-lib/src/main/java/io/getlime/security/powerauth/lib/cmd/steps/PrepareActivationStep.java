@@ -167,12 +167,12 @@ public class PrepareActivationStep implements BaseStep {
                     .body(body)
                     .asString();
 
-            TypeReference<ObjectResponse<ActivationCreateResponse>> typeReference = new TypeReference<ObjectResponse<ActivationCreateResponse>>() {};
-            ObjectResponse<ActivationCreateResponse> responseWrapper = RestClientConfiguration
-                    .defaultMapper()
-                    .readValue(response.getRawBody(), typeReference);
-
             if (response.getStatus() == 200) {
+                TypeReference<ObjectResponse<ActivationCreateResponse>> typeReference = new TypeReference<ObjectResponse<ActivationCreateResponse>>() {};
+                ObjectResponse<ActivationCreateResponse> responseWrapper = RestClientConfiguration
+                        .defaultMapper()
+                        .readValue(response.getRawBody(), typeReference);
+
                 if (stepLogger != null) {
                     stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
