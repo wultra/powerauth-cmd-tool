@@ -113,6 +113,14 @@ public class VerifySignatureStep implements BaseStep {
             String canonizedQuery = PowerAuthRequestCanonizationUtils.canonizeGetParameters(query);
             if (canonizedQuery != null) {
                 dataFileBytes = canonizedQuery.getBytes("UTF-8");
+                if (stepLogger != null) {
+                    stepLogger.writeItem(
+                            "Normalized GET data",
+                            "GET query data were normalized into the canonical string.",
+                            "OK",
+                            canonizedQuery
+                    );
+                }
             } else {
                 dataFileBytes = new byte[0];
                 if (stepLogger != null) {
@@ -128,6 +136,14 @@ public class VerifySignatureStep implements BaseStep {
             // Read data input file
             if (model.getDataFileName() != null && Files.exists(Paths.get(model.getDataFileName()))) {
                 dataFileBytes = Files.readAllBytes(Paths.get(model.getDataFileName()));
+                if (stepLogger != null) {
+                    stepLogger.writeItem(
+                            "Request payload",
+                            "Data from the request payload file, used as the POST / DELETE / ... method body, encoded as Base64.",
+                            "OK",
+                            BaseEncoding.base64().encode(dataFileBytes)
+                    );
+                }
             } else {
                 dataFileBytes = new byte[0];
                 if (stepLogger != null) {
@@ -146,6 +162,25 @@ public class VerifySignatureStep implements BaseStep {
         String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), counter);
         final PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, model.getSignatureType().toString(), BaseEncoding.base64().encode(pa_nonce), "2.1");
         String httpAuhtorizationHeader = header.buildHttpHeader();
+
+
+
+        if (stepLogger != null) {
+
+            Map<String, String> lowLevelData = new HashMap<>();
+            lowLevelData.put("counter", String.valueOf(counter));
+            lowLevelData.put("signatureBaseString", signatureBaseString);
+            lowLevelData.put("resourceId", model.getResourceId());
+            lowLevelData.put("nonce", BaseEncoding.base64().encode(pa_nonce));
+            lowLevelData.put("applicationSecret", model.getApplicationSecret());
+
+            stepLogger.writeItem(
+                    "Signature Calculation Parameters",
+                    "Low level cryptographic inputs required to compute signature - mainly a signature base string and a counter value.",
+                    "OK",
+                    lowLevelData
+            );
+        }
 
         // Increment the counter
         counter += 1;
