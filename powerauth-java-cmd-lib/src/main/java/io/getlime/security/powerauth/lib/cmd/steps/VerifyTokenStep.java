@@ -72,7 +72,7 @@ public class VerifyTokenStep implements BaseStep {
                 BaseEncoding.base64().encode(tokenDigest),
                 BaseEncoding.base64().encode(tokenNonce),
                 new String(tokenTimestamp, "UTF-8"),
-                "2.1"
+                model.getVersion()
         ).buildHttpHeader();
 
         // Construct the signature base string data part based on HTTP method (GET requires different code).

@@ -30,6 +30,7 @@ public class BaseStepModel {
     private Map<String, String> headers;
     private String uriString;
     private JSONObject resultStatusObject;
+    private String version;
 
     /**
      * Set base URI string of the PowerAuth 2.0 Standard RESTful API.
@@ -45,6 +46,14 @@ public class BaseStepModel {
      */
     public void setResultStatusObject(JSONObject resultStatusObject) {
         this.resultStatusObject = resultStatusObject;
+    }
+
+    /**
+     * Set PowerAuth protocol version.
+     * @param version PowerAuth protocol version.
+     */
+    public void setVersion(String version) {
+        this.version = version;
     }
 
     /**
@@ -67,6 +76,10 @@ public class BaseStepModel {
         return resultStatusObject;
     }
 
+    public String getVersion() {
+        return version;
+    }
+
     /**
      * Convert this object to map.
      * @return Map representing this object.
@@ -76,6 +89,7 @@ public class BaseStepModel {
         context.put("HTTP_HEADERS", headers);
         context.put("URI_STRING", uriString);
         context.put("STATUS_OBJECT", resultStatusObject);
+        context.put("VERSION", version);
         return context;
     }
 
@@ -88,6 +102,7 @@ public class BaseStepModel {
         setHeaders((Map<String, String>) context.get("HTTP_HEADERS"));
         setUriString((String) context.get("URI_STRING"));
         setResultStatusObject((JSONObject) context.get("STATUS_OBJECT"));
+        setVersion((String) context.get("VERSION"));
     }
 
 }

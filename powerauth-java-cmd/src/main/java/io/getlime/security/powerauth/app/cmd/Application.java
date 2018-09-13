@@ -90,6 +90,7 @@ public class Application {
             options.addOption("T", "token-id", true, "Token ID (UUID4), in case of 'token-validate' method.");
             options.addOption("S", "token-secret", true, "Token secret (Base64 encoded bytes), in case of 'token-validate' method.");
             options.addOption("r", "reason", true, "Reason why vault is being unlocked.");
+            options.addOption("v", "version", true, "PowerAuth protocol version.");
 
             Option httpHeaderOption = Option.builder("H")
                     .argName("key=value")
@@ -166,6 +167,12 @@ public class Application {
             String statusFileName = cmd.getOptionValue("s");
             String configFileName = cmd.getOptionValue("c");
             String reason = cmd.getOptionValue("r");
+            String version = cmd.getOptionValue("v");
+
+            // Default version
+            if (version == null) {
+                version = "3.0";
+            }
 
             // Read config file
             if (Files.exists(Paths.get(configFileName))) {
@@ -217,6 +224,7 @@ public class Application {
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
+                    model.setVersion(version);
 
                     JSONObject result = new CreateTokenStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -235,6 +243,7 @@ public class Application {
                     model.setResultStatusObject(resultStatusObject);
                     model.setUriString(uriString);
                     model.setHttpMethod(cmd.getOptionValue("t"));
+                    model.setVersion(version);
 
                     JSONObject result = new VerifyTokenStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -256,6 +265,7 @@ public class Application {
                     model.setResultStatusObject(resultStatusObject);
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
+                    model.setVersion(version);
 
                     JSONObject result = new PrepareActivationStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -270,6 +280,7 @@ public class Application {
                     model.setHeaders(httpHeaders);
                     model.setResultStatusObject(resultStatusObject);
                     model.setUriString(uriString);
+                    model.setVersion(version);
 
                     JSONObject result = new GetStatusStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -288,6 +299,7 @@ public class Application {
                     model.setResultStatusObject(resultStatusObject);
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
+                    model.setVersion(version);
 
                     JSONObject result = new RemoveStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -310,6 +322,7 @@ public class Application {
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
+                    model.setVersion(version);
 
                     JSONObject result = new VerifySignatureStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -330,6 +343,7 @@ public class Application {
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
                     model.setUriString(uriString);
                     model.setReason(reason);
+                    model.setVersion(version);
 
                     JSONObject result = new VaultUnlockStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -403,6 +417,7 @@ public class Application {
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatusObject(resultStatusObject);
                     model.setUriString(uriString);
+                    model.setVersion(version);
 
                     JSONObject result = new CreateActivationStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -419,6 +434,7 @@ public class Application {
                     model.setResultStatusObject(resultStatusObject);
                     model.setDataFileName(cmd.getOptionValue("d"));
                     model.setUriString(uriString);
+                    model.setVersion(version);
 
                     JSONObject result = new EncryptStep().execute(stepLogger, model.toMap());
                     if (result == null) {
