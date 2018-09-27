@@ -161,7 +161,7 @@ public class VerifySignatureStep implements BaseStep {
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString(model.getHttpMethod().toUpperCase(), model.getResourceId(), pa_nonce, dataFileBytes) + "&" + model.getApplicationSecret();
         String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), counter);
         final PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, model.getSignatureType().toString(), BaseEncoding.base64().encode(pa_nonce), model.getVersion());
-        String httpAuhtorizationHeader = header.buildHttpHeader();
+        String httpAuthorizationHeader = header.buildHttpHeader();
 
 
 
@@ -198,7 +198,7 @@ public class VerifySignatureStep implements BaseStep {
             Map<String, String> headers = new HashMap<>();
             headers.put("Accept", "application/json");
             headers.put("Content-Type", "application/json");
-            headers.put(PowerAuthSignatureHttpHeader.HEADER_NAME, httpAuhtorizationHeader);
+            headers.put(PowerAuthSignatureHttpHeader.HEADER_NAME, httpAuthorizationHeader);
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
