@@ -164,8 +164,6 @@ public class CreateTokenStep implements BaseStep {
         String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), Arrays.asList(signaturePossessionKey, signatureKnowledgeKey), counter);
         PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, model.getSignatureType().toString(), BaseEncoding.base64().encode(pa_nonce), model.getVersion());
         String httpAuthorizationHeader = header.buildHttpHeader();
-        PowerAuthEncryptionHttpHeader encHeader = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), activationId, model.getVersion());
-        String httpEncryptionHeader = encHeader.buildHttpHeader();
 
         // Increment the counter
         counter += 1;
@@ -184,7 +182,6 @@ public class CreateTokenStep implements BaseStep {
             headers.put("Accept", "application/json");
             headers.put("Content-Type", "application/json");
             headers.put(PowerAuthSignatureHttpHeader.HEADER_NAME, httpAuthorizationHeader);
-            headers.put(PowerAuthEncryptionHttpHeader.HEADER_NAME, httpEncryptionHeader);
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {

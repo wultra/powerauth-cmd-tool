@@ -153,7 +153,7 @@ public class VaultUnlockStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall(uri, "POST", request, headers);
+                stepLogger.writeServerCall(uri, "POST", request.getRequestObject(), headers);
             }
 
             HttpResponse response = Unirest.post(uri)
