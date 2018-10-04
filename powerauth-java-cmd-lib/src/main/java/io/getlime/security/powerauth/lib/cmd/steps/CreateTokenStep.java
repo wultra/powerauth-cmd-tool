@@ -122,8 +122,10 @@ public class CreateTokenStep implements BaseStep {
                 uri = model.getUriString() + "/pa/v3/token/create";
                 final byte[] applicationSecret = BaseEncoding.base64().decode(model.getApplicationSecret());
                 byte[] transportMasterKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("transportMasterKey"));
-                encryptor = eciesFactory.getEciesEncryptorForActivation((ECPublicKey) model.getMasterPublicKey(),
-                        applicationSecret, transportMasterKeyBytes, EciesSharedInfo1.CREATE_TOKEN);
+                byte[] serverPublicKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("serverPublicKey"));
+                ECPublicKey serverPublicKey = (ECPublicKey) keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
+                encryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
+                        transportMasterKeyBytes, EciesSharedInfo1.CREATE_TOKEN);
                 eciesCryptogram = encryptor.encryptRequest("{}".getBytes(StandardCharsets.UTF_8));
 
                 // Prepare encryption request
