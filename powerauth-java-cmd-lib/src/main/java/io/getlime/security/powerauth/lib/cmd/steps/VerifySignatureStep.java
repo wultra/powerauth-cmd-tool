@@ -171,7 +171,9 @@ public class VerifySignatureStep implements BaseStep {
 
             Map<String, String> lowLevelData = new HashMap<>();
             lowLevelData.put("counter", String.valueOf(counter));
-            lowLevelData.put("ctrData", BaseEncoding.base64().encode(ctrData));
+            if ("3.0".equals(model.getVersion())) {
+                lowLevelData.put("ctrData", BaseEncoding.base64().encode(ctrData));
+            }
             lowLevelData.put("signatureBaseString", signatureBaseString);
             lowLevelData.put("resourceId", model.getResourceId());
             lowLevelData.put("nonce", BaseEncoding.base64().encode(pa_nonce));
