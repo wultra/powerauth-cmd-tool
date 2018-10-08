@@ -33,7 +33,7 @@ public class ConfigurationUtils {
 
     private static final String expectedApplicationKey = "MTIzNDU2Nzg5MGFiY2RlZg==";
     private static final String expectedApplicationSecret = "c2VjcmV0MDAwMDAwMDAwMA==";
-    private static final String expectedApplicationName = "PowerAuth 2.0 Reference Client";
+    private static final String expectedApplicationName = "PowerAuth Reference Client";
 
     /**
      * Get application key value that is set in dictionary, or a default value.
