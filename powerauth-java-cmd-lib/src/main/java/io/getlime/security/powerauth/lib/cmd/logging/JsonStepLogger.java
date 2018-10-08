@@ -121,7 +121,7 @@ public class JsonStepLogger implements StepLogger {
         map.put("requestObject", requestObject);
         map.put("requestHeaders", headers);
         String name = "Sending Request";
-        String desc = "Calling PowerAuth 2.0 Standard RESTful API endpoint";
+        String desc = "Calling PowerAuth Standard RESTful API endpoint";
         String status = "OK";
         writeItem(name, desc, status, map);
     }

@@ -226,7 +226,27 @@ public class Application {
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
                     model.setVersion(version);
 
-                    JSONObject result = new CreateTokenStep().execute(stepLogger, model.toMap());
+                    JSONObject result;
+                    switch (version) {
+                        case "3.0":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.CreateTokenStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        case "2.0":
+                        case "2.1":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v2.CreateTokenStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        default:
+                            stepLogger.writeItem(
+                                    "Unsupported version",
+                                    "The version you specified is not supported",
+                                    "ERROR",
+                                    null
+                            );
+                            throw new ExecutionException();
+                    }
+
                     if (result == null) {
                         throw new ExecutionException();
                     }
@@ -267,7 +287,26 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    JSONObject result = new PrepareActivationStep().execute(stepLogger, model.toMap());
+                    JSONObject result;
+                    switch (version) {
+                        case "3.0":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.PrepareActivationStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        case "2.0":
+                        case "2.1":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v2.PrepareActivationStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        default:
+                            stepLogger.writeItem(
+                                    "Unsupported version",
+                                    "The version you specified is not supported",
+                                    "ERROR",
+                                    null
+                            );
+                            throw new ExecutionException();
+                    }
                     if (result == null) {
                         throw new ExecutionException();
                     }
