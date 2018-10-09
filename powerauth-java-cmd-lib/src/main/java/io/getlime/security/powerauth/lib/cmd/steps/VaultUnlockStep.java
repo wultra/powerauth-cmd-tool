@@ -32,6 +32,7 @@ import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VaultUnlockStepModel;
+import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
@@ -129,13 +130,13 @@ public class VaultUnlockStep implements BaseStep {
 
         // Compute the current PowerAuth 2.0 signature for possession and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("post", "/pa/vault/unlock", pa_nonce, requestBytes) + "&" + model.getApplicationSecret();
-        String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), counter);
+        byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
+        String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), ctrData);
         PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, model.getSignatureType().toString(), BaseEncoding.base64().encode(pa_nonce), model.getVersion());
         String httpAuthorizationHeader = header.buildHttpHeader();
 
         // Increment the counter
-        counter += 1;
-        model.getResultStatusObject().put("counter", counter);
+        CounterUtil.incrementCounter(model);
 
         // Store the activation status (updated counter)
         String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
@@ -181,8 +182,7 @@ public class VaultUnlockStep implements BaseStep {
                 PublicKey serverPublicKey = keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
 
                 // Increment the counter
-                counter += 1;
-                model.getResultStatusObject().put("counter", counter);
+                CounterUtil.incrementCounter(model);
 
                 // Store the activation status (updated counter)
                 formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
@@ -216,8 +216,7 @@ public class VaultUnlockStep implements BaseStep {
             } else {
 
                 // Increment the counter
-                counter += 1;
-                model.getResultStatusObject().put("counter", counter);
+                CounterUtil.incrementCounter(model);
 
                 // Store the activation status (updated counter)
                 formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
@@ -236,8 +235,7 @@ public class VaultUnlockStep implements BaseStep {
         } catch (UnirestException exception) {
 
             // Increment the counter, second time for vault unlock
-            counter += 1;
-            model.getResultStatusObject().put("counter", counter);
+            CounterUtil.incrementCounter(model);
 
             // Store the activation status (updated counter)
             formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
@@ -253,8 +251,7 @@ public class VaultUnlockStep implements BaseStep {
         } catch (Exception exception) {
 
             // Increment the counter, second time for vault unlock
-            counter += 1;
-            model.getResultStatusObject().put("counter", counter);
+            CounterUtil.incrementCounter(model);
 
             // Store the activation status (updated counter)
             formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());

@@ -30,6 +30,7 @@ import io.getlime.security.powerauth.http.PowerAuthRequestCanonizationUtils;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
+import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
@@ -157,9 +158,10 @@ public class VerifySignatureStep implements BaseStep {
             }
         }
 
-        // Compute the current PowerAuth 2.0 signature for possession and knowledge factor
+        // Compute the current PowerAuth signature for possession and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString(model.getHttpMethod().toUpperCase(), model.getResourceId(), pa_nonce, dataFileBytes) + "&" + model.getApplicationSecret();
-        String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), counter);
+        byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
+        String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), ctrData);
         final PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, model.getSignatureType().toString(), BaseEncoding.base64().encode(pa_nonce), model.getVersion());
         String httpAuthorizationHeader = header.buildHttpHeader();
 
@@ -169,6 +171,9 @@ public class VerifySignatureStep implements BaseStep {
 
             Map<String, String> lowLevelData = new HashMap<>();
             lowLevelData.put("counter", String.valueOf(counter));
+            if ("3.0".equals(model.getVersion())) {
+                lowLevelData.put("ctrData", BaseEncoding.base64().encode(ctrData));
+            }
             lowLevelData.put("signatureBaseString", signatureBaseString);
             lowLevelData.put("resourceId", model.getResourceId());
             lowLevelData.put("nonce", BaseEncoding.base64().encode(pa_nonce));
@@ -183,8 +188,7 @@ public class VerifySignatureStep implements BaseStep {
         }
 
         // Increment the counter
-        counter += 1;
-        model.getResultStatusObject().put("counter", counter);
+        CounterUtil.incrementCounter(model);
 
         // Store the activation status (updated counter)
         String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
