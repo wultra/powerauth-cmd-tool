@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.getlime.security.powerauth.lib.cmd.steps;
+package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,14 +26,12 @@ import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
-import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
+import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.CreateTokenStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
@@ -41,14 +39,13 @@ import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.entity.TokenResponsePayload;
-import io.getlime.security.powerauth.rest.api.model.request.v3.TokenCreateRequest;
-import io.getlime.security.powerauth.rest.api.model.response.v3.TokenCreateResponse;
+import io.getlime.security.powerauth.rest.api.model.request.v2.TokenCreateRequest;
+import io.getlime.security.powerauth.rest.api.model.response.v2.TokenCreateResponse;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
 import java.io.FileWriter;
-import java.nio.charset.StandardCharsets;
 import java.security.interfaces.ECPublicKey;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -56,6 +53,12 @@ import java.util.Map;
 
 /**
  * Helper class with token creation logic.
+ *
+ * <h5>PowerAuth protocol versions:</h5>
+ * <ul>
+ *     <li>2.0</li>
+ *     <li>2.1</li>
+ * </ul>
  *
  * @author Petr Dvorak, petr@lime-company.eu
  */
@@ -65,7 +68,6 @@ public class CreateTokenStep implements BaseStep {
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientSignature signature = new PowerAuthClientSignature();
     private static final ObjectMapper mapper = new ObjectMapper();
-    private static final EciesFactory eciesFactory = new EciesFactory();
 
     /**
      * Execute this step with given context
@@ -112,50 +114,15 @@ public class CreateTokenStep implements BaseStep {
         // Generate nonce
         byte[] pa_nonce = keyGenerator.generateRandomBytes(16);
 
-        final EciesCryptogram eciesCryptogram;
-        final EciesEncryptor encryptor;
-        final String uri;
-        final ObjectRequest request;
+        final String uri = model.getUriString() + "/pa/token/create";
 
-        switch (model.getVersion()) {
-            case "3.0": {
-                uri = model.getUriString() + "/pa/v3/token/create";
-                final byte[] applicationSecret = BaseEncoding.base64().decode(model.getApplicationSecret());
-                byte[] transportMasterKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("transportMasterKey"));
-                byte[] serverPublicKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("serverPublicKey"));
-                ECPublicKey serverPublicKey = (ECPublicKey) keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
-                encryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
-                        transportMasterKeyBytes, EciesSharedInfo1.CREATE_TOKEN);
-                eciesCryptogram = encryptor.encryptRequest("{}".getBytes(StandardCharsets.UTF_8));
-
-                // Prepare encryption request
-                TokenCreateRequest requestObject = new TokenCreateRequest();
-                String ephemeralPublicKeyBase64 = BaseEncoding.base64().encode(eciesCryptogram.getEphemeralPublicKey());
-                String encryptedData = BaseEncoding.base64().encode(eciesCryptogram.getEncryptedData());
-                String mac = BaseEncoding.base64().encode(eciesCryptogram.getMac());
-                requestObject.setEphemeralKey(ephemeralPublicKeyBase64);
-                requestObject.setEncryptedData(encryptedData);
-                requestObject.setMac(mac);
-                request = new ObjectRequest<>(requestObject);
-                break;
-            }
-
-            case "2.1":
-            case "2.0": {
-                uri = model.getUriString() + "/pa/token/create";
-                encryptor = new EciesEncryptor((ECPublicKey) model.getMasterPublicKey(), null, null);
-                eciesCryptogram = encryptor.encryptRequest(new byte[0]);
-                // Prepare encryption request
-                io.getlime.security.powerauth.rest.api.model.request.v2.TokenCreateRequest requestObject = new io.getlime.security.powerauth.rest.api.model.request.v2.TokenCreateRequest();
-                String ephemeralPublicKeyBase64 = BaseEncoding.base64().encode(eciesCryptogram.getEphemeralPublicKey());
-                requestObject.setEphemeralPublicKey(ephemeralPublicKeyBase64);
-                request = new ObjectRequest<>(requestObject);
-                break;
-            }
-
-            default:
-                throw new IllegalStateException("Unsupported version: "+model.getVersion());
-        }
+        final EciesEncryptor encryptor = new EciesEncryptor((ECPublicKey) model.getMasterPublicKey(), null, null);
+        final EciesCryptogram eciesCryptogram = encryptor.encryptRequest(new byte[0]);
+        // Prepare encryption request
+        TokenCreateRequest requestObject = new TokenCreateRequest();
+        String ephemeralPublicKeyBase64 = BaseEncoding.base64().encode(eciesCryptogram.getEphemeralPublicKey());
+        requestObject.setEphemeralPublicKey(ephemeralPublicKeyBase64);
+        final ObjectRequest request = new ObjectRequest<>(requestObject);
 
         final byte[] requestBytes = RestClientConfiguration.defaultMapper().writeValueAsBytes(request);
 
