@@ -204,12 +204,6 @@ public class VaultUnlockStep implements BaseStep {
                 SecretKey vaultEncryptionKey = vault.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey);
                 PrivateKey devicePrivateKey = vault.decryptDevicePrivateKey(encryptedDevicePrivateKeyBytes, vaultEncryptionKey);
 
-                // Store the activation status (updated counter)
-                formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
-                try (FileWriter file = new FileWriter(model.getStatusFileName())) {
-                    file.write(formatted);
-                }
-
                 SecretKey masterSecretKey = keyFactory.generateClientMasterSecretKey(devicePrivateKey, serverPublicKey);
                 SecretKey transportKeyDeduced = keyFactory.generateServerTransportKey(masterSecretKey);
                 boolean equal = transportKeyDeduced.equals(transportMasterKey);
