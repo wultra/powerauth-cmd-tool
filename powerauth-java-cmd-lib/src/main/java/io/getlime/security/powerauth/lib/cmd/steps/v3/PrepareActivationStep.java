@@ -41,6 +41,7 @@ import io.getlime.security.powerauth.rest.api.model.entity.ActivationType;
 import io.getlime.security.powerauth.rest.api.model.request.v3.ActivationLayer1Request;
 import io.getlime.security.powerauth.rest.api.model.request.v3.ActivationLayer2Request;
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
+import io.getlime.security.powerauth.rest.api.model.response.v3.ActivationLayer1Response;
 import io.getlime.security.powerauth.rest.api.model.response.v3.ActivationLayer2Response;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
 import org.json.simple.JSONObject;
@@ -207,10 +208,12 @@ public class PrepareActivationStep implements BaseStep {
                     stepLogger.writeServerCallOK(new String(decryptedDataL1), HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
 
-                // Read activation layer 2 response and decrypt it
-                EciesEncryptedResponse encryptedResponseL2 = objectMapper.readValue(decryptedDataL1, EciesEncryptedResponse.class);
-                byte[] macL2 = BaseEncoding.base64().decode(encryptedResponseL2.getMac());
-                byte[] encryptedDataL2 = BaseEncoding.base64().decode(encryptedResponseL2.getEncryptedData());
+                // Read activation layer 1 response from data
+                ActivationLayer1Response responseL1 = objectMapper.readValue(decryptedDataL1, ActivationLayer1Response.class);
+
+                // Decrypt layer 2 response
+                byte[] macL2 = BaseEncoding.base64().decode(responseL1.getActivationData().getMac());
+                byte[] encryptedDataL2 = BaseEncoding.base64().decode(responseL1.getActivationData().getEncryptedData());
                 EciesCryptogram responseCryptogramL2 = new EciesCryptogram(macL2, encryptedDataL2);
                 byte[] decryptedDataL2 = eciesEncryptorL2.decryptResponse(responseCryptogramL2);
 
@@ -219,10 +222,10 @@ public class PrepareActivationStep implements BaseStep {
                 }
 
                 // Convert activation layer 2 response from JSON to object and extract activation parameters
-                ActivationLayer2Response layer2Response = objectMapper.readValue(decryptedDataL2, ActivationLayer2Response.class);
-                String activationId = layer2Response.getActivationId();
-                String ctrDataBase64 = layer2Response.getCtrData();
-                String serverPublicKeyBase64 = layer2Response.getServerPublicKey();
+                ActivationLayer2Response responseL2 = objectMapper.readValue(decryptedDataL2, ActivationLayer2Response.class);
+                String activationId = responseL2.getActivationId();
+                String ctrDataBase64 = responseL2.getCtrData();
+                String serverPublicKeyBase64 = responseL2.getServerPublicKey();
                 PublicKey serverPublicKey = keyConversion.convertBytesToPublicKey(BaseEncoding.base64().decode(serverPublicKeyBase64));
 
                 // Compute master secret key
@@ -230,7 +233,7 @@ public class PrepareActivationStep implements BaseStep {
 
                 // Derive PowerAuth keys from master secret key
                 SecretKey signaturePossessionSecretKey = keyFactory.generateClientSignaturePossessionKey(masterSecretKey);
-                SecretKey signatureKnoweldgeSecretKey = keyFactory.generateClientSignatureKnowledgeKey(masterSecretKey);
+                SecretKey signatureKnowledgeSecretKey = keyFactory.generateClientSignatureKnowledgeKey(masterSecretKey);
                 SecretKey signatureBiometrySecretKey = keyFactory.generateClientSignatureBiometryKey(masterSecretKey);
                 SecretKey transportMasterKey = keyFactory.generateServerTransportKey(masterSecretKey);
                 // DO NOT EVER STORE ...
@@ -248,7 +251,7 @@ public class PrepareActivationStep implements BaseStep {
                 }
 
                 byte[] salt = keyGenerator.generateRandomBytes(16);
-                byte[] cSignatureKnowledgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, signatureKnoweldgeSecretKey, salt, keyGenerator);
+                byte[] cSignatureKnowledgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, signatureKnowledgeSecretKey, salt, keyGenerator);
 
                 // Prepare the status object to be stored
                 model.getResultStatusObject().put("activationId", activationId);
