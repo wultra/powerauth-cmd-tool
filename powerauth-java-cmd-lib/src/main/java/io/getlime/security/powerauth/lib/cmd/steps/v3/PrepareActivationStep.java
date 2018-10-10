@@ -49,6 +49,7 @@ import javax.crypto.SecretKey;
 import java.io.ByteArrayOutputStream;
 import java.io.Console;
 import java.io.FileWriter;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.PublicKey;
 import java.security.interfaces.ECPublicKey;
@@ -129,7 +130,7 @@ public class PrepareActivationStep implements BaseStep {
 
         // Get activation key and secret
         final String applicationKey = model.getApplicationKey();
-        final byte[] applicationSecret = BaseEncoding.base64().decode(model.getApplicationSecret());
+        final byte[] applicationSecret = model.getApplicationSecret().getBytes(StandardCharsets.UTF_8);
 
         // Generate device key pair
         KeyPair deviceKeyPair = activation.generateDeviceKeyPair();
