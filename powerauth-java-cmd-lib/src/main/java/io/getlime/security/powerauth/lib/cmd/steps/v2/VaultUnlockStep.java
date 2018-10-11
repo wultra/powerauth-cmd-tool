@@ -45,6 +45,7 @@ import org.json.simple.JSONObject;
 import javax.crypto.SecretKey;
 import java.io.Console;
 import java.io.FileWriter;
+import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.HashMap;
@@ -178,7 +179,8 @@ public class VaultUnlockStep implements BaseStep {
 
                 PowerAuthClientVault vault = new PowerAuthClientVault();
                 long counter = (long) model.getResultStatusObject().get("counter");
-                SecretKey vaultEncryptionKey = vault.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey, counter);
+                byte[] ctrBytes = ByteBuffer.allocate(16).putLong(0L).putLong(counter).array();
+                SecretKey vaultEncryptionKey = vault.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey, ctrBytes);
                 PrivateKey devicePrivateKey = vault.decryptDevicePrivateKey(encryptedDevicePrivateKeyBytes, vaultEncryptionKey);
                 PublicKey serverPublicKey = keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
 
