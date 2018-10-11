@@ -178,9 +178,8 @@ public class VaultUnlockStep implements BaseStep {
                 byte[] encryptedVaultEncryptionKey = BaseEncoding.base64().decode(responseObject.getEncryptedVaultEncryptionKey());
 
                 PowerAuthClientVault vault = new PowerAuthClientVault();
-                long counter = (long) model.getResultStatusObject().get("counter");
-                byte[] ctrBytes = ByteBuffer.allocate(16).putLong(0L).putLong(counter).array();
-                SecretKey vaultEncryptionKey = vault.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey, ctrBytes);
+                ctrData = CounterUtil.getCtrData(model, stepLogger);
+                SecretKey vaultEncryptionKey = vault.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey, ctrData);
                 PrivateKey devicePrivateKey = vault.decryptDevicePrivateKey(encryptedDevicePrivateKeyBytes, vaultEncryptionKey);
                 PublicKey serverPublicKey = keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
 
