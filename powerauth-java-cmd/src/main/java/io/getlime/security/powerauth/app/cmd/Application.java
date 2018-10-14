@@ -384,7 +384,26 @@ public class Application {
                     model.setReason(reason);
                     model.setVersion(version);
 
-                    JSONObject result = new VaultUnlockStep().execute(stepLogger, model.toMap());
+                    JSONObject result;
+                    switch (version) {
+                        case "3.0":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.VaultUnlockStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        case "2.0":
+                        case "2.1":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v2.VaultUnlockStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        default:
+                            stepLogger.writeItem(
+                                    "Unsupported version",
+                                    "The version you specified is not supported",
+                                    "ERROR",
+                                    null
+                            );
+                            throw new ExecutionException();
+                    }
                     if (result == null) {
                         throw new ExecutionException();
                     }

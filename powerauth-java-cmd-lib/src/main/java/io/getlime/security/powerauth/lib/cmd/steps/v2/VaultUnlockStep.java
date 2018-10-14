@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.getlime.security.powerauth.lib.cmd.steps;
+package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,6 +31,7 @@ import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
+import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VaultUnlockStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
@@ -44,6 +45,7 @@ import org.json.simple.JSONObject;
 import javax.crypto.SecretKey;
 import java.io.Console;
 import java.io.FileWriter;
+import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.HashMap;
@@ -90,7 +92,6 @@ public class VaultUnlockStep implements BaseStep {
 
         // Get data from status
         String activationId = (String) model.getResultStatusObject().get("activationId");
-        long counter = (long) model.getResultStatusObject().get("counter");
         byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signaturePossessionKey"));
         byte[] signatureBiometryKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signatureBiometryKey"));
         byte[] signatureKnowledgeKeySalt = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signatureKnowledgeKeySalt"));
@@ -129,7 +130,7 @@ public class VaultUnlockStep implements BaseStep {
         final byte[] requestBytes = RestClientConfiguration.defaultMapper().writeValueAsBytes(request);
 
         // Compute the current PowerAuth 2.0 signature for possession and knowledge factor
-        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("post", "/pa/vault/unlock", pa_nonce, requestBytes) + "&" + model.getApplicationSecret();
+        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/vault/unlock", pa_nonce, requestBytes) + "&" + model.getApplicationSecret();
         byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
         String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), ctrData);
         PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, model.getSignatureType().toString(), BaseEncoding.base64().encode(pa_nonce), model.getVersion());
@@ -177,7 +178,8 @@ public class VaultUnlockStep implements BaseStep {
                 byte[] encryptedVaultEncryptionKey = BaseEncoding.base64().decode(responseObject.getEncryptedVaultEncryptionKey());
 
                 PowerAuthClientVault vault = new PowerAuthClientVault();
-                SecretKey vaultEncryptionKey = vault.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey, counter);
+                ctrData = CounterUtil.getCtrData(model, stepLogger);
+                SecretKey vaultEncryptionKey = vault.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey, ctrData);
                 PrivateKey devicePrivateKey = vault.decryptDevicePrivateKey(encryptedDevicePrivateKeyBytes, vaultEncryptionKey);
                 PublicKey serverPublicKey = keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
 
