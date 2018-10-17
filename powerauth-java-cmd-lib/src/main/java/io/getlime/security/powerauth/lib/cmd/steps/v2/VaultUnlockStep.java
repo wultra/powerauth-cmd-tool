@@ -163,11 +163,14 @@ public class VaultUnlockStep implements BaseStep {
                     .asString();
 
             if (response.getStatus() == 200) {
-
                 TypeReference<ObjectResponse<VaultUnlockResponse>> typeReference = new TypeReference<ObjectResponse<VaultUnlockResponse>>() {};
                 ObjectResponse<VaultUnlockResponse> responseWrapper = RestClientConfiguration
                         .defaultMapper()
                         .readValue(response.getRawBody(), typeReference);
+
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                }
 
                 VaultUnlockResponse responseObject = responseWrapper.getResponseObject();
                 byte[] encryptedVaultEncryptionKey = BaseEncoding.base64().decode(responseObject.getEncryptedVaultEncryptionKey());

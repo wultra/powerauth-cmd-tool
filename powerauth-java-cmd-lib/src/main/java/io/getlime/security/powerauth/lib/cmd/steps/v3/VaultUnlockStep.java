@@ -184,17 +184,19 @@ public class VaultUnlockStep implements BaseStep {
                     .asString();
 
             if (response.getStatus() == 200) {
+                EciesEncryptedResponse encryptedResponse = RestClientConfiguration
+                        .defaultMapper()
+                        .readValue(response.getRawBody(), EciesEncryptedResponse.class);
+
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallOK(encryptedResponse, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                }
 
                 // Read encrypted response and decrypt it
-                EciesEncryptedResponse encryptedResponse = mapper.readValue(response.getRawBody(), EciesEncryptedResponse.class);
                 byte[] mac = BaseEncoding.base64().decode(encryptedResponse.getMac());
                 byte[] encryptedData = BaseEncoding.base64().decode(encryptedResponse.getEncryptedData());
                 EciesCryptogram responseCryptogram = new EciesCryptogram(mac, encryptedData);
                 byte[] decryptedData = eciesEncryptor.decryptResponse(responseCryptogram);
-
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallOK(new String(decryptedData), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                }
 
                 // Read vault unlock response payload and extract the vault encryption key
                 VaultUnlockResponsePayload responsePayload = mapper.readValue(decryptedData, VaultUnlockResponsePayload.class);

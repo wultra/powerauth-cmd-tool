@@ -198,8 +198,13 @@ public class PrepareActivationStep implements BaseStep {
                     .asString();
 
             if (response.getStatus() == 200) {
-                // Read activation layer 1 response and decrypt it
                 EciesEncryptedResponse encryptedResponseL1 = objectMapper.readValue(response.getRawBody(), EciesEncryptedResponse.class);
+
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallOK(encryptedResponseL1, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                }
+
+                // Read activation layer 1 response and decrypt it
                 byte[] macL1 = BaseEncoding.base64().decode(encryptedResponseL1.getMac());
                 byte[] encryptedDataL1 = BaseEncoding.base64().decode(encryptedResponseL1.getEncryptedData());
                 EciesCryptogram responseCryptogramL1 = new EciesCryptogram(macL1, encryptedDataL1);
@@ -213,10 +218,6 @@ public class PrepareActivationStep implements BaseStep {
                 byte[] encryptedDataL2 = BaseEncoding.base64().decode(responseL1.getActivationData().getEncryptedData());
                 EciesCryptogram responseCryptogramL2 = new EciesCryptogram(macL2, encryptedDataL2);
                 byte[] decryptedDataL2 = eciesEncryptorL2.decryptResponse(responseCryptogramL2);
-
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallOK(new String(decryptedDataL2), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                }
 
                 // Convert activation layer 2 response from JSON to object and extract activation parameters
                 ActivationLayer2Response responseL2 = objectMapper.readValue(decryptedDataL2, ActivationLayer2Response.class);

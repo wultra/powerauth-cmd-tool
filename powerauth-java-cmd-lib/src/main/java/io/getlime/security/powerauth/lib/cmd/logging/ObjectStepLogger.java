@@ -67,7 +67,7 @@ public class ObjectStepLogger implements StepLogger {
     public void writeItem(String name, String description, String status, Object object) {
         items.add(new StepItem(name, description, status, object));
         if (out != null) {
-            String output = status + ": " + name + (description == null ? "" : " - " + description + "\n");
+            String output = status + ": " + name + (description == null ? "" : " - " + description) + "\n";
             try {
                 out.write(output.getBytes());
             } catch (IOException e) {
