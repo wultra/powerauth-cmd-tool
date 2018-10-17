@@ -28,7 +28,7 @@ import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKey
 import io.getlime.security.powerauth.crypto.client.vault.PowerAuthClientVault;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
-import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.PrepareActivationStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
@@ -77,7 +77,7 @@ public class PrepareActivationStep implements BaseStep {
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject execute(JsonStepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         PrepareActivationStepModel model = new PrepareActivationStepModel();
@@ -235,7 +235,7 @@ public class PrepareActivationStep implements BaseStep {
                     model.getResultStatusObject().put("signatureKnowledgeKeySalt", BaseEncoding.base64().encode(salt));
                     model.getResultStatusObject().put("signatureBiometryKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signatureBiometrySecretKey)));
                     model.getResultStatusObject().put("transportMasterKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(transportMasterKey)));
-                    model.getResultStatusObject().put("counter", 0);
+                    model.getResultStatusObject().put("counter", 0L);
 
                     // Store the resulting status
                     String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());

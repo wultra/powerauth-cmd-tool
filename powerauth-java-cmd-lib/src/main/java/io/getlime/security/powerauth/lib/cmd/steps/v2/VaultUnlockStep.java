@@ -30,7 +30,7 @@ import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
-import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VaultUnlockStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
@@ -45,7 +45,6 @@ import org.json.simple.JSONObject;
 import javax.crypto.SecretKey;
 import java.io.Console;
 import java.io.FileWriter;
-import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.HashMap;
@@ -72,7 +71,7 @@ public class VaultUnlockStep implements BaseStep {
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject execute(JsonStepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         VaultUnlockStepModel model = new VaultUnlockStepModel();
@@ -169,10 +168,6 @@ public class VaultUnlockStep implements BaseStep {
                 ObjectResponse<VaultUnlockResponse> responseWrapper = RestClientConfiguration
                         .defaultMapper()
                         .readValue(response.getRawBody(), typeReference);
-
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                }
 
                 VaultUnlockResponse responseObject = responseWrapper.getResponseObject();
                 byte[] encryptedVaultEncryptionKey = BaseEncoding.base64().decode(responseObject.getEncryptedVaultEncryptionKey());

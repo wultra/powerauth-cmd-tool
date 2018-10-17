@@ -20,9 +20,10 @@ import com.google.common.io.BaseEncoding;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
+import io.getlime.core.rest.model.base.response.Response;
 import io.getlime.security.powerauth.crypto.client.token.ClientTokenGenerator;
 import io.getlime.security.powerauth.http.PowerAuthTokenHttpHeader;
-import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifyTokenStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
@@ -41,7 +42,7 @@ import java.util.Map;
 public class VerifyTokenStep implements BaseStep {
 
     @Override
-    public JSONObject execute(JsonStepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         VerifyTokenStepModel model = new VerifyTokenStepModel();
@@ -120,8 +121,8 @@ public class VerifyTokenStep implements BaseStep {
             }
 
             if (response.getStatus() == 200) {
-                TypeReference<Map<String, Object>> typeReference = new TypeReference<Map<String, Object>>() {};
-                Map<String, Object> responseWrapper = RestClientConfiguration
+                TypeReference<Response> typeReference = new TypeReference<Response>() {};
+                Response responseWrapper = RestClientConfiguration
                         .defaultMapper()
                         .readValue(response.getRawBody(), typeReference);
 

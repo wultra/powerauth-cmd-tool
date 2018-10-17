@@ -29,7 +29,7 @@ import java.security.spec.InvalidKeySpecException;
  * @author Petr Dvorak
  *
  */
-public class ConfigurationUtils {
+public class ConfigurationUtil {
 
     private static final String expectedApplicationKey = "MTIzNDU2Nzg5MGFiY2RlZg==";
     private static final String expectedApplicationSecret = "c2VjcmV0MDAwMDAwMDAwMA==";

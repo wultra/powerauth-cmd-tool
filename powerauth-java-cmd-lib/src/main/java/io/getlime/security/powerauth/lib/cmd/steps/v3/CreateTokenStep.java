@@ -29,7 +29,7 @@ import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesShare
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
-import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.CreateTokenStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
@@ -77,7 +77,7 @@ public class CreateTokenStep implements BaseStep {
      */
     @SuppressWarnings("unchecked")
     @Override
-    public JSONObject execute(JsonStepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         CreateTokenStepModel model = new CreateTokenStepModel();
