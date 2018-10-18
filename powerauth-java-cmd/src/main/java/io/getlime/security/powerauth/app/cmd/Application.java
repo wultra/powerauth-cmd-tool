@@ -20,7 +20,8 @@ import io.getlime.security.powerauth.app.cmd.exception.ExecutionException;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
-import io.getlime.security.powerauth.lib.cmd.steps.*;
+import io.getlime.security.powerauth.lib.cmd.steps.VerifySignatureStep;
+import io.getlime.security.powerauth.lib.cmd.steps.VerifyTokenStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.*;
 import io.getlime.security.powerauth.lib.cmd.util.ConfigurationUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
@@ -321,7 +322,26 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    JSONObject result = new GetStatusStep().execute(stepLogger, model.toMap());
+                    JSONObject result;
+                    switch (version) {
+                        case "3.0":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.GetStatusStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        case "2.0":
+                        case "2.1":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v2.GetStatusStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        default:
+                            stepLogger.writeItem(
+                                    "Unsupported version",
+                                    "The version you specified is not supported",
+                                    "ERROR",
+                                    null
+                            );
+                            throw new ExecutionException();
+                    }
                     if (result == null) {
                         throw new ExecutionException();
                     }
@@ -340,7 +360,26 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    JSONObject result = new RemoveStep().execute(stepLogger, model.toMap());
+                    JSONObject result;
+                    switch (version) {
+                        case "3.0":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.RemoveStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        case "2.0":
+                        case "2.1":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v2.RemoveStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        default:
+                            stepLogger.writeItem(
+                                    "Unsupported version",
+                                    "The version you specified is not supported",
+                                    "ERROR",
+                                    null
+                            );
+                            throw new ExecutionException();
+                    }
                     if (result == null) {
                         throw new ExecutionException();
                     }
@@ -477,7 +516,7 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    JSONObject result = new CreateActivationStep().execute(stepLogger, model.toMap());
+                    JSONObject result = new io.getlime.security.powerauth.lib.cmd.steps.v2.CreateActivationStep().execute(stepLogger, model.toMap());
                     if (result == null) {
                         throw new ExecutionException();
                     }
@@ -494,7 +533,7 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    JSONObject result = new EncryptStep().execute(stepLogger, model.toMap());
+                    JSONObject result = new io.getlime.security.powerauth.lib.cmd.steps.v2.EncryptStep().execute(stepLogger, model.toMap());
                     if (result == null) {
                         throw new ExecutionException();
                     }

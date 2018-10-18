@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Lime - HighTech Solutions s.r.o.
+ * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.getlime.security.powerauth.lib.cmd.steps;
+package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,6 +29,7 @@ import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.RemoveStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
@@ -48,7 +49,7 @@ import java.util.Map;
 /**
  * Helper class with activation remove logic.
  *
- * @author Petr Dvorak
+ * @author Roman Strobl, roman.strobl@wultra.com
  */
 public class RemoveStep implements BaseStep {
 
@@ -80,7 +81,7 @@ public class RemoveStep implements BaseStep {
         }
 
         // Prepare the activation URI
-        String uri = model.getUriString() + "/pa/activation/remove";
+        String uri = model.getUriString() + "/pa/v3/activation/remove";
 
         // Get data from status
         String activationId = (String) model.getResultStatusObject().get("activationId");
