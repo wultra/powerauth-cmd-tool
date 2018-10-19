@@ -181,9 +181,7 @@ public class JsonStepLogger implements StepLogger {
      */
     @Override public void writeServerCallConnectionError(Exception e) {
         String name = "Connection Error";
-        String desc = "Connection refused";
-        String status = "ERROR";
-        writeItem(name, desc, status, e);
+        writeError(name, e.getMessage(), e);
     }
 
     /**

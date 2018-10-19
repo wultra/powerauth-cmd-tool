@@ -30,7 +30,7 @@ import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCrypt
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
-import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.PrepareActivationStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
@@ -88,7 +88,7 @@ public class PrepareActivationStep implements BaseStep {
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject execute(JsonStepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         PrepareActivationStepModel model = new PrepareActivationStepModel();
@@ -198,19 +198,29 @@ public class PrepareActivationStep implements BaseStep {
                     .asString();
 
             if (response.getStatus() == 200) {
-                // Read activation layer 1 response and decrypt it
                 EciesEncryptedResponse encryptedResponseL1 = objectMapper.readValue(response.getRawBody(), EciesEncryptedResponse.class);
+
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallOK(encryptedResponseL1, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                }
+
+                // Read activation layer 1 response and decrypt it
                 byte[] macL1 = BaseEncoding.base64().decode(encryptedResponseL1.getMac());
                 byte[] encryptedDataL1 = BaseEncoding.base64().decode(encryptedResponseL1.getEncryptedData());
                 EciesCryptogram responseCryptogramL1 = new EciesCryptogram(macL1, encryptedDataL1);
                 byte[] decryptedDataL1 = eciesEncryptorL1.decryptResponse(responseCryptogramL1);
 
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallOK(new String(decryptedDataL1), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                }
-
                 // Read activation layer 1 response from data
                 ActivationLayer1Response responseL1 = objectMapper.readValue(decryptedDataL1, ActivationLayer1Response.class);
+
+                if (stepLogger != null) {
+                    stepLogger.writeItem(
+                            "Decrypted Layer 1 Response",
+                            "Following layer 1 activation data were decrypted",
+                            "OK",
+                            responseL1
+                    );
+                }
 
                 // Decrypt layer 2 response
                 byte[] macL2 = BaseEncoding.base64().decode(responseL1.getActivationData().getMac());
@@ -218,12 +228,18 @@ public class PrepareActivationStep implements BaseStep {
                 EciesCryptogram responseCryptogramL2 = new EciesCryptogram(macL2, encryptedDataL2);
                 byte[] decryptedDataL2 = eciesEncryptorL2.decryptResponse(responseCryptogramL2);
 
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallOK(new String(decryptedDataL2), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                }
-
                 // Convert activation layer 2 response from JSON to object and extract activation parameters
                 ActivationLayer2Response responseL2 = objectMapper.readValue(decryptedDataL2, ActivationLayer2Response.class);
+
+                if (stepLogger != null) {
+                    stepLogger.writeItem(
+                            "Decrypted Layer 2 Response",
+                            "Following layer 2 activation data were decrypted",
+                            "OK",
+                            responseL2
+                    );
+                }
+
                 String activationId = responseL2.getActivationId();
                 String ctrDataBase64 = responseL2.getCtrData();
                 String serverPublicKeyBase64 = responseL2.getServerPublicKey();
@@ -263,7 +279,7 @@ public class PrepareActivationStep implements BaseStep {
                 model.getResultStatusObject().put("signatureKnowledgeKeySalt", BaseEncoding.base64().encode(salt));
                 model.getResultStatusObject().put("signatureBiometryKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signatureBiometrySecretKey)));
                 model.getResultStatusObject().put("transportMasterKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(transportMasterKey)));
-                model.getResultStatusObject().put("counter", 0);
+                model.getResultStatusObject().put("counter", 0L);
                 model.getResultStatusObject().put("ctrData", ctrDataBase64);
 
                 // Store the resulting status

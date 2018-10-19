@@ -17,7 +17,7 @@ package io.getlime.security.powerauth.lib.cmd.util;
 
 import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.lib.generator.HashBasedCounter;
-import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.BaseStepModel;
 
 import java.nio.ByteBuffer;
@@ -37,7 +37,7 @@ public class CounterUtil {
      * @param stepLogger Step logger.
      * @return Counter data.
      */
-    public static byte[] getCtrData(BaseStepModel model, JsonStepLogger stepLogger) {
+    public static byte[] getCtrData(BaseStepModel model, StepLogger stepLogger) {
         byte[] ctrData = new byte[16];
         long counter = (long) model.getResultStatusObject().get("counter");
         switch (model.getVersion()) {
@@ -46,7 +46,10 @@ public class CounterUtil {
                 ctrData = ByteBuffer.allocate(16).putLong(8, counter).array();
                 break;
             case "3.0":
-                ctrData = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("ctrData"));
+                String ctrDataBase64 = (String) model.getResultStatusObject().get("ctrData");
+                if (ctrDataBase64 != null) {
+                    ctrData = BaseEncoding.base64().decode(ctrDataBase64);
+                }
                 break;
             default:
                 stepLogger.writeItem(
@@ -66,12 +69,15 @@ public class CounterUtil {
      * @param model Step model.
      */
     public static void incrementCounter(BaseStepModel model) {
-        // Increment the counter
+        // Increment the numeric counter
         long counter = (long) model.getResultStatusObject().get("counter");
-        byte[] ctrData = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("ctrData"));
         counter += 1;
         model.getResultStatusObject().put("counter", counter);
-        if ("3.0".equals(model.getVersion())) {
+
+        // Increment the hash based counter in case it is present
+        String ctrDataBase64 = (String) model.getResultStatusObject().get("ctrData");
+        if (ctrDataBase64 != null) {
+            byte[] ctrData = BaseEncoding.base64().decode(ctrDataBase64);
             ctrData = new HashBasedCounter().next(ctrData);
             model.getResultStatusObject().put("ctrData", BaseEncoding.base64().encode(ctrData));
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Lime - HighTech Solutions s.r.o.
+ * Copyright 2016 Lime - HighTech Solutions s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,48 +21,37 @@ import com.google.common.io.BaseEncoding;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
-import io.getlime.core.rest.model.base.request.ObjectRequest;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
+import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
-import io.getlime.security.powerauth.lib.cmd.steps.model.CreateTokenStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.model.RemoveStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
-import io.getlime.security.powerauth.rest.api.model.entity.TokenResponsePayload;
-import io.getlime.security.powerauth.rest.api.model.request.v2.TokenCreateRequest;
-import io.getlime.security.powerauth.rest.api.model.response.v2.TokenCreateResponse;
+import io.getlime.security.powerauth.rest.api.model.response.v2.ActivationRemoveResponse;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
 import java.io.FileWriter;
-import java.security.interfaces.ECPublicKey;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Helper class with token creation logic.
+ * Helper class with activation remove logic.
  *
- * <h5>PowerAuth protocol versions:</h5>
- * <ul>
- *     <li>2.0</li>
- *     <li>2.1</li>
- * </ul>
- *
- * @author Petr Dvorak, petr@lime-company.eu
+ * @author Petr Dvorak
  */
-public class CreateTokenStep implements BaseStep {
+public class RemoveStep implements BaseStep {
 
     private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
@@ -76,21 +65,23 @@ public class CreateTokenStep implements BaseStep {
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    @Override
     public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
-        CreateTokenStepModel model = new CreateTokenStepModel();
+        RemoveStepModel model = new RemoveStepModel();
         model.fromMap(context);
 
         if (stepLogger != null) {
             stepLogger.writeItem(
-                    "Token Create Started",
+                    "Activation Removal Started",
                     null,
                     "OK",
                     null
             );
         }
+
+        // Prepare the activation URI
+        String uri = model.getUriString() + "/pa/activation/remove";
 
         // Get data from status
         String activationId = (String) model.getResultStatusObject().get("activationId");
@@ -114,25 +105,12 @@ public class CreateTokenStep implements BaseStep {
         // Generate nonce
         byte[] pa_nonce = keyGenerator.generateRandomBytes(16);
 
-        final String uri = model.getUriString() + "/pa/token/create";
-
-        final EciesEncryptor encryptor = new EciesEncryptor((ECPublicKey) model.getMasterPublicKey(), null, null);
-        final EciesCryptogram eciesCryptogram = encryptor.encryptRequest(new byte[0]);
-        // Prepare encryption request
-        TokenCreateRequest requestObject = new TokenCreateRequest();
-        String ephemeralPublicKeyBase64 = BaseEncoding.base64().encode(eciesCryptogram.getEphemeralPublicKey());
-        requestObject.setEphemeralPublicKey(ephemeralPublicKeyBase64);
-        final ObjectRequest request = new ObjectRequest<>(requestObject);
-
-        final byte[] requestBytes = RestClientConfiguration.defaultMapper().writeValueAsBytes(request);
-
-
         // Compute the current PowerAuth 2.0 signature for possession
         // and knowledge factor
-        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/token/create", pa_nonce, requestBytes) + "&" + model.getApplicationSecret();
+        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/activation/remove", pa_nonce, null) + "&" + model.getApplicationSecret();
         byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
         String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), Arrays.asList(signaturePossessionKey, signatureKnowledgeKey), ctrData);
-        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, model.getSignatureType().toString(), BaseEncoding.base64().encode(pa_nonce), model.getVersion());
+        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE.toString(), BaseEncoding.base64().encode(pa_nonce), model.getVersion());
         String httpAuthorizationHeader = header.buildHttpHeader();
 
         // Increment the counter
@@ -154,17 +132,16 @@ public class CreateTokenStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall(uri, "POST", request.getRequestObject(), headers);
+                stepLogger.writeServerCall(uri, "POST", null, headers);
             }
 
             HttpResponse response = Unirest.post(uri)
                     .headers(headers)
-                    .body(requestBytes)
                     .asString();
 
             if (response.getStatus() == 200) {
-                TypeReference<ObjectResponse<TokenCreateResponse>> typeReference = new TypeReference<ObjectResponse<TokenCreateResponse>>() {};
-                ObjectResponse<TokenCreateResponse> responseWrapper = RestClientConfiguration
+                TypeReference<ObjectResponse<ActivationRemoveResponse>> typeReference = new TypeReference<ObjectResponse<ActivationRemoveResponse>>() {};
+                ObjectResponse<ActivationRemoveResponse> responseWrapper = RestClientConfiguration
                         .defaultMapper()
                         .readValue(response.getRawBody(), typeReference);
 
@@ -172,24 +149,13 @@ public class CreateTokenStep implements BaseStep {
                     stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
 
-                final TokenCreateResponse responseObject = responseWrapper.getResponseObject();
-
-                byte[] macResponse = BaseEncoding.base64().decode(responseObject.getMac());
-                byte[] encryptedDataResponse = BaseEncoding.base64().decode(responseObject.getEncryptedData());
-                EciesCryptogram eciesCryptogramResponse = new EciesCryptogram(macResponse, encryptedDataResponse);
-
-                final byte[] decryptedBytes = encryptor.decryptResponse(eciesCryptogramResponse);
-
-                final TokenResponsePayload tokenResponsePayload = RestClientConfiguration.defaultMapper().readValue(decryptedBytes, TokenResponsePayload.class);
-
                 Map<String, Object> objectMap = new HashMap<>();
-                objectMap.put("tokenId", tokenResponsePayload.getTokenId());
-                objectMap.put("tokenSecret", tokenResponsePayload.getTokenSecret());
+                objectMap.put("activationId", activationId);
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
-                            "Token successfully obtained",
-                            "Token was successfully generated and decrypted",
+                            "Activation Removed",
+                            "Activation was successfully removed from the server",
                             "OK",
                             objectMap
 
