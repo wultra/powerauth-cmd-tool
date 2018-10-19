@@ -200,6 +200,16 @@ public class VaultUnlockStep implements BaseStep {
 
                 // Read vault unlock response payload and extract the vault encryption key
                 VaultUnlockResponsePayload responsePayload = mapper.readValue(decryptedData, VaultUnlockResponsePayload.class);
+
+                if (stepLogger != null) {
+                    stepLogger.writeItem(
+                            "Decrypted Response",
+                            "Following vault unlock data were decrypted",
+                            "OK",
+                            responsePayload
+                    );
+                }
+
                 byte[] encryptedVaultEncryptionKey = BaseEncoding.base64().decode(responsePayload.getEncryptedVaultEncryptionKey());
 
                 PowerAuthClientVault vault = new PowerAuthClientVault();

@@ -213,6 +213,15 @@ public class PrepareActivationStep implements BaseStep {
                 // Read activation layer 1 response from data
                 ActivationLayer1Response responseL1 = objectMapper.readValue(decryptedDataL1, ActivationLayer1Response.class);
 
+                if (stepLogger != null) {
+                    stepLogger.writeItem(
+                            "Decrypted Layer 1 Response",
+                            "Following layer 1 activation data were decrypted",
+                            "OK",
+                            responseL1
+                    );
+                }
+
                 // Decrypt layer 2 response
                 byte[] macL2 = BaseEncoding.base64().decode(responseL1.getActivationData().getMac());
                 byte[] encryptedDataL2 = BaseEncoding.base64().decode(responseL1.getActivationData().getEncryptedData());
@@ -221,6 +230,16 @@ public class PrepareActivationStep implements BaseStep {
 
                 // Convert activation layer 2 response from JSON to object and extract activation parameters
                 ActivationLayer2Response responseL2 = objectMapper.readValue(decryptedDataL2, ActivationLayer2Response.class);
+
+                if (stepLogger != null) {
+                    stepLogger.writeItem(
+                            "Decrypted Layer 2 Response",
+                            "Following layer 2 activation data were decrypted",
+                            "OK",
+                            responseL2
+                    );
+                }
+
                 String activationId = responseL2.getActivationId();
                 String ctrDataBase64 = responseL2.getCtrData();
                 String serverPublicKeyBase64 = responseL2.getServerPublicKey();
