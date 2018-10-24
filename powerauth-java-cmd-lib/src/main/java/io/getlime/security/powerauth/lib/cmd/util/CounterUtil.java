@@ -74,12 +74,15 @@ public class CounterUtil {
         counter += 1;
         model.getResultStatusObject().put("counter", counter);
 
-        // Increment the hash based counter in case it is present
-        String ctrDataBase64 = (String) model.getResultStatusObject().get("ctrData");
-        if (ctrDataBase64 != null) {
-            byte[] ctrData = BaseEncoding.base64().decode(ctrDataBase64);
-            ctrData = new HashBasedCounter().next(ctrData);
-            model.getResultStatusObject().put("ctrData", BaseEncoding.base64().encode(ctrData));
+        // Increment the hash based counter in case activation version is 3.
+        int version = (int) model.getResultStatusObject().get("version");
+        if (version == 3) {
+            String ctrDataBase64 = (String) model.getResultStatusObject().get("ctrData");
+            if (ctrDataBase64 != null) {
+                byte[] ctrData = BaseEncoding.base64().decode(ctrDataBase64);
+                ctrData = new HashBasedCounter().next(ctrData);
+                model.getResultStatusObject().put("ctrData", BaseEncoding.base64().encode(ctrData));
+            }
         }
     }
 

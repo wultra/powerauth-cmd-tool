@@ -236,6 +236,8 @@ public class PrepareActivationStep implements BaseStep {
                     model.getResultStatusObject().put("signatureBiometryKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signatureBiometrySecretKey)));
                     model.getResultStatusObject().put("transportMasterKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(transportMasterKey)));
                     model.getResultStatusObject().put("counter", 0L);
+                    model.getResultStatusObject().put("ctrData", null);
+                    model.getResultStatusObject().put("version", 2);
 
                     // Store the resulting status
                     String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
