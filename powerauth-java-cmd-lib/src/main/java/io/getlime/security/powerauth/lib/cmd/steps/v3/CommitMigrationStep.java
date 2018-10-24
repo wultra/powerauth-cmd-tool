@@ -91,6 +91,9 @@ public class CommitMigrationStep implements BaseStep {
         final String request = "{}";
         byte[] requestBytes = request.getBytes(StandardCharsets.UTF_8);
 
+        // Make sure hash based counter is used for calculating the signature, in case of an error the version change is not saved
+        model.getResultStatusObject().put("version", 3);
+
         // Compute PowerAuth signature for possession factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/migration/commit", pa_nonce, requestBytes) + "&" + model.getApplicationSecret();
         byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
@@ -123,9 +126,6 @@ public class CommitMigrationStep implements BaseStep {
                     stepLogger.writeServerCallOK(commitResponse, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
 
-                // Upgrade activation to version 3
-                model.getResultStatusObject().put("version", 3);
-
                 // Increment the counter (the signature already used hash based counter)
                 CounterUtil.incrementCounter(model);
 
@@ -148,6 +148,9 @@ public class CommitMigrationStep implements BaseStep {
 
                 return model.getResultStatusObject();
             } else {
+                // Revert upgrade to version 3 because signature failed. The status file was not changed, so no need to save it.
+                model.getResultStatusObject().put("version", 2);
+
                 if (stepLogger != null) {
                     stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
                     stepLogger.writeDoneFailed();
