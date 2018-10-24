@@ -31,7 +31,7 @@ import java.nio.ByteBuffer;
 public class CounterUtil {
 
     /**
-     * Get counter data. In version 2.0 and 2.1, numeric counter is converted to counter data. In version 3.0 the
+     * Get counter data. In activation version 2, numeric counter is converted to counter data. In version 3 the
      * counter data is available in model.
      * @param model Step model.
      * @param stepLogger Step logger.
@@ -40,12 +40,12 @@ public class CounterUtil {
     public static byte[] getCtrData(BaseStepModel model, StepLogger stepLogger) {
         byte[] ctrData = new byte[16];
         long counter = (long) model.getResultStatusObject().get("counter");
-        switch (model.getVersion()) {
-            case "2.0":
-            case "2.1":
+        int version = (int) model.getResultStatusObject().get("version");
+        switch (version) {
+            case 2:
                 ctrData = ByteBuffer.allocate(16).putLong(8, counter).array();
                 break;
-            case "3.0":
+            case 3:
                 String ctrDataBase64 = (String) model.getResultStatusObject().get("ctrData");
                 if (ctrDataBase64 != null) {
                     ctrData = BaseEncoding.base64().decode(ctrDataBase64);
@@ -68,6 +68,7 @@ public class CounterUtil {
      *
      * @param model Step model.
      */
+    @SuppressWarnings("unchecked")
     public static void incrementCounter(BaseStepModel model) {
         // Increment the numeric counter
         long counter = (long) model.getResultStatusObject().get("counter");
