@@ -79,7 +79,7 @@ public class PrepareActivationStep implements BaseStep {
     private static final PowerAuthClientVault vault = new PowerAuthClientVault();
 
     private final EciesFactory eciesFactory = new EciesFactory();
-    private final ObjectMapper objectMapper = RestClientConfiguration.defaultMapper();
+    private final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
 
     /**
      * Execute this step with given context
@@ -146,7 +146,7 @@ public class PrepareActivationStep implements BaseStep {
         // Encrypt request data using ECIES in application scope with sharedInfo1 = /pa/activation
         EciesEncryptor eciesEncryptorL2 = eciesFactory.getEciesEncryptorForApplication((ECPublicKey) model.getMasterPublicKey(), applicationSecret, EciesSharedInfo1.ACTIVATION_LAYER_2);
         ByteArrayOutputStream baosL2 = new ByteArrayOutputStream();
-        objectMapper.writeValue(baosL2, requestL2);
+        mapper.writeValue(baosL2, requestL2);
         EciesCryptogram eciesCryptogramL2 = eciesEncryptorL2.encryptRequest(baosL2.toByteArray());
 
         // Prepare the encrypted layer 2 request
@@ -166,7 +166,7 @@ public class PrepareActivationStep implements BaseStep {
         // Encrypt the layer 1 request using ECIES in application scope with sharedInfo1 = /pa/generic/application
         EciesEncryptor eciesEncryptorL1 = eciesFactory.getEciesEncryptorForApplication((ECPublicKey) model.getMasterPublicKey(), applicationSecret, EciesSharedInfo1.APPLICATION_SCOPE_GENERIC);
         ByteArrayOutputStream baosL1 = new ByteArrayOutputStream();
-        objectMapper.writeValue(baosL1, requestL1);
+        mapper.writeValue(baosL1, requestL1);
         EciesCryptogram eciesCryptogramL1 = eciesEncryptorL1.encryptRequest(baosL1.toByteArray());
 
         // Prepare the encrypted layer 1 request
@@ -198,7 +198,7 @@ public class PrepareActivationStep implements BaseStep {
                     .asString();
 
             if (response.getStatus() == 200) {
-                EciesEncryptedResponse encryptedResponseL1 = objectMapper.readValue(response.getRawBody(), EciesEncryptedResponse.class);
+                EciesEncryptedResponse encryptedResponseL1 = mapper.readValue(response.getRawBody(), EciesEncryptedResponse.class);
 
                 if (stepLogger != null) {
                     stepLogger.writeServerCallOK(encryptedResponseL1, HttpUtil.flattenHttpHeaders(response.getHeaders()));
@@ -211,7 +211,7 @@ public class PrepareActivationStep implements BaseStep {
                 byte[] decryptedDataL1 = eciesEncryptorL1.decryptResponse(responseCryptogramL1);
 
                 // Read activation layer 1 response from data
-                ActivationLayer1Response responseL1 = objectMapper.readValue(decryptedDataL1, ActivationLayer1Response.class);
+                ActivationLayer1Response responseL1 = mapper.readValue(decryptedDataL1, ActivationLayer1Response.class);
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
@@ -229,7 +229,7 @@ public class PrepareActivationStep implements BaseStep {
                 byte[] decryptedDataL2 = eciesEncryptorL2.decryptResponse(responseCryptogramL2);
 
                 // Convert activation layer 2 response from JSON to object and extract activation parameters
-                ActivationLayer2Response responseL2 = objectMapper.readValue(decryptedDataL2, ActivationLayer2Response.class);
+                ActivationLayer2Response responseL2 = mapper.readValue(decryptedDataL2, ActivationLayer2Response.class);
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
@@ -283,7 +283,7 @@ public class PrepareActivationStep implements BaseStep {
                 model.getResultStatusObject().put("ctrData", ctrDataBase64);
 
                 // Store the resulting status
-                String formatted = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+                String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
                 try (FileWriter file = new FileWriter(model.getStatusFileName())) {
                     file.write(formatted);
                 }

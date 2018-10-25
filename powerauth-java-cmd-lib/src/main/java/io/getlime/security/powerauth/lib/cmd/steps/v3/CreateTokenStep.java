@@ -66,7 +66,7 @@ public class CreateTokenStep implements BaseStep {
     private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientSignature signature = new PowerAuthClientSignature();
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
     private static final EciesFactory eciesFactory = new EciesFactory();
 
     /**

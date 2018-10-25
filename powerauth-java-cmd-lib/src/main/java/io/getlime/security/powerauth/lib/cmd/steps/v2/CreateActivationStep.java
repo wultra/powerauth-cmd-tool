@@ -48,7 +48,7 @@ public class CreateActivationStep implements BaseStep {
     private static final PowerAuthClientKeyFactory keyFactory = new PowerAuthClientKeyFactory();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientVault vault = new PowerAuthClientVault();
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
 
     @Override
     public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
