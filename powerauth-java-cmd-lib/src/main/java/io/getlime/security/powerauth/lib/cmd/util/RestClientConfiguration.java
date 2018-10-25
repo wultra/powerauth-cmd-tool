@@ -31,14 +31,19 @@ import java.io.IOException;
  */
 public class RestClientConfiguration {
 
+    private static final ObjectMapper mapper;
+
+    static {
+        mapper = new ObjectMapper();
+        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    }
+
     /**
      * Return the mapper with default configuration.
      * @return ObjectMapper instance.
      */
     public static ObjectMapper defaultMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         return mapper;
     }
 
@@ -48,8 +53,6 @@ public class RestClientConfiguration {
     public static void configure() {
 
         // Prepare converters
-        final ObjectMapper mapper = defaultMapper();
-
         Unirest.setObjectMapper(new com.mashape.unirest.http.ObjectMapper() {
             @Override public <T> T readValue(String value, Class<T> valueType) {
                 try {
