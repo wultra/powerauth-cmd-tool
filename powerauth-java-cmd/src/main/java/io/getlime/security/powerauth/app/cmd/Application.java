@@ -23,8 +23,8 @@ import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.VerifySignatureStep;
 import io.getlime.security.powerauth.lib.cmd.steps.VerifyTokenStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.*;
-import io.getlime.security.powerauth.lib.cmd.steps.v3.CommitMigrationStep;
-import io.getlime.security.powerauth.lib.cmd.steps.v3.StartMigrationStep;
+import io.getlime.security.powerauth.lib.cmd.steps.v3.CommitUpgradeStep;
+import io.getlime.security.powerauth.lib.cmd.steps.v3.StartUpgradeStep;
 import io.getlime.security.powerauth.lib.cmd.util.ConfigurationUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtilFactory;
@@ -541,8 +541,8 @@ public class Application {
                     }
                     break;
                 }
-                case "start-migration": {
-                    StartMigrationStepModel model = new StartMigrationStepModel();
+                case "start-upgrade": {
+                    StartUpgradeStepModel model = new StartUpgradeStepModel();
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
                     model.setHeaders(httpHeaders);
@@ -553,9 +553,9 @@ public class Application {
 
                     JSONObject result;
                     switch (version) {
-                        // Only migration to version 3.0 is supported
+                        // Only upgrade to version 3.0 is supported
                         case "3.0":
-                            result = new StartMigrationStep().execute(stepLogger, model.toMap());
+                            result = new StartUpgradeStep().execute(stepLogger, model.toMap());
                             break;
 
                         default:
@@ -573,8 +573,8 @@ public class Application {
                     break;
                 }
 
-                case "commit-migration": {
-                    CommitMigrationStepModel model = new CommitMigrationStepModel();
+                case "commit-upgrade": {
+                    CommitUpgradeStepModel model = new CommitUpgradeStepModel();
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
                     model.setHeaders(httpHeaders);
@@ -585,9 +585,9 @@ public class Application {
 
                     JSONObject result;
                     switch (version) {
-                        // Only migration to version 3.0 is supported
+                        // Only upgrade to version 3.0 is supported
                         case "3.0":
-                            result = new CommitMigrationStep().execute(stepLogger, model.toMap());
+                            result = new CommitUpgradeStep().execute(stepLogger, model.toMap());
                             break;
 
                         default:

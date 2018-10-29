@@ -28,13 +28,13 @@ import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesShare
 import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
-import io.getlime.security.powerauth.lib.cmd.steps.model.StartMigrationStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
-import io.getlime.security.powerauth.rest.api.model.response.v3.MigrationResponsePayload;
+import io.getlime.security.powerauth.rest.api.model.response.v3.UpgradeResponsePayload;
 import org.json.simple.JSONObject;
 
 import java.io.FileWriter;
@@ -44,11 +44,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Step for starting migration to PowerAuth protocol version 3.0.
+ * Step for starting upgrade to PowerAuth protocol version 3.0.
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class StartMigrationStep implements BaseStep {
+public class StartUpgradeStep implements BaseStep {
 
     private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
     private static final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
@@ -65,29 +65,29 @@ public class StartMigrationStep implements BaseStep {
     public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
-        StartMigrationStepModel model = new StartMigrationStepModel();
+        StartUpgradeStepModel model = new StartUpgradeStepModel();
         model.fromMap(context);
 
         if (stepLogger != null) {
             stepLogger.writeItem(
-                    "Migration Started",
+                    "Upgrade Started",
                     null,
                     "OK",
                     null
             );
         }
 
-        final String uri = model.getUriString() + "/pa/v3/migration/start";
+        final String uri = model.getUriString() + "/pa/v3/upgrade/start";
         final String applicationKey = model.getApplicationKey();
         final String activationId = (String) model.getResultStatusObject().get("activationId");
 
-        // Prepare ECIES encryptor and encrypt request data with sharedInfo1 = /pa/migration
+        // Prepare ECIES encryptor and encrypt request data with sharedInfo1 = /pa/upgrade
         byte[] applicationSecret = model.getApplicationSecret().getBytes(StandardCharsets.UTF_8);
         byte[] transportMasterKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("transportMasterKey"));
         byte[] serverPublicKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("serverPublicKey"));
         final ECPublicKey serverPublicKey = (ECPublicKey) keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
         final EciesEncryptor encryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
-                transportMasterKeyBytes, EciesSharedInfo1.MIGRATION);
+                transportMasterKeyBytes, EciesSharedInfo1.UPGRADE);
         final EciesCryptogram eciesCryptogram = encryptor.encryptRequest("{}".getBytes(StandardCharsets.UTF_8));
 
         // Prepare encrypted request
@@ -137,22 +137,22 @@ public class StartMigrationStep implements BaseStep {
 
                 byte[] decryptedBytes = encryptor.decryptResponse(eciesCryptogramResponse);
 
-                final MigrationResponsePayload migrationResponsePayload = mapper.readValue(decryptedBytes, MigrationResponsePayload.class);
+                final UpgradeResponsePayload upgradeResponsePayload = mapper.readValue(decryptedBytes, UpgradeResponsePayload.class);
 
                 // Store the activation status (updated counter)
-                model.getResultStatusObject().put("ctrData", migrationResponsePayload.getCtrData());
+                model.getResultStatusObject().put("ctrData", upgradeResponsePayload.getCtrData());
                 String statusFormatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
                 try (FileWriter file = new FileWriter(model.getStatusFileName())) {
                     file.write(statusFormatted);
                 }
 
                 Map<String, Object> objectMap = new HashMap<>();
-                objectMap.put("ctrData", migrationResponsePayload.getCtrData());
+                objectMap.put("ctrData", upgradeResponsePayload.getCtrData());
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
-                            "Migration start step successfully completed",
-                            "Migration start step was successfully completed",
+                            "Upgrade start step successfully completed",
+                            "Upgrade start step was successfully completed",
                             "OK",
                             objectMap
 

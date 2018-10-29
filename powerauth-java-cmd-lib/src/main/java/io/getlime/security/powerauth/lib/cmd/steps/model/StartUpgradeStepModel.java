@@ -18,11 +18,11 @@ package io.getlime.security.powerauth.lib.cmd.steps.model;
 import java.util.Map;
 
 /**
- * Model representing step for starting migration between different PowerAuth protocol versions.
+ * Model representing step for starting upgrade between different PowerAuth protocol versions.
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class StartMigrationStepModel extends BaseStepModel {
+public class StartUpgradeStepModel extends BaseStepModel {
 
     private String statusFileName;
     private String applicationKey;

@@ -29,7 +29,7 @@ import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
-import io.getlime.security.powerauth.lib.cmd.steps.model.StartMigrationStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
@@ -44,11 +44,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Step for committing migration to PowerAuth protocol version 3.0.
+ * Step for committing upgrade to PowerAuth protocol version 3.0.
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class CommitMigrationStep implements BaseStep {
+public class CommitUpgradeStep implements BaseStep {
 
     private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
@@ -65,19 +65,19 @@ public class CommitMigrationStep implements BaseStep {
     public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) {
 
         // Read properties from "context"
-        StartMigrationStepModel model = new StartMigrationStepModel();
+        StartUpgradeStepModel model = new StartUpgradeStepModel();
         model.fromMap(context);
 
         if (stepLogger != null) {
             stepLogger.writeItem(
-                    "Migration Commit Started",
+                    "Upgrade Commit Started",
                     null,
                     "OK",
                     null
             );
         }
 
-        final String uri = model.getUriString() + "/pa/v3/migration/commit";
+        final String uri = model.getUriString() + "/pa/v3/upgrade/commit";
         final String activationId = (String) model.getResultStatusObject().get("activationId");
 
         // Get the signature key (possession factor)
@@ -95,13 +95,13 @@ public class CommitMigrationStep implements BaseStep {
         model.getResultStatusObject().put("version", 3);
 
         // Compute PowerAuth signature for possession factor
-        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/migration/commit", pa_nonce, requestBytes) + "&" + model.getApplicationSecret();
+        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/upgrade/commit", pa_nonce, requestBytes) + "&" + model.getApplicationSecret();
         byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
         String pa_signature = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), Collections.singletonList(signaturePossessionKey), ctrData);
         PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, PowerAuthSignatureTypes.POSSESSION.toString(), BaseEncoding.base64().encode(pa_nonce), model.getVersion());
         String httpAuthorizationHeader = header.buildHttpHeader();
 
-        // Commit migration
+        // Commit upgrade
         try {
 
             Map<String, String> headers = new HashMap<>();
@@ -137,8 +137,8 @@ public class CommitMigrationStep implements BaseStep {
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
-                            "Migration commit successfully completed",
-                            "Migration commit was successfully completed",
+                            "Upgrade commit successfully completed",
+                            "Upgrade commit was successfully completed",
                             "OK",
                             null
 
