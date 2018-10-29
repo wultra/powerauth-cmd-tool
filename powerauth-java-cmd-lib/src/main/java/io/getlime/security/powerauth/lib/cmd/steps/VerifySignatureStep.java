@@ -172,7 +172,8 @@ public class VerifySignatureStep implements BaseStep {
 
             Map<String, String> lowLevelData = new HashMap<>();
             lowLevelData.put("counter", String.valueOf(counter));
-            if ("3.0".equals(model.getVersion())) {
+            int version = (int) model.getResultStatusObject().get("version");
+            if (version == 3) {
                 lowLevelData.put("ctrData", BaseEncoding.base64().encode(ctrData));
             }
             lowLevelData.put("signatureBaseString", signatureBaseString);

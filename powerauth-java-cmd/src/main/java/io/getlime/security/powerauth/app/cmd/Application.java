@@ -23,6 +23,8 @@ import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.VerifySignatureStep;
 import io.getlime.security.powerauth.lib.cmd.steps.VerifyTokenStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.*;
+import io.getlime.security.powerauth.lib.cmd.steps.v3.CommitUpgradeStep;
+import io.getlime.security.powerauth.lib.cmd.steps.v3.StartUpgradeStep;
 import io.getlime.security.powerauth.lib.cmd.util.ConfigurationUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtilFactory;
@@ -534,6 +536,69 @@ public class Application {
                     model.setVersion(version);
 
                     JSONObject result = new io.getlime.security.powerauth.lib.cmd.steps.v2.EncryptStep().execute(stepLogger, model.toMap());
+                    if (result == null) {
+                        throw new ExecutionException();
+                    }
+                    break;
+                }
+                case "start-upgrade": {
+                    StartUpgradeStepModel model = new StartUpgradeStepModel();
+                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setHeaders(httpHeaders);
+                    model.setStatusFileName(statusFileName);
+                    model.setResultStatusObject(resultStatusObject);
+                    model.setUriString(uriString);
+                    model.setVersion(version);
+
+                    JSONObject result;
+                    switch (version) {
+                        // Only upgrade to version 3.0 is supported
+                        case "3.0":
+                            result = new StartUpgradeStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        default:
+                            stepLogger.writeItem(
+                                    "Unsupported version",
+                                    "The version you specified is not supported",
+                                    "ERROR",
+                                    null
+                            );
+                            throw new ExecutionException();
+                    }
+                    if (result == null) {
+                        throw new ExecutionException();
+                    }
+                    break;
+                }
+
+                case "commit-upgrade": {
+                    CommitUpgradeStepModel model = new CommitUpgradeStepModel();
+                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setHeaders(httpHeaders);
+                    model.setStatusFileName(statusFileName);
+                    model.setResultStatusObject(resultStatusObject);
+                    model.setUriString(uriString);
+                    model.setVersion(version);
+
+                    JSONObject result;
+                    switch (version) {
+                        // Only upgrade to version 3.0 is supported
+                        case "3.0":
+                            result = new CommitUpgradeStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        default:
+                            stepLogger.writeItem(
+                                    "Unsupported version",
+                                    "The version you specified is not supported",
+                                    "ERROR",
+                                    null
+                            );
+                            throw new ExecutionException();
+                    }
                     if (result == null) {
                         throw new ExecutionException();
                     }
