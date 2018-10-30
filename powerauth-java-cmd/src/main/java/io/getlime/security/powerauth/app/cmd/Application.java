@@ -1,5 +1,6 @@
 /*
- * Copyright 2016 Lime - HighTech Solutions s.r.o.
+ * PowerAuth Command-line utility
+ * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +21,12 @@ import io.getlime.security.powerauth.app.cmd.exception.ExecutionException;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
-import io.getlime.security.powerauth.lib.cmd.steps.*;
+import io.getlime.security.powerauth.lib.cmd.steps.VerifySignatureStep;
+import io.getlime.security.powerauth.lib.cmd.steps.VerifyTokenStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.*;
-import io.getlime.security.powerauth.lib.cmd.util.ConfigurationUtils;
+import io.getlime.security.powerauth.lib.cmd.steps.v3.CommitUpgradeStep;
+import io.getlime.security.powerauth.lib.cmd.steps.v3.StartUpgradeStep;
+import io.getlime.security.powerauth.lib.cmd.util.ConfigurationUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtilFactory;
 import org.apache.commons.cli.*;
@@ -56,6 +60,7 @@ public class Application {
      * Application main
      * @param args Arguments, use --help to print expected arguments
      */
+    @SuppressWarnings("unchecked")
     public static void main(String[] args) {
 
         JsonStepLogger stepLogger = new JsonStepLogger(System.out);
@@ -74,7 +79,7 @@ public class Application {
             // Options definition
             Options options = new Options();
             options.addOption("h", "help", false, "Print this help manual.");
-            options.addOption("u", "url", true, "Base URL of the PowerAuth 2.0 Standard RESTful API.");
+            options.addOption("u", "url", true, "Base URL of the PowerAuth Standard RESTful API.");
             options.addOption("m", "method", true, "What API method to call, available names are 'prepare', 'status', 'remove', 'sign', 'unlock', 'create-custom', 'create-token', 'validate-token'.");
             options.addOption("c", "config-file", true, "Specifies a path to the config file with Base64 encoded server master public key, application ID and application secret.");
             options.addOption("s", "status-file", true, "Path to the file with the activation status, serving as the data persistence.");
@@ -90,6 +95,7 @@ public class Application {
             options.addOption("T", "token-id", true, "Token ID (UUID4), in case of 'token-validate' method.");
             options.addOption("S", "token-secret", true, "Token secret (Base64 encoded bytes), in case of 'token-validate' method.");
             options.addOption("r", "reason", true, "Reason why vault is being unlocked.");
+            options.addOption("v", "version", true, "PowerAuth protocol version.");
 
             Option httpHeaderOption = Option.builder("H")
                     .argName("key=value")
@@ -166,6 +172,12 @@ public class Application {
             String statusFileName = cmd.getOptionValue("s");
             String configFileName = cmd.getOptionValue("c");
             String reason = cmd.getOptionValue("r");
+            String version = cmd.getOptionValue("v");
+
+            // Default version
+            if (version == null) {
+                version = "3.0";
+            }
 
             // Read config file
             if (Files.exists(Paths.get(configFileName))) {
@@ -192,7 +204,7 @@ public class Application {
             }
 
             // Read master public key
-            PublicKey masterPublicKey = ConfigurationUtils.getMasterKey(clientConfigObject, stepLogger);
+            PublicKey masterPublicKey = ConfigurationUtil.getMasterKey(clientConfigObject, stepLogger);
 
             // Read current activation state from the activation state file or create an empty state
             JSONObject resultStatusObject;
@@ -208,8 +220,8 @@ public class Application {
                 case "create-token": {
 
                     CreateTokenStepModel model = new CreateTokenStepModel();
-                    model.setApplicationKey(ConfigurationUtils.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
                     model.setPassword(cmd.getOptionValue("p"));
@@ -217,8 +229,29 @@ public class Application {
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
+                    model.setVersion(version);
 
-                    JSONObject result = new CreateTokenStep().execute(stepLogger, model.toMap());
+                    JSONObject result;
+                    switch (version) {
+                        case "3.0":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.CreateTokenStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        case "2.0":
+                        case "2.1":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v2.CreateTokenStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        default:
+                            stepLogger.writeItem(
+                                    "Unsupported version",
+                                    "The version you specified is not supported",
+                                    "ERROR",
+                                    null
+                            );
+                            throw new ExecutionException();
+                    }
+
                     if (result == null) {
                         throw new ExecutionException();
                     }
@@ -235,6 +268,7 @@ public class Application {
                     model.setResultStatusObject(resultStatusObject);
                     model.setUriString(uriString);
                     model.setHttpMethod(cmd.getOptionValue("t"));
+                    model.setVersion(version);
 
                     JSONObject result = new VerifyTokenStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -247,17 +281,37 @@ public class Application {
 
                     PrepareActivationStepModel model = new PrepareActivationStepModel();
                     model.setActivationCode(cmd.getOptionValue("a"));
-                    model.setActivationName(ConfigurationUtils.getApplicationName(clientConfigObject));
-                    model.setApplicationKey(ConfigurationUtils.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    model.setActivationName(ConfigurationUtil.getApplicationName(clientConfigObject));
+                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatusObject(resultStatusObject);
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
+                    model.setVersion(version);
 
-                    JSONObject result = new PrepareActivationStep().execute(stepLogger, model.toMap());
+                    JSONObject result;
+                    switch (version) {
+                        case "3.0":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.PrepareActivationStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        case "2.0":
+                        case "2.1":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v2.PrepareActivationStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        default:
+                            stepLogger.writeItem(
+                                    "Unsupported version",
+                                    "The version you specified is not supported",
+                                    "ERROR",
+                                    null
+                            );
+                            throw new ExecutionException();
+                    }
                     if (result == null) {
                         throw new ExecutionException();
                     }
@@ -270,8 +324,28 @@ public class Application {
                     model.setHeaders(httpHeaders);
                     model.setResultStatusObject(resultStatusObject);
                     model.setUriString(uriString);
+                    model.setVersion(version);
 
-                    JSONObject result = new GetStatusStep().execute(stepLogger, model.toMap());
+                    JSONObject result;
+                    switch (version) {
+                        case "3.0":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.GetStatusStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        case "2.0":
+                        case "2.1":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v2.GetStatusStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        default:
+                            stepLogger.writeItem(
+                                    "Unsupported version",
+                                    "The version you specified is not supported",
+                                    "ERROR",
+                                    null
+                            );
+                            throw new ExecutionException();
+                    }
                     if (result == null) {
                         throw new ExecutionException();
                     }
@@ -281,15 +355,35 @@ public class Application {
                 case "remove": {
 
                     RemoveStepModel model = new RemoveStepModel();
-                    model.setApplicationKey(ConfigurationUtils.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
                     model.setHeaders(httpHeaders);
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatusObject(resultStatusObject);
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
+                    model.setVersion(version);
 
-                    JSONObject result = new RemoveStep().execute(stepLogger, model.toMap());
+                    JSONObject result;
+                    switch (version) {
+                        case "3.0":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.RemoveStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        case "2.0":
+                        case "2.1":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v2.RemoveStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        default:
+                            stepLogger.writeItem(
+                                    "Unsupported version",
+                                    "The version you specified is not supported",
+                                    "ERROR",
+                                    null
+                            );
+                            throw new ExecutionException();
+                    }
                     if (result == null) {
                         throw new ExecutionException();
                     }
@@ -299,8 +393,8 @@ public class Application {
                 case "sign": {
 
                     VerifySignatureStepModel model = new VerifySignatureStepModel();
-                    model.setApplicationKey(ConfigurationUtils.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
                     model.setDataFileName(cmd.getOptionValue("d"));
                     model.setHeaders(httpHeaders);
                     model.setHttpMethod(cmd.getOptionValue("t"));
@@ -310,6 +404,7 @@ public class Application {
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
+                    model.setVersion(version);
 
                     JSONObject result = new VerifySignatureStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -321,8 +416,8 @@ public class Application {
                 case "unlock": {
 
                     VaultUnlockStepModel model = new VaultUnlockStepModel();
-                    model.setApplicationKey(ConfigurationUtils.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
                     model.setHeaders(httpHeaders);
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatusObject(resultStatusObject);
@@ -330,8 +425,28 @@ public class Application {
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
                     model.setUriString(uriString);
                     model.setReason(reason);
+                    model.setVersion(version);
 
-                    JSONObject result = new VaultUnlockStep().execute(stepLogger, model.toMap());
+                    JSONObject result;
+                    switch (version) {
+                        case "3.0":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.VaultUnlockStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        case "2.0":
+                        case "2.1":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v2.VaultUnlockStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        default:
+                            stepLogger.writeItem(
+                                    "Unsupported version",
+                                    "The version you specified is not supported",
+                                    "ERROR",
+                                    null
+                            );
+                            throw new ExecutionException();
+                    }
                     if (result == null) {
                         throw new ExecutionException();
                     }
@@ -391,10 +506,10 @@ public class Application {
                     }
 
                     CreateActivationStepModel model = new CreateActivationStepModel();
-                    model.setActivationName(ConfigurationUtils.getApplicationName(clientConfigObject));
+                    model.setActivationName(ConfigurationUtil.getApplicationName(clientConfigObject));
                     model.setActivationOtp(cmd.getOptionValue("a"));
-                    model.setApplicationKey(ConfigurationUtils.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
                     model.setCustomAttributes(customAttributes);
                     model.setHeaders(httpHeaders);
                     model.setIdentityAttributes(identityAttributes);
@@ -403,8 +518,9 @@ public class Application {
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatusObject(resultStatusObject);
                     model.setUriString(uriString);
+                    model.setVersion(version);
 
-                    JSONObject result = new CreateActivationStep().execute(stepLogger, model.toMap());
+                    JSONObject result = new io.getlime.security.powerauth.lib.cmd.steps.v2.CreateActivationStep().execute(stepLogger, model.toMap());
                     if (result == null) {
                         throw new ExecutionException();
                     }
@@ -412,15 +528,79 @@ public class Application {
                 }
                 case "encrypt": {
                     EncryptStepModel model = new EncryptStepModel();
-                    model.setApplicationKey(ConfigurationUtils.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtils.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
                     model.setResultStatusObject(resultStatusObject);
                     model.setDataFileName(cmd.getOptionValue("d"));
                     model.setUriString(uriString);
+                    model.setVersion(version);
 
-                    JSONObject result = new EncryptStep().execute(stepLogger, model.toMap());
+                    JSONObject result = new io.getlime.security.powerauth.lib.cmd.steps.v2.EncryptStep().execute(stepLogger, model.toMap());
+                    if (result == null) {
+                        throw new ExecutionException();
+                    }
+                    break;
+                }
+                case "start-upgrade": {
+                    StartUpgradeStepModel model = new StartUpgradeStepModel();
+                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setHeaders(httpHeaders);
+                    model.setStatusFileName(statusFileName);
+                    model.setResultStatusObject(resultStatusObject);
+                    model.setUriString(uriString);
+                    model.setVersion(version);
+
+                    JSONObject result;
+                    switch (version) {
+                        // Only upgrade to version 3.0 is supported
+                        case "3.0":
+                            result = new StartUpgradeStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        default:
+                            stepLogger.writeItem(
+                                    "Unsupported version",
+                                    "The version you specified is not supported",
+                                    "ERROR",
+                                    null
+                            );
+                            throw new ExecutionException();
+                    }
+                    if (result == null) {
+                        throw new ExecutionException();
+                    }
+                    break;
+                }
+
+                case "commit-upgrade": {
+                    CommitUpgradeStepModel model = new CommitUpgradeStepModel();
+                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setHeaders(httpHeaders);
+                    model.setStatusFileName(statusFileName);
+                    model.setResultStatusObject(resultStatusObject);
+                    model.setUriString(uriString);
+                    model.setVersion(version);
+
+                    JSONObject result;
+                    switch (version) {
+                        // Only upgrade to version 3.0 is supported
+                        case "3.0":
+                            result = new CommitUpgradeStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        default:
+                            stepLogger.writeItem(
+                                    "Unsupported version",
+                                    "The version you specified is not supported",
+                                    "ERROR",
+                                    null
+                            );
+                            throw new ExecutionException();
+                    }
                     if (result == null) {
                         throw new ExecutionException();
                     }

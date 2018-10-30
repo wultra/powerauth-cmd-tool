@@ -7,7 +7,7 @@ import java.util.Map;
 /**
  * Model representing step for creating a custom activation.
  *
- * @author Petr Dvorak, petr@lime-company.eu
+ * @author Petr Dvorak, petr@wultra.com
  */
 public class CreateActivationStepModel extends BaseStepModel {
 

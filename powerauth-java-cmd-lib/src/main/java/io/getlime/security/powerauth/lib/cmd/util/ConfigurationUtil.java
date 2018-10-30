@@ -1,5 +1,6 @@
 /*
- * Copyright 2016 Lime - HighTech Solutions s.r.o.
+ * PowerAuth Command-line utility
+ * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,11 +30,11 @@ import java.security.spec.InvalidKeySpecException;
  * @author Petr Dvorak
  *
  */
-public class ConfigurationUtils {
+public class ConfigurationUtil {
 
     private static final String expectedApplicationKey = "MTIzNDU2Nzg5MGFiY2RlZg==";
     private static final String expectedApplicationSecret = "c2VjcmV0MDAwMDAwMDAwMA==";
-    private static final String expectedApplicationName = "PowerAuth 2.0 Reference Client";
+    private static final String expectedApplicationName = "PowerAuth Reference Client";
 
     /**
      * Get application key value that is set in dictionary, or a default value.

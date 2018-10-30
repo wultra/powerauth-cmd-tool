@@ -1,5 +1,4 @@
 /*
- * PowerAuth Command-line utility
  * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,27 +15,21 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
-import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
-
-import java.security.PublicKey;
 import java.util.Map;
 
 /**
- * Model representing step for creating a new token.
+ * Model representing step for starting upgrade between different PowerAuth protocol versions.
  *
- * @author Petr Dvorak, petr@wultra.com
+ * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class CreateTokenStepModel extends BaseStepModel {
+public class StartUpgradeStepModel extends BaseStepModel {
 
     private String statusFileName;
     private String applicationKey;
     private String applicationSecret;
-    private String password;
-    private PowerAuthSignatureTypes signatureType;
-    private PublicKey masterPublicKey;
 
     /**
-     * File name of the file with stored activation status.
+     * Set file name of the file with stored activation status.
      * @param statusFileName Status file name.
      */
     public void setStatusFileName(String statusFileName) {
@@ -44,67 +37,43 @@ public class CreateTokenStepModel extends BaseStepModel {
     }
 
     /**
-     * Application key.
-     * @param applicationKey APP_KEY.
+     * Set application key.
+     * @param applicationKey Application key.
      */
     public void setApplicationKey(String applicationKey) {
         this.applicationKey = applicationKey;
     }
 
     /**
-     * Application secret.
-     * @param applicationSecret APP_SECRET.
+     * Set application secret.
+     * @param applicationSecret Application secret.
      */
     public void setApplicationSecret(String applicationSecret) {
         this.applicationSecret = applicationSecret;
     }
 
     /**
-     * Password for the password related key encryption.
-     * @param password Password.
+     * Get status file name.
+     * @return Status file name.
      */
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    /**
-     * PowerAuth signature type.
-     * @param signatureType Signature type.
-     */
-    public void setSignatureType(PowerAuthSignatureTypes signatureType) {
-        this.signatureType = signatureType;
-    }
-
-    /**
-     * Set master public key
-     * @param masterPublicKey Master public key
-     */
-    public void setMasterPublicKey(PublicKey masterPublicKey) {
-        this.masterPublicKey = masterPublicKey;
-    }
-
     public String getStatusFileName() {
         return statusFileName;
     }
 
+    /**
+     * Get application key.
+     * @return Application key.
+     */
     public String getApplicationKey() {
         return applicationKey;
     }
 
+    /**
+     * Get application secret.
+     * @return Application secret.
+     */
     public String getApplicationSecret() {
         return applicationSecret;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public PowerAuthSignatureTypes getSignatureType() {
-        return signatureType;
-    }
-
-    public PublicKey getMasterPublicKey() {
-        return masterPublicKey;
     }
 
     @Override
@@ -113,9 +82,6 @@ public class CreateTokenStepModel extends BaseStepModel {
         context.put("STATUS_FILENAME", statusFileName);
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
-        context.put("PASSWORD", password);
-        context.put("SIGNATURE_TYPE", signatureType.toString());
-        context.put("MASTER_PUBLIC_KEY", masterPublicKey);
         return context;
     }
 
@@ -125,9 +91,6 @@ public class CreateTokenStepModel extends BaseStepModel {
         setStatusFileName((String) context.get("STATUS_FILENAME"));
         setApplicationKey((String) context.get("APPLICATION_KEY"));
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
-        setPassword((String) context.get("PASSWORD"));
-        setSignatureType(PowerAuthSignatureTypes.getEnumFromString((String) context.get("SIGNATURE_TYPE")));
-        setMasterPublicKey((PublicKey) context.get("MASTER_PUBLIC_KEY"));
     }
 
 }

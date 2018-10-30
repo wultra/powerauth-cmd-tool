@@ -1,5 +1,6 @@
 /*
- * Copyright 2016 Lime - HighTech Solutions s.r.o.
+ * PowerAuth Command-line utility
+ * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.getlime.security.powerauth.lib.cmd.steps;
+package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,14 +31,16 @@ import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
-import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VaultUnlockStepModel;
+import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
-import io.getlime.security.powerauth.rest.api.model.request.VaultUnlockRequest;
-import io.getlime.security.powerauth.rest.api.model.response.VaultUnlockResponse;
+import io.getlime.security.powerauth.rest.api.model.request.v2.VaultUnlockRequest;
+import io.getlime.security.powerauth.rest.api.model.response.v2.VaultUnlockResponse;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
@@ -49,7 +52,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Helper class with vault unlock logics.
+ * Helper class with vault unlock logic.
+ *
+ * <h5>PowerAuth protocol versions:</h5>
+ * <ul>
+ *     <li>2.0</li>
+ *     <li>2.1</li>
+ * </ul>
  *
  * @author Petr Dvorak
  *
@@ -60,7 +69,7 @@ public class VaultUnlockStep implements BaseStep {
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientSignature signature = new PowerAuthClientSignature();
     private static final PowerAuthClientKeyFactory keyFactory = new PowerAuthClientKeyFactory();
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
 
     /**
      * Execute this step with given context
@@ -69,7 +78,7 @@ public class VaultUnlockStep implements BaseStep {
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject execute(JsonStepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         VaultUnlockStepModel model = new VaultUnlockStepModel();
@@ -89,7 +98,6 @@ public class VaultUnlockStep implements BaseStep {
 
         // Get data from status
         String activationId = (String) model.getResultStatusObject().get("activationId");
-        long counter = (long) model.getResultStatusObject().get("counter");
         byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signaturePossessionKey"));
         byte[] signatureBiometryKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signatureBiometryKey"));
         byte[] signatureKnowledgeKeySalt = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signatureKnowledgeKeySalt"));
@@ -127,15 +135,15 @@ public class VaultUnlockStep implements BaseStep {
         ObjectRequest<VaultUnlockRequest> request = new ObjectRequest<>(vaultUnlockRequest);
         final byte[] requestBytes = RestClientConfiguration.defaultMapper().writeValueAsBytes(request);
 
-        // Compute the current PowerAuth 2.0 signature for possession and knowledge factor
-        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("post", "/pa/vault/unlock", pa_nonce, requestBytes) + "&" + model.getApplicationSecret();
-        String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), counter);
-        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, model.getSignatureType().toString(), BaseEncoding.base64().encode(pa_nonce), "2.1");
+        // Compute the current PowerAuth signature for possession and knowledge factor
+        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/vault/unlock", pa_nonce, requestBytes) + "&" + model.getApplicationSecret();
+        byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
+        String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), ctrData);
+        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, model.getSignatureType().toString(), BaseEncoding.base64().encode(pa_nonce), model.getVersion());
         String httpAuthorizationHeader = header.buildHttpHeader();
 
         // Increment the counter
-        counter += 1;
-        model.getResultStatusObject().put("counter", counter);
+        CounterUtil.incrementCounter(model);
 
         // Store the activation status (updated counter)
         String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
@@ -153,7 +161,7 @@ public class VaultUnlockStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall(uri, "POST", request, headers);
+                stepLogger.writeServerCall(uri, "POST", request.getRequestObject(), headers);
             }
 
             HttpResponse response = Unirest.post(uri)
@@ -162,7 +170,6 @@ public class VaultUnlockStep implements BaseStep {
                     .asString();
 
             if (response.getStatus() == 200) {
-
                 TypeReference<ObjectResponse<VaultUnlockResponse>> typeReference = new TypeReference<ObjectResponse<VaultUnlockResponse>>() {};
                 ObjectResponse<VaultUnlockResponse> responseWrapper = RestClientConfiguration
                         .defaultMapper()
@@ -176,13 +183,13 @@ public class VaultUnlockStep implements BaseStep {
                 byte[] encryptedVaultEncryptionKey = BaseEncoding.base64().decode(responseObject.getEncryptedVaultEncryptionKey());
 
                 PowerAuthClientVault vault = new PowerAuthClientVault();
-                SecretKey vaultEncryptionKey = vault.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey, counter);
+                ctrData = CounterUtil.getCtrData(model, stepLogger);
+                SecretKey vaultEncryptionKey = vault.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey, ctrData);
                 PrivateKey devicePrivateKey = vault.decryptDevicePrivateKey(encryptedDevicePrivateKeyBytes, vaultEncryptionKey);
                 PublicKey serverPublicKey = keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
 
                 // Increment the counter
-                counter += 1;
-                model.getResultStatusObject().put("counter", counter);
+                CounterUtil.incrementCounter(model);
 
                 // Store the activation status (updated counter)
                 formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
@@ -216,8 +223,7 @@ public class VaultUnlockStep implements BaseStep {
             } else {
 
                 // Increment the counter
-                counter += 1;
-                model.getResultStatusObject().put("counter", counter);
+                CounterUtil.incrementCounter(model);
 
                 // Store the activation status (updated counter)
                 formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
@@ -236,8 +242,7 @@ public class VaultUnlockStep implements BaseStep {
         } catch (UnirestException exception) {
 
             // Increment the counter, second time for vault unlock
-            counter += 1;
-            model.getResultStatusObject().put("counter", counter);
+            CounterUtil.incrementCounter(model);
 
             // Store the activation status (updated counter)
             formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
@@ -253,8 +258,7 @@ public class VaultUnlockStep implements BaseStep {
         } catch (Exception exception) {
 
             // Increment the counter, second time for vault unlock
-            counter += 1;
-            model.getResultStatusObject().put("counter", counter);
+            CounterUtil.incrementCounter(model);
 
             // Store the activation status (updated counter)
             formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());

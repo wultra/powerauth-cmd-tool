@@ -1,5 +1,6 @@
 /*
- * Copyright 2017 Lime - HighTech Solutions s.r.o.
+ * PowerAuth Command-line utility
+ * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +30,7 @@ import java.util.Map;
 /**
  * Class responsible for logging the steps performed during the processes to the JSON structure.
  *
- * @author Petr Dvorak, petr@lime-company.eu
+ * @author Petr Dvorak, petr@wultra.com
  */
 public class JsonStepLogger implements StepLogger {
 
@@ -121,7 +122,7 @@ public class JsonStepLogger implements StepLogger {
         map.put("requestObject", requestObject);
         map.put("requestHeaders", headers);
         String name = "Sending Request";
-        String desc = "Calling PowerAuth 2.0 Standard RESTful API endpoint";
+        String desc = "Calling PowerAuth Standard RESTful API endpoint";
         String status = "OK";
         writeItem(name, desc, status, map);
     }
@@ -181,9 +182,7 @@ public class JsonStepLogger implements StepLogger {
      */
     @Override public void writeServerCallConnectionError(Exception e) {
         String name = "Connection Error";
-        String desc = "Connection refused";
-        String status = "ERROR";
-        writeItem(name, desc, status, e);
+        writeError(name, e.getMessage(), e);
     }
 
     /**

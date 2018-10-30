@@ -1,5 +1,6 @@
 /*
- * Copyright 2017 Lime - HighTech Solutions s.r.o.
+ * PowerAuth Command-line utility
+ * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +16,7 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps;
 
-import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import org.json.simple.JSONObject;
 
 import java.util.Map;
@@ -23,7 +24,7 @@ import java.util.Map;
 /**
  * Interface for objects implementing execution steps.
  *
- * @author Petr Dvorak, petr@lime-company.eu
+ * @author Petr Dvorak, petr@wultra.com
  */
 public interface BaseStep {
 
@@ -34,6 +35,6 @@ public interface BaseStep {
      * @return Result status object (with current activation status), null in case of failure.
      * @throws Exception In case of a failure.
      */
-    JSONObject execute(JsonStepLogger logger, Map<String, Object> context) throws Exception;
+    JSONObject execute(StepLogger logger, Map<String, Object> context) throws Exception;
 
 }

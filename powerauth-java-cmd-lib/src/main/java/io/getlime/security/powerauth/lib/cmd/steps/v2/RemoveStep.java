@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.getlime.security.powerauth.lib.cmd.steps;
+package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,51 +22,47 @@ import com.google.common.io.BaseEncoding;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
-import io.getlime.core.rest.model.base.response.Response;
-import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
+import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
+import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
-import io.getlime.security.powerauth.http.PowerAuthRequestCanonizationUtils;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
-import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
+import io.getlime.security.powerauth.lib.cmd.steps.model.RemoveStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
+import io.getlime.security.powerauth.rest.api.model.response.v2.ActivationRemoveResponse;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
 import java.io.FileWriter;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Helper class with signature verification logic.
+ * Helper class with activation remove logic.
  *
  * <h5>PowerAuth protocol versions:</h5>
  * <ul>
  *     <li>2.0</li>
  *     <li>2.1</li>
- *     <li>3.0</li>
  * </ul>
  *
  * @author Petr Dvorak
- *
  */
-public class VerifySignatureStep implements BaseStep {
+public class RemoveStep implements BaseStep {
 
     private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientSignature signature = new PowerAuthClientSignature();
-    private static final PowerAuthClientKeyFactory keyFactory = new PowerAuthClientKeyFactory();
     private static final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
 
     /**
@@ -79,23 +75,24 @@ public class VerifySignatureStep implements BaseStep {
     public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
-        VerifySignatureStepModel model = new VerifySignatureStepModel();
+        RemoveStepModel model = new RemoveStepModel();
         model.fromMap(context);
 
         if (stepLogger != null) {
             stepLogger.writeItem(
-                    "Signature Validation Started",
+                    "Activation Removal Started",
                     null,
                     "OK",
                     null
             );
         }
 
+        // Prepare the activation URI
+        String uri = model.getUriString() + "/pa/activation/remove";
+
         // Get data from status
         String activationId = (String) model.getResultStatusObject().get("activationId");
-        long counter = (long) model.getResultStatusObject().get("counter");
         byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signaturePossessionKey"));
-        byte[] signatureBiometryKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signatureBiometryKey"));
         byte[] signatureKnowledgeKeySalt = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signatureKnowledgeKeySalt"));
         byte[] signatureKnowledgeKeyEncryptedBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signatureKnowledgeKeyEncrypted"));
 
@@ -111,91 +108,17 @@ public class VerifySignatureStep implements BaseStep {
         // Get the signature keys
         SecretKey signaturePossessionKey = keyConversion.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
         SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(password, signatureKnowledgeKeyEncryptedBytes, signatureKnowledgeKeySalt, keyGenerator);
-        SecretKey signatureBiometryKey = keyConversion.convertBytesToSharedSecretKey(signatureBiometryKeyBytes);
 
         // Generate nonce
         byte[] pa_nonce = keyGenerator.generateRandomBytes(16);
 
-        // Construct the signature base string data part based on HTTP method (GET requires different code).
-        byte[] dataFileBytes;
-        if ("GET".equals(model.getHttpMethod().toUpperCase())) {
-            String query = new URI(model.getUriString()).getRawQuery();
-            String canonizedQuery = PowerAuthRequestCanonizationUtils.canonizeGetParameters(query);
-            if (canonizedQuery != null) {
-                dataFileBytes = canonizedQuery.getBytes("UTF-8");
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "Normalized GET data",
-                            "GET query data were normalized into the canonical string.",
-                            "OK",
-                            canonizedQuery
-                    );
-                }
-            } else {
-                dataFileBytes = new byte[0];
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "Empty data",
-                            "No GET query parameters found in provided URL, signature will contain no data",
-                            "WARNING",
-                            null
-                    );
-                }
-            }
-        } else {
-            // Read data input file
-            if (model.getDataFileName() != null && Files.exists(Paths.get(model.getDataFileName()))) {
-                dataFileBytes = Files.readAllBytes(Paths.get(model.getDataFileName()));
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "Request payload",
-                            "Data from the request payload file, used as the POST / DELETE / ... method body, encoded as Base64.",
-                            "OK",
-                            BaseEncoding.base64().encode(dataFileBytes)
-                    );
-                }
-            } else {
-                dataFileBytes = new byte[0];
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "Empty data",
-                            "Data file was not found, signature will contain no data",
-                            "WARNING",
-                            null
-                    );
-                }
-            }
-        }
-
-        // Compute the current PowerAuth signature for possession and knowledge factor
-        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString(model.getHttpMethod().toUpperCase(), model.getResourceId(), pa_nonce, dataFileBytes) + "&" + model.getApplicationSecret();
+        // Compute the current PowerAuth signature for possession
+        // and knowledge factor
+        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/activation/remove", pa_nonce, null) + "&" + model.getApplicationSecret();
         byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
-        String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), ctrData);
-        final PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, model.getSignatureType().toString(), BaseEncoding.base64().encode(pa_nonce), model.getVersion());
+        String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), Arrays.asList(signaturePossessionKey, signatureKnowledgeKey), ctrData);
+        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE.toString(), BaseEncoding.base64().encode(pa_nonce), model.getVersion());
         String httpAuthorizationHeader = header.buildHttpHeader();
-
-
-
-        if (stepLogger != null) {
-
-            Map<String, String> lowLevelData = new HashMap<>();
-            lowLevelData.put("counter", String.valueOf(counter));
-            int version = (int) model.getResultStatusObject().get("version");
-            if (version == 3) {
-                lowLevelData.put("ctrData", BaseEncoding.base64().encode(ctrData));
-            }
-            lowLevelData.put("signatureBaseString", signatureBaseString);
-            lowLevelData.put("resourceId", model.getResourceId());
-            lowLevelData.put("nonce", BaseEncoding.base64().encode(pa_nonce));
-            lowLevelData.put("applicationSecret", model.getApplicationSecret());
-
-            stepLogger.writeItem(
-                    "Signature Calculation Parameters",
-                    "Low level cryptographic inputs required to compute signature - mainly a signature base string and a counter value.",
-                    "OK",
-                    lowLevelData
-            );
-        }
 
         // Increment the counter
         CounterUtil.incrementCounter(model);
@@ -216,41 +139,37 @@ public class VerifySignatureStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall(model.getUriString(), model.getHttpMethod().toUpperCase(), new String(dataFileBytes, "UTF-8"), headers);
+                stepLogger.writeServerCall(uri, "POST", null, headers);
             }
 
-            HttpResponse response;
-            if ("GET".equals(model.getHttpMethod().toUpperCase())) {
-                response = Unirest.get(model.getUriString())
-                        .headers(headers)
-                        .asString();
-            } else {
-                response = Unirest.post(model.getUriString())
-                        .headers(headers)
-                        .body(dataFileBytes)
-                        .asString();
-            }
+            HttpResponse response = Unirest.post(uri)
+                    .headers(headers)
+                    .asString();
 
             if (response.getStatus() == 200) {
-                TypeReference<Response> typeReference = new TypeReference<Response>() {};
-                Response responseWrapper = RestClientConfiguration
+                TypeReference<ObjectResponse<ActivationRemoveResponse>> typeReference = new TypeReference<ObjectResponse<ActivationRemoveResponse>>() {};
+                ObjectResponse<ActivationRemoveResponse> responseWrapper = RestClientConfiguration
                         .defaultMapper()
                         .readValue(response.getRawBody(), typeReference);
 
                 if (stepLogger != null) {
                     stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                }
 
-                    // Print the results
+                Map<String, Object> objectMap = new HashMap<>();
+                objectMap.put("activationId", activationId);
+
+                if (stepLogger != null) {
                     stepLogger.writeItem(
-                            "Signature verified",
-                            "Activation signature was verified successfully",
+                            "Activation Removed",
+                            "Activation was successfully removed from the server",
                             "OK",
-                            null
+                            objectMap
 
                     );
-
                     stepLogger.writeDoneOK();
                 }
+
                 return model.getResultStatusObject();
             } else {
                 if (stepLogger != null) {
