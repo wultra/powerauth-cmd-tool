@@ -1,5 +1,6 @@
 /*
- * Copyright 2017 Lime - HighTech Solutions s.r.o.
+ * PowerAuth Command-line utility
+ * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +38,14 @@ import java.util.Map;
 /**
  * Step for the token validation activity.
  *
- * @author Petr Dvorak, petr@lime-company.eu
+ * <h5>PowerAuth protocol versions:</h5>
+ * <ul>
+ *     <li>2.0</li>
+ *     <li>2.1</li>
+ *     <li>3.0</li>
+ * </ul>
+ *
+ * @author Petr Dvorak, petr@wultra.com
  */
 public class VerifyTokenStep implements BaseStep {
 

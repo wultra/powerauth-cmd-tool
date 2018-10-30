@@ -1,5 +1,6 @@
 /*
- * Copyright 2017 Lime - HighTech Solutions s.r.o.
+ * PowerAuth Command-line utility
+ * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +23,7 @@ import java.util.Map;
 /**
  * Model representing parameters of the step for unlocking secure vault.
  *
- * @author Petr Dvorak, petr@lime-company.eu
+ * @author Petr Dvorak, petr@wultra.com
  */
 public class VaultUnlockStepModel extends BaseStepModel {
 
@@ -58,7 +59,7 @@ public class VaultUnlockStepModel extends BaseStepModel {
     }
 
     /**
-     * PowerAuth 2.0 signature type.
+     * PowerAuth signature type.
      * @param signatureType Signature type.
      */
     public void setSignatureType(PowerAuthSignatureTypes signatureType) {

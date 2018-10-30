@@ -1,5 +1,6 @@
 /*
- * Copyright 2016 Lime - HighTech Solutions s.r.o.
+ * PowerAuth Command-line utility
+ * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,6 +60,7 @@ public class Application {
      * Application main
      * @param args Arguments, use --help to print expected arguments
      */
+    @SuppressWarnings("unchecked")
     public static void main(String[] args) {
 
         JsonStepLogger stepLogger = new JsonStepLogger(System.out);
@@ -77,7 +79,7 @@ public class Application {
             // Options definition
             Options options = new Options();
             options.addOption("h", "help", false, "Print this help manual.");
-            options.addOption("u", "url", true, "Base URL of the PowerAuth 2.0 Standard RESTful API.");
+            options.addOption("u", "url", true, "Base URL of the PowerAuth Standard RESTful API.");
             options.addOption("m", "method", true, "What API method to call, available names are 'prepare', 'status', 'remove', 'sign', 'unlock', 'create-custom', 'create-token', 'validate-token'.");
             options.addOption("c", "config-file", true, "Specifies a path to the config file with Base64 encoded server master public key, application ID and application secret.");
             options.addOption("s", "status-file", true, "Path to the file with the activation status, serving as the data persistence.");

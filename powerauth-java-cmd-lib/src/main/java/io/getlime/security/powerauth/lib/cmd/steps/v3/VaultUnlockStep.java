@@ -57,6 +57,11 @@ import java.util.Map;
 /**
  * Helper class with vault unlock logic.
  *
+ * <h5>PowerAuth protocol versions:</h5>
+ * <ul>
+ *      <li>3.0</li>
+ * </ul>
+ *
  * @author Roman Strobl, roman.strobl@wultra.com
  *
  */

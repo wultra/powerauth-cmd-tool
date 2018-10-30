@@ -1,5 +1,6 @@
 /*
- * Copyright 2017 Lime - HighTech Solutions s.r.o.
+ * PowerAuth Command-line utility
+ * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +24,7 @@ import java.util.Map;
 /**
  * Abstract class defining a base for a step model classes.
  *
- * @author Petr Dvorak, petr@lime-company.eu
+ * @author Petr Dvorak, petr@wultra.com
  */
 public class BaseStepModel {
 
@@ -33,7 +34,7 @@ public class BaseStepModel {
     private String version;
 
     /**
-     * Set base URI string of the PowerAuth 2.0 Standard RESTful API.
+     * Set base URI string of the PowerAuth Standard RESTful API.
      * @param uriString Base URI of PA2.0 Standard RESTful API.
      */
     public void setUriString(String uriString) {

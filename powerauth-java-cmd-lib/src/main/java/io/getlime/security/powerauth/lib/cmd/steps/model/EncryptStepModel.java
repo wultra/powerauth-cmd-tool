@@ -1,5 +1,6 @@
 /*
- * Copyright 2018 Lime - HighTech Solutions s.r.o.
+ * PowerAuth Command-line utility
+ * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +23,7 @@ import java.util.Map;
 /**
  * Model representing parameters of the step for sending encrypted data to intermediate server.
  *
- * @author Roman Strobl, roman.strobl@lime-company.eu
+ * @author Roman Strobl, roman.strobl@wultra.com
  */
 public class EncryptStepModel extends BaseStepModel {
 

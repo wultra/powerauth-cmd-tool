@@ -49,6 +49,11 @@ import java.util.Map;
 /**
  * Helper class with activation remove logic.
  *
+ * <h5>PowerAuth protocol versions:</h5>
+ * <ul>
+ *      <li>3.0</li>
+ * </ul>
+ *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
 public class RemoveStep implements BaseStep {
@@ -105,7 +110,7 @@ public class RemoveStep implements BaseStep {
         // Generate nonce
         byte[] pa_nonce = keyGenerator.generateRandomBytes(16);
 
-        // Compute the current PowerAuth 2.0 signature for possession
+        // Compute the current PowerAuth signature for possession
         // and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/activation/remove", pa_nonce, null) + "&" + model.getApplicationSecret();
         byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);

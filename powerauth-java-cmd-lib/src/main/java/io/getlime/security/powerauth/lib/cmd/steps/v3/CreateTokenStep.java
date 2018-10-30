@@ -1,5 +1,6 @@
 /*
- * Copyright 2017 Lime - HighTech Solutions s.r.o.
+ * PowerAuth Command-line utility
+ * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -136,7 +137,7 @@ public class CreateTokenStep implements BaseStep {
 
         final byte[] requestBytes = RestClientConfiguration.defaultMapper().writeValueAsBytes(request);
 
-        // Compute the current PowerAuth 2.0 signature for possession
+        // Compute the current PowerAuth signature for possession
         // and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/token/create", pa_nonce, requestBytes) + "&" + model.getApplicationSecret();
         byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);

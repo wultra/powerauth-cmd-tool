@@ -1,5 +1,6 @@
 /*
- * Copyright 2016 Lime - HighTech Solutions s.r.o.
+ * PowerAuth Command-line utility
+ * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,6 +49,12 @@ import java.util.Map;
 
 /**
  * Helper class with activation remove logic.
+ *
+ * <h5>PowerAuth protocol versions:</h5>
+ * <ul>
+ *     <li>2.0</li>
+ *     <li>2.1</li>
+ * </ul>
  *
  * @author Petr Dvorak
  */
@@ -105,7 +112,7 @@ public class RemoveStep implements BaseStep {
         // Generate nonce
         byte[] pa_nonce = keyGenerator.generateRandomBytes(16);
 
-        // Compute the current PowerAuth 2.0 signature for possession
+        // Compute the current PowerAuth signature for possession
         // and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/activation/remove", pa_nonce, null) + "&" + model.getApplicationSecret();
         byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);

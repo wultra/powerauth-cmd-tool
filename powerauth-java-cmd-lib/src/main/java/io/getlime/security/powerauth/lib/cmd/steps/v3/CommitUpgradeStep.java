@@ -46,6 +46,11 @@ import java.util.Map;
 /**
  * Step for committing upgrade to PowerAuth protocol version 3.0.
  *
+ * <h5>PowerAuth protocol versions:</h5>
+ * <ul>
+ *      <li>3.0</li>
+ * </ul>
+ *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
 public class CommitUpgradeStep implements BaseStep {

@@ -1,5 +1,6 @@
 /*
- * Copyright 2018 Lime - HighTech Solutions s.r.o.
+ * PowerAuth Command-line utility
+ * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,7 +41,13 @@ import java.util.Scanner;
 /**
  * Encrypt step encrypts request data using non-personalized end-to-end encryption.
  *
- * @author Roman Strobl, roman.strobl@lime-company.eu
+ * <h5>PowerAuth protocol versions:</h5>
+ * <ul>
+ *     <li>2.0</li>
+ *     <li>2.1</li>
+ * </ul>
+ *
+ * @author Roman Strobl, roman.strobl@wultra.com
  *
  */
 public class EncryptStep implements BaseStep {

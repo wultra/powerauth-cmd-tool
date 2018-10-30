@@ -39,7 +39,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * @author Petr Dvorak, petr@lime-company.eu
+ * Class with create activation logic.
+ *
+ * <h5>PowerAuth protocol versions:</h5>
+ * <ul>
+ *     <li>2.0</li>
+ *     <li>2.1</li>
+ * </ul>
+ *
+ * @author Petr Dvorak, petr@wultra.com
  */
 public class CreateActivationStep implements BaseStep {
 

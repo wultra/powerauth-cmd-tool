@@ -1,5 +1,6 @@
 /*
- * Copyright 2016 Lime - HighTech Solutions s.r.o.
+ * PowerAuth Command-line utility
+ * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,7 +52,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Helper class with vault unlock logics.
+ * Helper class with vault unlock logic.
+ *
+ * <h5>PowerAuth protocol versions:</h5>
+ * <ul>
+ *     <li>2.0</li>
+ *     <li>2.1</li>
+ * </ul>
  *
  * @author Petr Dvorak
  *
@@ -128,7 +135,7 @@ public class VaultUnlockStep implements BaseStep {
         ObjectRequest<VaultUnlockRequest> request = new ObjectRequest<>(vaultUnlockRequest);
         final byte[] requestBytes = RestClientConfiguration.defaultMapper().writeValueAsBytes(request);
 
-        // Compute the current PowerAuth 2.0 signature for possession and knowledge factor
+        // Compute the current PowerAuth signature for possession and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/vault/unlock", pa_nonce, requestBytes) + "&" + model.getApplicationSecret();
         byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
         String pa_signature = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), ctrData);
