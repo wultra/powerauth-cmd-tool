@@ -21,6 +21,7 @@ import io.getlime.security.powerauth.crypto.lib.generator.HashBasedCounter;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.BaseStepModel;
 
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 
 /**
@@ -40,8 +41,8 @@ public class CounterUtil {
      */
     public static byte[] getCtrData(BaseStepModel model, StepLogger stepLogger) {
         byte[] ctrData = new byte[16];
-        long counter = (long) model.getResultStatusObject().get("counter");
-        int version = (int) model.getResultStatusObject().get("version");
+        long counter = new BigDecimal(model.getResultStatusObject().get("counter").toString()).longValue();
+        int version = new BigDecimal(model.getResultStatusObject().get("version").toString()).intValue();
         switch (version) {
             case 2:
                 ctrData = ByteBuffer.allocate(16).putLong(8, counter).array();
@@ -72,12 +73,12 @@ public class CounterUtil {
     @SuppressWarnings("unchecked")
     public static void incrementCounter(BaseStepModel model) {
         // Increment the numeric counter
-        long counter = (long) model.getResultStatusObject().get("counter");
+        long counter = new BigDecimal(model.getResultStatusObject().get("counter").toString()).longValue();
         counter += 1;
         model.getResultStatusObject().put("counter", counter);
 
         // Increment the hash based counter in case activation version is 3.
-        int version = (int) model.getResultStatusObject().get("version");
+        int version = new BigDecimal(model.getResultStatusObject().get("version").toString()).intValue();
         if (version == 3) {
             String ctrDataBase64 = (String) model.getResultStatusObject().get("ctrData");
             if (ctrDataBase64 != null) {

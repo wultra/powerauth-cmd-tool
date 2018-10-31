@@ -84,6 +84,14 @@ public class VerifyTokenStep implements BaseStep {
                 model.getVersion()
         ).buildHttpHeader();
 
+        if (model.getHttpMethod() == null) {
+            if (stepLogger != null) {
+                stepLogger.writeError("HTTP method not specified", "Specify HTTP method to use for sending request");
+                stepLogger.writeDoneFailed();
+            }
+            return null;
+        }
+
         // Construct the signature base string data part based on HTTP method (GET requires different code).
         byte[] dataFileBytes = null;
         if (!"GET".equals(model.getHttpMethod().toUpperCase())) {
