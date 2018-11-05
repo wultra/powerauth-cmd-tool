@@ -33,10 +33,7 @@ import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.CreateTokenStepModel;
-import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
-import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
-import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
+import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.entity.TokenResponsePayload;
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
@@ -94,10 +91,10 @@ public class CreateTokenStep implements BaseStep {
         }
 
         // Get data from status
-        String activationId = (String) model.getResultStatusObject().get("activationId");
-        byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signaturePossessionKey"));
-        byte[] signatureKnowledgeKeySalt = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signatureKnowledgeKeySalt"));
-        byte[] signatureKnowledgeKeyEncryptedBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signatureKnowledgeKeyEncrypted"));
+        String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
+        byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signaturePossessionKey"));
+        byte[] signatureKnowledgeKeySalt = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signatureKnowledgeKeySalt"));
+        byte[] signatureKnowledgeKeyEncryptedBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signatureKnowledgeKeyEncrypted"));
 
         // Ask for the password to unlock knowledge factor key
         char[] password;
@@ -119,8 +116,8 @@ public class CreateTokenStep implements BaseStep {
 
         // Prepare ECIES encryptor and encrypt request data with sharedInfo1 = /pa/token/create
         final byte[] applicationSecret = model.getApplicationSecret().getBytes(StandardCharsets.UTF_8);
-        final byte[] transportMasterKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("transportMasterKey"));
-        final byte[] serverPublicKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("serverPublicKey"));
+        final byte[] transportMasterKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey"));
+        final byte[] serverPublicKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "serverPublicKey"));
         final ECPublicKey serverPublicKey = (ECPublicKey) keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
         final EciesEncryptor encryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
                 transportMasterKeyBytes, EciesSharedInfo1.CREATE_TOKEN);

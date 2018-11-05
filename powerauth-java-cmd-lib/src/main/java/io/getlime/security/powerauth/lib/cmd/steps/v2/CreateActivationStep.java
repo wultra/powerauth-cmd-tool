@@ -319,7 +319,7 @@ public class CreateActivationStep implements BaseStep {
                     model.getResultStatusObject().put("transportMasterKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(transportMasterKey)));
                     model.getResultStatusObject().put("counter", 0L);
                     model.getResultStatusObject().put("ctrData", null);
-                    model.getResultStatusObject().put("version", 2);
+                    model.getResultStatusObject().put("version", 2L);
 
                     // Store the resulting status
                     String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());

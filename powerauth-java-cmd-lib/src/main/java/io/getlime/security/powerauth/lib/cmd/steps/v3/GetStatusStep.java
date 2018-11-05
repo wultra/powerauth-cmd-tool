@@ -29,6 +29,7 @@ import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.GetStatusStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
+import io.getlime.security.powerauth.lib.cmd.util.JsonUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.request.v3.ActivationStatusRequest;
@@ -81,8 +82,8 @@ public class GetStatusStep implements BaseStep {
         String uri = model.getUriString() + "/pa/v3/activation/status";
 
         // Get data from status
-        String activationId = (String) model.getResultStatusObject().get("activationId");
-        String transportMasterKeyBase64 = (String) model.getResultStatusObject().get("transportMasterKey");
+        String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
+        String transportMasterKeyBase64 = JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey");
         SecretKey transportMasterKey = keyConversion.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKeyBase64));
 
         // Send the activation status request to the server
