@@ -96,7 +96,7 @@ public class ConfigurationUtil {
                 stepLogger.writeDoneFailed();
                 System.exit(1);
             } catch (CryptoProviderException e) {
-                stepLogger.writeError("Cryptography Provider Error", "Cryptography provider is is initialized incorrectly", e);
+                stepLogger.writeError("Cryptography Provider Error", "Cryptography provider is initialized incorrectly", e);
                 stepLogger.writeDoneFailed();
                 System.exit(1);
             }
