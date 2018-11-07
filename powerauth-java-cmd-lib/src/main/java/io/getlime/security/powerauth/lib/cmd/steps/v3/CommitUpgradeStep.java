@@ -99,16 +99,15 @@ public class CommitUpgradeStep implements BaseStep {
         // Make sure hash based counter is used for calculating the signature, in case of an error the version change is not saved
         model.getResultStatusObject().put("version", 3);
 
-        // Compute PowerAuth signature for possession factor
-        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/upgrade/commit", pa_nonce, requestBytes) + "&" + model.getApplicationSecret();
-        byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
-        String pa_signature = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), Collections.singletonList(signaturePossessionKey), ctrData);
-        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, PowerAuthSignatureTypes.POSSESSION.toString(), BaseEncoding.base64().encode(pa_nonce), model.getVersion());
-        String httpAuthorizationHeader = header.buildHttpHeader();
-
-        // Commit upgrade
         try {
+            // Compute PowerAuth signature for possession factor
+            String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/upgrade/commit", pa_nonce, requestBytes) + "&" + model.getApplicationSecret();
+            byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
+            String pa_signature = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), Collections.singletonList(signaturePossessionKey), ctrData);
+            PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, PowerAuthSignatureTypes.POSSESSION.toString(), BaseEncoding.base64().encode(pa_nonce), model.getVersion());
+            String httpAuthorizationHeader = header.buildHttpHeader();
 
+            // Commit upgrade
             Map<String, String> headers = new HashMap<>();
             headers.put("Accept", "application/json");
             headers.put("Content-Type", "application/json");
