@@ -18,10 +18,10 @@ package io.getlime.security.powerauth.lib.cmd.util;
 
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
+import io.getlime.security.powerauth.crypto.lib.model.exception.GenericCryptoException;
 import io.getlime.security.powerauth.crypto.lib.util.AESEncryptionUtils;
+import io.getlime.security.powerauth.provider.exception.CryptoProviderException;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.SecretKey;
 import java.security.InvalidKeyException;
 
@@ -41,10 +41,10 @@ public class EncryptedStorageUtil {
      * @param keyGenerator Key generator instance.
      * @return Encrypted KEY_SIGNATURE_KNOWLEDGE using password and random salt.
      * @throws InvalidKeyException In case invalid key is provided.
-     * @throws IllegalBlockSizeException In case invalid key is provided.
-     * @throws BadPaddingException In case invalid padding is provided.
+     * @throws CryptoProviderException In case cryptography provider is initialized incorrectly.
+     * @throws GenericCryptoException In case any other cryptography error occurs.
      */
-    public static byte[] storeSignatureKnowledgeKey(char[] password, SecretKey signatureKnowledgeSecretKey, byte[] salt, KeyGenerator keyGenerator) throws InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+    public static byte[] storeSignatureKnowledgeKey(char[] password, SecretKey signatureKnowledgeSecretKey, byte[] salt, KeyGenerator keyGenerator) throws InvalidKeyException, GenericCryptoException, CryptoProviderException {
         // Ask for the password and generate storage key
         SecretKey encryptionSignatureKnowledgeKey = keyGenerator.deriveSecretKeyFromPassword(new String(password), salt);
 
@@ -59,22 +59,22 @@ public class EncryptedStorageUtil {
     /**
      * Decrypt the KEY_SIGNATURE_KNOWLEDGE key using a provided password.
      * @param password Password to be used for decryption.
-     * @param cSignatureKnoweldgeSecretKeyBytes Encrypted KEY_SIGNATURE_KNOWLEDGE key.
+     * @param cSignatureKnowledgeSecretKeyBytes Encrypted KEY_SIGNATURE_KNOWLEDGE key.
      * @param salt Salt that was used for encryption.
      * @param keyGenerator Key generator instance.
      * @return Original KEY_SIGNATURE_KNOWLEDGE key.
-     * @throws InvalidKeyException In case invalid key is provided
-     * @throws IllegalBlockSizeException In case invalid key is provided
-     * @throws BadPaddingException In case invalid padding is provided
+     * @throws InvalidKeyException In case invalid key is provided.
+     * @throws CryptoProviderException In case cryptography provider is initialized incorrectly.
+     * @throws GenericCryptoException In case any other cryptography error occurs.
      */
-    public static SecretKey getSignatureKnowledgeKey(char[] password, byte[] cSignatureKnoweldgeSecretKeyBytes, byte[] salt, KeyGenerator keyGenerator) throws InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+    public static SecretKey getSignatureKnowledgeKey(char[] password, byte[] cSignatureKnowledgeSecretKeyBytes, byte[] salt, KeyGenerator keyGenerator) throws InvalidKeyException, GenericCryptoException, CryptoProviderException {
         // Ask for the password and generate storage key
         SecretKey encryptionSignatureKnowledgeKey = keyGenerator.deriveSecretKeyFromPassword(new String(password), salt);
 
         // Encrypt the knowledge related key using the password derived key
         AESEncryptionUtils aes = new AESEncryptionUtils();
         byte[] iv = new byte[16];
-        byte[] signatureKnowledgeSecretKeyBytes = aes.decrypt(cSignatureKnoweldgeSecretKeyBytes, iv, encryptionSignatureKnowledgeKey, "AES/CBC/NoPadding");
+        byte[] signatureKnowledgeSecretKeyBytes = aes.decrypt(cSignatureKnowledgeSecretKeyBytes, iv, encryptionSignatureKnowledgeKey, "AES/CBC/NoPadding");
         return PowerAuthConfiguration.INSTANCE.getKeyConvertor().convertBytesToSharedSecretKey(signatureKnowledgeSecretKeyBytes);
     }
 

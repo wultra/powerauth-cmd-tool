@@ -19,6 +19,7 @@ package io.getlime.security.powerauth.lib.cmd.util;
 import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
+import io.getlime.security.powerauth.provider.exception.CryptoProviderException;
 import org.json.simple.JSONObject;
 
 import java.security.PublicKey;
@@ -92,6 +93,10 @@ public class ConfigurationUtil {
                 System.exit(1);
             } catch (InvalidKeySpecException e) {
                 stepLogger.writeError("Invalid Master Server Public Key", "Master Server Public Key was stored in an incorrect format", e);
+                stepLogger.writeDoneFailed();
+                System.exit(1);
+            } catch (CryptoProviderException e) {
+                stepLogger.writeError("Cryptography Provider Error", "Cryptography provider is initialized incorrectly", e);
                 stepLogger.writeDoneFailed();
                 System.exit(1);
             }
