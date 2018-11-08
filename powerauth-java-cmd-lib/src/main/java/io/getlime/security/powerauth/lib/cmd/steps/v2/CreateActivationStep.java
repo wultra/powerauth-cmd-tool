@@ -335,7 +335,7 @@ public class CreateActivationStep implements BaseStep {
                     if (stepLogger != null) {
                         stepLogger.writeItem(
                                 "Activation Done",
-                                "Public key exchange was successfully completed, commit the activation on server",
+                                "Public key exchange was successfully completed, commit the activation on server if required",
                                 "OK",
                                 objectMap
                         );
