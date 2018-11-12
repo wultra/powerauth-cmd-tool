@@ -30,6 +30,7 @@ import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
+import io.getlime.security.powerauth.crypto.lib.model.ActivationVersion;
 import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
@@ -294,7 +295,7 @@ public class PrepareActivationStep implements BaseStep {
                 objectMap.put("activationId", activationId);
                 objectMap.put("activationStatusFile", model.getStatusFileName());
                 objectMap.put("activationStatusFileContent", model.getResultStatusObject());
-                objectMap.put("deviceKeyFingerprint", activation.computeDevicePublicKeyFingerprint(deviceKeyPair.getPublic()));
+                objectMap.put("deviceKeyFingerprint", activation.computeActivationFingerprint(deviceKeyPair.getPublic(), serverPublicKey, activationId, ActivationVersion.VERSION_3));
                 if (stepLogger != null) {
                     stepLogger.writeItem(
                             "Activation Done",
