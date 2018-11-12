@@ -40,14 +40,14 @@ public class CounterUtil {
      */
     public static byte[] getCtrData(BaseStepModel model, StepLogger stepLogger) {
         byte[] ctrData = new byte[16];
-        long counter = (long) model.getResultStatusObject().get("counter");
-        int version = (int) model.getResultStatusObject().get("version");
+        long counter = JsonUtil.longValue(model.getResultStatusObject(), "counter");
+        int version = JsonUtil.intValue(model.getResultStatusObject(), "version");
         switch (version) {
             case 2:
                 ctrData = ByteBuffer.allocate(16).putLong(8, counter).array();
                 break;
             case 3:
-                String ctrDataBase64 = (String) model.getResultStatusObject().get("ctrData");
+                String ctrDataBase64 = JsonUtil.stringValue(model.getResultStatusObject(), "ctrData");
                 if (ctrDataBase64 != null) {
                     ctrData = BaseEncoding.base64().decode(ctrDataBase64);
                 }
@@ -72,14 +72,14 @@ public class CounterUtil {
     @SuppressWarnings("unchecked")
     public static void incrementCounter(BaseStepModel model) {
         // Increment the numeric counter
-        long counter = (long) model.getResultStatusObject().get("counter");
+        long counter = JsonUtil.longValue(model.getResultStatusObject(), "counter");
         counter += 1;
         model.getResultStatusObject().put("counter", counter);
 
         // Increment the hash based counter in case activation version is 3.
-        int version = (int) model.getResultStatusObject().get("version");
+        int version = JsonUtil.intValue(model.getResultStatusObject(), "version");
         if (version == 3) {
-            String ctrDataBase64 = (String) model.getResultStatusObject().get("ctrData");
+            String ctrDataBase64 = JsonUtil.stringValue(model.getResultStatusObject(), "ctrData");
             if (ctrDataBase64 != null) {
                 byte[] ctrData = BaseEncoding.base64().decode(ctrDataBase64);
                 ctrData = new HashBasedCounter().next(ctrData);

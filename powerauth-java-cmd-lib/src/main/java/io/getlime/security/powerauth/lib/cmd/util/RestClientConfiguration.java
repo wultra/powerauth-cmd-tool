@@ -38,6 +38,7 @@ public class RestClientConfiguration {
         mapper = new ObjectMapper();
         mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.configure(DeserializationFeature.USE_LONG_FOR_INTS, true);
     }
 
     /**

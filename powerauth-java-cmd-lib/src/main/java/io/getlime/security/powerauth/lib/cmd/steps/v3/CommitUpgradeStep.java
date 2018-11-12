@@ -32,6 +32,7 @@ import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
+import io.getlime.security.powerauth.lib.cmd.util.JsonUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import org.json.simple.JSONObject;
@@ -83,10 +84,10 @@ public class CommitUpgradeStep implements BaseStep {
         }
 
         final String uri = model.getUriString() + "/pa/v3/upgrade/commit";
-        final String activationId = (String) model.getResultStatusObject().get("activationId");
+        final String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
 
         // Get the signature key (possession factor)
-        byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signaturePossessionKey"));
+        byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signaturePossessionKey"));
         final SecretKey signaturePossessionKey = keyConversion.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
 
         // Generate nonce
@@ -97,7 +98,7 @@ public class CommitUpgradeStep implements BaseStep {
         byte[] requestBytes = request.getBytes(StandardCharsets.UTF_8);
 
         // Make sure hash based counter is used for calculating the signature, in case of an error the version change is not saved
-        model.getResultStatusObject().put("version", 3);
+        model.getResultStatusObject().put("version", 3L);
 
         try {
             // Compute PowerAuth signature for possession factor
@@ -153,7 +154,7 @@ public class CommitUpgradeStep implements BaseStep {
                 return model.getResultStatusObject();
             } else {
                 // Revert upgrade to version 3 because signature failed. The status file was not changed, so no need to save it.
-                model.getResultStatusObject().put("version", 2);
+                model.getResultStatusObject().put("version", 2L);
 
                 if (stepLogger != null) {
                     stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));

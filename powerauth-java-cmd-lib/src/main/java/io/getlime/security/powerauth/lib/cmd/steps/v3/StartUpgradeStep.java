@@ -30,6 +30,7 @@ import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
+import io.getlime.security.powerauth.lib.cmd.util.JsonUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
@@ -84,12 +85,12 @@ public class StartUpgradeStep implements BaseStep {
 
         final String uri = model.getUriString() + "/pa/v3/upgrade/start";
         final String applicationKey = model.getApplicationKey();
-        final String activationId = (String) model.getResultStatusObject().get("activationId");
+        final String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
 
         // Prepare ECIES encryptor and encrypt request data with sharedInfo1 = /pa/upgrade
         byte[] applicationSecret = model.getApplicationSecret().getBytes(StandardCharsets.UTF_8);
-        byte[] transportMasterKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("transportMasterKey"));
-        byte[] serverPublicKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("serverPublicKey"));
+        byte[] transportMasterKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey"));
+        byte[] serverPublicKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "serverPublicKey"));
         final ECPublicKey serverPublicKey = (ECPublicKey) keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
         final EciesEncryptor encryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
                 transportMasterKeyBytes, EciesSharedInfo1.UPGRADE);

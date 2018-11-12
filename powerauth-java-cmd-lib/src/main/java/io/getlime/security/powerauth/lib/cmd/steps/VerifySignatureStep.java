@@ -32,10 +32,7 @@ import io.getlime.security.powerauth.http.PowerAuthRequestCanonizationUtils;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
-import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
-import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
-import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
+import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import org.json.simple.JSONObject;
 
@@ -92,12 +89,12 @@ public class VerifySignatureStep implements BaseStep {
         }
 
         // Get data from status
-        String activationId = (String) model.getResultStatusObject().get("activationId");
-        long counter = (long) model.getResultStatusObject().get("counter");
-        byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signaturePossessionKey"));
-        byte[] signatureBiometryKeyBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signatureBiometryKey"));
-        byte[] signatureKnowledgeKeySalt = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signatureKnowledgeKeySalt"));
-        byte[] signatureKnowledgeKeyEncryptedBytes = BaseEncoding.base64().decode((String) model.getResultStatusObject().get("signatureKnowledgeKeyEncrypted"));
+        String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
+        long counter = JsonUtil.longValue(model.getResultStatusObject(), ("counter"));
+        byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signaturePossessionKey"));
+        byte[] signatureBiometryKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signatureBiometryKey"));
+        byte[] signatureKnowledgeKeySalt = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signatureKnowledgeKeySalt"));
+        byte[] signatureKnowledgeKeyEncryptedBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signatureKnowledgeKeyEncrypted"));
 
         // Ask for the password to unlock knowledge factor key
         char[] password;
@@ -180,7 +177,7 @@ public class VerifySignatureStep implements BaseStep {
 
             Map<String, String> lowLevelData = new HashMap<>();
             lowLevelData.put("counter", String.valueOf(counter));
-            int version = (int) model.getResultStatusObject().get("version");
+            int version = JsonUtil.intValue(model.getResultStatusObject(), "version");
             if (version == 3) {
                 lowLevelData.put("ctrData", BaseEncoding.base64().encode(ctrData));
             }
