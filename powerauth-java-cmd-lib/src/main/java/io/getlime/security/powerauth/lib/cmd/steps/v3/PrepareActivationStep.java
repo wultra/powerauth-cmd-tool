@@ -295,7 +295,7 @@ public class PrepareActivationStep implements BaseStep {
                 objectMap.put("activationId", activationId);
                 objectMap.put("activationStatusFile", model.getStatusFileName());
                 objectMap.put("activationStatusFileContent", model.getResultStatusObject());
-                objectMap.put("deviceKeyFingerprint", activation.computeActivationFingerprint(deviceKeyPair.getPublic(), serverPublicKey, activationId, ActivationVersion.VERSION_3));
+                objectMap.put("deviceKeyFingerprint", activation.computeActivationFingerprint(deviceKeyPair.getPublic(), serverPublicKey, activationId));
                 if (stepLogger != null) {
                     stepLogger.writeItem(
                             "Activation Done",
