@@ -182,7 +182,7 @@ public class CreateActivationStep implements BaseStep {
         if (stepLogger != null) {
             stepLogger.writeItem(
                     "Building activation request object",
-                    "Following activation attributes will be encrypted and send to the server",
+                    "Following activation attributes will be encrypted and sent to the server",
                     "OK",
                     requestObject
             );
