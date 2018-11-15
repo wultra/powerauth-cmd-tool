@@ -1,19 +1,3 @@
-/*
- * PowerAuth Command-line utility
- * Copyright 2018 Wultra s.r.o.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,11 +14,10 @@ import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
-import io.getlime.security.powerauth.crypto.lib.model.ActivationVersion;
 import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
-import io.getlime.security.powerauth.lib.cmd.steps.model.PrepareActivationStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.model.CreateActivationStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
@@ -58,21 +41,18 @@ import java.security.PublicKey;
 import java.security.interfaces.ECPublicKey;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
- * Helper class with prepare activation logic.
+ * Class with create activation logic.
  *
  * <h5>PowerAuth protocol versions:</h5>
  * <ul>
- *      <li>3.0</li>
+ *     <li>3.0</li>
  * </ul>
  *
  * @author Roman Strobl, roman.strobl@wultra.com
- *
  */
-public class PrepareActivationStep implements BaseStep {
+public class CreateActivationStep implements BaseStep {
 
     private static final PowerAuthClientActivation activation = new PowerAuthClientActivation();
     private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
@@ -81,24 +61,18 @@ public class PrepareActivationStep implements BaseStep {
     private static final PowerAuthClientVault vault = new PowerAuthClientVault();
 
     private final EciesFactory eciesFactory = new EciesFactory();
-    private final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
+    private static final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
 
-    /**
-     * Execute this step with given context
-     * @param context Provided context
-     * @return Result status object, null in case of failure.
-     * @throws Exception In case of any error.
-     */
+    @Override
     @SuppressWarnings("unchecked")
     public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-
         // Read properties from "context"
-        PrepareActivationStepModel model = new PrepareActivationStepModel();
+        CreateActivationStepModel model = new CreateActivationStepModel();
         model.fromMap(context);
 
         if (stepLogger != null) {
             stepLogger.writeItem(
-                    "Activation Started",
+                    "Activation With Custom Attributes Started",
                     null,
                     "OK",
                     null
@@ -106,28 +80,26 @@ public class PrepareActivationStep implements BaseStep {
         }
 
         // Prepare the activation URI
-        String uri = model.getUriString() + "/pa/v3/activation/create";
+        String uri = model.getUriString();
 
-        // Fetch and parse the activation code
-        Pattern p = Pattern.compile("^[A-Z2-7]{5}-[A-Z2-7]{5}-[A-Z2-7]{5}-[A-Z2-7]{5}$");
-        Matcher m = p.matcher(model.getActivationCode());
-        if (!m.find()) {
-            if (stepLogger != null) {
-                stepLogger.writeError("Prepare activation step failed", "Activation code has invalid format");
-                stepLogger.writeDoneFailed();
-                return null;
-            }
-        }
-        final String activationCode = model.getActivationCode();
-
-        Map<String, Object> objectMap = new HashMap<>();
-        objectMap.put("activationCode", activationCode);
+        // Read the identity attributes and custom attributes
+        Map<String, String> identityAttributes = model.getIdentityAttributes();
         if (stepLogger != null) {
             stepLogger.writeItem(
-                    "Activation code",
-                    "Storing activation code",
+                    "Identity Attributes",
+                    "Following attributes are used to authenticate user",
                     "OK",
-                    objectMap
+                    identityAttributes
+            );
+        }
+
+        Map<String, Object> customAttributes = model.getCustomAttributes();
+        if (stepLogger != null) {
+            stepLogger.writeItem(
+                    "Custom Attributes",
+                    "Following attributes are used as custom attributes for the request",
+                    "OK",
+                    customAttributes
             );
         }
 
@@ -159,11 +131,10 @@ public class PrepareActivationStep implements BaseStep {
 
         // Prepare activation layer 1 request which is decryptable on intermediate server
         ActivationLayer1Request requestL1 = new ActivationLayer1Request();
-        requestL1.setType(ActivationType.CODE);
+        requestL1.setType(ActivationType.CUSTOM);
         requestL1.setActivationData(encryptedRequestL2);
-        Map<String, String> identityAttributes = new HashMap<>();
-        identityAttributes.put("code", activationCode);
         requestL1.setIdentityAttributes(identityAttributes);
+        requestL1.setCustomAttributes(customAttributes);
 
         if (stepLogger != null) {
             stepLogger.writeItem(
@@ -292,7 +263,7 @@ public class PrepareActivationStep implements BaseStep {
                 model.getResultStatusObject().put("transportMasterKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(transportMasterKey)));
                 model.getResultStatusObject().put("counter", 0L);
                 model.getResultStatusObject().put("ctrData", ctrDataBase64);
-                model.getResultStatusObject().put("version", 3L);
+                model.getResultStatusObject().put("version", 3);
 
                 // Store the resulting status
                 String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
@@ -300,7 +271,7 @@ public class PrepareActivationStep implements BaseStep {
                     file.write(formatted);
                 }
 
-                objectMap = new HashMap<>();
+                Map<String, Object> objectMap = new HashMap<>();
                 objectMap.put("activationId", activationId);
                 objectMap.put("activationStatusFile", model.getStatusFileName());
                 objectMap.put("activationStatusFileContent", model.getResultStatusObject());
@@ -308,7 +279,7 @@ public class PrepareActivationStep implements BaseStep {
                 if (stepLogger != null) {
                     stepLogger.writeItem(
                             "Activation Done",
-                            "Public key exchange was successfully completed, commit the activation on server",
+                            "Public key exchange was successfully completed, commit the activation on server if required",
                             "OK",
                             objectMap
                     );
@@ -316,6 +287,7 @@ public class PrepareActivationStep implements BaseStep {
                 }
 
                 return model.getResultStatusObject();
+
             } else {
                 if (stepLogger != null) {
                     stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
@@ -323,6 +295,7 @@ public class PrepareActivationStep implements BaseStep {
                 }
                 return null;
             }
+
         } catch (UnirestException exception) {
             if (stepLogger != null) {
                 stepLogger.writeServerCallConnectionError(exception);

@@ -48,7 +48,7 @@ public class CounterUtil {
                 break;
             case 3:
                 String ctrDataBase64 = JsonUtil.stringValue(model.getResultStatusObject(), "ctrData");
-                if (ctrDataBase64 != null) {
+                if (!ctrDataBase64.isEmpty()) {
                     ctrData = BaseEncoding.base64().decode(ctrDataBase64);
                 }
                 break;
@@ -80,7 +80,7 @@ public class CounterUtil {
         int version = JsonUtil.intValue(model.getResultStatusObject(), "version");
         if (version == 3) {
             String ctrDataBase64 = JsonUtil.stringValue(model.getResultStatusObject(), "ctrData");
-            if (ctrDataBase64 != null) {
+            if (!ctrDataBase64.isEmpty()) {
                 byte[] ctrData = BaseEncoding.base64().decode(ctrDataBase64);
                 ctrData = new HashBasedCounter().next(ctrData);
                 model.getResultStatusObject().put("ctrData", BaseEncoding.base64().encode(ctrData));

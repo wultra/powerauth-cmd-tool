@@ -207,7 +207,7 @@ public class PrepareActivationStep implements BaseStep {
 
                     // Derive PowerAuth keys from master secret key
                     SecretKey signaturePossessionSecretKey = keyFactory.generateClientSignaturePossessionKey(masterSecretKey);
-                    SecretKey signatureKnoweldgeSecretKey = keyFactory.generateClientSignatureKnowledgeKey(masterSecretKey);
+                    SecretKey signatureKnowledgeSecretKey = keyFactory.generateClientSignatureKnowledgeKey(masterSecretKey);
                     SecretKey signatureBiometrySecretKey = keyFactory.generateClientSignatureBiometryKey(masterSecretKey);
                     SecretKey transportMasterKey = keyFactory.generateServerTransportKey(masterSecretKey);
                     // DO NOT EVER STORE ...
@@ -225,7 +225,7 @@ public class PrepareActivationStep implements BaseStep {
                     }
 
                     byte[] salt = keyGenerator.generateRandomBytes(16);
-                    byte[] cSignatureKnowledgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, signatureKnoweldgeSecretKey, salt, keyGenerator);
+                    byte[] cSignatureKnowledgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, signatureKnowledgeSecretKey, salt, keyGenerator);
 
                     // Prepare the status object to be stored
                     model.getResultStatusObject().put("activationId", activationId);
