@@ -161,7 +161,7 @@ public class ObjectStepLogger implements StepLogger {
 
     @Override
     public void writeError(String name, String errorMessage, Exception exception) {
-        errors.add(new StepError(name, exception.getMessage(), exception));
+        errors.add(new StepError(name, errorMessage, exception));
         String status = "ERROR";
         writeItem(name, errorMessage, status, exception);
     }
