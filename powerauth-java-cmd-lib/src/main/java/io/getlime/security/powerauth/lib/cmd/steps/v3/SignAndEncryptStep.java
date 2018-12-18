@@ -151,7 +151,7 @@ public class SignAndEncryptStep implements BaseStep {
         // Generate nonce
         byte[] pa_nonce = keyGenerator.generateRandomBytes(16);
 
-        // Construct the signature base string data part based on HTTP method (GET requires different code).
+        // Construct the signature base string data
         byte[] dataFileBytes = VerifySignatureUtil.extractRequestDataBytes(model, stepLogger);
 
         // Compute the current PowerAuth signature for possession and knowledge factor
