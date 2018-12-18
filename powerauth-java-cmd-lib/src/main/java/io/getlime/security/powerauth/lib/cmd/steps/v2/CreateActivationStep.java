@@ -59,6 +59,7 @@ public class CreateActivationStep implements BaseStep {
     private static final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
 
     @Override
+    @SuppressWarnings("unchecked")
     public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         // Read properties from "context"
         CreateActivationStepModel model = new CreateActivationStepModel();
