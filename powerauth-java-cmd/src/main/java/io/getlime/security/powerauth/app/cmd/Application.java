@@ -95,6 +95,7 @@ public class Application {
             options.addOption("T", "token-id", true, "Token ID (UUID4), in case of 'token-validate' method.");
             options.addOption("S", "token-secret", true, "Token secret (Base64 encoded bytes), in case of 'token-validate' method.");
             options.addOption("r", "reason", true, "Reason why vault is being unlocked.");
+            options.addOption("o", "scope", true, "ECIES encryption scope: 'application' or 'activation'.");
             options.addOption("v", "version", true, "PowerAuth protocol version.");
 
             Option httpHeaderOption = Option.builder("H")
@@ -553,10 +554,66 @@ public class Application {
                     model.setMasterPublicKey(masterPublicKey);
                     model.setResultStatusObject(resultStatusObject);
                     model.setDataFileName(cmd.getOptionValue("d"));
+                    model.setScope(cmd.getOptionValue("o"));
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    JSONObject result = new io.getlime.security.powerauth.lib.cmd.steps.v2.EncryptStep().execute(stepLogger, model.toMap());
+                    JSONObject result;
+                    switch (version) {
+                        case "3.0":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.EncryptStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        case "2.0":
+                        case "2.1":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v2.EncryptStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        default:
+                            stepLogger.writeItem(
+                                    "Unsupported version",
+                                    "The version you specified is not supported",
+                                    "ERROR",
+                                    null
+                            );
+                            throw new ExecutionException();
+                    }
+                    if (result == null) {
+                        throw new ExecutionException();
+                    }
+                    break;
+                }
+                case "sign-encrypt": {
+                    VerifySignatureStepModel model = new VerifySignatureStepModel();
+                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setDataFileName(cmd.getOptionValue("d"));
+                    model.setHeaders(httpHeaders);
+                    model.setHttpMethod(cmd.getOptionValue("t"));
+                    model.setPassword(cmd.getOptionValue("p"));
+                    model.setResourceId(cmd.getOptionValue("e"));
+                    model.setResultStatusObject(resultStatusObject);
+                    model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
+                    model.setStatusFileName(statusFileName);
+                    model.setUriString(uriString);
+                    model.setVersion(version);
+
+                    JSONObject result;
+                    switch (version) {
+                        // Sign and encrypt step is only supported in version 3.0
+                        case "3.0":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.SignAndEncryptStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        default:
+                            stepLogger.writeItem(
+                                    "Unsupported version",
+                                    "The version you specified is not supported",
+                                    "ERROR",
+                                    null
+                            );
+                            throw new ExecutionException();
+                    }
                     if (result == null) {
                         throw new ExecutionException();
                     }

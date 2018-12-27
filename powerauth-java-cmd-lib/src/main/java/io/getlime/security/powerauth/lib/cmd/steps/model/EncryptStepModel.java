@@ -31,6 +31,7 @@ public class EncryptStepModel extends BaseStepModel {
     private String applicationKey;
     private String applicationSecret;
     private PublicKey masterPublicKey;
+    private String scope;
 
     /**
      * Set name of file with request data.
@@ -96,6 +97,34 @@ public class EncryptStepModel extends BaseStepModel {
         this.masterPublicKey = masterPublicKey;
     }
 
+    /**
+     * Get ECIES encryption scope.
+     *
+     * <h5>PowerAuth protocol versions:</h5>
+     * <ul>
+     *     <li>3.0</li>
+     * </ul>
+     *
+     * @return ECIES encryption scope.
+     */
+    public String getScope() {
+        return scope;
+    }
+
+    /**
+     * Set ECIES encryption scope.
+     *
+     * <h5>PowerAuth protocol versions:</h5>
+     * <ul>
+     *     <li>3.0</li>
+     * </ul>
+     *
+     * @param scope ECIES encryption scope.
+     */
+    public void setScope(String scope) {
+        this.scope = scope;
+    }
+
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> context = super.toMap();
@@ -103,6 +132,7 @@ public class EncryptStepModel extends BaseStepModel {
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
         context.put("MASTER_PUBLIC_KEY", masterPublicKey);
+        context.put("SCOPE", scope);
         return context;
     }
 
@@ -113,5 +143,6 @@ public class EncryptStepModel extends BaseStepModel {
         setApplicationKey((String) context.get("APPLICATION_KEY"));
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
         setMasterPublicKey((PublicKey) context.get("MASTER_PUBLIC_KEY"));
+        setScope((String) context.get("SCOPE"));
     }
 }
