@@ -98,14 +98,10 @@ public class EncryptStep implements BaseStep {
 
         Scanner scanner = new Scanner(dataFile);
         scanner.useDelimiter("\\Z");
-        if (!scanner.hasNext()) {
-            if (stepLogger != null) {
-                stepLogger.writeError("Encrypt Request Failed", "File is empty: " + model.getDataFileName());
-                stepLogger.writeDoneFailed();
-            }
-            return null;
+        String requestData = "";
+        if (scanner.hasNext()) {
+            requestData = scanner.next();
         }
-        String requestData = scanner.next();
 
         if (stepLogger != null) {
             stepLogger.writeItem(
@@ -149,7 +145,8 @@ public class EncryptStep implements BaseStep {
         String httpEncryptionHeader = header.buildHttpHeader();
 
         // Prepare encrypted request
-        final EciesCryptogram eciesCryptogram = encryptor.encryptRequest(requestData.getBytes());
+        byte[] requestDataBytes = requestData.getBytes(StandardCharsets.UTF_8);
+        final EciesCryptogram eciesCryptogram = encryptor.encryptRequest(requestDataBytes);
         final EciesEncryptedRequest request = new EciesEncryptedRequest();
         final String ephemeralPublicKeyBase64 = BaseEncoding.base64().encode(eciesCryptogram.getEphemeralPublicKey());
         final String encryptedData = BaseEncoding.base64().encode(eciesCryptogram.getEncryptedData());

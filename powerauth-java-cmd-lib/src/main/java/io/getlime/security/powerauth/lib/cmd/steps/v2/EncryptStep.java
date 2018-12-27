@@ -34,6 +34,7 @@ import io.getlime.security.powerauth.rest.api.model.entity.NonPersonalizedEncryp
 import org.json.simple.JSONObject;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
@@ -90,20 +91,17 @@ public class EncryptStep implements BaseStep {
 
         Scanner scanner = new Scanner(dataFile);
         scanner.useDelimiter("\\Z");
-        if (!scanner.hasNext()) {
-            if (stepLogger != null) {
-                stepLogger.writeError("Encrypt Request Failed", "File is empty: " + model.getDataFileName());
-                stepLogger.writeDoneFailed();
-            }
-            return null;
+        String requestData = "";
+        if (scanner.hasNext()) {
+            requestData = scanner.next();
         }
-        String requestData = scanner.next();
 
         // Prepare the encryptor
         ClientNonPersonalizedEncryptor encryptor = new ClientNonPersonalizedEncryptor(BaseEncoding.base64().decode(model.getApplicationKey()), model.getMasterPublicKey());
 
         // Encrypt the request data
-        final NonPersonalizedEncryptedMessage encryptedMessage = encryptor.encrypt(requestData.getBytes());
+        byte[] requestDataBytes = requestData.getBytes(StandardCharsets.UTF_8);
+        final NonPersonalizedEncryptedMessage encryptedMessage = encryptor.encrypt(requestDataBytes);
         if (encryptedMessage == null) {
             if (stepLogger != null) {
                 stepLogger.writeError("Encryption failed", "Encrypted message is not available");
