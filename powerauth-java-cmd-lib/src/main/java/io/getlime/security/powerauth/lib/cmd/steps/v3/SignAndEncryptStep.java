@@ -122,6 +122,13 @@ public class SignAndEncryptStep implements BaseStep {
 
         Scanner scanner = new Scanner(dataFile);
         scanner.useDelimiter("\\Z");
+        if (!scanner.hasNext()) {
+            if (stepLogger != null) {
+                stepLogger.writeError("Encrypt Request Failed", "File is empty: " + model.getDataFileName());
+                stepLogger.writeDoneFailed();
+            }
+            return null;
+        }
         String requestData = scanner.next();
 
         if (stepLogger != null) {
