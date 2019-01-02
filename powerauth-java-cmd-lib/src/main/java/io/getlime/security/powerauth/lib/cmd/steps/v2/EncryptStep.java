@@ -42,7 +42,7 @@ import java.util.Scanner;
 /**
  * Encrypt step encrypts request data using non-personalized end-to-end encryption.
  *
- * <h5>PowerAuth protocol versions:</h5>
+ * <p><b>PowerAuth protocol versions:</b>
  * <ul>
  *     <li>2.0</li>
  *     <li>2.1</li>
