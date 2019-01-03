@@ -100,7 +100,7 @@ public class EncryptStepModel extends BaseStepModel {
     /**
      * Get ECIES encryption scope.
      *
-     * <h5>PowerAuth protocol versions:</h5>
+     * <p><b>PowerAuth protocol versions:</b>
      * <ul>
      *     <li>3.0</li>
      * </ul>
@@ -114,7 +114,7 @@ public class EncryptStepModel extends BaseStepModel {
     /**
      * Set ECIES encryption scope.
      *
-     * <h5>PowerAuth protocol versions:</h5>
+     * <p><b>PowerAuth protocol versions:</b>
      * <ul>
      *     <li>3.0</li>
      * </ul>

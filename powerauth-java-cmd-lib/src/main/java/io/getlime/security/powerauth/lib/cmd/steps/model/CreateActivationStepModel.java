@@ -114,6 +114,7 @@ public class CreateActivationStepModel extends BaseStepModel {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void fromMap(Map<String, Object> context) {
         super.fromMap(context);
         setIdentityAttributes((Map<String, String>) context.get("IDENTITY_ATTRIBUTES"));

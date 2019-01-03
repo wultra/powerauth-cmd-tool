@@ -43,7 +43,7 @@ import java.util.Map;
 /**
  * Helper class with step for getting activation status.
  *
- * <h5>PowerAuth protocol versions:</h5>
+ * <p><b>PowerAuth protocol versions:</b>
  * <ul>
  *      <li>3.0</li>
  * </ul>

@@ -34,6 +34,7 @@ import io.getlime.security.powerauth.rest.api.model.entity.NonPersonalizedEncryp
 import org.json.simple.JSONObject;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
@@ -41,7 +42,7 @@ import java.util.Scanner;
 /**
  * Encrypt step encrypts request data using non-personalized end-to-end encryption.
  *
- * <h5>PowerAuth protocol versions:</h5>
+ * <p><b>PowerAuth protocol versions:</b>
  * <ul>
  *     <li>2.0</li>
  *     <li>2.1</li>
@@ -82,7 +83,7 @@ public class EncryptStep implements BaseStep {
         File dataFile = new File(model.getDataFileName());
         if (!dataFile.exists()) {
             if (stepLogger != null) {
-                stepLogger.writeError("Encrypt request failed", "File not found: " + model.getDataFileName());
+                stepLogger.writeError("Encrypt Request Failed", "File not found: " + model.getDataFileName());
                 stepLogger.writeDoneFailed();
             }
             return null;
@@ -90,13 +91,17 @@ public class EncryptStep implements BaseStep {
 
         Scanner scanner = new Scanner(dataFile);
         scanner.useDelimiter("\\Z");
-        String requestData = scanner.next();
+        String requestData = "";
+        if (scanner.hasNext()) {
+            requestData = scanner.next();
+        }
 
         // Prepare the encryptor
         ClientNonPersonalizedEncryptor encryptor = new ClientNonPersonalizedEncryptor(BaseEncoding.base64().decode(model.getApplicationKey()), model.getMasterPublicKey());
 
         // Encrypt the request data
-        final NonPersonalizedEncryptedMessage encryptedMessage = encryptor.encrypt(requestData.getBytes());
+        byte[] requestDataBytes = requestData.getBytes(StandardCharsets.UTF_8);
+        final NonPersonalizedEncryptedMessage encryptedMessage = encryptor.encrypt(requestDataBytes);
         if (encryptedMessage == null) {
             if (stepLogger != null) {
                 stepLogger.writeError("Encryption failed", "Encrypted message is not available");

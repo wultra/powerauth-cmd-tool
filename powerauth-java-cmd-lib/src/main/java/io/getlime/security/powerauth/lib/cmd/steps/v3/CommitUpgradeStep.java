@@ -47,7 +47,7 @@ import java.util.Map;
 /**
  * Step for committing upgrade to PowerAuth protocol version 3.0.
  *
- * <h5>PowerAuth protocol versions:</h5>
+ * <p><b>PowerAuth protocol versions:</b>
  * <ul>
  *      <li>3.0</li>
  * </ul>

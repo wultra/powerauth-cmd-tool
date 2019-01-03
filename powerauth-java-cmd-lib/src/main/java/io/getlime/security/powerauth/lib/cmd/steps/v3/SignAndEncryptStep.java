@@ -52,7 +52,7 @@ import java.util.Scanner;
 /**
  * Sign and encrypt step signs request data and performs encryption using ECIES encryption in activation scope.
  *
- * <h5>PowerAuth protocol versions:</h5>
+ * <p><b>PowerAuth protocol versions:</b>
  * <ul>
  *     <li>3.0</li>
  * </ul>
@@ -122,7 +122,10 @@ public class SignAndEncryptStep implements BaseStep {
 
         Scanner scanner = new Scanner(dataFile);
         scanner.useDelimiter("\\Z");
-        String requestData = scanner.next();
+        String requestData = "";
+        if (scanner.hasNext()) {
+            requestData = scanner.next();
+        }
 
         if (stepLogger != null) {
             stepLogger.writeItem(
@@ -207,7 +210,8 @@ public class SignAndEncryptStep implements BaseStep {
         }
 
         // Prepare encrypted request
-        final EciesCryptogram eciesCryptogram = encryptor.encryptRequest(requestData.getBytes());
+        byte[] requestDataBytes = requestData.getBytes(StandardCharsets.UTF_8);
+        final EciesCryptogram eciesCryptogram = encryptor.encryptRequest(requestDataBytes);
         final EciesEncryptedRequest request = new EciesEncryptedRequest();
         final String ephemeralPublicKeyBase64 = BaseEncoding.base64().encode(eciesCryptogram.getEphemeralPublicKey());
         final String encryptedData = BaseEncoding.base64().encode(eciesCryptogram.getEncryptedData());
