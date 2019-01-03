@@ -96,7 +96,7 @@ public class EncryptStep implements BaseStep {
             return null;
         }
 
-        Scanner scanner = new Scanner(dataFile);
+        Scanner scanner = new Scanner(dataFile, "UTF-8");
         scanner.useDelimiter("\\Z");
         String requestData = "";
         if (scanner.hasNext()) {
