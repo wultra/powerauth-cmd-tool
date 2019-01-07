@@ -125,6 +125,14 @@ public class CreateActivationStep implements BaseStep {
         }
         if (activationIdShort != null) {
             activationIdShort = PowerAuthRequestCanonizationUtils.canonizeGetParameters(activationIdShort);
+            if (activationIdShort == null) {
+                if (stepLogger != null) {
+                    String message = "Failed to extract parameters from query string - exiting.";
+                    stepLogger.writeError(message);
+                    stepLogger.writeDoneFailed();
+                }
+                return null;
+            }
         } else {
             if (stepLogger != null) {
                 String message = "No identity attributes were provided - exiting.";
