@@ -126,6 +126,7 @@ public class SignAndEncryptStep implements BaseStep {
         if (scanner.hasNext()) {
             requestData = scanner.next();
         }
+        scanner.close();
 
         if (stepLogger != null) {
             stepLogger.writeItem(

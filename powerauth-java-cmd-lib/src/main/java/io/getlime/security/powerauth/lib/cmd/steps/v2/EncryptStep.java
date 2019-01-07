@@ -95,6 +95,7 @@ public class EncryptStep implements BaseStep {
         if (scanner.hasNext()) {
             requestData = scanner.next();
         }
+        scanner.close();
 
         // Prepare the encryptor
         ClientNonPersonalizedEncryptor encryptor = new ClientNonPersonalizedEncryptor(BaseEncoding.base64().decode(model.getApplicationKey()), model.getMasterPublicKey());

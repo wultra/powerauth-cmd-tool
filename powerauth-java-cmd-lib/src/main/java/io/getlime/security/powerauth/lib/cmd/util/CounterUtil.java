@@ -53,12 +53,14 @@ public class CounterUtil {
                 }
                 break;
             default:
-                stepLogger.writeItem(
-                        "Unsupported version",
-                        "The version you specified is not supported",
-                        "ERROR",
-                        null
-                );
+                if (stepLogger != null) {
+                    stepLogger.writeItem(
+                            "Unsupported version",
+                            "The version you specified is not supported",
+                            "ERROR",
+                            null
+                    );
+                }
         }
         return ctrData;
     }
