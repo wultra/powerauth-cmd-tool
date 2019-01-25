@@ -61,7 +61,7 @@ Command line tool supports following PowerAuth protocol versions:
 - Version `2.1`
 - Version `3.0` (default)
 
-You can specify the version of protocol you want to use using parameter `version`. The version affects used cryptography, for example version `2.1` activations use different custom encryption, while version `3.0` activations use an integrated ECIES scheme.
+You can specify the version of protocol you want to use using parameter `version`. The version affects used cryptography, for example version `2.1` activations use custom encryption, while version `3.0` activations use an integrated ECIES scheme.
 
 ## Supported Use-Cases
 
@@ -200,7 +200,7 @@ There is a required format of both `identity.json` and `custom-attributes.json` 
 
 _Note: If a `--password` option is not provided, this method requires interactive console input of the password, in order to encrypt the knowledge related signature key._
 
-_Note: In version `2.x` the custom activations required a specific method called `create-custom`. Furthermore it was necessary to implement a custom endpoint for activations with custom attributes._
+_Note: In version `2.x` the custom activations required a specific method called `create-custom`. Furthermore it was necessary to implement a custom endpoint for activations with custom logic._
 
 ### Send Encrypted Data to Server
 
