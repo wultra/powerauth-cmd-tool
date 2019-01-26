@@ -241,7 +241,7 @@ The encrypted data is sent to specified endpoint URL. The endpoint which receive
 
 ### Start Upgrade
 
-Use this method to start upgrade of a version `2.x` activation to `3.0`.
+Use this method to start upgrade of a version `2` activation to version `3`.
 
 ```
 java -jar powerauth-java-cmd.jar \
@@ -255,7 +255,7 @@ The start upgrade request is sent to the server. The server response with genera
 
 ### Commit Upgrade
 
-Use this method to commit upgrade of a version `2.x` activation to `3.0`.
+Use this method to commit upgrade of a version `2` activation to version `3`.
 
 ```
 java -jar powerauth-java-cmd.jar \
@@ -265,7 +265,7 @@ java -jar powerauth-java-cmd.jar \
     --method "commit-upgrade"
 ```
 
-The commit upgrade request is sent to the server including a version `3.0` signature. The server verifies the request signature and commits the upgrade to version `3.0`.
+The commit upgrade request is sent to the server including a version `3.0` signature. The server verifies the request signature and commits the upgrade of activation to version `3`.
 
 ## Basic Usage
 
