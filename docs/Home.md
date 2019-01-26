@@ -61,7 +61,7 @@ Command line tool supports following PowerAuth protocol versions:
 - Version `2.1`
 - Version `3.0` (default)
 
-You can specify the version of protocol you want to use using parameter `version`. The version affects used cryptography, for example version `2.1` activations use custom encryption, while version `3.0` activations use an integrated ECIES scheme.
+You can specify the version of protocol you want to use using parameter `version`. The version affects used cryptography, for example version `2` activations use custom encryption, while version `3` activations use an integrated ECIES scheme.
 
 ## Supported Use-Cases
 
