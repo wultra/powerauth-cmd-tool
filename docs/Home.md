@@ -151,7 +151,7 @@ java -jar powerauth-java-cmd.jar \
     --password "1234"
 ```
 
-_Note: The choice of signature version is determined by presence of `ctrData` in status file (used in version `3.0`)._
+_Note: The choice of signature version is determined by presence of `ctrData` in status file (present in version `3.0`)._
 
 ### Unlock the Secure Vault
 
@@ -200,7 +200,7 @@ There is a required format of both `identity.json` and `custom-attributes.json` 
 
 _Note: If a `--password` option is not provided, this method requires interactive console input of the password, in order to encrypt the knowledge related signature key._
 
-_Note: In version `2.x` the custom activations required a specific method called `create-custom`. Furthermore it was necessary to implement a custom endpoint for activations with custom logic._
+_Note: In version `2.x` the custom activations require a specific method called `create-custom`. Furthermore it is necessary to implement a custom endpoint for activations with custom logic in version `2.x`._
 
 ### Send Encrypted Data to Server
 
@@ -238,6 +238,34 @@ java -jar powerauth-java-cmd.jar \
 
 The data in `request.json` file is signed and encrypted using ECIES encryption. See chapter [Validate the Signature](#validate-the-signature) which describes signature parameters.
 The encrypted data is sent to specified endpoint URL. The endpoint which receives encrypted data needs to decrypt the data, verify data signature and return encrypted response back to the client. The cmd line tool receives the encrypted response from server, decrypts it and prints it into the command line.
+
+### Start Upgrade
+
+Use this method to start upgrade of a version `2.x` activation to `3.0`.
+
+```
+java -jar powerauth-java-cmd.jar \
+    --url "http://localhost:8080/powerauth-restful-server" \
+    --status-file "pa_status.json" \
+    --config-file "config.json" \
+    --method "start-upgrade"
+```
+
+The start upgrade request is sent to the server. The server response with generated hash based counter value `ctrData` which is later used for the first version `3.0` signature verification during commit upgrade.
+
+### Commit Upgrade
+
+Use this method to commit upgrade of a version `2.x` activation to `3.0`.
+
+```
+java -jar powerauth-java-cmd.jar \
+    --url "http://localhost:8080/powerauth-webflow" \
+    --status-file "pa_status.json" \
+    --config-file "config.json" \
+    --method "commit-upgrade"
+```
+
+The commit upgrade request is sent to the server including a version `3.0` signature. The server verifies the request signature and commits the upgrade to version `3.0`.
 
 ## Basic Usage
 
