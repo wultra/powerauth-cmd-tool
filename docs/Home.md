@@ -57,9 +57,9 @@ This file is automatically created by the utility after you call the `prepare` m
 ## Specifying PowerAuth Protocol Version
 
 Command line tool supports following PowerAuth protocol versions:
-- Version `2.0`
-- Version `2.1`
 - Version `3.0` (default)
+- Version `2.1`
+- Version `2.0`
 
 You can specify the version of protocol you want to use using parameter `version`. The version affects used cryptography, for example version `2` activations use custom encryption, while version `3` activations use an integrated ECIES scheme.
 
