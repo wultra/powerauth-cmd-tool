@@ -232,8 +232,7 @@ java -jar powerauth-java-cmd.jar \
     --endpoint "/exchange/signed" \
     --signature-type "possession_knowledge" \
     --data-file "request.json" \
-    --password "1234" \
-    --version "3.0"
+    --password "1234"
 ```
 
 The data in `request.json` file is signed and encrypted using ECIES encryption. See chapter [Validate the Signature](#validate-the-signature) which describes signature parameters.
