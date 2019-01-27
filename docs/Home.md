@@ -181,7 +181,7 @@ java -jar powerauth-java-cmd.jar \
     --url "http://localhost:8080/powerauth-restful-server" \
     --status-file "/tmp/pa_status.json" \
     --config-file "/tmp/pamk.json" \
-    --method "prepare" \
+    --method "create" \
     --identity-file "/tmp/identity.json" \
     --custom-attributes-file "/tmp/custom-attributes.json" \
     --password "1234"
