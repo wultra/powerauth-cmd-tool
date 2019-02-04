@@ -38,6 +38,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
 import javax.net.ssl.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.PublicKey;
@@ -184,7 +185,7 @@ public class Application {
             if (Files.exists(Paths.get(configFileName))) {
                 byte[] configFileBytes = Files.readAllBytes(Paths.get(configFileName));
                 try {
-                    clientConfigObject = (JSONObject) JSONValue.parse(new String(configFileBytes));
+                    clientConfigObject = (JSONObject) JSONValue.parse(new String(configFileBytes, StandardCharsets.UTF_8));
                 } catch (Exception e) {
                     stepLogger.writeItem(
                             "Invalid config file",
@@ -211,7 +212,7 @@ public class Application {
             JSONObject resultStatusObject;
             if (statusFileName != null && Files.exists(Paths.get(statusFileName))) {
                 byte[] statusFileBytes = Files.readAllBytes(Paths.get(statusFileName));
-                resultStatusObject = (JSONObject) JSONValue.parse(new String(statusFileBytes));
+                resultStatusObject = (JSONObject) JSONValue.parse(new String(statusFileBytes, StandardCharsets.UTF_8));
             } else {
                 resultStatusObject = new JSONObject();
             }
