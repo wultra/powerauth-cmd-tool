@@ -195,7 +195,7 @@ public class EncryptStep implements BaseStep {
 
                 final byte[] decryptedBytes = encryptor.decryptResponse(eciesCryptogramResponse);
 
-                String decryptedMessage = new String(decryptedBytes);
+                String decryptedMessage = new String(decryptedBytes, StandardCharsets.UTF_8);
                 model.getResultStatusObject().put("responseData", decryptedMessage);
 
                 if (stepLogger != null) {

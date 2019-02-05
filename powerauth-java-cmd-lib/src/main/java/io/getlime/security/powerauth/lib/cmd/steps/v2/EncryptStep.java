@@ -175,7 +175,7 @@ public class EncryptStep implements BaseStep {
                     return null;
                 }
 
-                String decryptedMessage = new String(decryptedMessageBytes);
+                String decryptedMessage = new String(decryptedMessageBytes, StandardCharsets.UTF_8);
                 model.getResultStatusObject().put("responseData", decryptedMessage);
 
                 if (stepLogger != null) {
