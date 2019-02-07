@@ -200,7 +200,6 @@ java -jar powerauth-java-cmd.jar \
     --status-file "/tmp/pa_status.json" \
     --config-file "/tmp/pamk.json" \
     --method "validate-token" \
-    --signature-type "possession_knowledge" \
     --http-method "POST" \
     --data-file "/tmp/request.json" \
     --token-id "66b8b981-a89d-4fc2-bd49-1c05f937a6f2" \
