@@ -79,7 +79,7 @@ java -jar powerauth-java-cmd.jar \
     --activation-code "F3CCT-FNOUS-GEVJF-O3HMV"
 ```
 
-Uses the `prepare` method to activate a PowerAuth Reference client by calling the PowerAuth Standard RESTful API endpoint `/pa/activation/create` hosted on root URL `http://localhost:8080/powerauth-restful-server` with an activation code `F3CCT-FNOUS-GEVJF-O3HMV`. Reads and stores the client status from the `/tmp/pa_status.json` file. Uses master public key and application identifiers stored in the `/tmp/pamk.json` file. Stores the knowledge related derived key using a given password `1234`.
+Uses the `prepare` method to activate a PowerAuth Reference client by calling the PowerAuth Standard RESTful API endpoint `/pa/v3/activation/create` hosted on root URL `http://localhost:8080/powerauth-restful-server` with an activation code `F3CCT-FNOUS-GEVJF-O3HMV`. Reads and stores the client status from the `/tmp/pa_status.json` file. Uses master public key and application identifiers stored in the `/tmp/pamk.json` file. Stores the knowledge related derived key using a given password `1234`.
 
 _Note: If a `--password` option is not provided, this method requires interactive console input of the password, in order to encrypt the knowledge related signature key._
 
@@ -95,7 +95,7 @@ java -jar powerauth-java-cmd.jar \
     --method "status"
 ```
 
-Uses the `status` method to get the activation status for the activation ID stored in the status file `/tmp/pa_status.json`, by calling the PowerAuth Standard RESTful API endpoint `/pa/activation/status` hosted on root URL `http://localhost:8080/powerauth-restful-server`. Uses the master public key and application identifiers stored in the `/tmp/pamk.json` file.
+Uses the `status` method to get the activation status for the activation ID stored in the status file `/tmp/pa_status.json`, by calling the PowerAuth Standard RESTful API endpoint `/pa/v3/activation/status` hosted on root URL `http://localhost:8080/powerauth-restful-server`. Uses the master public key and application identifiers stored in the `/tmp/pamk.json` file.
 
 ### Remove the Activation
 
@@ -110,7 +110,7 @@ java -jar powerauth-java-cmd.jar \
     --password "1234"
 ```
 
-Uses the `remove` method to remove activation with an activation ID stored in the status file `/tmp/pa_status.json`, by calling the PowerAuth Standard RESTful API endpoint `/pa/activation/remove` hosted on root URL `http://localhost:8080/powerauth-restful-server`. Uses the master public key and application identifiers stored in the `/tmp/pamk.json` file. Unlocks the knowledge related signing key using `1234` as a password.
+Uses the `remove` method to remove activation with an activation ID stored in the status file `/tmp/pa_status.json`, by calling the PowerAuth Standard RESTful API endpoint `/pa/v3/activation/remove` hosted on root URL `http://localhost:8080/powerauth-restful-server`. Uses the master public key and application identifiers stored in the `/tmp/pamk.json` file. Unlocks the knowledge related signing key using `1234` as a password.
 
 _Note: If a `--password` option is not provided, this method requires interactive console input of the password, in order to unlock the knowledge related signature key._
 
@@ -120,7 +120,7 @@ Use this method to send signer GET or POST requests to given URL with provided d
 
 ```bash
 java -jar powerauth-java-cmd.jar \
-    --url "http://localhost:8080/powerauth-restful-server/pa/signature/validate" \
+    --url "http://localhost:8080/powerauth-restful-server/pa/v3/signature/validate" \
     --status-file "/tmp/pa_status.json" \
     --config-file "/tmp/pamk.json" \
     --method "sign" \
@@ -131,7 +131,7 @@ java -jar powerauth-java-cmd.jar \
     --password "1234"
 ```
 
-Uses the `sign` method to compute a signature for given data using an activation record associated with an activation ID stored in the status file `/tmp/pa_status.json`. Calls an authenticated endpoint `http://localhost:8080/powerauth-restful-server/pa/signature/validate` that is identified by an identifier `/pa/signature/validate` (by convention the same as the endpoint name after the main context). Uses the master public key and application identifiers stored in the `/tmp/pamk.json` file. Uses HTTP method `POST`, `possession_knowledge` signature type and takes the request data from a file `/tmp/request.json`. Unlocks the knowledge related signing key using `1234` as a password.
+Uses the `sign` method to compute a signature for given data using an activation record associated with an activation ID stored in the status file `/tmp/pa_status.json`. Calls an authenticated endpoint `http://localhost:8080/powerauth-restful-server/pa/v3/signature/validate` that is identified by an identifier `/pa/signature/validate` (by convention the same as the endpoint name after the main context except the version). The endpoint must be published by the application - see [Verify Signature](https://github.com/wultra/powerauth-restful-integration/blob/develop/docs/RESTful-API-for-Spring.md#verify-signatures). Uses the master public key and application identifiers stored in the `/tmp/pamk.json` file. Uses HTTP method `POST`, `possession_knowledge` signature type and takes the request data from a file `/tmp/request.json`. Unlocks the knowledge related signing key using `1234` as a password.
 
 _Note: If a `--password` option is not provided, this method requires interactive console input of the password, in order to unlock the knowledge related signature key._
 
@@ -139,7 +139,7 @@ In case you are validating signature on requests that require authenticated sess
 
 ```bash
 java -jar powerauth-java-cmd.jar \
-    --url "http://localhost:8080/powerauth-restful-server/pa/signature/validate" \
+    --url "http://localhost:8080/powerauth-restful-server/pa/v3/signature/validate" \
     --status-file "/tmp/pa_status.json" \
     --config-file "/tmp/pamk.json" \
     --method "sign" \
@@ -168,9 +168,46 @@ java -jar powerauth-java-cmd.jar \
     --reason "NOT_SPECIFIED"
 ```
 
-Uses the `unlock` method to unlock the secure vault for an activation with activation ID stored in the status file `/tmp/pa_status.json`, by calling the PowerAuth Standard RESTful API endpoint `/pa/vault/unlock` hosted on root URL `http://localhost:8080/powerauth-restful-server`. Uses the master public key and application identifiers stored in the `/tmp/pamk.json` file. Unlocks the knowledge related signing key using `1234` as a password. The reason why vault is being unlocked is `NOT_SPECIFIED`.
+Uses the `unlock` method to unlock the secure vault for an activation with activation ID stored in the status file `/tmp/pa_status.json`, by calling the PowerAuth Standard RESTful API endpoint `/pa/v3/vault/unlock` hosted on root URL `http://localhost:8080/powerauth-restful-server`. Uses the master public key and application identifiers stored in the `/tmp/pamk.json` file. Unlocks the knowledge related signing key using `1234` as a password. The reason why vault is being unlocked is `NOT_SPECIFIED`.
 
 _Note: If a `--password` option is not provided, this method requires interactive console input of the password, in order to unlock the knowledge related signature key._
+
+### Create Token
+
+Create a static token which can be used for repeated requests to data resources which support token based authentication.
+
+```bash
+java -jar powerauth-java-cmd.jar \
+    --url "http://localhost:8080/powerauth-restful-server" \
+    --status-file "/tmp/pa_status.json" \
+    --config-file "/tmp/pamk.json" \
+    --method "create-token" \
+    --signature-type "possession_knowledge" \
+    --password "1234"
+```
+
+Uses the `create-token` method to create a token for an activation with activation ID stored in the status file `/tmp/pa_status.json`, by calling the PowerAuth Standard RESTful API endpoint `/pa/v3/token/create` hosted on root URL `http://localhost:8080/powerauth-restful-server`. Uses the server public key, transport key and application identifiers stored in the `/tmp/pamk.json` file. Unlocks the knowledge related signing key using `1234` as a password. 
+
+_Note: If a `--password` option is not provided, this method requires interactive console input of the password, in order to unlock the knowledge related signature key._
+
+### Validate Token
+
+Use a previously created token to authorize an operation.
+
+```bash
+java -jar powerauth-java-cmd.jar \
+    --url "http://localhost:8080/powerauth-restful-server/api/auth/token" \
+    --status-file "/tmp/pa_status.json" \
+    --config-file "/tmp/pamk.json" \
+    --method "validate-token" \
+    --signature-type "possession_knowledge" \
+    --http-method "POST" \
+    --data-file "/tmp/request.json" \
+    --token-id "66b8b981-a89d-4fc2-bd49-1c05f937a6f2" \
+    --token-secret "xfb1NUXAPbvDZK8qyNVGyw=="
+```
+
+Uses the `validate-token` method to call an endpoint endpoint `/api/auth/token` hosted on root URL `http://localhost:8080/powerauth-restful-server`. The endpoint must be published by the application -- see [Token Based Authentication](https://github.com/wultra/powerauth-restful-integration/blob/develop/docs/RESTful-API-for-Spring.md#use-token-based-authentication). Uses the application identifiers stored in the `/tmp/pamk.json` file. The request data is taken from file `/tmp/request.json`.
 
 ### Custom Attributes for Activation
 
