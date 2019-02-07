@@ -330,7 +330,8 @@ usage: java -jar powerauth-java-cmd.jar
                                      signature type, as specified in PowerAuth signature process.
  -m,--method <arg>                   What API method to call, available names are 'prepare',
                                      'status', 'remove', 'sign', 'unlock', 'create-custom',
-                                     'create-token', 'validate-token'.
+                                     'create-token', 'validate-token', 'encrypt', 'sign-encrypt',
+                                     'start-upgrade' and 'commit-upgrade'.
  -o,--scope <arg>                    ECIES encryption scope: 'application' or 'activation'.
  -p,--password <arg>                 Password used for a knowledge related key encryption. If not
                                      specified, an interactive input is required.
