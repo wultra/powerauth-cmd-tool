@@ -81,7 +81,7 @@ public class Application {
             Options options = new Options();
             options.addOption("h", "help", false, "Print this help manual.");
             options.addOption("u", "url", true, "Base URL of the PowerAuth Standard RESTful API.");
-            options.addOption("m", "method", true, "What API method to call, available names are 'prepare', 'status', 'remove', 'sign', 'unlock', 'create-custom', 'create-token', 'validate-token'.");
+            options.addOption("m", "method", true, "What API method to call, available names are 'prepare', 'status', 'remove', 'sign', 'unlock', 'create-custom', 'create-token', 'validate-token', 'encrypt', 'sign-encrypt', 'start-upgrade' and 'commit-upgrade'.");
             options.addOption("c", "config-file", true, "Specifies a path to the config file with Base64 encoded server master public key, application ID and application secret.");
             options.addOption("s", "status-file", true, "Path to the file with the activation status, serving as the data persistence.");
             options.addOption("a", "activation-code", true, "In case a specified method is 'prepare', this field contains the activation key (a concatenation of a short activation ID and activation OTP).");
