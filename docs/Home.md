@@ -206,7 +206,26 @@ java -jar powerauth-java-cmd.jar \
     --token-secret "xfb1NUXAPbvDZK8qyNVGyw=="
 ```
 
-Uses the `validate-token` method to call an endpoint endpoint `/api/auth/token` hosted on root URL `http://localhost:8080/powerauth-restful-server`. The endpoint must be published by the application -- see [Token Based Authentication](https://github.com/wultra/powerauth-restful-integration/blob/develop/docs/RESTful-API-for-Spring.md#use-token-based-authentication). Uses the application identifiers stored in the `/tmp/pamk.json` file. The request data is taken from file `/tmp/request.json`.
+Uses the `validate-token` method for an activation with activation ID stored in the status file `/tmp/pa_status.json`, by calling an endpoint `/api/auth/token` hosted on root URL `http://localhost:8080/powerauth-restful-server`. The endpoint must be published by the application -- see [Token Based Authentication](https://github.com/wultra/powerauth-restful-integration/blob/develop/docs/RESTful-API-for-Spring.md#use-token-based-authentication). Uses the application identifiers stored in the `/tmp/pamk.json` file. The request data is taken from file `/tmp/request.json`.
+
+### Remove Token
+
+Remove a previously created token.
+
+```bash
+java -jar powerauth-java-cmd.jar \
+    --url "http://localhost:8080/powerauth-restful-server" \
+    --status-file "/tmp/pa_status.json" \
+    --config-file "/tmp/pamk.json" \
+    --method "remove-token" \
+    --signature-type "possession_knowledge" \
+    --password "1234" \
+    --token-id "66b8b981-a89d-4fc2-bd49-1c05f937a6f2" \
+```
+
+Uses the `remove-token` method to remove a previously created token for an activation with activation ID stored in the status file `/tmp/pa_status.json`, by calling the PowerAuth Standard RESTful API endpoint `/pa/v3/token/remove` hosted on root URL `http://localhost:8080/powerauth-restful-server`. Uses the application identifiers stored in the `/tmp/pamk.json` file to create the request signature. Unlocks the knowledge related signing key using `1234` as a password. 
+
+_Note: If a `--password` option is not provided, this method requires interactive console input of the password, in order to unlock the knowledge related signature key._
 
 ### Custom Attributes for Activation
 
@@ -330,8 +349,8 @@ usage: java -jar powerauth-java-cmd.jar
                                      signature type, as specified in PowerAuth signature process.
  -m,--method <arg>                   What API method to call, available names are 'prepare',
                                      'status', 'remove', 'sign', 'unlock', 'create-custom',
-                                     'create-token', 'validate-token', 'encrypt', 'sign-encrypt',
-                                     'start-upgrade' and 'commit-upgrade'.
+                                     'create-token', 'validate-token', 'remove-token', 'encrypt',
+                                     'sign-encrypt', 'start-upgrade' and 'commit-upgrade'.
  -o,--scope <arg>                    ECIES encryption scope: 'application' or 'activation'.
  -p,--password <arg>                 Password used for a knowledge related key encryption. If not
                                      specified, an interactive input is required.
