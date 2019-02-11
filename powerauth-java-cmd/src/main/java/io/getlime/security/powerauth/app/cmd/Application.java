@@ -81,7 +81,7 @@ public class Application {
             Options options = new Options();
             options.addOption("h", "help", false, "Print this help manual.");
             options.addOption("u", "url", true, "Base URL of the PowerAuth Standard RESTful API.");
-            options.addOption("m", "method", true, "What API method to call, available names are 'prepare', 'status', 'remove', 'sign', 'unlock', 'create-custom', 'create-token', 'validate-token', 'encrypt', 'sign-encrypt', 'start-upgrade' and 'commit-upgrade'.");
+            options.addOption("m", "method", true, "What API method to call, available names are 'prepare', 'status', 'remove', 'sign', 'unlock', 'create-custom', 'create-token', 'validate-token', 'remove-token', 'encrypt', 'sign-encrypt', 'start-upgrade' and 'commit-upgrade'.");
             options.addOption("c", "config-file", true, "Specifies a path to the config file with Base64 encoded server master public key, application ID and application secret.");
             options.addOption("s", "status-file", true, "Path to the file with the activation status, serving as the data persistence.");
             options.addOption("a", "activation-code", true, "In case a specified method is 'prepare', this field contains the activation key (a concatenation of a short activation ID and activation OTP).");
@@ -273,6 +273,47 @@ public class Application {
                     model.setVersion(version);
 
                     JSONObject result = new VerifyTokenStep().execute(stepLogger, model.toMap());
+                    if (result == null) {
+                        throw new ExecutionException();
+                    }
+
+                    break;
+                }
+                case "remove-token": {
+                    RemoveTokenStepModel model = new RemoveTokenStepModel();
+                    model.setTokenId(cmd.getOptionValue("T"));
+                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setHeaders(httpHeaders);
+                    model.setMasterPublicKey(masterPublicKey);
+                    model.setPassword(cmd.getOptionValue("p"));
+                    model.setResultStatusObject(resultStatusObject);
+                    model.setStatusFileName(statusFileName);
+                    model.setUriString(uriString);
+                    model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
+                    model.setVersion(version);
+
+                    JSONObject result;
+                    switch (version) {
+                        case "3.0":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.RemoveTokenStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        case "2.0":
+                        case "2.1":
+                            result = new io.getlime.security.powerauth.lib.cmd.steps.v2.RemoveTokenStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        default:
+                            stepLogger.writeItem(
+                                    "Unsupported version",
+                                    "The version you specified is not supported",
+                                    "ERROR",
+                                    null
+                            );
+                            throw new ExecutionException();
+                    }
+
                     if (result == null) {
                         throw new ExecutionException();
                     }
