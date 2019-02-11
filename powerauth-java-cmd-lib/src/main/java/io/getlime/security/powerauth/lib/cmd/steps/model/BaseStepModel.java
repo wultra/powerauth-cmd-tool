@@ -1,5 +1,6 @@
 /*
- * Copyright 2017 Lime - HighTech Solutions s.r.o.
+ * PowerAuth Command-line utility
+ * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,16 +24,17 @@ import java.util.Map;
 /**
  * Abstract class defining a base for a step model classes.
  *
- * @author Petr Dvorak, petr@lime-company.eu
+ * @author Petr Dvorak, petr@wultra.com
  */
 public class BaseStepModel {
 
     private Map<String, String> headers;
     private String uriString;
     private JSONObject resultStatusObject;
+    private String version;
 
     /**
-     * Set base URI string of the PowerAuth 2.0 Standard RESTful API.
+     * Set base URI string of the PowerAuth Standard RESTful API.
      * @param uriString Base URI of PA2.0 Standard RESTful API.
      */
     public void setUriString(String uriString) {
@@ -45,6 +47,14 @@ public class BaseStepModel {
      */
     public void setResultStatusObject(JSONObject resultStatusObject) {
         this.resultStatusObject = resultStatusObject;
+    }
+
+    /**
+     * Set PowerAuth protocol version.
+     * @param version PowerAuth protocol version.
+     */
+    public void setVersion(String version) {
+        this.version = version;
     }
 
     /**
@@ -67,6 +77,10 @@ public class BaseStepModel {
         return resultStatusObject;
     }
 
+    public String getVersion() {
+        return version;
+    }
+
     /**
      * Convert this object to map.
      * @return Map representing this object.
@@ -76,6 +90,7 @@ public class BaseStepModel {
         context.put("HTTP_HEADERS", headers);
         context.put("URI_STRING", uriString);
         context.put("STATUS_OBJECT", resultStatusObject);
+        context.put("VERSION", version);
         return context;
     }
 
@@ -88,6 +103,7 @@ public class BaseStepModel {
         setHeaders((Map<String, String>) context.get("HTTP_HEADERS"));
         setUriString((String) context.get("URI_STRING"));
         setResultStatusObject((JSONObject) context.get("STATUS_OBJECT"));
+        setVersion((String) context.get("VERSION"));
     }
 
 }

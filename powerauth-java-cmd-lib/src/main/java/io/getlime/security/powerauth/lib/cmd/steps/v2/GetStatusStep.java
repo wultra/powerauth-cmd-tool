@@ -1,5 +1,6 @@
 /*
- * Copyright 2016 Lime - HighTech Solutions s.r.o.
+ * PowerAuth Command-line utility
+ * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.getlime.security.powerauth.lib.cmd.steps;
+package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.io.BaseEncoding;
@@ -25,13 +26,15 @@ import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.model.ActivationStatusBlobInfo;
-import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.GetStatusStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
+import io.getlime.security.powerauth.lib.cmd.util.JsonUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
-import io.getlime.security.powerauth.rest.api.model.request.ActivationStatusRequest;
-import io.getlime.security.powerauth.rest.api.model.response.ActivationStatusResponse;
+import io.getlime.security.powerauth.rest.api.model.request.v2.ActivationStatusRequest;
+import io.getlime.security.powerauth.rest.api.model.response.v2.ActivationStatusResponse;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
@@ -40,6 +43,12 @@ import java.util.Map;
 
 /**
  * Helper class with step for getting activation status.
+ *
+ * <p><b>PowerAuth protocol versions:</b>
+ * <ul>
+ *     <li>2.0</li>
+ *     <li>2.1</li>
+ * </ul>
  *
  * @author Petr Dvorak
  *
@@ -56,7 +65,7 @@ public class GetStatusStep implements BaseStep {
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject execute(JsonStepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         GetStatusStepModel model = new GetStatusStepModel();
@@ -75,8 +84,8 @@ public class GetStatusStep implements BaseStep {
         String uri = model.getUriString() + "/pa/activation/status";
 
         // Get data from status
-        String activationId = (String) model.getResultStatusObject().get("activationId");
-        String transportMasterKeyBase64 = (String) model.getResultStatusObject().get("transportMasterKey");
+        String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
+        String transportMasterKeyBase64 = JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey");
         SecretKey transportMasterKey = keyConversion.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKeyBase64));
 
         // Send the activation status request to the server

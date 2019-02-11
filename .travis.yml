@@ -1,6 +1,9 @@
 language: java
 jdk:
   - oraclejdk8
+branches:
+  only:
+  - master
 env:
   global:
   - secure: "O5dhiG4FpYb1bUsgpHwnR+crKWcxWS0uvAaWm7kShWJsRv2R86K2zQzhCHZ2dUqqC7uFzosL+3AEuI80hRrXpLhWkhSnr8cah+CC+rC/DOlg4kim9y/BOICFyjTXx76fugoBYheMxFgoR2ESOdZH/tfWz1+cwNmcuhGz+R7BrxkpPJOY3aMWi092StHWb2e1vN9J1apQjH3i3Sybjr3w4in7aAnswj2JiilpKu8pg1phrsLFdmCWL4EgstL1LM3aN71sRPFKsThMDZeJ8ksgah5NQNDbXRor8mh6WUbsFr6wqQlGtdq5H0P/9xtrMfp/uMd+qAKWx8EQLSC0j8VcEAIpu8GIB5nBSc16IbHTqDRwNl0jq1Z6e7T10K2KvOm4+sJXX2mqz3VpEJjkly9WdedgnVEINEz2cNYqx3M9TIlA2pskCVJwh3YqNctGRX3DCLON52q6q03swAAFlwDsKmLwHtU3hyPlHBevMDrQ2xm4uOuH6rP72GSMnk33g0qcoV2nvzzYsvUMQfNyYBVYNiuZH9JDg7Pw/wXyLwrynWWbjXcUrDGxM5T6JwQRVtkcp7YoayFAvglvVYSg5zI92bPN9gEETY3rrpmthW4BV2FsIoD4HHWF4zQLdaX5uA7qfwVOG+Vrv1PFCstVYOFPpBvd9XUQ3zIBUh6IDilhUeY="
@@ -11,9 +14,9 @@ before_install:
 addons:
   coverity_scan:
     project:
-      name: "lime-company/powerauth-cmd-tool"
+      name: "wultra/powerauth-cmd-tool"
       description: "Build submitted via Travis CI"
-    notification_email: petr@lime-company.eu
+    notification_email: petr@wultra.com
     build_command_prepend: "mvn clean"
     build_command:   "mvn -DskipTests=true compile"
     branch_pattern: master

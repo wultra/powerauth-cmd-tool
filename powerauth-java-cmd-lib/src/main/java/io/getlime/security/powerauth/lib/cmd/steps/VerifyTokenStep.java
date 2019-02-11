@@ -1,5 +1,6 @@
 /*
- * Copyright 2017 Lime - HighTech Solutions s.r.o.
+ * PowerAuth Command-line utility
+ * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +21,10 @@ import com.google.common.io.BaseEncoding;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
+import io.getlime.core.rest.model.base.response.Response;
 import io.getlime.security.powerauth.crypto.client.token.ClientTokenGenerator;
 import io.getlime.security.powerauth.http.PowerAuthTokenHttpHeader;
-import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifyTokenStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
@@ -36,12 +38,19 @@ import java.util.Map;
 /**
  * Step for the token validation activity.
  *
- * @author Petr Dvorak, petr@lime-company.eu
+ * <p><b>PowerAuth protocol versions:</b>
+ * <ul>
+ *     <li>2.0</li>
+ *     <li>2.1</li>
+ *     <li>3.0</li>
+ * </ul>
+ *
+ * @author Petr Dvorak, petr@wultra.com
  */
 public class VerifyTokenStep implements BaseStep {
 
     @Override
-    public JSONObject execute(JsonStepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         VerifyTokenStepModel model = new VerifyTokenStepModel();
@@ -72,8 +81,16 @@ public class VerifyTokenStep implements BaseStep {
                 BaseEncoding.base64().encode(tokenDigest),
                 BaseEncoding.base64().encode(tokenNonce),
                 new String(tokenTimestamp, "UTF-8"),
-                "2.1"
+                model.getVersion()
         ).buildHttpHeader();
+
+        if (model.getHttpMethod() == null) {
+            if (stepLogger != null) {
+                stepLogger.writeError("HTTP method not specified", "Specify HTTP method to use for sending request");
+                stepLogger.writeDoneFailed();
+            }
+            return null;
+        }
 
         // Construct the signature base string data part based on HTTP method (GET requires different code).
         byte[] dataFileBytes = null;
@@ -120,8 +137,8 @@ public class VerifyTokenStep implements BaseStep {
             }
 
             if (response.getStatus() == 200) {
-                TypeReference<Map<String, Object>> typeReference = new TypeReference<Map<String, Object>>() {};
-                Map<String, Object> responseWrapper = RestClientConfiguration
+                TypeReference<Response> typeReference = new TypeReference<Response>() {};
+                Response responseWrapper = RestClientConfiguration
                         .defaultMapper()
                         .readValue(response.getRawBody(), typeReference);
 

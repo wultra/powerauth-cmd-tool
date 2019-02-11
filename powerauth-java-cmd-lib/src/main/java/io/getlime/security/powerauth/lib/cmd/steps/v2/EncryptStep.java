@@ -1,5 +1,6 @@
 /*
- * Copyright 2018 Lime - HighTech Solutions s.r.o.
+ * PowerAuth Command-line utility
+ * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.getlime.security.powerauth.lib.cmd.steps;
+package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.io.BaseEncoding;
@@ -24,7 +25,8 @@ import io.getlime.core.rest.model.base.request.ObjectRequest;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.encryptor.ClientNonPersonalizedEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.model.NonPersonalizedEncryptedMessage;
-import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
@@ -32,6 +34,7 @@ import io.getlime.security.powerauth.rest.api.model.entity.NonPersonalizedEncryp
 import org.json.simple.JSONObject;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
@@ -39,7 +42,13 @@ import java.util.Scanner;
 /**
  * Encrypt step encrypts request data using non-personalized end-to-end encryption.
  *
- * @author Roman Strobl, roman.strobl@lime-company.eu
+ * <p><b>PowerAuth protocol versions:</b>
+ * <ul>
+ *     <li>2.0</li>
+ *     <li>2.1</li>
+ * </ul>
+ *
+ * @author Roman Strobl, roman.strobl@wultra.com
  *
  */
 public class EncryptStep implements BaseStep {
@@ -52,7 +61,7 @@ public class EncryptStep implements BaseStep {
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject execute(JsonStepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         EncryptStepModel model = new EncryptStepModel();
@@ -74,21 +83,26 @@ public class EncryptStep implements BaseStep {
         File dataFile = new File(model.getDataFileName());
         if (!dataFile.exists()) {
             if (stepLogger != null) {
-                stepLogger.writeError("Encrypt request failed", "File not found: " + model.getDataFileName());
+                stepLogger.writeError("Encrypt Request Failed", "File not found: " + model.getDataFileName());
                 stepLogger.writeDoneFailed();
             }
             return null;
         }
 
-        Scanner scanner = new Scanner(dataFile);
+        Scanner scanner = new Scanner(dataFile, "UTF-8");
         scanner.useDelimiter("\\Z");
-        String requestData = scanner.next();
+        String requestData = "";
+        if (scanner.hasNext()) {
+            requestData = scanner.next();
+        }
+        scanner.close();
 
         // Prepare the encryptor
         ClientNonPersonalizedEncryptor encryptor = new ClientNonPersonalizedEncryptor(BaseEncoding.base64().decode(model.getApplicationKey()), model.getMasterPublicKey());
 
         // Encrypt the request data
-        final NonPersonalizedEncryptedMessage encryptedMessage = encryptor.encrypt(requestData.getBytes());
+        byte[] requestDataBytes = requestData.getBytes(StandardCharsets.UTF_8);
+        final NonPersonalizedEncryptedMessage encryptedMessage = encryptor.encrypt(requestDataBytes);
         if (encryptedMessage == null) {
             if (stepLogger != null) {
                 stepLogger.writeError("Encryption failed", "Encrypted message is not available");
@@ -161,7 +175,7 @@ public class EncryptStep implements BaseStep {
                     return null;
                 }
 
-                String decryptedMessage = new String(decryptedMessageBytes);
+                String decryptedMessage = new String(decryptedMessageBytes, StandardCharsets.UTF_8);
                 model.getResultStatusObject().put("responseData", decryptedMessage);
 
                 if (stepLogger != null) {

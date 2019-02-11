@@ -1,4 +1,4 @@
-package io.getlime.security.powerauth.lib.cmd.steps;
+package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,16 +16,17 @@ import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.encryptor.model.NonPersonalizedEncryptedMessage;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.http.PowerAuthRequestCanonizationUtils;
-import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.CreateActivationStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.entity.NonPersonalizedEncryptedPayloadModel;
-import io.getlime.security.powerauth.rest.api.model.request.ActivationCreateCustomRequest;
-import io.getlime.security.powerauth.rest.api.model.request.ActivationCreateRequest;
-import io.getlime.security.powerauth.rest.api.model.response.ActivationCreateResponse;
+import io.getlime.security.powerauth.rest.api.model.request.v2.ActivationCreateCustomRequest;
+import io.getlime.security.powerauth.rest.api.model.request.v2.ActivationCreateRequest;
+import io.getlime.security.powerauth.rest.api.model.response.v2.ActivationCreateResponse;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
@@ -38,7 +39,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * @author Petr Dvorak, petr@lime-company.eu
+ * Class with create activation logic.
+ *
+ * <p><b>PowerAuth protocol versions:</b>
+ * <ul>
+ *     <li>2.0</li>
+ *     <li>2.1</li>
+ * </ul>
+ *
+ * @author Petr Dvorak, petr@wultra.com
  */
 public class CreateActivationStep implements BaseStep {
 
@@ -47,10 +56,11 @@ public class CreateActivationStep implements BaseStep {
     private static final PowerAuthClientKeyFactory keyFactory = new PowerAuthClientKeyFactory();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientVault vault = new PowerAuthClientVault();
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
 
     @Override
-    public JSONObject execute(JsonStepLogger stepLogger, Map<String, Object> context) throws Exception {
+    @SuppressWarnings("unchecked")
+    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         // Read properties from "context"
         CreateActivationStepModel model = new CreateActivationStepModel();
         model.fromMap(context);
@@ -115,6 +125,14 @@ public class CreateActivationStep implements BaseStep {
         }
         if (activationIdShort != null) {
             activationIdShort = PowerAuthRequestCanonizationUtils.canonizeGetParameters(activationIdShort);
+            if (activationIdShort == null) {
+                if (stepLogger != null) {
+                    String message = "Failed to extract parameters from query string - exiting.";
+                    stepLogger.writeError(message);
+                    stepLogger.writeDoneFailed();
+                }
+                return null;
+            }
         } else {
             if (stepLogger != null) {
                 String message = "No identity attributes were provided - exiting.";
@@ -173,7 +191,7 @@ public class CreateActivationStep implements BaseStep {
         if (stepLogger != null) {
             stepLogger.writeItem(
                     "Building activation request object",
-                    "Following activation attributes will be encrypted and send to the server",
+                    "Following activation attributes will be encrypted and sent to the server",
                     "OK",
                     requestObject
             );
@@ -279,7 +297,7 @@ public class CreateActivationStep implements BaseStep {
 
                     // Derive PowerAuth keys from master secret key
                     SecretKey signaturePossessionSecretKey = keyFactory.generateClientSignaturePossessionKey(masterSecretKey);
-                    SecretKey signatureKnoweldgeSecretKey = keyFactory.generateClientSignatureKnowledgeKey(masterSecretKey);
+                    SecretKey signatureKnowledgeSecretKey = keyFactory.generateClientSignatureKnowledgeKey(masterSecretKey);
                     SecretKey signatureBiometrySecretKey = keyFactory.generateClientSignatureBiometryKey(masterSecretKey);
                     SecretKey transportMasterKey = keyFactory.generateServerTransportKey(masterSecretKey);
                     // DO NOT EVER STORE ...
@@ -297,18 +315,20 @@ public class CreateActivationStep implements BaseStep {
                     }
 
                     byte[] salt = keyGenerator.generateRandomBytes(16);
-                    byte[] cSignatureKnoweldgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, signatureKnoweldgeSecretKey, salt, keyGenerator);
+                    byte[] cSignatureKnowledgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, signatureKnowledgeSecretKey, salt, keyGenerator);
 
                     // Prepare the status object to be stored
                     model.getResultStatusObject().put("activationId", activationId);
                     model.getResultStatusObject().put("serverPublicKey", BaseEncoding.base64().encode(keyConversion.convertPublicKeyToBytes(serverPublicKey)));
                     model.getResultStatusObject().put("encryptedDevicePrivateKey", BaseEncoding.base64().encode(encryptedDevicePrivateKey));
                     model.getResultStatusObject().put("signaturePossessionKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signaturePossessionSecretKey)));
-                    model.getResultStatusObject().put("signatureKnowledgeKeyEncrypted", BaseEncoding.base64().encode(cSignatureKnoweldgeSecretKey));
+                    model.getResultStatusObject().put("signatureKnowledgeKeyEncrypted", BaseEncoding.base64().encode(cSignatureKnowledgeSecretKey));
                     model.getResultStatusObject().put("signatureKnowledgeKeySalt", BaseEncoding.base64().encode(salt));
                     model.getResultStatusObject().put("signatureBiometryKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signatureBiometrySecretKey)));
                     model.getResultStatusObject().put("transportMasterKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(transportMasterKey)));
-                    model.getResultStatusObject().put("counter", 0);
+                    model.getResultStatusObject().put("counter", 0L);
+                    model.getResultStatusObject().put("ctrData", null);
+                    model.getResultStatusObject().put("version", 2L);
 
                     // Store the resulting status
                     String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
@@ -320,11 +340,11 @@ public class CreateActivationStep implements BaseStep {
                     objectMap.put("activationId", activationId);
                     objectMap.put("activationStatusFile", model.getStatusFileName());
                     objectMap.put("activationStatusFileContent", model.getResultStatusObject());
-                    objectMap.put("deviceKeyFingerprint", activation.computeDevicePublicKeyFingerprint(deviceKeyPair.getPublic()));
+                    objectMap.put("deviceKeyFingerprint", activation.computeActivationFingerprint(deviceKeyPair.getPublic()));
                     if (stepLogger != null) {
                         stepLogger.writeItem(
                                 "Activation Done",
-                                "Public key exchange was successfully completed, commit the activation on server",
+                                "Public key exchange was successfully completed, commit the activation on server if required",
                                 "OK",
                                 objectMap
                         );

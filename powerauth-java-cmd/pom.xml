@@ -1,5 +1,7 @@
 <!--
-~ Copyright 2017 Lime - HighTech Solutions s.r.o.
+~
+~ PowerAuth Command-line utility
+~ Copyright 2018 Wultra s.r.o.
 ~
 ~ Licensed under the Apache License, Version 2.0 (the "License");
 ~ you may not use this file except in compliance with the License.
@@ -12,22 +14,25 @@
 ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ~ See the License for the specific language governing permissions and
 ~ limitations under the License.
+~/
 -->
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.getlime.security</groupId>
     <artifactId>powerauth-java-cmd</artifactId>
-    <version>0.19.0</version>
+    <version>0.21.0</version>
     <name>powerauth-java-cmd</name>
     <description>PowerAuth Reference Client Application connected to PowerAuth Standard RESTful API</description>
+
+    <packaging>jar</packaging>
 
     <parent>
         <groupId>io.getlime.security</groupId>
         <artifactId>powerauth-cmd-parent</artifactId>
-        <version>0.19.0</version>
+        <version>0.21.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -35,7 +40,7 @@
         <dependency>
             <groupId>io.getlime.security</groupId>
             <artifactId>powerauth-java-cmd-lib</artifactId>
-            <version>0.19.0</version>
+            <version>0.21.0</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -52,26 +57,20 @@
 
     <build>
         <plugins>
+            <!-- Use spring-boot-maven-plugin to generate fat jar, however start application with a regular Main class -->
             <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>2.0.8.RELEASE</version>
                 <executions>
                     <execution>
-                        <phase>package</phase>
                         <goals>
-                            <goal>single</goal>
+                            <goal>repackage</goal>
                         </goals>
                     </execution>
                 </executions>
                 <configuration>
-                    <archive>
-                        <manifest>
-                            <addClasspath>true</addClasspath>
-                            <mainClass>io.getlime.security.powerauth.app.cmd.Application</mainClass>
-                        </manifest>
-                    </archive>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
+                    <mainClass>io.getlime.security.powerauth.app.cmd.Application</mainClass>
                 </configuration>
             </plugin>
             <plugin>

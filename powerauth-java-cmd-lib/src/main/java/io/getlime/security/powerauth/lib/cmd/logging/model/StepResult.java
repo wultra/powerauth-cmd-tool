@@ -1,5 +1,4 @@
 /*
- * PowerAuth Command-line utility
  * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,24 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.getlime.security.powerauth.lib.cmd.steps.model;
-
-import java.util.Map;
+package io.getlime.security.powerauth.lib.cmd.logging.model;
 
 /**
- * Model representing parameters of the step for obtaining activation status.
- *
- * @author Petr Dvorak, petr@wultra.com
+ * Class representing a step result.
  */
-public class GetStatusStepModel extends BaseStepModel {
+public class StepResult {
 
-    @Override
-    public Map<String, Object> toMap() {
-        return super.toMap();
+    private final boolean success;
+
+    /**
+     * Constructor with step result.
+     * @param success Whether step was successful.
+     */
+    public StepResult(boolean success) {
+        this.success = success;
     }
 
-    @Override
-    public void fromMap(Map<String, Object> context) {
-        super.fromMap(context);
+    /**
+     * Get whether step was successful.
+     * @return Whether step was successful.
+     */
+    public boolean isSuccess() {
+        return success;
     }
 }
