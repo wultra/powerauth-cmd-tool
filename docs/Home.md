@@ -6,7 +6,7 @@ This brief document serves as a documentation of the reference PowerAuth Client 
 
 You can download the latest `powerauth-java-cmd.jar` at the releases page:
 
-- https://github.com/wultra/powerauth-cmd-tool/releases
+- [PowerAuth Command-Line Tool Releases](https://github.com/wultra/powerauth-cmd-tool/releases)
 
 ## Installing Bouncy Castle
 
