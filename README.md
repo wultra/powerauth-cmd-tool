@@ -4,7 +4,7 @@ PowerAuth Reference Client is a command-line utility used to test integration of
 
 ## Documentation
 
-For the most recent documentation and tutorials, please visit [PowerAuth Command Line Tool Documentation](./docs/Home.md).
+For the most recent documentation and tutorials, please visit [PowerAuth Command Line Tool Documentation](https://developers.wultra.com/docs/current/powerauth-cmd-tool/).
 
 # License
 
