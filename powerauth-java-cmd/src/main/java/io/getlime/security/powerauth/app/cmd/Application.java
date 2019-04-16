@@ -24,7 +24,9 @@ import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.VerifySignatureStep;
 import io.getlime.security.powerauth.lib.cmd.steps.VerifyTokenStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.*;
+import io.getlime.security.powerauth.lib.cmd.steps.v3.ActivationRecoveryStep;
 import io.getlime.security.powerauth.lib.cmd.steps.v3.CommitUpgradeStep;
+import io.getlime.security.powerauth.lib.cmd.steps.v3.ConfirmRecoveryCodeStep;
 import io.getlime.security.powerauth.lib.cmd.steps.v3.StartUpgradeStep;
 import io.getlime.security.powerauth.lib.cmd.util.ConfigurationUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
@@ -81,7 +83,7 @@ public class Application {
             Options options = new Options();
             options.addOption("h", "help", false, "Print this help manual.");
             options.addOption("u", "url", true, "Base URL of the PowerAuth Standard RESTful API.");
-            options.addOption("m", "method", true, "What API method to call, available names are 'prepare', 'status', 'remove', 'sign', 'unlock', 'create-custom', 'create-token', 'validate-token', 'remove-token', 'encrypt', 'sign-encrypt', 'start-upgrade' and 'commit-upgrade'.");
+            options.addOption("m", "method", true, "What API method to call, available names are 'prepare', 'status', 'remove', 'sign', 'unlock', 'create-custom', 'create-token', 'validate-token', 'remove-token', 'encrypt', 'sign-encrypt', 'start-upgrade', 'commit-upgrade', 'create-recovery' and 'confirm-recovery-code'.");
             options.addOption("c", "config-file", true, "Specifies a path to the config file with Base64 encoded server master public key, application ID and application secret.");
             options.addOption("s", "status-file", true, "Path to the file with the activation status, serving as the data persistence.");
             options.addOption("a", "activation-code", true, "In case a specified method is 'prepare', this field contains the activation key (a concatenation of a short activation ID and activation OTP).");
@@ -97,6 +99,7 @@ public class Application {
             options.addOption("S", "token-secret", true, "Token secret (Base64 encoded bytes), in case of 'token-validate' method.");
             options.addOption("r", "reason", true, "Reason why vault is being unlocked.");
             options.addOption("o", "scope", true, "ECIES encryption scope: 'application' or 'activation'.");
+            options.addOption("R", "recovery-code", true, "Recovery code to be confirmed.");
             options.addOption("v", "version", true, "PowerAuth protocol version.");
 
             Option httpHeaderOption = Option.builder("H")
@@ -724,6 +727,141 @@ public class Application {
                     }
                     break;
                 }
+
+                case "create-recovery": {
+                    String identityAttributesFileName = cmd.getOptionValue("I");
+                    String customAttributesFileName = cmd.getOptionValue("C");
+
+                    if (identityAttributesFileName == null) {
+                        stepLogger.writeItem(
+                                "Missing identity attributes file",
+                                "Identity attribute file must be specified",
+                                "ERROR",
+                                null
+                        );
+                        throw new ExecutionException();
+                    }
+
+                    Map<String,String> identityAttributes;
+                    if (Files.exists(Paths.get(identityAttributesFileName))) {
+                        byte[] identityAttributesFileBytes = Files.readAllBytes(Paths.get(identityAttributesFileName));
+                        try {
+                            identityAttributes = RestClientConfiguration.defaultMapper().readValue(identityAttributesFileBytes, HashMap.class);
+                        } catch (Exception e) {
+                            stepLogger.writeItem(
+                                    "Invalid identity attributes file",
+                                    "Identity attribute file must be in a correct JSON format",
+                                    "ERROR",
+                                    e
+                            );
+                            throw new ExecutionException();
+                        }
+                    } else {
+                        stepLogger.writeItem(
+                                "Invalid identity attributes file",
+                                "Unable to read identity attributes file - did you specify the correct path?",
+                                "ERROR",
+                                null
+                        );
+                        throw new ExecutionException();
+                    }
+
+                    Map<String, Object> customAttributes = null;
+                    if (customAttributesFileName != null) {
+                        if (Files.exists(Paths.get(customAttributesFileName))) {
+                            byte[] customAttributesFileBytes = Files.readAllBytes(Paths.get(customAttributesFileName));
+                            try {
+                                customAttributes = RestClientConfiguration.defaultMapper().readValue(customAttributesFileBytes, HashMap.class);
+                            } catch (Exception e) {
+                                stepLogger.writeItem(
+                                        "Invalid custom attributes file",
+                                        "Custom attribute file must be in a correct JSON format",
+                                        "ERROR",
+                                        e
+                                );
+                                throw new ExecutionException();
+                            }
+                        } else {
+                            stepLogger.writeItem(
+                                    "Invalid custom attributes file",
+                                    "Unable to read custom attributes file - did you specify the correct path?",
+                                    "ERROR",
+                                    null
+                            );
+                            throw new ExecutionException();
+                        }
+                    }
+
+                    ActivationRecoveryStepModel model = new ActivationRecoveryStepModel();
+                    model.setActivationName(ConfigurationUtil.getApplicationName(clientConfigObject));
+                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setIdentityAttributes(identityAttributes);
+                    model.setCustomAttributes(customAttributes);
+                    model.setHeaders(httpHeaders);
+                    model.setMasterPublicKey(masterPublicKey);
+                    model.setStatusFileName(statusFileName);
+                    model.setPassword(cmd.getOptionValue("p"));
+                    model.setResultStatusObject(resultStatusObject);
+                    model.setUriString(uriString);
+                    model.setVersion(version);
+
+                    JSONObject result;
+                    switch (version) {
+                        // Activation recovery is supported only in version 3.0
+                        case "3.0":
+                            result = new ActivationRecoveryStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        default:
+                            stepLogger.writeItem(
+                                    "Unsupported version",
+                                    "The version you specified is not supported",
+                                    "ERROR",
+                                    null
+                            );
+                            throw new ExecutionException();
+                    }
+                    if (result == null) {
+                        throw new ExecutionException();
+                    }
+                    break;
+                }
+
+                case "confirm-recovery-code": {
+                    ConfirmRecoveryCodeStepModel model = new ConfirmRecoveryCodeStepModel();
+                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setHeaders(httpHeaders);
+                    model.setMasterPublicKey(masterPublicKey);
+                    model.setStatusFileName(statusFileName);
+                    model.setRecoveryCode(cmd.getOptionValue("R"));
+                    model.setResultStatusObject(resultStatusObject);
+                    model.setUriString(uriString);
+                    model.setVersion(version);
+
+                    JSONObject result;
+                    switch (version) {
+                        // Recovery code confirmation is supported only in version 3.0
+                        case "3.0":
+                            result = new ConfirmRecoveryCodeStep().execute(stepLogger, model.toMap());
+                            break;
+
+                        default:
+                            stepLogger.writeItem(
+                                    "Unsupported version",
+                                    "The version you specified is not supported",
+                                    "ERROR",
+                                    null
+                            );
+                            throw new ExecutionException();
+                    }
+                    if (result == null) {
+                        throw new ExecutionException();
+                    }
+                    break;
+                }
+
                 default:
                     HelpFormatter formatter = new HelpFormatter();
                     formatter.setWidth(100);

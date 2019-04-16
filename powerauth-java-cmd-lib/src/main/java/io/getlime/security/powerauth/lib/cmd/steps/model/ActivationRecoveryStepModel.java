@@ -20,95 +20,152 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Model representing step for creating a custom activation.
+ * Model representing step for creating an activation using recovery code.
  *
- * @author Petr Dvorak, petr@wultra.com
+ * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class CreateActivationStepModel extends BaseStepModel {
+public class ActivationRecoveryStepModel extends BaseStepModel {
 
     private Map<String, String> identityAttributes;
     private Map<String, Object> customAttributes;
     private String statusFileName;
-    private String activationOtp;
     private String activationName;
     private String applicationKey;
     private String applicationSecret;
     private String password;
     private PublicKey masterPublicKey;
 
-    public CreateActivationStepModel() {
-        identityAttributes = new HashMap<>();
+    /**
+     * Default constructor.
+     */
+    public ActivationRecoveryStepModel() {
         customAttributes = new HashMap<>();
     }
 
+    /**
+     * Get identity attributes.
+     * @return Identity attributes.
+     */
     public Map<String, String> getIdentityAttributes() {
         return identityAttributes;
     }
 
+    /**
+     * Set identity attributes.
+     * @param identityAttributes Identity attributes.
+     */
     public void setIdentityAttributes(Map<String, String> identityAttributes) {
         this.identityAttributes = identityAttributes;
     }
 
+    /**
+     * Get custom attributes.
+     * @return Custom attributes.
+     */
     public Map<String, Object> getCustomAttributes() {
         return customAttributes;
     }
 
+    /**
+     * Set custom attributes.
+     * @param customAttributes Custom attributes.
+     */
     public void setCustomAttributes(Map<String, Object> customAttributes) {
         this.customAttributes = customAttributes;
     }
 
+    /**
+     * Get file name of the file with stored activation status.
+     * @return Status file name.
+     */
     public String getStatusFileName() {
         return statusFileName;
     }
 
+    /**
+     * Set file name of the file with stored activation status.
+     * @param statusFileName Status file name.
+     */
     public void setStatusFileName(String statusFileName) {
         this.statusFileName = statusFileName;
     }
 
-    public String getActivationOtp() {
-        return activationOtp;
-    }
-
-    public void setActivationOtp(String activationOtp) {
-        this.activationOtp = activationOtp;
-    }
-
+    /**
+     * Get activation name.
+     * @return Activation name.
+     */
     public String getActivationName() {
         return activationName;
     }
 
+    /**
+     * Set activation name.
+     * @param activationName Activation name.
+     */
     public void setActivationName(String activationName) {
         this.activationName = activationName;
     }
 
+    /**
+     * Get application key.
+     * @return Application key.
+     */
     public String getApplicationKey() {
         return applicationKey;
     }
 
+    /**
+     * Set application key.
+     * @param applicationKey Application key.
+     */
     public void setApplicationKey(String applicationKey) {
         this.applicationKey = applicationKey;
     }
 
+    /**
+     * Get application secret.
+     * @return Application secret.
+     */
     public String getApplicationSecret() {
         return applicationSecret;
     }
 
+    /**
+     * Set application secret.
+     * @param applicationSecret Application secret.
+     */
     public void setApplicationSecret(String applicationSecret) {
         this.applicationSecret = applicationSecret;
     }
 
+    /**
+     * Get knowledge key password.
+     * @return Knowledge key password.
+     */
     public String getPassword() {
         return password;
     }
 
+    /**
+     * Set knowledge key password.
+     * @param password Knowledge key password.
+     */
     public void setPassword(String password) {
         this.password = password;
     }
 
+    /**
+     * Get Base64 encoded master public key.
+     * @return Base64 encoded master public key.
+     */
     public PublicKey getMasterPublicKey() {
         return masterPublicKey;
     }
 
+    /**
+     * Set Base64 encoded master public key.
+     * @param masterPublicKey Base64 encoded master public key.
+     */
     public void setMasterPublicKey(PublicKey masterPublicKey) {
         this.masterPublicKey = masterPublicKey;
     }
@@ -118,7 +175,6 @@ public class CreateActivationStepModel extends BaseStepModel {
         Map<String, Object> context = super.toMap();
         context.put("IDENTITY_ATTRIBUTES", identityAttributes);
         context.put("CUSTOM_ATTRIBUTES", customAttributes);
-        context.put("ACTIVATION_OTP", activationOtp);
         context.put("MASTER_PUBLIC_KEY", masterPublicKey);
         context.put("STATUS_FILENAME", statusFileName);
         context.put("PASSWORD", password);
@@ -134,7 +190,6 @@ public class CreateActivationStepModel extends BaseStepModel {
         super.fromMap(context);
         setIdentityAttributes((Map<String, String>) context.get("IDENTITY_ATTRIBUTES"));
         setCustomAttributes((Map<String, Object>) context.get("CUSTOM_ATTRIBUTES"));
-        setActivationOtp((String) context.get("ACTIVATION_OTP"));
         setMasterPublicKey((PublicKey) context.get("MASTER_PUBLIC_KEY"));
         setStatusFileName((String) context.get("STATUS_FILENAME"));
         setPassword((String) context.get("PASSWORD"));

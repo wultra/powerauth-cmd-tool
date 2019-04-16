@@ -1,5 +1,6 @@
 /*
- * Copyright 2019 Wultra s.r.o.
+ * PowerAuth Command-line utility
+ * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,99 +17,114 @@
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
 import java.security.PublicKey;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Model representing step for creating a custom activation.
+ * Model representing step for confirming recovery code.
  *
- * @author Petr Dvorak, petr@wultra.com
+ * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class CreateActivationStepModel extends BaseStepModel {
+public class ConfirmRecoveryCodeStepModel extends BaseStepModel {
 
-    private Map<String, String> identityAttributes;
-    private Map<String, Object> customAttributes;
     private String statusFileName;
-    private String activationOtp;
-    private String activationName;
     private String applicationKey;
     private String applicationSecret;
     private String password;
+    private String recoveryCode;
     private PublicKey masterPublicKey;
 
-    public CreateActivationStepModel() {
-        identityAttributes = new HashMap<>();
-        customAttributes = new HashMap<>();
-    }
-
-    public Map<String, String> getIdentityAttributes() {
-        return identityAttributes;
-    }
-
-    public void setIdentityAttributes(Map<String, String> identityAttributes) {
-        this.identityAttributes = identityAttributes;
-    }
-
-    public Map<String, Object> getCustomAttributes() {
-        return customAttributes;
-    }
-
-    public void setCustomAttributes(Map<String, Object> customAttributes) {
-        this.customAttributes = customAttributes;
-    }
-
+    /**
+     * Get file name of the file with stored activation status.
+     * @return Status file name.
+     */
     public String getStatusFileName() {
         return statusFileName;
     }
 
+    /**
+     * File name of the file with stored activation status.
+     * @param statusFileName Status file name.
+     */
     public void setStatusFileName(String statusFileName) {
         this.statusFileName = statusFileName;
     }
 
-    public String getActivationOtp() {
-        return activationOtp;
-    }
-
-    public void setActivationOtp(String activationOtp) {
-        this.activationOtp = activationOtp;
-    }
-
-    public String getActivationName() {
-        return activationName;
-    }
-
-    public void setActivationName(String activationName) {
-        this.activationName = activationName;
-    }
-
+    /**
+     * Get application key.
+     * @return Application key.
+     */
     public String getApplicationKey() {
         return applicationKey;
     }
 
+    /**
+     * Application key.
+     * @param applicationKey Application key.
+     */
     public void setApplicationKey(String applicationKey) {
         this.applicationKey = applicationKey;
     }
 
+    /**
+     * Get application secret.
+     * @return Application secret.
+     */
     public String getApplicationSecret() {
         return applicationSecret;
     }
 
+    /**
+     * Application secret.
+     * @param applicationSecret Application secret.
+     */
     public void setApplicationSecret(String applicationSecret) {
         this.applicationSecret = applicationSecret;
     }
 
+    /**
+     * Get knowledge key password.
+     * @return Knowledge key password.
+     */
     public String getPassword() {
         return password;
     }
 
+    /**
+     * Set knowledge key password.
+     * @param password Knowledge key password.
+     */
     public void setPassword(String password) {
         this.password = password;
     }
 
+    /**
+     * Get recovery code.
+     * @return Recovery code.
+     */
+    public String getRecoveryCode() {
+        return recoveryCode;
+    }
+
+    /**
+     * Set recovery code.
+     * @param recoveryCode Recovery code.
+     */
+    public void setRecoveryCode(String recoveryCode) {
+        this.recoveryCode = recoveryCode;
+    }
+
+    /**
+     * Get Base64 encoded master public key.
+     * @return Base64 encoded master public key.
+     */
     public PublicKey getMasterPublicKey() {
         return masterPublicKey;
     }
 
+    /**
+     * Set master public key
+     * @param masterPublicKey Master public key
+     */
     public void setMasterPublicKey(PublicKey masterPublicKey) {
         this.masterPublicKey = masterPublicKey;
     }
@@ -116,31 +132,24 @@ public class CreateActivationStepModel extends BaseStepModel {
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> context = super.toMap();
-        context.put("IDENTITY_ATTRIBUTES", identityAttributes);
-        context.put("CUSTOM_ATTRIBUTES", customAttributes);
-        context.put("ACTIVATION_OTP", activationOtp);
-        context.put("MASTER_PUBLIC_KEY", masterPublicKey);
         context.put("STATUS_FILENAME", statusFileName);
-        context.put("PASSWORD", password);
-        context.put("ACTIVATION_NAME", activationName);
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
+        context.put("PASSWORD", password);
+        context.put("RECOVERY_CODE", recoveryCode);
+        context.put("MASTER_PUBLIC_KEY", masterPublicKey);
         return context;
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public void fromMap(Map<String, Object> context) {
         super.fromMap(context);
-        setIdentityAttributes((Map<String, String>) context.get("IDENTITY_ATTRIBUTES"));
-        setCustomAttributes((Map<String, Object>) context.get("CUSTOM_ATTRIBUTES"));
-        setActivationOtp((String) context.get("ACTIVATION_OTP"));
-        setMasterPublicKey((PublicKey) context.get("MASTER_PUBLIC_KEY"));
         setStatusFileName((String) context.get("STATUS_FILENAME"));
-        setPassword((String) context.get("PASSWORD"));
-        setActivationName((String) context.get("ACTIVATION_NAME"));
         setApplicationKey((String) context.get("APPLICATION_KEY"));
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
+        setPassword((String) context.get("PASSWORD"));
+        setRecoveryCode((String) context.get("RECOVERY_CODE"));
+        setMasterPublicKey((PublicKey) context.get("MASTER_PUBLIC_KEY"));
     }
 
 }
