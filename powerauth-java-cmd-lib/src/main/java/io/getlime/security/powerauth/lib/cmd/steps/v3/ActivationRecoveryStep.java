@@ -32,7 +32,7 @@ import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
-import io.getlime.security.powerauth.lib.cmd.steps.model.CreateActivationStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.model.ActivationRecoveryStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
@@ -58,7 +58,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Class with create activation logic.
+ * Class with activation recovery logic.
  *
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
@@ -67,7 +67,7 @@ import java.util.Map;
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class CreateActivationStep implements BaseStep {
+public class ActivationRecoveryStep implements BaseStep {
 
     private static final PowerAuthClientActivation activation = new PowerAuthClientActivation();
     private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
@@ -82,12 +82,12 @@ public class CreateActivationStep implements BaseStep {
     @SuppressWarnings("unchecked")
     public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         // Read properties from "context"
-        CreateActivationStepModel model = new CreateActivationStepModel();
+        ActivationRecoveryStepModel model = new ActivationRecoveryStepModel();
         model.fromMap(context);
 
         if (stepLogger != null) {
             stepLogger.writeItem(
-                    "Activation With Custom Attributes Started",
+                    "Activation With Recovery Code Started",
                     null,
                     "OK",
                     null
@@ -95,7 +95,7 @@ public class CreateActivationStep implements BaseStep {
         }
 
         // Prepare the activation URI
-        String uri = model.getUriString();
+        String uri = model.getUriString() + "/pa/v3/activation/create";
 
         // Read the identity attributes and custom attributes
         Map<String, String> identityAttributes = model.getIdentityAttributes();
@@ -146,7 +146,7 @@ public class CreateActivationStep implements BaseStep {
 
         // Prepare activation layer 1 request which is decryptable on intermediate server
         ActivationLayer1Request requestL1 = new ActivationLayer1Request();
-        requestL1.setType(ActivationType.CUSTOM);
+        requestL1.setType(ActivationType.RECOVERY);
         requestL1.setActivationData(encryptedRequestL2);
         requestL1.setIdentityAttributes(identityAttributes);
         requestL1.setCustomAttributes(customAttributes);
