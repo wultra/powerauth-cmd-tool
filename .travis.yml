@@ -4,19 +4,20 @@ jdk:
 branches:
   only:
   - master
+  - coverity_scan
 env:
   global:
-  - secure: "O5dhiG4FpYb1bUsgpHwnR+crKWcxWS0uvAaWm7kShWJsRv2R86K2zQzhCHZ2dUqqC7uFzosL+3AEuI80hRrXpLhWkhSnr8cah+CC+rC/DOlg4kim9y/BOICFyjTXx76fugoBYheMxFgoR2ESOdZH/tfWz1+cwNmcuhGz+R7BrxkpPJOY3aMWi092StHWb2e1vN9J1apQjH3i3Sybjr3w4in7aAnswj2JiilpKu8pg1phrsLFdmCWL4EgstL1LM3aN71sRPFKsThMDZeJ8ksgah5NQNDbXRor8mh6WUbsFr6wqQlGtdq5H0P/9xtrMfp/uMd+qAKWx8EQLSC0j8VcEAIpu8GIB5nBSc16IbHTqDRwNl0jq1Z6e7T10K2KvOm4+sJXX2mqz3VpEJjkly9WdedgnVEINEz2cNYqx3M9TIlA2pskCVJwh3YqNctGRX3DCLON52q6q03swAAFlwDsKmLwHtU3hyPlHBevMDrQ2xm4uOuH6rP72GSMnk33g0qcoV2nvzzYsvUMQfNyYBVYNiuZH9JDg7Pw/wXyLwrynWWbjXcUrDGxM5T6JwQRVtkcp7YoayFAvglvVYSg5zI92bPN9gEETY3rrpmthW4BV2FsIoD4HHWF4zQLdaX5uA7qfwVOG+Vrv1PFCstVYOFPpBvd9XUQ3zIBUh6IDilhUeY="
+    - secure: "k3oYYnSpE4iDCnpaELQZLnSPn7AVm5VlSGm356SmPEKDKnS12rdNnmK5X4P5CdGhSmttsSJKbLHP+/C8vreEJQiePRqZ7pbq65SvnPSFmQpLIA2KOe/eV5cFPZDDvNZoijWPYqxGIfbBLZDiL8VTVVz9JYDrhaTMLgKxU7jrMj3qaH1C8rMjqSwW7JN00g0Nq5SVXZv9Hu3Aqd1DUD5GgY4ts4kRUXz31wGwuNVnYMAlydlJCPpjW55oS8WDj7kl+BoEU8CU2ZdFq49CDGeiHZOpJGT57Ggj7ZJUOigoj7Vsl47bpwJcucSGPjDrm6tOOMeRvphFf6291f6aPLXTcB5nzgn/xTGuC7pCc/gKUMSQtnBzkwclutvxiaAR0rzsBs0GcV/WMva31grsIWxFXuPeRgB3GcMuae8qmhLDsq2Lp6ez45JKJtlvms1P0T0ao9xbSMfVVnagC1XNOE7ieBJoUl4yF2nUmC4lCdNTGDY4J61Kqfet/U3ii33vX4mPb2i6SJAXtSzLPr8mwq+5kpBZxeQPI0QUg7+7rmelz5wBOGDtkax1o969OLjaVhuVTkNjsYRszqbM5eMMlpoNT4DU5F5kJSLWEIx7H4nXERgPQqWMDrb6j0g3eV+pzz4qyn3w2auCkXX5g6TG8RhmgUMv76iPrl7XpbKhj6sjBI8="
 
 before_install:
-  - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
+  - echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
 
 addons:
   coverity_scan:
     project:
       name: "wultra/powerauth-cmd-tool"
       description: "Build submitted via Travis CI"
-    notification_email: petr@wultra.com
+    notification_email: roman.strobl@wultra.com
     build_command_prepend: "mvn clean"
-    build_command:   "mvn -DskipTests=true compile"
-    branch_pattern: master
+    build_command: "mvn -DskipTests=true compile"
+    branch_pattern: coverity_scan
