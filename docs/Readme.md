@@ -37,7 +37,7 @@ You must obtain the values for this file from the PowerAuth Admin interface:
 
 _Note: You should not create this file yourself. The utility creates it for you._
 
-This file is automatically created by the utility after you call the `prepare` method. It keeps the current PowerAuth Client activation status information. In other words, client status file contains everything that a mobile application would store after it was paired with the user account.
+This file is automatically created by the utility after you call the `create` method. It keeps the current PowerAuth Client activation status information. In other words, client status file contains everything that a mobile application would store after it was paired with the user account.
 
 ```json
 {
@@ -65,7 +65,7 @@ You can specify the version of protocol you want to use using parameter `version
 
 ## Supported Use-Cases
 
-### Prepare Activation
+### Create Activation
 
 Use this method to create a new activation using an activation code.
 
@@ -74,12 +74,14 @@ java -jar powerauth-java-cmd.jar \
     --url "http://localhost:8080/powerauth-restful-server" \
     --status-file "/tmp/pa_status.json" \
     --config-file "/tmp/pamk.json" \
-    --method "prepare" \
+    --method "create" \
     --password "1234" \
     --activation-code "F3CCT-FNOUS-GEVJF-O3HMV"
 ```
 
-Uses the `prepare` method to activate a PowerAuth Reference client by calling the PowerAuth Standard RESTful API endpoint `/pa/v3/activation/create` hosted on root URL `http://localhost:8080/powerauth-restful-server` with an activation code `F3CCT-FNOUS-GEVJF-O3HMV`. Reads and stores the client status from the `/tmp/pa_status.json` file. Uses master public key and application identifiers stored in the `/tmp/pamk.json` file. Stores the knowledge related derived key using a given password `1234`.
+Uses the `create` method to activate a PowerAuth Reference client by calling the PowerAuth Standard RESTful API endpoint `/pa/v3/activation/create` hosted on root URL `http://localhost:8080/powerauth-restful-server` with an activation code `F3CCT-FNOUS-GEVJF-O3HMV`. Reads and stores the client status from the `/tmp/pa_status.json` file. Uses master public key and application identifiers stored in the `/tmp/pamk.json` file. Stores the knowledge related derived key using a given password `1234`.
+
+For a backward compatibility, the tool also supports the `prepare` method as an alias to the `create`, but this is now deprecated. Usage of that method prints a deprecation warning.
 
 _Note: If a `--password` option is not provided, this method requires interactive console input of the password, in order to encrypt the knowledge related signature key._
 
@@ -229,20 +231,20 @@ _Note: If a `--password` option is not provided, this method requires interactiv
 
 ### Custom Attributes for Activation
 
-Use this method to create an activation using the custom attributes.
+Use this method to create an activation using the custom identity attributes.
 
 ```bash
 java -jar powerauth-java-cmd.jar \
     --url "http://localhost:8080/powerauth-restful-server" \
     --status-file "/tmp/pa_status.json" \
     --config-file "/tmp/pamk.json" \
-    --method "create" \
+    --method "create-custom" \
     --identity-file "/tmp/identity.json" \
     --custom-attributes-file "/tmp/custom-attributes.json" \
     --password "1234"
 ```
 
-Uses the `create` method to activate a PowerAuth Reference client by calling activation endpoint with identity attributes stored in `/tmp/identity.json` file and custom activation attributes stored in `/tmp/custom-attributes.json` file. Reads and stores the client status from the `/tmp/pa_status.json` file. Uses master public key and application identifiers stored in the `/tmp/pamk.json` file. Stores the knowledge related derived key using a given password `1234`.
+Uses the `create-custom` method to activate a PowerAuth Reference client by calling activation endpoint with identity attributes stored in `/tmp/identity.json` file and custom activation attributes stored in `/tmp/custom-attributes.json` file. Reads and stores the client status from the `/tmp/pa_status.json` file. Uses master public key and application identifiers stored in the `/tmp/pamk.json` file. Stores the knowledge related derived key using a given password `1234`.
 
 There is a required format of both `identity.json` and `custom-attributes.json` files. The `custom-attributes.json` file may be any JSON file representing an object (at least, the file must contain `{}` string). The `identity.json` file must be a simple JSON object with identity attributes stored as string key-value, for example:
 
@@ -255,7 +257,7 @@ There is a required format of both `identity.json` and `custom-attributes.json` 
 
 _Note: If a `--password` option is not provided, this method requires interactive console input of the password, in order to encrypt the knowledge related signature key._
 
-_Note: In version `2.x` the custom activations require a specific method called `create-custom`. Furthermore it is necessary to implement a custom endpoint for activations with custom logic in version `2.x`._
+_Note: In protocol version `2.x` you need to provide a full URL in `--url` parameter, pointing to the custom activation endpoint._
 
 ### Send Encrypted Data to Server
 
@@ -327,7 +329,7 @@ PowerAuth Reference Client is called as any Java application that is packaged as
 
 ```
 usage: java -jar powerauth-java-cmd.jar
- -a,--activation-code <arg>          In case a specified method is 'prepare', this field contains
+ -a,--activation-code <arg>          In case a specified method is 'create', this field contains
                                      the activation key (a concatenation of a short activation ID
                                      and activation OTP).
  -c,--config-file <arg>              Specifies a path to the config file with Base64 encoded server
@@ -347,7 +349,7 @@ usage: java -jar powerauth-java-cmd.jar
                                      communication.
  -l,--signature-type <arg>           In case a specified method is 'sign', this field specifies a
                                      signature type, as specified in PowerAuth signature process.
- -m,--method <arg>                   What API method to call, available names are 'prepare',
+ -m,--method <arg>                   What API method to call, available names are 'create',
                                      'status', 'remove', 'sign', 'unlock', 'create-custom',
                                      'create-token', 'validate-token', 'remove-token', 'encrypt',
                                      'sign-encrypt', 'start-upgrade' and 'commit-upgrade'.
