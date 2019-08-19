@@ -95,7 +95,7 @@ public class CreateActivationStep implements BaseStep {
         }
 
         // Prepare the activation URI
-        String uri = model.getUriString();
+        String uri = model.getUriString() + "/pa/v3/activation/create";
 
         // Read the identity attributes and custom attributes
         Map<String, String> identityAttributes = model.getIdentityAttributes();
