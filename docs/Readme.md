@@ -81,7 +81,7 @@ java -jar powerauth-java-cmd.jar \
 
 Uses the `create` method to activate a PowerAuth Reference client by calling the PowerAuth Standard RESTful API endpoint `/pa/v3/activation/create` hosted on root URL `http://localhost:8080/powerauth-restful-server` with an activation code `F3CCT-FNOUS-GEVJF-O3HMV`. Reads and stores the client status from the `/tmp/pa_status.json` file. Uses master public key and application identifiers stored in the `/tmp/pamk.json` file. Stores the knowledge related derived key using a given password `1234`.
 
-For a backward compatibility, the tool also supports the `prepare` method as an alias to the `create`, but this is now deprecated. Usage of that method prints a deprecation warning.
+For backward compatibility, the tool also supports the `prepare` method as an alias to the `create` method, however this method is already deprecated. Usage of this method prints a deprecation warning.
 
 _Note: If a `--password` option is not provided, this method requires interactive console input of the password, in order to encrypt the knowledge related signature key._
 
