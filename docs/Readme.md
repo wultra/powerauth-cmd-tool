@@ -57,7 +57,8 @@ This file is automatically created by the utility after you call the `create` me
 ## Specifying PowerAuth Protocol Version
 
 Command line tool supports following PowerAuth protocol versions:
-- Version `3.0` (default)
+- Version `3.1` (default)
+- Version `3.0`
 - Version `2.1`
 - Version `2.0`
 
@@ -153,7 +154,7 @@ java -jar powerauth-java-cmd.jar \
     --password "1234"
 ```
 
-_Note: The choice of signature version is determined by presence of `ctrData` in status file (present in version `3.0`)._
+_Note: The choice of signature version is determined by presence of `ctrData` in status file (present since version `3.0`)._
 
 ### Unlock the Secure Vault
 
