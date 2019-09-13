@@ -181,7 +181,7 @@ public class Application {
 
             // Default version
             if (version == null) {
-                version = "3.0";
+                version = "3.1";
             }
 
             // Read config file
@@ -239,6 +239,7 @@ public class Application {
                     JSONObject result;
                     switch (version) {
                         case "3.0":
+                        case "3.1":
                             result = new io.getlime.security.powerauth.lib.cmd.steps.v3.CreateTokenStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -299,6 +300,7 @@ public class Application {
                     JSONObject result;
                     switch (version) {
                         case "3.0":
+                        case "3.1":
                             result = new io.getlime.security.powerauth.lib.cmd.steps.v3.RemoveTokenStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -351,6 +353,7 @@ public class Application {
                     JSONObject result;
                     switch (version) {
                         case "3.0":
+                        case "3.1":
                             result = new io.getlime.security.powerauth.lib.cmd.steps.v3.PrepareActivationStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -385,6 +388,7 @@ public class Application {
                     JSONObject result;
                     switch (version) {
                         case "3.0":
+                        case "3.1":
                             result = new io.getlime.security.powerauth.lib.cmd.steps.v3.GetStatusStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -423,6 +427,7 @@ public class Application {
                     JSONObject result;
                     switch (version) {
                         case "3.0":
+                        case "3.1":
                             result = new io.getlime.security.powerauth.lib.cmd.steps.v3.RemoveStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -486,6 +491,7 @@ public class Application {
                     JSONObject result;
                     switch (version) {
                         case "3.0":
+                        case "3.1":
                             result = new io.getlime.security.powerauth.lib.cmd.steps.v3.VaultUnlockStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -579,6 +585,7 @@ public class Application {
                     JSONObject result;
                     switch (version) {
                         case "3.0":
+                        case "3.1":
                             result = new io.getlime.security.powerauth.lib.cmd.steps.v3.CreateActivationStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -616,6 +623,7 @@ public class Application {
                     JSONObject result;
                     switch (version) {
                         case "3.0":
+                        case "3.1":
                             result = new io.getlime.security.powerauth.lib.cmd.steps.v3.EncryptStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -657,6 +665,7 @@ public class Application {
                     switch (version) {
                         // Sign and encrypt step is only supported in version 3.0
                         case "3.0":
+                        case "3.1":
                             result = new io.getlime.security.powerauth.lib.cmd.steps.v3.SignAndEncryptStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -688,6 +697,7 @@ public class Application {
                     switch (version) {
                         // Only upgrade to version 3.0 is supported
                         case "3.0":
+                        case "3.1":
                             result = new StartUpgradeStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -720,6 +730,7 @@ public class Application {
                     switch (version) {
                         // Only upgrade to version 3.0 is supported
                         case "3.0":
+                        case "3.1":
                             result = new CommitUpgradeStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -820,6 +831,7 @@ public class Application {
                     switch (version) {
                         // Activation recovery is supported only in version 3.0
                         case "3.0":
+                        case "3.1":
                             result = new ActivationRecoveryStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -854,6 +866,7 @@ public class Application {
                     switch (version) {
                         // Recovery code confirmation is supported only in version 3.0
                         case "3.0":
+                        case "3.1":
                             result = new ConfirmRecoveryCodeStep().execute(stepLogger, model.toMap());
                             break;
 
