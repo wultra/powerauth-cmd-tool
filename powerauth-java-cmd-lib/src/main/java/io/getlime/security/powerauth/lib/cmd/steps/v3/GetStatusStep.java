@@ -24,6 +24,7 @@ import io.getlime.core.rest.model.base.request.ObjectRequest;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
 import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
+import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.crypto.lib.model.ActivationStatusBlobInfo;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
@@ -55,6 +56,7 @@ public class GetStatusStep implements BaseStep {
 
     private static final PowerAuthClientActivation activation = new PowerAuthClientActivation();
     private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
+    private static final KeyGenerator keyGenerator = new KeyGenerator();
 
     /**
      * Execute this step with given context
@@ -80,15 +82,19 @@ public class GetStatusStep implements BaseStep {
 
         // Prepare the activation URI
         String uri = model.getUriString() + "/pa/v3/activation/status";
+        // Decide whether "challenge" must be used in the request.
+        final boolean useChallenge = !model.getVersion().equals("3.0");
 
         // Get data from status
         String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
         String transportMasterKeyBase64 = JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey");
         SecretKey transportMasterKey = keyConversion.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKeyBase64));
+        byte[] challenge = useChallenge ? keyGenerator.generateRandomBytes(16) : null;
 
         // Send the activation status request to the server
         ActivationStatusRequest requestObject = new ActivationStatusRequest();
         requestObject.setActivationId(activationId);
+        requestObject.setChallenge(useChallenge ? BaseEncoding.base64().encode(challenge) : null);
         ObjectRequest<ActivationStatusRequest> body = new ObjectRequest<>();
         body.setRequestObject(requestObject);
 
@@ -121,9 +127,10 @@ public class GetStatusStep implements BaseStep {
                 // Process the server response
                 ActivationStatusResponse responseObject = responseWrapper.getResponseObject();
                 byte[] cStatusBlob = BaseEncoding.base64().decode(responseObject.getEncryptedStatusBlob());
+                byte[] cStatusBlobNonce = useChallenge ? BaseEncoding.base64().decode(responseObject.getNonce()) : null;
 
                 // Print the results
-                ActivationStatusBlobInfo statusBlob = activation.getStatusFromEncryptedBlob(cStatusBlob, transportMasterKey);
+                ActivationStatusBlobInfo statusBlob = activation.getStatusFromEncryptedBlob(cStatusBlob, challenge, cStatusBlobNonce, transportMasterKey);
 
                 Map<String, Object> objectMap = new HashMap<>();
                 objectMap.put("activationId", activationId);
