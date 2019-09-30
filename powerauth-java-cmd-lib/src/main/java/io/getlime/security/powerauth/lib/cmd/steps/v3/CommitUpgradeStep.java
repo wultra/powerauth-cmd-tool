@@ -92,7 +92,7 @@ public class CommitUpgradeStep implements BaseStep {
         final SecretKey signaturePossessionKey = keyConversion.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
 
         // Generate nonce
-        byte[] pa_nonce = keyGenerator.generateRandomBytes(16);
+        byte[] nonceBytes = keyGenerator.generateRandomBytes(16);
 
         // Prepare request data
         final String request = "{}";
@@ -103,11 +103,11 @@ public class CommitUpgradeStep implements BaseStep {
 
         try {
             // Compute PowerAuth signature for possession factor
-            String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/upgrade/commit", pa_nonce, requestBytes) + "&" + model.getApplicationSecret();
+            String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/upgrade/commit", nonceBytes, requestBytes) + "&" + model.getApplicationSecret();
             byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
             PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion());
-            String pa_signature = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), Collections.singletonList(signaturePossessionKey), ctrData, signatureFormat);
-            PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, PowerAuthSignatureTypes.POSSESSION.toString(), BaseEncoding.base64().encode(pa_nonce), model.getVersion());
+            String signatureValue = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), Collections.singletonList(signaturePossessionKey), ctrData, signatureFormat);
+            PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, PowerAuthSignatureTypes.POSSESSION.toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion());
             String httpAuthorizationHeader = header.buildHttpHeader();
 
             // Commit upgrade

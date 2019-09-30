@@ -102,17 +102,17 @@ public class VerifySignatureStep implements BaseStep {
         SecretKey signatureBiometryKey = keyConversion.convertBytesToSharedSecretKey(signatureBiometryKeyBytes);
 
         // Generate nonce
-        byte[] pa_nonce = keyGenerator.generateRandomBytes(16);
+        byte[] nonceBytes = keyGenerator.generateRandomBytes(16);
 
         // Construct the signature base string data part based on HTTP method (GET requires different code).
         byte[] dataFileBytes = VerifySignatureUtil.extractRequestDataBytes(model, stepLogger);
 
         // Compute the current PowerAuth signature for possession and knowledge factor
-        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString(model.getHttpMethod().toUpperCase(), model.getResourceId(), pa_nonce, dataFileBytes) + "&" + model.getApplicationSecret();
+        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString(model.getHttpMethod().toUpperCase(), model.getResourceId(), nonceBytes, dataFileBytes) + "&" + model.getApplicationSecret();
         byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
         PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion());
-        String pa_signature = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), ctrData, signatureFormat);
-        final PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, model.getSignatureType().toString(), BaseEncoding.base64().encode(pa_nonce), model.getVersion());
+        String signatureValue = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), ctrData, signatureFormat);
+        final PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion());
         String httpAuthorizationHeader = header.buildHttpHeader();
 
 
@@ -127,7 +127,7 @@ public class VerifySignatureStep implements BaseStep {
             }
             lowLevelData.put("signatureBaseString", signatureBaseString);
             lowLevelData.put("resourceId", model.getResourceId());
-            lowLevelData.put("nonce", BaseEncoding.base64().encode(pa_nonce));
+            lowLevelData.put("nonce", BaseEncoding.base64().encode(nonceBytes));
             lowLevelData.put("applicationSecret", model.getApplicationSecret());
 
             stepLogger.writeItem(
