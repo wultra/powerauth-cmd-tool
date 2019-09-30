@@ -125,7 +125,7 @@ public class GetStatusStep implements BaseStep {
                 byte[] cStatusBlob = BaseEncoding.base64().decode(responseObject.getEncryptedStatusBlob());
 
                 // Print the results
-                ActivationStatusBlobInfo statusBlob = activation.getStatusFromEncryptedBlob(cStatusBlob, transportMasterKey);
+                ActivationStatusBlobInfo statusBlob = activation.getStatusFromEncryptedBlob(cStatusBlob, null, null, transportMasterKey);
 
                 Map<String, Object> objectMap = new HashMap<>();
                 objectMap.put("activationId", activationId);

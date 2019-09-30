@@ -27,6 +27,7 @@ import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
+import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureFormat;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
@@ -112,7 +113,7 @@ public class ConfirmRecoveryCodeStep implements BaseStep {
         SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(password, signatureKnowledgeKeyEncryptedBytes, signatureKnowledgeKeySalt, keyGenerator);
 
         // Generate nonce
-        byte[] pa_nonce = keyGenerator.generateRandomBytes(16);
+        byte[] nonceBytes = keyGenerator.generateRandomBytes(16);
 
         final String uri = model.getUriString() + "/pa/v3/recovery/confirm";
 
@@ -144,10 +145,11 @@ public class ConfirmRecoveryCodeStep implements BaseStep {
         final byte[] requestBytes = RestClientConfiguration.defaultMapper().writeValueAsBytes(request);
 
         // Compute the current PowerAuth signature for possession and knowledge factor
-        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/recovery/confirm", pa_nonce, requestBytes) + "&" + model.getApplicationSecret();
+        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/recovery/confirm", nonceBytes, requestBytes) + "&" + model.getApplicationSecret();
         byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
-        String pa_signature = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), Arrays.asList(signaturePossessionKey, signatureKnowledgeKey), ctrData);
-        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), pa_signature, PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE.toString(), BaseEncoding.base64().encode(pa_nonce), model.getVersion());
+        PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion());
+        String signatureValue = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), Arrays.asList(signaturePossessionKey, signatureKnowledgeKey), ctrData, signatureFormat);
+        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE.toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion());
         String httpAuthorizationHeader = header.buildHttpHeader();
 
         // Increment the counter
