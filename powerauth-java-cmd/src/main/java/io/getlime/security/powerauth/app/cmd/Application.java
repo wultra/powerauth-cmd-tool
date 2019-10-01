@@ -663,7 +663,7 @@ public class Application {
 
                     JSONObject result;
                     switch (version) {
-                        // Sign and encrypt step is only supported in version 3.0
+                        // Sign and encrypt step is only supported since version 3.0
                         case "3.0":
                         case "3.1":
                             result = new io.getlime.security.powerauth.lib.cmd.steps.v3.SignAndEncryptStep().execute(stepLogger, model.toMap());
@@ -695,7 +695,7 @@ public class Application {
 
                     JSONObject result;
                     switch (version) {
-                        // Only upgrade to version 3.0 is supported
+                        // Only upgrade to version 3.0 or 3.1 is supported
                         case "3.0":
                         case "3.1":
                             result = new StartUpgradeStep().execute(stepLogger, model.toMap());
@@ -728,7 +728,7 @@ public class Application {
 
                     JSONObject result;
                     switch (version) {
-                        // Only upgrade to version 3.0 is supported
+                        // Only upgrade to version 3.0 or 3.1 is supported
                         case "3.0":
                         case "3.1":
                             result = new CommitUpgradeStep().execute(stepLogger, model.toMap());
@@ -829,7 +829,7 @@ public class Application {
 
                     JSONObject result;
                     switch (version) {
-                        // Activation recovery is supported only in version 3.0
+                        // Activation recovery is supported since version 3.0
                         case "3.0":
                         case "3.1":
                             result = new ActivationRecoveryStep().execute(stepLogger, model.toMap());
@@ -864,7 +864,7 @@ public class Application {
 
                     JSONObject result;
                     switch (version) {
-                        // Recovery code confirmation is supported only in version 3.0
+                        // Recovery code confirmation is supported since version 3.0
                         case "3.0":
                         case "3.1":
                             result = new ConfirmRecoveryCodeStep().execute(stepLogger, model.toMap());
