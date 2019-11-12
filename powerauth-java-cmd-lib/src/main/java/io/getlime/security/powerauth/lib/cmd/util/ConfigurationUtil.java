@@ -33,10 +33,6 @@ import java.security.spec.InvalidKeySpecException;
  */
 public class ConfigurationUtil {
 
-    private static final String expectedApplicationKey = "MTIzNDU2Nzg5MGFiY2RlZg==";
-    private static final String expectedApplicationSecret = "c2VjcmV0MDAwMDAwMDAwMA==";
-    private static final String expectedApplicationName = "PowerAuth Reference Client";
-
     /**
      * Get application key value that is set in dictionary, or a default value.
      * @param clientConfigObject Object with configuration.
@@ -46,7 +42,7 @@ public class ConfigurationUtil {
         if (clientConfigObject.get("applicationKey") != null) {
             return (String) clientConfigObject.get("applicationKey");
         } else {
-            return expectedApplicationKey;
+            return null;
         }
     }
 
@@ -59,7 +55,7 @@ public class ConfigurationUtil {
         if (clientConfigObject.get("applicationSecret") != null) {
             return (String) clientConfigObject.get("applicationSecret");
         } else {
-            return expectedApplicationSecret;
+            return null;
         }
     }
 
@@ -72,7 +68,7 @@ public class ConfigurationUtil {
         if (clientConfigObject.get("applicationName") != null) {
             return (String) clientConfigObject.get("applicationName");
         } else {
-            return expectedApplicationName;
+            return null;
         }
     }
 
