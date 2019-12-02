@@ -133,16 +133,18 @@ public class CreateActivationStep implements BaseStep {
         requestL2.setDevicePublicKey(devicePublicKeyBase64);
 
         // Encrypt request data using ECIES in application scope with sharedInfo1 = /pa/activation
+        final boolean useIv = !"3.0".equals(model.getVersion());
         EciesEncryptor eciesEncryptorL2 = eciesFactory.getEciesEncryptorForApplication((ECPublicKey) model.getMasterPublicKey(), applicationSecret, EciesSharedInfo1.ACTIVATION_LAYER_2);
         ByteArrayOutputStream baosL2 = new ByteArrayOutputStream();
         mapper.writeValue(baosL2, requestL2);
-        EciesCryptogram eciesCryptogramL2 = eciesEncryptorL2.encryptRequest(baosL2.toByteArray());
+        EciesCryptogram eciesCryptogramL2 = eciesEncryptorL2.encryptRequest(baosL2.toByteArray(), useIv);
 
         // Prepare the encrypted layer 2 request
         EciesEncryptedRequest encryptedRequestL2 = new EciesEncryptedRequest();
         encryptedRequestL2.setEphemeralPublicKey(BaseEncoding.base64().encode(eciesCryptogramL2.getEphemeralPublicKey()));
         encryptedRequestL2.setEncryptedData(BaseEncoding.base64().encode(eciesCryptogramL2.getEncryptedData()));
         encryptedRequestL2.setMac(BaseEncoding.base64().encode(eciesCryptogramL2.getMac()));
+        encryptedRequestL2.setNonce(useIv ? BaseEncoding.base64().encode(eciesCryptogramL2.getNonce()) : null);
 
         // Prepare activation layer 1 request which is decryptable on intermediate server
         ActivationLayer1Request requestL1 = new ActivationLayer1Request();
@@ -164,13 +166,14 @@ public class CreateActivationStep implements BaseStep {
         EciesEncryptor eciesEncryptorL1 = eciesFactory.getEciesEncryptorForApplication((ECPublicKey) model.getMasterPublicKey(), applicationSecret, EciesSharedInfo1.APPLICATION_SCOPE_GENERIC);
         ByteArrayOutputStream baosL1 = new ByteArrayOutputStream();
         mapper.writeValue(baosL1, requestL1);
-        EciesCryptogram eciesCryptogramL1 = eciesEncryptorL1.encryptRequest(baosL1.toByteArray());
+        EciesCryptogram eciesCryptogramL1 = eciesEncryptorL1.encryptRequest(baosL1.toByteArray(), useIv);
 
         // Prepare the encrypted layer 1 request
         EciesEncryptedRequest encryptedRequestL1 = new EciesEncryptedRequest();
         encryptedRequestL1.setEphemeralPublicKey(BaseEncoding.base64().encode(eciesCryptogramL1.getEphemeralPublicKey()));
         encryptedRequestL1.setEncryptedData(BaseEncoding.base64().encode(eciesCryptogramL1.getEncryptedData()));
         encryptedRequestL1.setMac(BaseEncoding.base64().encode(eciesCryptogramL1.getMac()));
+        encryptedRequestL1.setNonce(useIv ? BaseEncoding.base64().encode(eciesCryptogramL1.getNonce()) : null);
 
         // Prepare the encryption header
         PowerAuthEncryptionHttpHeader header = new PowerAuthEncryptionHttpHeader(applicationKey, model.getVersion());

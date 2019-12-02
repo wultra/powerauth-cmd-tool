@@ -146,15 +146,18 @@ public class EncryptStep implements BaseStep {
         String httpEncryptionHeader = header.buildHttpHeader();
 
         // Prepare encrypted request
+        final boolean useIv = !"3.0".equals(model.getVersion());
         byte[] requestDataBytes = requestData.getBytes(StandardCharsets.UTF_8);
-        final EciesCryptogram eciesCryptogram = encryptor.encryptRequest(requestDataBytes);
+        final EciesCryptogram eciesCryptogram = encryptor.encryptRequest(requestDataBytes, useIv);
         final EciesEncryptedRequest request = new EciesEncryptedRequest();
         final String ephemeralPublicKeyBase64 = BaseEncoding.base64().encode(eciesCryptogram.getEphemeralPublicKey());
         final String encryptedData = BaseEncoding.base64().encode(eciesCryptogram.getEncryptedData());
         final String mac = BaseEncoding.base64().encode(eciesCryptogram.getMac());
+        final String nonce = useIv ? BaseEncoding.base64().encode(eciesCryptogram.getNonce()) : null;
         request.setEphemeralPublicKey(ephemeralPublicKeyBase64);
         request.setEncryptedData(encryptedData);
         request.setMac(mac);
+        request.setNonce(nonce);
 
         final byte[] requestBytes = RestClientConfiguration.defaultMapper().writeValueAsBytes(request);
 

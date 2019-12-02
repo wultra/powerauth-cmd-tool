@@ -135,6 +135,7 @@ public class VaultUnlockStep implements BaseStep {
         requestPayload.setReason(reason);
 
         // Prepare ECIES encryptor and encrypt request data with sharedInfo1 = /pa/vault/unlock
+        final boolean useIv = !"3.0".equals(model.getVersion());
         final byte[] applicationSecret = model.getApplicationSecret().getBytes(StandardCharsets.UTF_8);
         final ECPublicKey serverPublicKey = (ECPublicKey) keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
         final EciesEncryptor eciesEncryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
@@ -142,13 +143,14 @@ public class VaultUnlockStep implements BaseStep {
 
         // Encrypt the request
         final byte[] requestBytesPayload = RestClientConfiguration.defaultMapper().writeValueAsBytes(requestPayload);
-        final EciesCryptogram eciesCryptogram = eciesEncryptor.encryptRequest(requestBytesPayload);
+        final EciesCryptogram eciesCryptogram = eciesEncryptor.encryptRequest(requestBytesPayload, useIv);
 
         // Prepare encrypted request object
         EciesEncryptedRequest eciesRequest = new EciesEncryptedRequest();
         eciesRequest.setEphemeralPublicKey(BaseEncoding.base64().encode(eciesCryptogram.getEphemeralPublicKey()));
         eciesRequest.setEncryptedData(BaseEncoding.base64().encode(eciesCryptogram.getEncryptedData()));
         eciesRequest.setMac(BaseEncoding.base64().encode(eciesCryptogram.getMac()));
+        eciesRequest.setNonce(useIv ? BaseEncoding.base64().encode(eciesCryptogram.getNonce()) : null);
 
         final byte[] requestBytes = mapper.writeValueAsBytes(eciesRequest);
 

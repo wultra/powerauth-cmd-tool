@@ -116,22 +116,25 @@ public class CreateTokenStep implements BaseStep {
         final String uri = model.getUriString() + "/pa/v3/token/create";
 
         // Prepare ECIES encryptor and encrypt request data with sharedInfo1 = /pa/token/create
+        final boolean useIv = !"3.0".equals(model.getVersion());
         final byte[] applicationSecret = model.getApplicationSecret().getBytes(StandardCharsets.UTF_8);
         final byte[] transportMasterKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey"));
         final byte[] serverPublicKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "serverPublicKey"));
         final ECPublicKey serverPublicKey = (ECPublicKey) keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
         final EciesEncryptor encryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
                 transportMasterKeyBytes, EciesSharedInfo1.CREATE_TOKEN);
-        final EciesCryptogram eciesCryptogram = encryptor.encryptRequest("{}".getBytes(StandardCharsets.UTF_8));
+        final EciesCryptogram eciesCryptogram = encryptor.encryptRequest("{}".getBytes(StandardCharsets.UTF_8), useIv);
 
         // Prepare encrypted request
         final EciesEncryptedRequest request = new EciesEncryptedRequest();
         final String ephemeralPublicKeyBase64 = BaseEncoding.base64().encode(eciesCryptogram.getEphemeralPublicKey());
         final String encryptedData = BaseEncoding.base64().encode(eciesCryptogram.getEncryptedData());
         final String mac = BaseEncoding.base64().encode(eciesCryptogram.getMac());
+        final String nonce = useIv ? BaseEncoding.base64().encode(eciesCryptogram.getNonce()) : null;
         request.setEphemeralPublicKey(ephemeralPublicKeyBase64);
         request.setEncryptedData(encryptedData);
         request.setMac(mac);
+        request.setNonce(nonce);
 
         final byte[] requestBytes = RestClientConfiguration.defaultMapper().writeValueAsBytes(request);
 
