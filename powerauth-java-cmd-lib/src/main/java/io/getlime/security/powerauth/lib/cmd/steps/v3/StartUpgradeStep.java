@@ -88,22 +88,25 @@ public class StartUpgradeStep implements BaseStep {
         final String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
 
         // Prepare ECIES encryptor and encrypt request data with sharedInfo1 = /pa/upgrade
+        final boolean useIv = !"3.0".equals(model.getVersion());
         byte[] applicationSecret = model.getApplicationSecret().getBytes(StandardCharsets.UTF_8);
         byte[] transportMasterKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey"));
         byte[] serverPublicKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "serverPublicKey"));
         final ECPublicKey serverPublicKey = (ECPublicKey) keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
         final EciesEncryptor encryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
                 transportMasterKeyBytes, EciesSharedInfo1.UPGRADE);
-        final EciesCryptogram eciesCryptogram = encryptor.encryptRequest("{}".getBytes(StandardCharsets.UTF_8));
+        final EciesCryptogram eciesCryptogram = encryptor.encryptRequest("{}".getBytes(StandardCharsets.UTF_8), useIv);
 
         // Prepare encrypted request
         final EciesEncryptedRequest request = new EciesEncryptedRequest();
         final String ephemeralPublicKeyBase64 = BaseEncoding.base64().encode(eciesCryptogram.getEphemeralPublicKey());
         final String encryptedData = BaseEncoding.base64().encode(eciesCryptogram.getEncryptedData());
         final String mac = BaseEncoding.base64().encode(eciesCryptogram.getMac());
+        final String nonce = useIv ? BaseEncoding.base64().encode(eciesCryptogram.getNonce()) : null;
         request.setEphemeralPublicKey(ephemeralPublicKeyBase64);
         request.setEncryptedData(encryptedData);
         request.setMac(mac);
+        request.setNonce(nonce);
 
         byte[] requestBytes = mapper.writeValueAsBytes(request);
 

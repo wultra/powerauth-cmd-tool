@@ -83,10 +83,10 @@ public class Application {
             Options options = new Options();
             options.addOption("h", "help", false, "Print this help manual.");
             options.addOption("u", "url", true, "Base URL of the PowerAuth Standard RESTful API.");
-            options.addOption("m", "method", true, "What API method to call, available names are 'prepare', 'status', 'remove', 'sign', 'unlock', 'create-custom', 'create-token', 'validate-token', 'remove-token', 'encrypt', 'sign-encrypt', 'start-upgrade', 'commit-upgrade', 'create-recovery' and 'confirm-recovery-code'.");
+            options.addOption("m", "method", true, "What API method to call, available names are 'create', 'status', 'remove', 'sign', 'unlock', 'create-custom', 'create-token', 'validate-token', 'remove-token', 'encrypt', 'sign-encrypt', 'start-upgrade', 'commit-upgrade', 'create-recovery' and 'confirm-recovery-code'.");
             options.addOption("c", "config-file", true, "Specifies a path to the config file with Base64 encoded server master public key, application ID and application secret.");
             options.addOption("s", "status-file", true, "Path to the file with the activation status, serving as the data persistence.");
-            options.addOption("a", "activation-code", true, "In case a specified method is 'prepare', this field contains the activation key (a concatenation of a short activation ID and activation OTP).");
+            options.addOption("a", "activation-code", true, "In case a specified method is 'create', this field contains the activation key (a concatenation of a short activation ID and activation OTP).");
             options.addOption("t", "http-method", true, "In case a specified method is 'sign', this field specifies a HTTP method, as specified in PowerAuth signature process.");
             options.addOption("e", "endpoint", true, "In case a specified method is 'sign', this field specifies a URI identifier, as specified in PowerAuth signature process.");
             options.addOption("l", "signature-type", true, "In case a specified method is 'sign', this field specifies a signature type, as specified in PowerAuth signature process.");
@@ -181,7 +181,7 @@ public class Application {
 
             // Default version
             if (version == null) {
-                version = "3.0";
+                version = "3.1";
             }
 
             // Read config file
@@ -239,6 +239,7 @@ public class Application {
                     JSONObject result;
                     switch (version) {
                         case "3.0":
+                        case "3.1":
                             result = new io.getlime.security.powerauth.lib.cmd.steps.v3.CreateTokenStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -299,6 +300,7 @@ public class Application {
                     JSONObject result;
                     switch (version) {
                         case "3.0":
+                        case "3.1":
                             result = new io.getlime.security.powerauth.lib.cmd.steps.v3.RemoveTokenStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -323,7 +325,17 @@ public class Application {
 
                     break;
                 }
+                case "create":
                 case "prepare": {
+
+                    if (method.equals("prepare")) {
+                        stepLogger.writeItem(
+                                "Deprecated method",
+                                "Use 'create' method instead of deprecated 'prepare'",
+                                "WARNING",
+                                null
+                        );
+                    }
 
                     PrepareActivationStepModel model = new PrepareActivationStepModel();
                     model.setActivationCode(cmd.getOptionValue("a"));
@@ -341,6 +353,7 @@ public class Application {
                     JSONObject result;
                     switch (version) {
                         case "3.0":
+                        case "3.1":
                             result = new io.getlime.security.powerauth.lib.cmd.steps.v3.PrepareActivationStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -375,6 +388,7 @@ public class Application {
                     JSONObject result;
                     switch (version) {
                         case "3.0":
+                        case "3.1":
                             result = new io.getlime.security.powerauth.lib.cmd.steps.v3.GetStatusStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -413,6 +427,7 @@ public class Application {
                     JSONObject result;
                     switch (version) {
                         case "3.0":
+                        case "3.1":
                             result = new io.getlime.security.powerauth.lib.cmd.steps.v3.RemoveStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -476,6 +491,7 @@ public class Application {
                     JSONObject result;
                     switch (version) {
                         case "3.0":
+                        case "3.1":
                             result = new io.getlime.security.powerauth.lib.cmd.steps.v3.VaultUnlockStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -569,6 +585,7 @@ public class Application {
                     JSONObject result;
                     switch (version) {
                         case "3.0":
+                        case "3.1":
                             result = new io.getlime.security.powerauth.lib.cmd.steps.v3.CreateActivationStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -606,6 +623,7 @@ public class Application {
                     JSONObject result;
                     switch (version) {
                         case "3.0":
+                        case "3.1":
                             result = new io.getlime.security.powerauth.lib.cmd.steps.v3.EncryptStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -645,8 +663,9 @@ public class Application {
 
                     JSONObject result;
                     switch (version) {
-                        // Sign and encrypt step is only supported in version 3.0
+                        // Sign and encrypt step is only supported since version 3.0
                         case "3.0":
+                        case "3.1":
                             result = new io.getlime.security.powerauth.lib.cmd.steps.v3.SignAndEncryptStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -676,8 +695,9 @@ public class Application {
 
                     JSONObject result;
                     switch (version) {
-                        // Only upgrade to version 3.0 is supported
+                        // Only upgrade to version 3.0 or 3.1 is supported
                         case "3.0":
+                        case "3.1":
                             result = new StartUpgradeStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -708,8 +728,9 @@ public class Application {
 
                     JSONObject result;
                     switch (version) {
-                        // Only upgrade to version 3.0 is supported
+                        // Only upgrade to version 3.0 or 3.1 is supported
                         case "3.0":
+                        case "3.1":
                             result = new CommitUpgradeStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -808,8 +829,9 @@ public class Application {
 
                     JSONObject result;
                     switch (version) {
-                        // Activation recovery is supported only in version 3.0
+                        // Activation recovery is supported since version 3.0
                         case "3.0":
+                        case "3.1":
                             result = new ActivationRecoveryStep().execute(stepLogger, model.toMap());
                             break;
 
@@ -842,8 +864,9 @@ public class Application {
 
                     JSONObject result;
                     switch (version) {
-                        // Recovery code confirmation is supported only in version 3.0
+                        // Recovery code confirmation is supported since version 3.0
                         case "3.0":
+                        case "3.1":
                             result = new ConfirmRecoveryCodeStep().execute(stepLogger, model.toMap());
                             break;
 
