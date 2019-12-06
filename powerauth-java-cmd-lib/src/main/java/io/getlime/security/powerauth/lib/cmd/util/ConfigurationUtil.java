@@ -41,9 +41,8 @@ public class ConfigurationUtil {
     public static String getApplicationKey(JSONObject clientConfigObject) {
         if (clientConfigObject.get("applicationKey") != null) {
             return (String) clientConfigObject.get("applicationKey");
-        } else {
-            return null;
         }
+        return null;
     }
 
     /**
@@ -54,9 +53,8 @@ public class ConfigurationUtil {
     public static String getApplicationSecret(JSONObject clientConfigObject) {
         if (clientConfigObject.get("applicationSecret") != null) {
             return (String) clientConfigObject.get("applicationSecret");
-        } else {
-            return null;
         }
+        return null;
     }
 
     /**
@@ -67,9 +65,8 @@ public class ConfigurationUtil {
     public static String getApplicationName(JSONObject clientConfigObject) {
         if (clientConfigObject.get("applicationName") != null) {
             return (String) clientConfigObject.get("applicationName");
-        } else {
-            return null;
         }
+        return null;
     }
 
     /**
