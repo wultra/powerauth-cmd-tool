@@ -24,13 +24,12 @@ import com.mashape.unirest.http.exceptions.UnirestException;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.vault.PowerAuthClientVault;
-import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
-import io.getlime.security.powerauth.crypto.lib.model.ActivationVersion;
+import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
@@ -38,7 +37,6 @@ import io.getlime.security.powerauth.lib.cmd.steps.model.PrepareActivationStepMo
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
-import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.entity.ActivationType;
 import io.getlime.security.powerauth.rest.api.model.request.v3.ActivationLayer1Request;
 import io.getlime.security.powerauth.rest.api.model.request.v3.ActivationLayer2Request;
@@ -75,7 +73,7 @@ import java.util.regex.Pattern;
 public class PrepareActivationStep implements BaseStep {
 
     private static final PowerAuthClientActivation activation = new PowerAuthClientActivation();
-    private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
+    private static final KeyConvertor keyConvertor = new KeyConvertor();
     private static final PowerAuthClientKeyFactory keyFactory = new PowerAuthClientKeyFactory();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientVault vault = new PowerAuthClientVault();
@@ -137,7 +135,7 @@ public class PrepareActivationStep implements BaseStep {
 
         // Generate device key pair
         KeyPair deviceKeyPair = activation.generateDeviceKeyPair();
-        byte[] devicePublicKeyBytes = keyConversion.convertPublicKeyToBytes(deviceKeyPair.getPublic());
+        byte[] devicePublicKeyBytes = keyConvertor.convertPublicKeyToBytes(deviceKeyPair.getPublic());
         String devicePublicKeyBase64 = BaseEncoding.base64().encode(devicePublicKeyBytes);
 
         // Create activation layer 2 request which is decryptable only on PowerAuth server
@@ -257,7 +255,7 @@ public class PrepareActivationStep implements BaseStep {
                 String activationId = responseL2.getActivationId();
                 String ctrDataBase64 = responseL2.getCtrData();
                 String serverPublicKeyBase64 = responseL2.getServerPublicKey();
-                PublicKey serverPublicKey = keyConversion.convertBytesToPublicKey(BaseEncoding.base64().decode(serverPublicKeyBase64));
+                PublicKey serverPublicKey = keyConvertor.convertBytesToPublicKey(BaseEncoding.base64().decode(serverPublicKeyBase64));
 
                 // Compute master secret key
                 SecretKey masterSecretKey = keyFactory.generateClientMasterSecretKey(deviceKeyPair.getPrivate(), serverPublicKey);
@@ -286,13 +284,13 @@ public class PrepareActivationStep implements BaseStep {
 
                 // Prepare the status object to be stored
                 model.getResultStatusObject().put("activationId", activationId);
-                model.getResultStatusObject().put("serverPublicKey", BaseEncoding.base64().encode(keyConversion.convertPublicKeyToBytes(serverPublicKey)));
+                model.getResultStatusObject().put("serverPublicKey", BaseEncoding.base64().encode(keyConvertor.convertPublicKeyToBytes(serverPublicKey)));
                 model.getResultStatusObject().put("encryptedDevicePrivateKey", BaseEncoding.base64().encode(encryptedDevicePrivateKey));
-                model.getResultStatusObject().put("signaturePossessionKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signaturePossessionSecretKey)));
+                model.getResultStatusObject().put("signaturePossessionKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(signaturePossessionSecretKey)));
                 model.getResultStatusObject().put("signatureKnowledgeKeyEncrypted", BaseEncoding.base64().encode(cSignatureKnowledgeSecretKey));
                 model.getResultStatusObject().put("signatureKnowledgeKeySalt", BaseEncoding.base64().encode(salt));
-                model.getResultStatusObject().put("signatureBiometryKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signatureBiometrySecretKey)));
-                model.getResultStatusObject().put("transportMasterKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(transportMasterKey)));
+                model.getResultStatusObject().put("signatureBiometryKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(signatureBiometrySecretKey)));
+                model.getResultStatusObject().put("transportMasterKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(transportMasterKey)));
                 model.getResultStatusObject().put("counter", 0L);
                 model.getResultStatusObject().put("ctrData", ctrDataBase64);
                 model.getResultStatusObject().put("version", 3L);

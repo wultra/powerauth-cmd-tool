@@ -23,16 +23,15 @@ import com.mashape.unirest.http.exceptions.UnirestException;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
-import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.crypto.lib.model.ActivationStatusBlobInfo;
+import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.GetStatusStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.JsonUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
-import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.request.v3.ActivationStatusRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.ActivationStatusResponse;
 import org.json.simple.JSONObject;
@@ -55,7 +54,7 @@ import java.util.Map;
 public class GetStatusStep implements BaseStep {
 
     private static final PowerAuthClientActivation activation = new PowerAuthClientActivation();
-    private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
+    private static final KeyConvertor keyConvertor = new KeyConvertor();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
 
     /**
@@ -88,7 +87,7 @@ public class GetStatusStep implements BaseStep {
         // Get data from status
         String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
         String transportMasterKeyBase64 = JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey");
-        SecretKey transportMasterKey = keyConversion.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKeyBase64));
+        SecretKey transportMasterKey = keyConvertor.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKeyBase64));
         byte[] challenge = useChallenge ? keyGenerator.generateRandomBytes(16) : null;
 
         // Send the activation status request to the server

@@ -16,11 +16,11 @@
  */
 package io.getlime.security.powerauth.lib.cmd.util;
 
-import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
+import io.getlime.security.powerauth.crypto.lib.model.exception.CryptoProviderException;
 import io.getlime.security.powerauth.crypto.lib.model.exception.GenericCryptoException;
 import io.getlime.security.powerauth.crypto.lib.util.AESEncryptionUtils;
-import io.getlime.security.powerauth.provider.exception.CryptoProviderException;
+import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 
 import javax.crypto.SecretKey;
 import java.security.InvalidKeyException;
@@ -32,6 +32,8 @@ import java.security.InvalidKeyException;
  *
  */
 public class EncryptedStorageUtil {
+
+    private static final KeyConvertor keyConvertor = new KeyConvertor();
 
     /**
      * Encrypt the KEY_SIGNATURE_KNOWLEDGE key using a provided password.
@@ -50,7 +52,7 @@ public class EncryptedStorageUtil {
 
         // Encrypt the knowledge related key using the password derived key
         AESEncryptionUtils aes = new AESEncryptionUtils();
-        byte[] signatureKnowledgeSecretKeyBytes = PowerAuthConfiguration.INSTANCE.getKeyConvertor().convertSharedSecretKeyToBytes(signatureKnowledgeSecretKey);
+        byte[] signatureKnowledgeSecretKeyBytes = keyConvertor.convertSharedSecretKeyToBytes(signatureKnowledgeSecretKey);
         byte[] iv = new byte[16];
         byte[] cSignatureKnowledgeSecretKey = aes.encrypt(signatureKnowledgeSecretKeyBytes, iv, encryptionSignatureKnowledgeKey, "AES/CBC/NoPadding");
         return cSignatureKnowledgeSecretKey;
@@ -75,7 +77,7 @@ public class EncryptedStorageUtil {
         AESEncryptionUtils aes = new AESEncryptionUtils();
         byte[] iv = new byte[16];
         byte[] signatureKnowledgeSecretKeyBytes = aes.decrypt(cSignatureKnowledgeSecretKeyBytes, iv, encryptionSignatureKnowledgeKey, "AES/CBC/NoPadding");
-        return PowerAuthConfiguration.INSTANCE.getKeyConvertor().convertBytesToSharedSecretKey(signatureKnowledgeSecretKeyBytes);
+        return keyConvertor.convertBytesToSharedSecretKey(signatureKnowledgeSecretKeyBytes);
     }
 
 }

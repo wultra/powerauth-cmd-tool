@@ -27,16 +27,15 @@ import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
 import io.getlime.security.powerauth.crypto.client.vault.PowerAuthClientVault;
-import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureFormat;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
+import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VaultUnlockStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.*;
-import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.request.v2.VaultUnlockRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v2.VaultUnlockResponse;
 import org.json.simple.JSONObject;
@@ -63,7 +62,7 @@ import java.util.Map;
  */
 public class VaultUnlockStep implements BaseStep {
 
-    private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
+    private static final KeyConvertor keyConvertor = new KeyConvertor();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientSignature signature = new PowerAuthClientSignature();
     private static final PowerAuthClientKeyFactory keyFactory = new PowerAuthClientKeyFactory();
@@ -114,12 +113,12 @@ public class VaultUnlockStep implements BaseStep {
         }
 
         // Get the signature keys
-        SecretKey signaturePossessionKey = keyConversion.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
+        SecretKey signaturePossessionKey = keyConvertor.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
         SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(password, signatureKnowledgeKeyEncryptedBytes, signatureKnowledgeKeySalt, keyGenerator);
-        SecretKey signatureBiometryKey = keyConversion.convertBytesToSharedSecretKey(signatureBiometryKeyBytes);
+        SecretKey signatureBiometryKey = keyConvertor.convertBytesToSharedSecretKey(signatureBiometryKeyBytes);
 
         // Get the transport key
-        SecretKey transportMasterKey = keyConversion.convertBytesToSharedSecretKey(transportMasterKeyBytes);
+        SecretKey transportMasterKey = keyConvertor.convertBytesToSharedSecretKey(transportMasterKeyBytes);
 
         // Generate nonce
         byte[] nonceBytes = keyGenerator.generateRandomBytes(16);
@@ -185,7 +184,7 @@ public class VaultUnlockStep implements BaseStep {
                 ctrData = CounterUtil.getCtrData(model, stepLogger);
                 SecretKey vaultEncryptionKey = vault.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey, ctrData);
                 PrivateKey devicePrivateKey = vault.decryptDevicePrivateKey(encryptedDevicePrivateKeyBytes, vaultEncryptionKey);
-                PublicKey serverPublicKey = keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
+                PublicKey serverPublicKey = keyConvertor.convertBytesToPublicKey(serverPublicKeyBytes);
 
                 // Increment the counter
                 CounterUtil.incrementCounter(model);
@@ -204,9 +203,9 @@ public class VaultUnlockStep implements BaseStep {
                 Map<String, Object> objectMap = new HashMap<>();
                 objectMap.put("activationId", activationId);
                 objectMap.put("encryptedVaultEncryptionKey", BaseEncoding.base64().encode(encryptedVaultEncryptionKey));
-                objectMap.put("transportMasterKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(transportMasterKey)));
-                objectMap.put("vaultEncryptionKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(vaultEncryptionKey)));
-                objectMap.put("devicePrivateKey", BaseEncoding.base64().encode(keyConversion.convertPrivateKeyToBytes(devicePrivateKey)));
+                objectMap.put("transportMasterKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(transportMasterKey)));
+                objectMap.put("vaultEncryptionKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(vaultEncryptionKey)));
+                objectMap.put("devicePrivateKey", BaseEncoding.base64().encode(keyConvertor.convertPrivateKeyToBytes(devicePrivateKey)));
                 objectMap.put("privateKeyDecryptionSuccessful", (equal ? "true" : "false"));
 
                 if (stepLogger != null) {
