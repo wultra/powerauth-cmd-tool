@@ -18,7 +18,6 @@ package io.getlime.security.powerauth.app.cmd;
 
 import com.mashape.unirest.http.Unirest;
 import io.getlime.security.powerauth.app.cmd.exception.ExecutionException;
-import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.VerifySignatureStep;
@@ -30,7 +29,6 @@ import io.getlime.security.powerauth.lib.cmd.steps.v3.ConfirmRecoveryCodeStep;
 import io.getlime.security.powerauth.lib.cmd.steps.v3.StartUpgradeStep;
 import io.getlime.security.powerauth.lib.cmd.util.ConfigurationUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
-import io.getlime.security.powerauth.provider.CryptoProviderUtilFactory;
 import org.apache.commons.cli.*;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -74,7 +72,6 @@ public class Application {
 
             // Add Bouncy Castle Security Provider
             Security.addProvider(new BouncyCastleProvider());
-            PowerAuthConfiguration.INSTANCE.setKeyConvertor(CryptoProviderUtilFactory.getCryptoProviderUtils());
 
             // Configure REST client
             RestClientConfiguration.configure();
