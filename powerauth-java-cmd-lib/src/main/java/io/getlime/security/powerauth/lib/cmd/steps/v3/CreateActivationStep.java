@@ -37,6 +37,7 @@ import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.rest.api.model.entity.ActivationType;
+import io.getlime.security.powerauth.rest.api.model.entity.Platform;
 import io.getlime.security.powerauth.rest.api.model.request.v3.ActivationLayer1Request;
 import io.getlime.security.powerauth.rest.api.model.request.v3.ActivationLayer2Request;
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
@@ -130,6 +131,8 @@ public class CreateActivationStep implements BaseStep {
         ActivationLayer2Request requestL2 = new ActivationLayer2Request();
         requestL2.setActivationName(model.getActivationName());
         requestL2.setDevicePublicKey(devicePublicKeyBase64);
+        requestL2.setPlatform(Platform.UNKNOWN);
+        requestL2.setDeviceInfo(model.getDeviceInfo());
 
         // Encrypt request data using ECIES in application scope with sharedInfo1 = /pa/activation
         final boolean useIv = !"3.0".equals(model.getVersion());
