@@ -97,6 +97,8 @@ public class Application {
             options.addOption("r", "reason", true, "Reason why vault is being unlocked.");
             options.addOption("o", "scope", true, "ECIES encryption scope: 'application' or 'activation'.");
             options.addOption("R", "recovery-code", true, "Recovery code to be confirmed.");
+            options.addOption("P", "platform", true, "User device platform.");
+            options.addOption("D", "device-info", true, "Information about user device.");
             options.addOption("v", "version", true, "PowerAuth protocol version.");
 
             Option httpHeaderOption = Option.builder("H")
@@ -166,6 +168,20 @@ public class Application {
                     //
                 }
 
+            }
+
+            String platform;
+            if (cmd.hasOption("P")) {
+                platform = cmd.getOptionValue("P");
+            } else {
+                platform = "unknown";
+            }
+
+            String deviceInfo;
+            if (cmd.hasOption("D")) {
+                deviceInfo = cmd.getOptionValue("D");
+            } else {
+                deviceInfo = "cmd-tool";
             }
 
             // Read values
@@ -337,6 +353,8 @@ public class Application {
                     PrepareActivationStepModel model = new PrepareActivationStepModel();
                     model.setActivationCode(cmd.getOptionValue("a"));
                     model.setActivationName(ConfigurationUtil.getApplicationName(clientConfigObject));
+                    model.setPlatform(platform);
+                    model.setDeviceInfo(deviceInfo);
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
                     model.setHeaders(httpHeaders);
@@ -566,6 +584,8 @@ public class Application {
 
                     CreateActivationStepModel model = new CreateActivationStepModel();
                     model.setActivationName(ConfigurationUtil.getApplicationName(clientConfigObject));
+                    model.setPlatform(platform);
+                    model.setDeviceInfo(deviceInfo);
                     model.setActivationOtp(cmd.getOptionValue("a"));
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
@@ -812,6 +832,8 @@ public class Application {
 
                     ActivationRecoveryStepModel model = new ActivationRecoveryStepModel();
                     model.setActivationName(ConfigurationUtil.getApplicationName(clientConfigObject));
+                    model.setPlatform(platform);
+                    model.setDeviceInfo(deviceInfo);
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
                     model.setIdentityAttributes(identityAttributes);

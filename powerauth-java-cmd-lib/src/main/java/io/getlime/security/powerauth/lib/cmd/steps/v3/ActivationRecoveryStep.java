@@ -130,6 +130,8 @@ public class ActivationRecoveryStep implements BaseStep {
         ActivationLayer2Request requestL2 = new ActivationLayer2Request();
         requestL2.setActivationName(model.getActivationName());
         requestL2.setDevicePublicKey(devicePublicKeyBase64);
+        requestL2.setPlatform(model.getPlatform());
+        requestL2.setDeviceInfo(model.getDeviceInfo());
 
         // Encrypt request data using ECIES in application scope with sharedInfo1 = /pa/activation
         final boolean useIv = !"3.0".equals(model.getVersion());
