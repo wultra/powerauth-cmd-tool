@@ -30,6 +30,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
     private Map<String, Object> customAttributes;
     private String statusFileName;
     private String activationName;
+    private String platform;
     private String deviceInfo;
     private String applicationKey;
     private String applicationSecret;
@@ -105,6 +106,22 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
      */
     public void setActivationName(String activationName) {
         this.activationName = activationName;
+    }
+
+    /**
+     * Get user device platform.
+     * @return User device platform.
+     */
+    public String getPlatform() {
+        return platform;
+    }
+
+    /**
+     * Set user device platform.
+     * @param platform User device platform.
+     */
+    public void setPlatform(String platform) {
+        this.platform = platform;
     }
 
     /**
@@ -196,6 +213,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
         context.put("STATUS_FILENAME", statusFileName);
         context.put("PASSWORD", password);
         context.put("ACTIVATION_NAME", activationName);
+        context.put("PLATFORM", platform);
         context.put("DEVICE_INFO", deviceInfo);
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
@@ -212,6 +230,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
         setStatusFileName((String) context.get("STATUS_FILENAME"));
         setPassword((String) context.get("PASSWORD"));
         setActivationName((String) context.get("ACTIVATION_NAME"));
+        setPlatform((String) context.get("PLATFORM"));
         setDeviceInfo((String) context.get("DEVICE_INFO"));
         setApplicationKey((String) context.get("APPLICATION_KEY"));
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));

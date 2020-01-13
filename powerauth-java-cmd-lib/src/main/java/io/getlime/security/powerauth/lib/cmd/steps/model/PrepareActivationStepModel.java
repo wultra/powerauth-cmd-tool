@@ -29,6 +29,7 @@ public class PrepareActivationStepModel extends BaseStepModel {
     private String statusFileName;
     private String activationCode;
     private String activationName;
+    private String platform;
     private String deviceInfo;
     private String applicationKey;
     private String applicationSecret;
@@ -57,6 +58,14 @@ public class PrepareActivationStepModel extends BaseStepModel {
      */
     public void setActivationName(String activationName) {
         this.activationName = activationName;
+    }
+
+    /**
+     * Set user device platform.
+     * @param platform User device platform.
+     */
+    public void setPlatform(String platform) {
+        this.platform = platform;
     }
 
     /**
@@ -111,6 +120,10 @@ public class PrepareActivationStepModel extends BaseStepModel {
         return activationName;
     }
 
+    public String getPlatform() {
+        return platform;
+    }
+
     public String getDeviceInfo() {
         return deviceInfo;
     }
@@ -139,6 +152,7 @@ public class PrepareActivationStepModel extends BaseStepModel {
         context.put("ACTIVATION_CODE", activationCode);
         context.put("PASSWORD", password);
         context.put("ACTIVATION_NAME", activationName);
+        context.put("PLATFORM", platform);
         context.put("DEVICE_INFO", deviceInfo);
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
@@ -153,6 +167,7 @@ public class PrepareActivationStepModel extends BaseStepModel {
         setActivationCode((String) context.get("ACTIVATION_CODE"));
         setPassword((String) context.get("PASSWORD"));
         setActivationName((String) context.get("ACTIVATION_NAME"));
+        setPlatform((String) context.get("PLATFORM"));
         setDeviceInfo((String) context.get("DEVICE_INFO"));
         setApplicationKey((String) context.get("APPLICATION_KEY"));
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
