@@ -84,6 +84,7 @@ public class Application {
             options.addOption("c", "config-file", true, "Specifies a path to the config file with Base64 encoded server master public key, application ID and application secret.");
             options.addOption("s", "status-file", true, "Path to the file with the activation status, serving as the data persistence.");
             options.addOption("a", "activation-code", true, "In case a specified method is 'create', this field contains the activation key (a concatenation of a short activation ID and activation OTP).");
+            options.addOption("A", "activation-otp", true, "In case a specified method is 'create', this field contains additional activation OTP (PA server 0.24+)");
             options.addOption("t", "http-method", true, "In case a specified method is 'sign', this field specifies a HTTP method, as specified in PowerAuth signature process.");
             options.addOption("e", "endpoint", true, "In case a specified method is 'sign', this field specifies a URI identifier, as specified in PowerAuth signature process.");
             options.addOption("l", "signature-type", true, "In case a specified method is 'sign', this field specifies a signature type, as specified in PowerAuth signature process.");
@@ -352,6 +353,7 @@ public class Application {
 
                     PrepareActivationStepModel model = new PrepareActivationStepModel();
                     model.setActivationCode(cmd.getOptionValue("a"));
+                    model.setAdditionalActivationOtp(cmd.getOptionValue("A"));
                     model.setActivationName(ConfigurationUtil.getApplicationName(clientConfigObject));
                     model.setPlatform(platform);
                     model.setDeviceInfo(deviceInfo);

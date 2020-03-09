@@ -333,6 +333,8 @@ usage: java -jar powerauth-java-cmd.jar
  -a,--activation-code <arg>          In case a specified method is 'create', this field contains
                                      the activation key (a concatenation of a short activation ID
                                      and activation OTP).
+ -A,--activation-otp <arg>           In case a specified method is 'create', this field contains
+                                     additional activation OTP (PA server 0.24+)
  -c,--config-file <arg>              Specifies a path to the config file with Base64 encoded server
                                      master public key, application ID and application secret.
  -C,--custom-attributes-file <arg>   In case a specified method is 'create-custom', this field
