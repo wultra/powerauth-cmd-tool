@@ -203,11 +203,39 @@ public class ObjectStepLogger implements StepLogger {
     }
 
     /**
+     * Get first {@link StepItem} with given name.
+     * @param itemName Item name.
+     * @return First {@link StepItem} with given name or {@code null} if logger doesn't contain such item.
+     */
+    public StepItem getFirstItem(String itemName) {
+        for (StepItem item: items) {
+            if (item.getName().equals(itemName)) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Get step errors.
      * @return Step errors.
      */
     public List<StepError> getErrors() {
         return errors;
+    }
+
+    /**
+     * Get first {@link StepError} with given name.
+     * @param errorName Error name.
+     * @return First {@link StepError} with given name or {@code null} if logger doesn't contain such error.
+     */
+    public StepError getFirstError(String errorName) {
+        for (StepError error: errors) {
+            if (error.getName().equals(errorName)) {
+                return error;
+            }
+        }
+        return null;
     }
 
     /**
