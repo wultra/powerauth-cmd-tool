@@ -18,9 +18,6 @@ package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
@@ -38,6 +35,9 @@ import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepMode
 import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
@@ -55,6 +55,7 @@ import java.util.Scanner;
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
  *     <li>3.0</li>
+ *     <li>3.1</li>
  * </ul>
  *
  * @author Roman Strobl, roman.strobl@wultra.com
@@ -85,6 +86,7 @@ public class SignAndEncryptStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "sign-encrypt-start",
                     "Sign and Encrypt Request Started",
                     null,
                     "OK",
@@ -96,8 +98,8 @@ public class SignAndEncryptStep implements BaseStep {
         File dataFile = new File(model.getDataFileName());
         if (!dataFile.exists()) {
             if (stepLogger != null) {
-                stepLogger.writeError("Sign and Encrypt Request Failed", "File not found: " + model.getDataFileName());
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("sign-encrypt-error-file", "Sign and Encrypt Request Failed", "File not found: " + model.getDataFileName());
+                stepLogger.writeDoneFailed("sign-encrypt-failed");
             }
             return null;
         }
@@ -105,8 +107,8 @@ public class SignAndEncryptStep implements BaseStep {
         // Verify that HTTP method is set
         if (model.getHttpMethod() == null) {
             if (stepLogger != null) {
-                stepLogger.writeError("HTTP method not specified", "Specify HTTP method to use for sending request");
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("sign-encrypt-error-http-method", "HTTP method not specified", "Specify HTTP method to use for sending request");
+                stepLogger.writeDoneFailed("sign-encrypt-failed");
             }
             return null;
         }
@@ -114,8 +116,8 @@ public class SignAndEncryptStep implements BaseStep {
         // Verify HTTP method, only POST is supported
         if (!"POST".equals(model.getHttpMethod().toUpperCase())) {
             if (stepLogger != null) {
-                stepLogger.writeError("Sign and Encrypt Request Failed", "Unsupported HTTP method: "+model.getHttpMethod().toUpperCase());
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("sign-encrypt-error-http-method-invalid", "Sign and Encrypt Request Failed", "Unsupported HTTP method: "+model.getHttpMethod().toUpperCase());
+                stepLogger.writeDoneFailed("sign-encrypt-failed");
             }
             return null;
         }
@@ -130,6 +132,7 @@ public class SignAndEncryptStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "sign-encrypt-request-prepare",
                     "Preparing Request Data",
                     "Following data will be encrypted",
                     "OK",
@@ -204,6 +207,7 @@ public class SignAndEncryptStep implements BaseStep {
             lowLevelData.put("activationId", activationId);
 
             stepLogger.writeItem(
+                    "sign-encrypt-signature-computed",
                     "Signature Calculation Parameters",
                     "Low level cryptographic inputs required to compute signature and keys used for data encryption.",
                     "OK",
@@ -229,6 +233,7 @@ public class SignAndEncryptStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "sign-encrypt-request-encrypt",
                     "Encrypting Request Data",
                     "Following data is sent to intermediate server",
                     "OK",
@@ -244,10 +249,10 @@ public class SignAndEncryptStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall(model.getUriString(), model.getHttpMethod().toUpperCase(), new String(dataFileBytes, StandardCharsets.UTF_8), headers);
+                stepLogger.writeServerCall("sign-encrypt-request-sent", model.getUriString(), model.getHttpMethod().toUpperCase(), new String(dataFileBytes, StandardCharsets.UTF_8), headers);
             }
 
-            HttpResponse response = Unirest.post(model.getUriString())
+            HttpResponse<String> response = Unirest.post(model.getUriString())
                         .headers(headers)
                         .body(requestBytes)
                         .asString();
@@ -255,10 +260,10 @@ public class SignAndEncryptStep implements BaseStep {
             if (response.getStatus() == 200) {
                 EciesEncryptedResponse encryptedResponse = RestClientConfiguration
                         .defaultMapper()
-                        .readValue(response.getRawBody(), EciesEncryptedResponse.class);
+                        .readValue(response.getBody(), EciesEncryptedResponse.class);
 
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK(encryptedResponse, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeServerCallOK("sign-encrypt-response-received", encryptedResponse, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
 
                 byte[] macResponse = BaseEncoding.base64().decode(encryptedResponse.getMac());
@@ -272,31 +277,32 @@ public class SignAndEncryptStep implements BaseStep {
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "sign-encrypt-response-decrypted",
                             "Decrypted Response",
                             "Following data were decrypted",
                             "OK",
                             decryptedMessage
                     );
-                    stepLogger.writeDoneOK();
+                    stepLogger.writeDoneOK("sign-encrypt-success");
                 }
                 return model.getResultStatusObject();
             } else {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                    stepLogger.writeDoneFailed();
+                    stepLogger.writeServerCallError("sign-encrypt-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeDoneFailed("sign-encrypt-failed");
                 }
                 return null;
             }
         } catch (UnirestException exception) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeServerCallConnectionError("sign-encrypt-error-connection", exception);
+                stepLogger.writeDoneFailed("sign-encrypt-failed");
             }
             return null;
         } catch (Exception exception) {
             if (stepLogger != null) {
-                stepLogger.writeError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("sign-encrypt-error-generic", exception);
+                stepLogger.writeDoneFailed("sign-encrypt-failed");
             }
             return null;
         }

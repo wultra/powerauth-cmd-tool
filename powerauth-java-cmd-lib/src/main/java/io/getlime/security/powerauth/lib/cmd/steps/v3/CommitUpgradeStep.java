@@ -17,9 +17,6 @@ package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import io.getlime.core.rest.model.base.response.Response;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureFormat;
@@ -35,6 +32,9 @@ import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.JsonUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
@@ -50,6 +50,7 @@ import java.util.Map;
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
  *      <li>3.0</li>
+ *      <li>3.1</li>
  * </ul>
  *
  * @author Roman Strobl, roman.strobl@wultra.com
@@ -76,6 +77,7 @@ public class CommitUpgradeStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "upgrade-commit-start",
                     "Upgrade Commit Started",
                     null,
                     "OK",
@@ -117,19 +119,19 @@ public class CommitUpgradeStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall(uri, "POST", request, headers);
+                stepLogger.writeServerCall("upgrade-commit-request-sent", uri, "POST", request, headers);
             }
 
-            HttpResponse response = Unirest.post(uri)
+            HttpResponse<String> response = Unirest.post(uri)
                     .headers(headers)
                     .body(requestBytes)
                     .asString();
 
             if (response.getStatus() == 200) {
-                Response commitResponse = mapper.readValue(response.getRawBody(), Response.class);
+                Response commitResponse = mapper.readValue(response.getBody(), Response.class);
 
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK(commitResponse, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeServerCallOK("upgrade-commit-response-received", commitResponse, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
 
                 // Increment the counter (the signature already used hash based counter)
@@ -143,13 +145,14 @@ public class CommitUpgradeStep implements BaseStep {
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "upgrade-commit-upgrade-done",
                             "Upgrade commit successfully completed",
                             "Upgrade commit was successfully completed",
                             "OK",
                             null
 
                     );
-                    stepLogger.writeDoneOK();
+                    stepLogger.writeDoneOK("upgrade-commit-success");
                 }
 
                 return model.getResultStatusObject();
@@ -158,21 +161,21 @@ public class CommitUpgradeStep implements BaseStep {
                 model.getResultStatusObject().put("version", 2L);
 
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                    stepLogger.writeDoneFailed();
+                    stepLogger.writeServerCallError("upgrade-commit-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeDoneFailed("upgrade-commit-failed");
                 }
                 return null;
             }
         } catch (UnirestException exception) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeServerCallConnectionError("upgrade-commit-error-connection", exception);
+                stepLogger.writeDoneFailed("upgrade-commit-failed");
             }
             return null;
         } catch (Exception exception) {
             if (stepLogger != null) {
-                stepLogger.writeError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("upgrade-commit-error-generic", exception);
+                stepLogger.writeDoneFailed("upgrade-commit-failed");
             }
             return null;
         }

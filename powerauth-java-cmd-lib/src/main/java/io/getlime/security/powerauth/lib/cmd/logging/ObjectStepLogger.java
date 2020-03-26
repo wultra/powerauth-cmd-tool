@@ -39,7 +39,7 @@ public class ObjectStepLogger implements StepLogger {
     private StepResult result;
 
     // Optional output stream for logging
-    private OutputStream out;
+    private final OutputStream out;
 
     /**
      * Default constructor with no logging.
@@ -63,11 +63,19 @@ public class ObjectStepLogger implements StepLogger {
         // Nothing to do
     }
 
+    /**
+     * Writes an object representing the step of the execution.
+     * @param id Step ID.
+     * @param name Step name.
+     * @param description Step detailed description.
+     * @param status Step status result.
+     * @param object Custom object associated with the step.
+     */
     @Override
-    public void writeItem(String name, String description, String status, Object object) {
-        items.add(new StepItem(name, description, status, object));
+    public void writeItem(String id, String name, String description, String status, Object object) {
+        items.add(new StepItem(id, name, description, status, object));
         if (out != null) {
-            String output = status + ": " + name + (description == null ? "" : " - " + description) + "\n";
+            String output = status + ": " + id + " => " + name + (description == null ? "" : " - " + description) + "\n";
             try {
                 out.write(output.getBytes());
             } catch (IOException e) {
@@ -78,13 +86,14 @@ public class ObjectStepLogger implements StepLogger {
 
     /**
      * Write the information about the server call. Uses "writeItem" method under the hood.
+     * @param id Step ID.
      * @param uri URI that will be called.
      * @param method HTTP method of the call.
      * @param requestObject Request object, in case of the POST, PUT, DELETE method.
      * @param headers HTTP request headers.
      */
     @Override
-    public void writeServerCall(String uri, String method, Object requestObject, Map<String, ?> headers) {
+    public void writeServerCall(String id, String uri, String method, Object requestObject, Map<String, ?> headers) {
         if (request != null) {
             throw new IllegalStateException("Only one request per step is supported");
         }
@@ -97,15 +106,16 @@ public class ObjectStepLogger implements StepLogger {
         String name = "Sending Request";
         String desc = "Calling PowerAuth Standard RESTful API endpoint";
         String status = "OK";
-        writeItem(name, desc, status, map);
+        writeItem(id, name, desc, status, map);
     }
 
     /**
      * Write information about the successful server request. Uses "writeItem" method under the hood.
+     * @param id Step ID.
      * @param responseObject HTTP response object.
      * @param headers HTTP response headers.
      */
-    @Override public void writeServerCallOK(Object responseObject, Map<String, ?> headers) {
+    @Override public void writeServerCallOK(String id, Object responseObject, Map<String, ?> headers) {
         if (response != null) {
             throw new IllegalStateException("Only one response per step is supported");
         }
@@ -116,11 +126,18 @@ public class ObjectStepLogger implements StepLogger {
         Map<String, Object> map = new HashMap<>();
         map.put("responseObject", responseObject);
         map.put("responseHeaders", headers);
-        writeItem(name, desc, status, map);
+        writeItem(id, name, desc, status, map);
     }
 
+    /**
+     * Write information about the service call error.
+     * @param id Step ID.
+     * @param statusCode HTTP response status code.
+     * @param responseObject HTTP response object.
+     * @param headers HTTP response headers.
+     */
     @Override
-    public void writeServerCallError(int statusCode, Object responseObject, Map<String, ?> headers) {
+    public void writeServerCallError(String id, int statusCode, Object responseObject, Map<String, ?> headers) {
         if (response != null) {
             throw new IllegalStateException("Only one response per step is supported");
         }
@@ -131,7 +148,7 @@ public class ObjectStepLogger implements StepLogger {
         Map<String, Object> map = new HashMap<>();
         map.put("responseObject", responseObject);
         map.put("responseHeaders", headers);
-        writeItem(name, desc, status, map);
+        writeItem(id, name, desc, status, map);
     }
 
     @Override
@@ -139,51 +156,87 @@ public class ObjectStepLogger implements StepLogger {
         // Nothing to do
     }
 
+    /**
+     * Write information about service call network connection error.
+     * @param id Step ID.
+     * @param e Exception that caused the error.
+     */
     @Override
-    public void writeServerCallConnectionError(Exception e) {
-        writeError("Connection Error", e.getMessage(), e);
+    public void writeServerCallConnectionError(String id, Exception e) {
+        writeError(id, "Connection Error", e.getMessage(), e);
     }
 
+    /**
+     * Write information about an error.
+     * @param id Step ID.
+     * @param errorMessage Error message.
+     */
     @Override
-    public void writeError(String errorMessage) {
-        writeError(null, errorMessage, null);
+    public void writeError(String id, String errorMessage) {
+        writeError(id, null, errorMessage, null);
     }
 
+    /**
+     * Write information about an error.
+     * @param id Step ID.
+     * @param exception Exception that caused the error.
+     */
     @Override
-    public void writeError(Exception exception) {
-        writeError(null, exception.getMessage(), exception);
+    public void writeError(String id, Exception exception) {
+        writeError(id, null, exception.getMessage(), exception);
     }
 
+    /**
+     * Write information about an error.
+     * @param id Step ID.
+     * @param name Error item name.
+     * @param errorMessage Error message.
+     */
     @Override
-    public void writeError(String name, String errorMessage) {
-        writeError(name, errorMessage, null);
+    public void writeError(String id, String name, String errorMessage) {
+        writeError(id, name, errorMessage, null);
     }
 
+    /**
+     * Write information about an error.
+     * @param id Step ID.
+     * @param name Error item name.
+     * @param errorMessage Error message.
+     * @param exception Exception that caused the error.
+     */
     @Override
-    public void writeError(String name, String errorMessage, Exception exception) {
+    public void writeError(String id, String name, String errorMessage, Exception exception) {
         errors.add(new StepError(name, errorMessage, exception));
         String status = "ERROR";
-        writeItem(name, errorMessage, status, exception);
+        writeItem(id, name, errorMessage, status, exception);
     }
 
+    /**
+     * Write information about a successful completion.
+     * @param id Step ID.
+     */
     @Override
-    public void writeDoneOK() {
+    public void writeDoneOK(String id) {
         if (result != null) {
             throw new IllegalStateException("Only one result per step is supported");
         }
         if (!errors.isEmpty()) {
-            writeDoneFailed();
+            writeDoneFailed(id + "-with-errors");
             return;
         }
         result = new StepResult(true);
         String name = "Done";
         String desc = "Execution has successfully finished";
         String status = "DONE";
-        writeItem(name, desc, status, null);
+        writeItem(id, name, desc, status, null);
     }
 
+    /**
+     * Write error about a failed execution.
+     * @param id Step ID.
+     */
     @Override
-    public void writeDoneFailed() {
+    public void writeDoneFailed(String id) {
         if (result != null) {
             throw new IllegalStateException("Only one result per step is supported");
         }
@@ -191,7 +244,7 @@ public class ObjectStepLogger implements StepLogger {
         String name = "Done";
         String desc = "Execution has failed";
         String status = "FAILED";
-        writeItem(name, desc, status, null);
+        writeItem(id, name, desc, status, null);
     }
 
     /**

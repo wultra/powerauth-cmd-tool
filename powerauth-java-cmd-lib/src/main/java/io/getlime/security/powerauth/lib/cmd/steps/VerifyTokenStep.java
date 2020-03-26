@@ -18,18 +18,18 @@ package io.getlime.security.powerauth.lib.cmd.steps;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.io.BaseEncoding;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
-import io.getlime.core.rest.model.base.response.Response;
 import io.getlime.security.powerauth.crypto.client.token.ClientTokenGenerator;
 import io.getlime.security.powerauth.http.PowerAuthTokenHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifyTokenStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -43,6 +43,7 @@ import java.util.Map;
  *     <li>2.0</li>
  *     <li>2.1</li>
  *     <li>3.0</li>
+ *     <li>3.1</li>
  * </ul>
  *
  * @author Petr Dvorak, petr@wultra.com
@@ -61,6 +62,7 @@ public class VerifyTokenStep implements BaseStep {
             map.put("TOKEN_ID", model.getTokenId());
             map.put("TOKEN_SECRET", model.getTokenSecret());
             stepLogger.writeItem(
+                    "token-validate-start",
                     "Token Digest Validation Started",
                     null,
                     "OK",
@@ -80,14 +82,14 @@ public class VerifyTokenStep implements BaseStep {
                 tokenId,
                 BaseEncoding.base64().encode(tokenDigest),
                 BaseEncoding.base64().encode(tokenNonce),
-                new String(tokenTimestamp, "UTF-8"),
+                new String(tokenTimestamp, StandardCharsets.UTF_8),
                 model.getVersion()
         ).buildHttpHeader();
 
         if (model.getHttpMethod() == null) {
             if (stepLogger != null) {
-                stepLogger.writeError("HTTP method not specified", "Specify HTTP method to use for sending request");
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("token-validate-error-http-method", "HTTP method not specified", "Specify HTTP method to use for sending request");
+                stepLogger.writeDoneFailed("token-validate-failed");
             }
             return null;
         }
@@ -102,6 +104,7 @@ public class VerifyTokenStep implements BaseStep {
                 dataFileBytes = new byte[0];
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "token-validate-warning-empty-data",
                             "Empty data",
                             "Data file was not found, signature will contain no data",
                             "WARNING",
@@ -121,59 +124,80 @@ public class VerifyTokenStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall(model.getUriString(), model.getHttpMethod().toUpperCase(), dataFileBytes != null ? new String(dataFileBytes, "UTF-8") : null, headers);
+                stepLogger.writeServerCall("token-validate-request-sent", model.getUriString(), model.getHttpMethod().toUpperCase(), dataFileBytes != null ? new String(dataFileBytes, StandardCharsets.UTF_8) : null, headers);
             }
 
-            HttpResponse response;
-            if ("GET".equals(model.getHttpMethod().toUpperCase())) {
-                response = Unirest.get(model.getUriString())
-                        .headers(headers)
-                        .asString();
+            if (!model.isDryRun()) {
+
+                HttpResponse<String> response;
+                if ("GET".equals(model.getHttpMethod().toUpperCase())) {
+                    response = Unirest.get(model.getUriString())
+                            .headers(headers)
+                            .asString();
+                } else {
+                    response = Unirest.post(model.getUriString())
+                            .headers(headers)
+                            .body(dataFileBytes)
+                            .asString();
+                }
+
+                if (response.getStatus() == 200) {
+                    TypeReference<Map<String, Object>> typeReference = new TypeReference<Map<String, Object>>() {
+                    };
+                    Map<String, Object> responseWrapper = RestClientConfiguration
+                            .defaultMapper()
+                            .readValue(response.getBody(), typeReference);
+
+                    if (stepLogger != null) {
+                        stepLogger.writeServerCallOK("token-validate-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+
+                        // Print the results
+                        stepLogger.writeItem(
+                                "token-validate-digest-verified",
+                                "Token digest verified",
+                                "Token based authentication was successful",
+                                "OK",
+                                null
+
+                        );
+
+                        stepLogger.writeDoneOK("token-validate-success");
+                    }
+                    return model.getResultStatusObject();
+                } else {
+                    if (stepLogger != null) {
+                        stepLogger.writeServerCallError("token-validate-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                        stepLogger.writeDoneFailed("token-validate-failed");
+                    }
+                    return null;
+                }
             } else {
-                response = Unirest.post(model.getUriString())
-                        .headers(headers)
-                        .body(dataFileBytes)
-                        .asString();
-            }
-
-            if (response.getStatus() == 200) {
-                TypeReference<Response> typeReference = new TypeReference<Response>() {};
-                Response responseWrapper = RestClientConfiguration
-                        .defaultMapper()
-                        .readValue(response.getRawBody(), typeReference);
-
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
 
                     // Print the results
                     stepLogger.writeItem(
-                            "Token digest verified",
-                            "Token based authentication was successful",
+                            "token-validate-token-computed",
+                            "Token value computed",
+                            "Token value header was computed successfully",
                             "OK",
                             null
 
                     );
 
-                    stepLogger.writeDoneOK();
+                    stepLogger.writeDoneOK("token-validate-success");
                 }
                 return model.getResultStatusObject();
-            } else {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                    stepLogger.writeDoneFailed();
-                }
-                return null;
             }
         } catch (UnirestException exception) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeServerCallConnectionError("token-validate-error-server-call", exception);
+                stepLogger.writeDoneFailed("token-validate-failed");
             }
             return null;
         } catch (Exception exception) {
             if (stepLogger != null) {
-                stepLogger.writeError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("token-validate-generic", exception);
+                stepLogger.writeDoneFailed("token-validate-failed");
             }
             return null;
         }

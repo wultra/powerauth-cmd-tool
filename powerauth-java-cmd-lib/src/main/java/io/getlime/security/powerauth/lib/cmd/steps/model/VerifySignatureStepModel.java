@@ -35,6 +35,7 @@ public class VerifySignatureStepModel extends BaseStepModel {
     private PowerAuthSignatureTypes signatureType;
     private String dataFileName;
     private String password;
+    private boolean dryRun;
 
     /**
      * File name of the file with stored activation status.
@@ -100,6 +101,14 @@ public class VerifySignatureStepModel extends BaseStepModel {
         this.password = password;
     }
 
+    /**
+     * Set flag indicating that this step should be terminated before the networking call.
+     * @return Dry run indicator.
+     */
+    public boolean isDryRun() {
+        return dryRun;
+    }
+
     public String getStatusFileName() {
         return statusFileName;
     }
@@ -132,6 +141,10 @@ public class VerifySignatureStepModel extends BaseStepModel {
         return password;
     }
 
+    public void setDryRun(boolean dryRun) {
+        this.dryRun = dryRun;
+    }
+
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> context = super.toMap();
@@ -143,6 +156,7 @@ public class VerifySignatureStepModel extends BaseStepModel {
         context.put("SIGNATURE_TYPE", signatureType.toString());
         context.put("DATA_FILE_NAME", dataFileName);
         context.put("PASSWORD", password);
+        context.put("DRY_RUN", dryRun);
         return context;
     }
 
@@ -157,5 +171,6 @@ public class VerifySignatureStepModel extends BaseStepModel {
         setSignatureType(PowerAuthSignatureTypes.getEnumFromString((String) context.get("SIGNATURE_TYPE")));
         setDataFileName((String) context.get("DATA_FILE_NAME"));
         setPassword((String) context.get("PASSWORD"));
+        setDryRun((boolean) context.get("DRY_RUN"));
     }
 }

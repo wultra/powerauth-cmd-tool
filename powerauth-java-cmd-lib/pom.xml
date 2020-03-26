@@ -19,7 +19,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.10.1</version>
+            <version>2.10.3</version>
         </dependency>
         <dependency>
             <groupId>commons-cli</groupId>
@@ -53,9 +53,9 @@
         </dependency>
 
         <dependency>
-            <groupId>com.mashape.unirest</groupId>
+            <groupId>com.konghq</groupId>
             <artifactId>unirest-java</artifactId>
-            <version>1.4.9</version>
+            <version>3.7.00</version>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>

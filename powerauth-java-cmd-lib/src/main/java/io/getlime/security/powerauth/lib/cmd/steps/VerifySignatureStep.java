@@ -19,9 +19,7 @@ package io.getlime.security.powerauth.lib.cmd.steps;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
+import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.core.rest.model.base.response.Response;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
@@ -33,6 +31,9 @@ import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.*;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
@@ -49,6 +50,7 @@ import java.util.Map;
  *     <li>2.0</li>
  *     <li>2.1</li>
  *     <li>3.0</li>
+ *     <li>3.1</li>
  * </ul>
  *
  * @author Petr Dvorak
@@ -77,6 +79,7 @@ public class VerifySignatureStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "signature-verify-start",
                     "Signature Validation Started",
                     null,
                     "OK",
@@ -130,6 +133,7 @@ public class VerifySignatureStep implements BaseStep {
             lowLevelData.put("applicationSecret", model.getApplicationSecret());
 
             stepLogger.writeItem(
+                    "signature-verify-prepare-request",
                     "Signature Calculation Parameters",
                     "Low level cryptographic inputs required to compute signature - mainly a signature base string and a counter value.",
                     "OK",
@@ -156,59 +160,81 @@ public class VerifySignatureStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall(model.getUriString(), model.getHttpMethod().toUpperCase(), new String(dataFileBytes, StandardCharsets.UTF_8), headers);
+                stepLogger.writeServerCall("signature-verify-request-sent", model.getUriString(), model.getHttpMethod().toUpperCase(), new String(dataFileBytes, StandardCharsets.UTF_8), headers);
             }
 
-            HttpResponse response;
-            if ("GET".equals(model.getHttpMethod().toUpperCase())) {
-                response = Unirest.get(model.getUriString())
-                        .headers(headers)
-                        .asString();
+            if (!model.isDryRun()) {
+
+                HttpResponse<String> response;
+                if ("GET".equals(model.getHttpMethod().toUpperCase())) {
+                    response = Unirest.get(model.getUriString())
+                            .headers(headers)
+                            .asString();
+                } else {
+                    response = Unirest.post(model.getUriString())
+                            .headers(headers)
+                            .body(dataFileBytes)
+                            .asString();
+                }
+
+                if (response.getStatus() == 200) {
+                    TypeReference<ObjectResponse<Map<String, Object>>> typeReference = new TypeReference<ObjectResponse<Map<String, Object>>>() {
+                    };
+                    Response responseWrapper = RestClientConfiguration
+                            .defaultMapper()
+                            .readValue(response.getBody(), typeReference);
+
+                    if (stepLogger != null) {
+                        stepLogger.writeServerCallOK("signature-verify-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+
+                        // Print the results
+                        stepLogger.writeItem(
+                                "signature-verify-signature-verified",
+                                "Signature verified",
+                                "Activation signature was verified successfully",
+                                "OK",
+                                null
+
+                        );
+
+                        stepLogger.writeDoneOK("signature-verify-success");
+                    }
+                    return model.getResultStatusObject();
+                } else {
+                    if (stepLogger != null) {
+                        stepLogger.writeServerCallError("signature-verify-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                        stepLogger.writeDoneFailed("signature-verify-failed");
+                    }
+                    return null;
+                }
+
             } else {
-                response = Unirest.post(model.getUriString())
-                        .headers(headers)
-                        .body(dataFileBytes)
-                        .asString();
-            }
-
-            if (response.getStatus() == 200) {
-                TypeReference<Response> typeReference = new TypeReference<Response>() {};
-                Response responseWrapper = RestClientConfiguration
-                        .defaultMapper()
-                        .readValue(response.getRawBody(), typeReference);
-
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
 
                     // Print the results
                     stepLogger.writeItem(
-                            "Signature verified",
-                            "Activation signature was verified successfully",
+                            "signature-verify-signature-computed",
+                            "Signature computed",
+                            "Activation signature header was computed successfully",
                             "OK",
                             null
 
                     );
 
-                    stepLogger.writeDoneOK();
+                    stepLogger.writeDoneOK("signature-verify-success");
                 }
                 return model.getResultStatusObject();
-            } else {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                    stepLogger.writeDoneFailed();
-                }
-                return null;
             }
         } catch (UnirestException exception) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeServerCallConnectionError("signature-verify-error-connection", exception);
+                stepLogger.writeDoneFailed("signature-verify-failed");
             }
             return null;
         } catch (Exception exception) {
             if (stepLogger != null) {
-                stepLogger.writeError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("signature-verify-error-generic", exception);
+                stepLogger.writeDoneFailed("signature-verify-failed");
             }
             return null;
         }
