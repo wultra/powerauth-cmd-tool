@@ -28,6 +28,7 @@ public class PrepareActivationStepModel extends BaseStepModel {
 
     private String statusFileName;
     private String activationCode;
+    private String additionalActivationOtp;
     private String activationName;
     private String platform;
     private String deviceInfo;
@@ -101,6 +102,14 @@ public class PrepareActivationStepModel extends BaseStepModel {
     }
 
     /**
+     * Additional activation OTP, supported by PowerAuth Server {@code 0.24+}.
+     * @param additionalActivationOtp Additional activation OTP.
+     */
+    public void setAdditionalActivationOtp(String additionalActivationOtp) {
+        this.additionalActivationOtp = additionalActivationOtp;
+    }
+
+    /**
      * Password for the password related key encryption.
      * @param password Password.
      */
@@ -114,6 +123,10 @@ public class PrepareActivationStepModel extends BaseStepModel {
 
     public String getActivationCode() {
         return activationCode;
+    }
+
+    public String getAdditionalActivationOtp() {
+        return additionalActivationOtp;
     }
 
     public String getActivationName() {
@@ -150,6 +163,7 @@ public class PrepareActivationStepModel extends BaseStepModel {
         context.put("MASTER_PUBLIC_KEY", masterPublicKey);
         context.put("STATUS_FILENAME", statusFileName);
         context.put("ACTIVATION_CODE", activationCode);
+        context.put("ADDITIONAL_ACTIVATION_OTP", additionalActivationOtp);
         context.put("PASSWORD", password);
         context.put("ACTIVATION_NAME", activationName);
         context.put("PLATFORM", platform);
@@ -165,6 +179,7 @@ public class PrepareActivationStepModel extends BaseStepModel {
         setMasterPublicKey((PublicKey) context.get("MASTER_PUBLIC_KEY"));
         setStatusFileName((String) context.get("STATUS_FILENAME"));
         setActivationCode((String) context.get("ACTIVATION_CODE"));
+        setAdditionalActivationOtp((String) context.get("ADDITIONAL_ACTIVATION_OTP"));
         setPassword((String) context.get("PASSWORD"));
         setActivationName((String) context.get("ACTIVATION_NAME"));
         setPlatform((String) context.get("PLATFORM"));

@@ -147,6 +147,7 @@ public class PrepareActivationStep implements BaseStep {
         requestL2.setDevicePublicKey(devicePublicKeyBase64);
         requestL2.setPlatform(model.getPlatform());
         requestL2.setDeviceInfo(model.getDeviceInfo());
+        requestL2.setActivationOtp(model.getAdditionalActivationOtp());
 
         // Encrypt request data using ECIES in application scope with sharedInfo1 = /pa/activation
         final boolean useIv = !"3.0".equals(model.getVersion());
