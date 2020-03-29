@@ -223,7 +223,7 @@ java -jar powerauth-java-cmd.jar \
     --method "remove-token" \
     --signature-type "possession_knowledge" \
     --password "1234" \
-    --token-id "66b8b981-a89d-4fc2-bd49-1c05f937a6f2" \
+    --token-id "66b8b981-a89d-4fc2-bd49-1c05f937a6f2"
 ```
 
 Uses the `remove-token` method to remove a previously created token for an activation with activation ID stored in the status file `/tmp/pa_status.json`, by calling the PowerAuth Standard RESTful API endpoint `/pa/v3/token/remove` hosted on root URL `http://localhost:8080/powerauth-restful-server`. Uses the application identifiers stored in the `/tmp/pamk.json` file to create the request signature. Unlocks the knowledge related signing key using `1234` as a password. 

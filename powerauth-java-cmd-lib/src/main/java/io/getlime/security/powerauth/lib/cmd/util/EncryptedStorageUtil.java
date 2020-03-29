@@ -54,8 +54,7 @@ public class EncryptedStorageUtil {
         AESEncryptionUtils aes = new AESEncryptionUtils();
         byte[] signatureKnowledgeSecretKeyBytes = keyConvertor.convertSharedSecretKeyToBytes(signatureKnowledgeSecretKey);
         byte[] iv = new byte[16];
-        byte[] cSignatureKnowledgeSecretKey = aes.encrypt(signatureKnowledgeSecretKeyBytes, iv, encryptionSignatureKnowledgeKey, "AES/CBC/NoPadding");
-        return cSignatureKnowledgeSecretKey;
+        return aes.encrypt(signatureKnowledgeSecretKeyBytes, iv, encryptionSignatureKnowledgeKey, "AES/CBC/NoPadding");
     }
 
     /**

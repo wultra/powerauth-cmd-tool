@@ -55,6 +55,7 @@ public class CounterUtil {
             default:
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "generic-error-version",
                             "Unsupported version",
                             "The version you specified is not supported",
                             "ERROR",

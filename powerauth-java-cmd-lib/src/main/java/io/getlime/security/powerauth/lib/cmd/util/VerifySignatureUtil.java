@@ -33,6 +33,7 @@ public class VerifySignatureUtil {
                 dataFileBytes = canonizedQuery.getBytes(StandardCharsets.UTF_8);
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "signature-verify-normalize-data",
                             "Normalized GET data",
                             "GET query data were normalized into the canonical string.",
                             "OK",
@@ -43,6 +44,7 @@ public class VerifySignatureUtil {
                 dataFileBytes = new byte[0];
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "signature-verify-empty-data",
                             "Empty data",
                             "No GET query parameters found in provided URL, signature will contain no data",
                             "WARNING",
@@ -56,6 +58,7 @@ public class VerifySignatureUtil {
                 dataFileBytes = Files.readAllBytes(Paths.get(model.getDataFileName()));
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "signature-verify-request-payload",
                             "Request payload",
                             "Data from the request payload file, used as the POST / DELETE / ... method body, encoded as Base64.",
                             "OK",
@@ -66,6 +69,7 @@ public class VerifySignatureUtil {
                 dataFileBytes = new byte[0];
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "signature-verify-empty-data",
                             "Empty data",
                             "Data file was not found, signature will contain no data",
                             "WARNING",

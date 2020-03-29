@@ -17,9 +17,6 @@
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.google.common.io.BaseEncoding;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
@@ -34,6 +31,9 @@ import io.getlime.security.powerauth.lib.cmd.util.JsonUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
 
 import java.io.File;
@@ -49,6 +49,7 @@ import java.util.Scanner;
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
  *     <li>3.0</li>
+ *     <li>3.1</li>
  * </ul>
  *
  * @author Roman Strobl, roman.strobl@wultra.com
@@ -75,6 +76,7 @@ public class EncryptStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "encrypt-started",
                     "Encrypt Request Started",
                     null,
                     "OK",
@@ -89,8 +91,8 @@ public class EncryptStep implements BaseStep {
         File dataFile = new File(model.getDataFileName());
         if (!dataFile.exists()) {
             if (stepLogger != null) {
-                stepLogger.writeError("Encrypt Request Failed", "File not found: " + model.getDataFileName());
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("encrypt-error-file", "Encrypt Request Failed", "File not found: " + model.getDataFileName());
+                stepLogger.writeDoneFailed("encrypt-failed");
             }
             return null;
         }
@@ -105,6 +107,7 @@ public class EncryptStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "encrypt-request-encrypt",
                     "Preparing Request Data",
                     "Following data will be encrypted",
                     "OK",
@@ -137,8 +140,8 @@ public class EncryptStep implements BaseStep {
 
             default:
                 if (stepLogger != null) {
-                    stepLogger.writeError("Encrypt Request Failed", "Unsupported encryption scope: " + model.getScope());
-                    stepLogger.writeDoneFailed();
+                    stepLogger.writeError("encrypt-error-scope", "Encrypt Request Failed", "Unsupported encryption scope: " + model.getScope());
+                    stepLogger.writeDoneFailed("encrypt-failed");
                 }
                 return null;
         }
@@ -162,6 +165,7 @@ public class EncryptStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "encrypt-request-encrypt",
                     "Encrypting Request Data",
                     "Following data is sent to intermediate server",
                     "OK",
@@ -177,7 +181,12 @@ public class EncryptStep implements BaseStep {
             headers.put(PowerAuthEncryptionHttpHeader.HEADER_NAME, httpEncryptionHeader);
             headers.putAll(model.getHeaders());
 
-            HttpResponse response = Unirest.post(uri)
+            if (stepLogger != null) {
+                stepLogger.writeServerCall("encrypt-request-sent", uri, "POST", request, headers);
+            }
+
+
+            HttpResponse<String> response = Unirest.post(uri)
                     .headers(headers)
                     .body(requestBytes)
                     .asString();
@@ -185,10 +194,10 @@ public class EncryptStep implements BaseStep {
             if (response.getStatus() == 200) {
                 EciesEncryptedResponse encryptedResponse = RestClientConfiguration
                         .defaultMapper()
-                        .readValue(response.getRawBody(), EciesEncryptedResponse.class);
+                        .readValue(response.getBody(), EciesEncryptedResponse.class);
 
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK(encryptedResponse, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeServerCallOK("encrypt-response-received", encryptedResponse, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
 
                 byte[] macResponse = BaseEncoding.base64().decode(encryptedResponse.getMac());
@@ -202,31 +211,32 @@ public class EncryptStep implements BaseStep {
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "encrypt-response-decrypt",
                             "Decrypted Response",
                             "Following data were decrypted",
                             "OK",
                             decryptedMessage
                     );
-                    stepLogger.writeDoneOK();
+                    stepLogger.writeDoneOK("encrypt-success");
                 }
                 return model.getResultStatusObject();
             } else {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                    stepLogger.writeDoneFailed();
+                    stepLogger.writeServerCallError("encrypt-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeDoneFailed("encrypt-failed");
                 }
                 return null;
             }
         } catch (UnirestException exception) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeServerCallConnectionError("encrypt-error-connection", exception);
+                stepLogger.writeDoneFailed("encrypt-failed");
             }
             return null;
         } catch (Exception exception) {
             if (stepLogger != null) {
-                stepLogger.writeError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("encrypt-error-generic", exception);
+                stepLogger.writeDoneFailed("encrypt-failed");
             }
             return null;
         }

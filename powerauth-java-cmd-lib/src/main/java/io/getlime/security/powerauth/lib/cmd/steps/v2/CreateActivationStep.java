@@ -3,9 +3,6 @@ package io.getlime.security.powerauth.lib.cmd.steps.v2;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
@@ -26,6 +23,9 @@ import io.getlime.security.powerauth.rest.api.model.entity.NonPersonalizedEncryp
 import io.getlime.security.powerauth.rest.api.model.request.v2.ActivationCreateCustomRequest;
 import io.getlime.security.powerauth.rest.api.model.request.v2.ActivationCreateRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v2.ActivationCreateResponse;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
@@ -66,6 +66,7 @@ public class CreateActivationStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "create-activation-start",
                     "Activation With Custom Attributes Started",
                     null,
                     "OK",
@@ -80,6 +81,7 @@ public class CreateActivationStep implements BaseStep {
         Map<String, String> identityAttributes = model.getIdentityAttributes();
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "activation-create-custom-identity-attributes",
                     "Identity Attributes",
                     "Following attributes are used to authenticate user",
                     "OK",
@@ -90,6 +92,7 @@ public class CreateActivationStep implements BaseStep {
         Map<String, Object> customAttributes = model.getCustomAttributes();
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "activation-create-custom-custom-attributes",
                     "Custom Attributes",
                     "Following attributes are used as custom attributes for the request",
                     "OK",
@@ -104,6 +107,7 @@ public class CreateActivationStep implements BaseStep {
         }
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "activation-create-custom-activation-otp-use",
                     "Using activation OTP",
                     "Following string is used as activation OTP ('00000-00000' is used by default)'",
                     "OK",
@@ -127,21 +131,22 @@ public class CreateActivationStep implements BaseStep {
             if (activationIdShort == null) {
                 if (stepLogger != null) {
                     String message = "Failed to extract parameters from query string - exiting.";
-                    stepLogger.writeError(message);
-                    stepLogger.writeDoneFailed();
+                    stepLogger.writeError("activation-create-custom-error-query-string", message);
+                    stepLogger.writeDoneFailed("activation-create-custom-failed");
                 }
                 return null;
             }
         } else {
             if (stepLogger != null) {
                 String message = "No identity attributes were provided - exiting.";
-                stepLogger.writeError(message);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("activation-create-custom-error-identity-attributes", message);
+                stepLogger.writeDoneFailed("activation-create-custom-failed");
             }
             return null;
         }
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "activation-create-custom-identity-string",
                     "Building identity string",
                     "Using following normalized identity string",
                     "OK",
@@ -189,6 +194,7 @@ public class CreateActivationStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "activation-create-custom-request-prepare",
                     "Building activation request object",
                     "Following activation attributes will be encrypted and sent to the server",
                     "OK",
@@ -219,6 +225,7 @@ public class CreateActivationStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "activation-create-custom-request-encrypt",
                     "Encrypting request object",
                     "Following encrypted object is used for activation",
                     "OK",
@@ -235,10 +242,10 @@ public class CreateActivationStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall(uri, "POST", requestObject, headers);
+                stepLogger.writeServerCall("activation-create-custom-request-sent", uri, "POST", requestObject, headers);
             }
 
-            HttpResponse response = Unirest.post(uri)
+            HttpResponse<String> response = Unirest.post(uri)
                     .headers(headers)
                     .body(body)
                     .asString();
@@ -247,10 +254,10 @@ public class CreateActivationStep implements BaseStep {
                 TypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>> typeReference = new TypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>>() {};
                 ObjectResponse<NonPersonalizedEncryptedPayloadModel> responseWrapper = RestClientConfiguration
                         .defaultMapper()
-                        .readValue(response.getRawBody(), typeReference);
+                        .readValue(response.getBody(), typeReference);
 
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeServerCallOK("activation-create-custom-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
 
                 // Decrypt the server response
@@ -268,6 +275,7 @@ public class CreateActivationStep implements BaseStep {
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "activation-create-custom-response-decrypt",
                             "Decrypted response",
                             "Following activation data were decrypted",
                             "OK",
@@ -342,12 +350,13 @@ public class CreateActivationStep implements BaseStep {
                     objectMap.put("deviceKeyFingerprint", activation.computeActivationFingerprint(deviceKeyPair.getPublic()));
                     if (stepLogger != null) {
                         stepLogger.writeItem(
+                                "activation-create-custom-activation-done",
                                 "Activation Done",
                                 "Public key exchange was successfully completed, commit the activation on server if required",
                                 "OK",
                                 objectMap
                         );
-                        stepLogger.writeDoneOK();
+                        stepLogger.writeDoneOK("activation-create-custom-success");
                     }
 
                     return model.getResultStatusObject();
@@ -355,29 +364,29 @@ public class CreateActivationStep implements BaseStep {
                 } else {
                     if (stepLogger != null) {
                         String message = "Activation data signature does not match. Either someone tried to spoof your connection, or your device master key is invalid.";
-                        stepLogger.writeError(message);
-                        stepLogger.writeDoneFailed();
+                        stepLogger.writeError("activation-create-custom-error-signature-data", message);
+                        stepLogger.writeDoneFailed("activation-create-custom-failed");
                     }
                     return null;
                 }
             } else {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                    stepLogger.writeDoneFailed();
+                    stepLogger.writeServerCallError("activation-create-custom-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeDoneFailed("activation-create-custom-failed");
                 }
                 return null;
             }
 
         } catch (UnirestException exception) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeServerCallConnectionError("activation-create-custom-error-unirest", exception);
+                stepLogger.writeDoneFailed("activation-create-custom-failed");
             }
             return null;
         } catch (Exception exception) {
             if (stepLogger != null) {
-                stepLogger.writeError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("activation-create-custom-error-generic", exception);
+                stepLogger.writeDoneFailed("activation-create-custom-failed");
             }
             return null;
         }

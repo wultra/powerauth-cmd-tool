@@ -83,21 +83,21 @@ public class ConfigurationUtil {
                 byte[] masterKeyBytes = BaseEncoding.base64().decode((String) clientConfigObject.get("masterPublicKey"));
                 return keyConvertor.convertBytesToPublicKey(masterKeyBytes);
             } catch (IllegalArgumentException e) {
-                stepLogger.writeError("Invalid Master Server Public Key", "Master Server Public Key must be stored in a valid Base64 encoding", e);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("master-key-error-encoding", "Invalid Master Server Public Key", "Master Server Public Key must be stored in a valid Base64 encoding", e);
+                stepLogger.writeDoneFailed("master-key-failed");
                 System.exit(1);
             } catch (InvalidKeySpecException e) {
-                stepLogger.writeError("Invalid Master Server Public Key", "Master Server Public Key was stored in an incorrect format", e);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("master-key-error-format", "Invalid Master Server Public Key", "Master Server Public Key was stored in an incorrect format", e);
+                stepLogger.writeDoneFailed("master-key-failed");
                 System.exit(1);
             } catch (CryptoProviderException e) {
-                stepLogger.writeError("Cryptography Provider Error", "Cryptography provider is initialized incorrectly", e);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("master-key-error-cryptography", "Cryptography Provider Error", "Cryptography provider is initialized incorrectly", e);
+                stepLogger.writeDoneFailed("master-key-failed");
                 System.exit(1);
             }
         } else {
-            stepLogger.writeError("Invalid Master Server Public Key", "Master Server Public Key not found in the config file");
-            stepLogger.writeDoneFailed();
+            stepLogger.writeError("master-key-error-public-key-missing", "Invalid Master Server Public Key", "Master Server Public Key not found in the config file");
+            stepLogger.writeDoneFailed("master-key-failed");
             System.exit(1);
         }
         return null;

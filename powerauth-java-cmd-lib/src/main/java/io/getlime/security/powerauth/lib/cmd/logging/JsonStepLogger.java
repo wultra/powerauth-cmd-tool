@@ -16,6 +16,7 @@
  */
 package io.getlime.security.powerauth.lib.cmd.logging;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
@@ -44,6 +45,7 @@ public class JsonStepLogger implements StepLogger {
     public JsonStepLogger(OutputStream outputStream) {
         ObjectMapper mapper = new ObjectMapper();
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
         DefaultPrettyPrinter pp = new DefaultPrettyPrinter();
         pp.indentArraysWith( DefaultIndenter.SYSTEM_LINEFEED_INSTANCE );
         pp.indentObjectsWith( DefaultIndenter.SYSTEM_LINEFEED_INSTANCE );
@@ -89,14 +91,16 @@ public class JsonStepLogger implements StepLogger {
 
     /**
      * Writes a JSON object representing the step of the execution.
+     * @param id Step ID.
      * @param name Step name.
      * @param description Step detailed description.
      * @param status Step status result.
      * @param object Custom object associated with the step.
      */
-    @Override public void writeItem(String name, String description, String status, Object object) {
+    @Override public void writeItem(String id, String name, String description, String status, Object object) {
         try {
             Map<String, Object> map = new HashMap<>();
+            map.put("id", id);
             map.put("name", name);
             map.put("description", description);
             map.put("status", status);
@@ -110,12 +114,13 @@ public class JsonStepLogger implements StepLogger {
 
     /**
      * Write the information about the server call. Uses "writeItem" method under the hood.
+     * @param id Step ID.
      * @param uri URI that will be called.
      * @param method HTTP method of the call.
      * @param requestObject Request object, in case of the POST, PUT, DELETE method.
      * @param headers HTTP request headers.
      */
-    @Override public void writeServerCall(String uri, String method, Object requestObject, Map<String, ?> headers) {
+    @Override public void writeServerCall(String id, String uri, String method, Object requestObject, Map<String, ?> headers) {
         Map<String, Object> map = new HashMap<>();
         map.put("url", uri);
         map.put("method", method);
@@ -124,38 +129,40 @@ public class JsonStepLogger implements StepLogger {
         String name = "Sending Request";
         String desc = "Calling PowerAuth Standard RESTful API endpoint";
         String status = "OK";
-        writeItem(name, desc, status, map);
+        writeItem(id, name, desc, status, map);
     }
 
     /**
      * Write information about the successful server request. Uses "writeItem" method under the hood.
+     * @param id Step ID.
      * @param responseObject HTTP response object.
      * @param headers HTTP response headers.
      */
-    @Override public void writeServerCallOK(Object responseObject, Map<String, ?> headers) {
+    @Override public void writeServerCallOK(String id, Object responseObject, Map<String, ?> headers) {
         String name = "Response 200 - OK";
         String desc = "Endpoint was called successfully";
         String status = "OK";
         Map<String, Object> map = new HashMap<>();
         map.put("responseObject", responseObject);
         map.put("responseHeaders", headers);
-        writeItem(name, desc, status, map);
+        writeItem(id, name, desc, status, map);
     }
 
     /**
      * Write information about the failed server request. Uses "writeItem" method under the hood.
+     * @param id Step ID.
      * @param statusCode HTTP response status code.
      * @param responseObject HTTP response object.
      * @param headers HTTP response headers.
      */
-    @Override public void writeServerCallError(int statusCode, Object responseObject, Map<String, ?> headers) {
+    @Override public void writeServerCallError(String id, int statusCode, Object responseObject, Map<String, ?> headers) {
         String name = "Response " + statusCode + " - ERROR";
         String desc = "Endpoint was called with an error";
         String status = "ERROR";
         Map<String, Object> map = new HashMap<>();
         map.put("responseObject", responseObject);
         map.put("responseHeaders", headers);
-        writeItem(name, desc, status, map);
+        writeItem(id, name, desc, status, map);
     }
 
     /**
@@ -178,68 +185,75 @@ public class JsonStepLogger implements StepLogger {
 
     /**
      * Write error in case of a network issues.
+     * @param id Step ID.
      * @param e Network exception.
      */
-    @Override public void writeServerCallConnectionError(Exception e) {
+    @Override public void writeServerCallConnectionError(String id, Exception e) {
         String name = "Connection Error";
-        writeError(name, e.getMessage(), e);
+        writeError(id, name, e.getMessage(), e);
     }
 
     /**
      * Write error with given error message. Error message is mapped as a step description.
+     * @param id Step ID.
      * @param errorMessage Error message.
      */
-    @Override public void writeError(String errorMessage) {
-        writeError(null, errorMessage, null);
+    @Override public void writeError(String id, String errorMessage) {
+        writeError(id, null, errorMessage, null);
     }
 
     /**
      * Write error with given exception information. Exception description is mapped as a step description,
      * exception is passed as a custom object.
+     * @param id Step ID.
      * @param exception Exception that should be logged.
      */
-    @Override public void writeError(Exception exception) {
-        writeError(null, exception.getMessage(), exception);
+    @Override public void writeError(String id, Exception exception) {
+        writeError(id, null, exception.getMessage(), exception);
     }
 
     /**
      * Write error with given error name and error message, that is used as a description.
+     * @param id Step ID.
      * @param name Error name.
      * @param errorMessage Error message.
      */
-    @Override public void writeError(String name, String errorMessage) {
-        writeError(name, errorMessage, null);
+    @Override public void writeError(String id, String name, String errorMessage) {
+        writeError(id, name, errorMessage, null);
     }
 
     /**
      * Write error with given error name and error message, that is used as a description.
+     * @param id Step ID.
      * @param name Error name.
      * @param errorMessage Error message.
      * @param exception Exception that caused the error.
      */
-    @Override public void writeError(String name, String errorMessage, Exception exception) {
+    @Override public void writeError(String id, String name, String errorMessage, Exception exception) {
         String status = "ERROR";
-        writeItem(name, errorMessage, status, exception);
+        writeItem(id, name, errorMessage, status, exception);
     }
 
     /**
      * Write information about successfully finished execution.
+     * @param id Step ID.
      */
-    @Override public void writeDoneOK() {
+    @Override public void writeDoneOK(String id) {
         String name = "Done";
         String desc = "Execution has successfully finished";
         String status = "DONE";
-        writeItem(name, desc, status, null);
+        writeItem(id, name, desc, status, null);
     }
 
     /**
      * Write information about incorrectly finished execution.
+     * @param id Step ID.
      */
-    @Override public void writeDoneFailed() {
+    @Override public void writeDoneFailed(String id) {
         String name = "Done";
         String desc = "Execution has failed";
         String status = "FAILED";
-        writeItem(name, desc, status, null);
+        writeItem(id, name, desc, status, null);
     }
 
 }

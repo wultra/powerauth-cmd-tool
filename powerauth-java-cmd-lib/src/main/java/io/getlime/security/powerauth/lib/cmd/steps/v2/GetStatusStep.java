@@ -18,9 +18,6 @@ package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.io.BaseEncoding;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
@@ -34,6 +31,9 @@ import io.getlime.security.powerauth.lib.cmd.util.JsonUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.rest.api.model.request.v2.ActivationStatusRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v2.ActivationStatusResponse;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
@@ -61,10 +61,9 @@ public class GetStatusStep implements BaseStep {
      * Execute this step with given context
      * @param context Provided context
      * @return Result status object, null in case of failure.
-     * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) {
 
         // Read properties from "context"
         GetStatusStepModel model = new GetStatusStepModel();
@@ -72,6 +71,7 @@ public class GetStatusStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "activation-status-start",
                     "Activation Status Check Started",
                     null,
                     "OK",
@@ -101,10 +101,10 @@ public class GetStatusStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall(uri, "POST", requestObject, headers);
+                stepLogger.writeServerCall("activation-status-request-sent", uri, "POST", requestObject, headers);
             }
 
-            HttpResponse response = Unirest.post(uri)
+            HttpResponse<String> response = Unirest.post(uri)
                     .headers(headers)
                     .body(body)
                     .asString();
@@ -113,10 +113,10 @@ public class GetStatusStep implements BaseStep {
                 TypeReference<ObjectResponse<ActivationStatusResponse>> typeReference = new TypeReference<ObjectResponse<ActivationStatusResponse>>() {};
                 ObjectResponse<ActivationStatusResponse> responseWrapper = RestClientConfiguration
                         .defaultMapper()
-                        .readValue(response.getRawBody(), typeReference);
+                        .readValue(response.getBody(), typeReference);
 
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeServerCallOK("activation-status-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
 
                 // Process the server response
@@ -131,32 +131,33 @@ public class GetStatusStep implements BaseStep {
                 objectMap.put("statusBlob", statusBlob);
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "activation-status-obtained",
                             "Activation Status",
                             "Activation status successfully obtained",
                             "OK",
                             objectMap
                     );
 
-                    stepLogger.writeDoneOK();
+                    stepLogger.writeDoneOK("activation-status-success");
                 }
                 return model.getResultStatusObject();
             } else {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                    stepLogger.writeDoneFailed();
+                    stepLogger.writeServerCallError("activation-status-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeDoneFailed("activation-status-failed");
                 }
                 return null;
             }
         } catch (UnirestException exception) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeServerCallConnectionError("activation-status-error-connection", exception);
+                stepLogger.writeDoneFailed("activation-status-failed");
             }
             return null;
         } catch (Exception exception) {
             if (stepLogger != null) {
-                stepLogger.writeError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("activation-status-error-generic", exception);
+                stepLogger.writeDoneFailed("activation-status-failed");
             }
             return null;
         }
