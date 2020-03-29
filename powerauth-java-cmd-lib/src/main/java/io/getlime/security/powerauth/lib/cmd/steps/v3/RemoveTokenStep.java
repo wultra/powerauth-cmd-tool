@@ -184,20 +184,20 @@ public class RemoveTokenStep implements BaseStep {
             } else {
                 if (stepLogger != null) {
                     stepLogger.writeServerCallError("token-remove-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                    stepLogger.writeDoneFailed("token-remove-finished");
+                    stepLogger.writeDoneFailed("token-remove-failed");
                 }
                 return null;
             }
         } catch (UnirestException exception) {
             if (stepLogger != null) {
                 stepLogger.writeServerCallConnectionError("token-remove-error-connection", exception);
-                stepLogger.writeDoneFailed("token-remove-finished");
+                stepLogger.writeDoneFailed("token-remove-failed");
             }
             return null;
         } catch (Exception exception) {
             if (stepLogger != null) {
                 stepLogger.writeError("token-remove-error-generic", exception);
-                stepLogger.writeDoneFailed("token-remove-finished");
+                stepLogger.writeDoneFailed("token-remove-failed");
             }
             return null;
         }

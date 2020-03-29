@@ -87,7 +87,7 @@ public class CreateActivationStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
-                    "activation-create-start",
+                    "activation-create-custom-start",
                     "Activation With Custom Attributes Started",
                     null,
                     "OK",
@@ -102,7 +102,7 @@ public class CreateActivationStep implements BaseStep {
         Map<String, String> identityAttributes = model.getIdentityAttributes();
         if (stepLogger != null) {
             stepLogger.writeItem(
-                    "activation-create-identity-attributes",
+                    "activation-create-custom-identity-attributes",
                     "Identity Attributes",
                     "Following attributes are used to authenticate user",
                     "OK",
@@ -113,7 +113,7 @@ public class CreateActivationStep implements BaseStep {
         Map<String, Object> customAttributes = model.getCustomAttributes();
         if (stepLogger != null) {
             stepLogger.writeItem(
-                    "activation-create-custom-attributes",
+                    "activation-create-custom-custom-attributes",
                     "Custom Attributes",
                     "Following attributes are used as custom attributes for the request",
                     "OK",
@@ -160,7 +160,7 @@ public class CreateActivationStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
-                    "activation-create-request-encrypt",
+                    "activation-create-custom-request-encrypt",
                     "Building activation request object",
                     "Following activation attributes will be encrypted and sent to the server",
                     "OK",
@@ -195,7 +195,7 @@ public class CreateActivationStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall("activation-create-request-sent", uri, "POST", encryptedRequestL1, headers);
+                stepLogger.writeServerCall("activation-create-custom-request-sent", uri, "POST", encryptedRequestL1, headers);
             }
 
             HttpResponse<String> response = Unirest.post(uri)
@@ -207,7 +207,7 @@ public class CreateActivationStep implements BaseStep {
                 EciesEncryptedResponse encryptedResponseL1 = mapper.readValue(response.getBody(), EciesEncryptedResponse.class);
 
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK("activation-create-response-received", encryptedResponseL1, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeServerCallOK("activation-create-custom-response-received", encryptedResponseL1, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
 
                 // Read activation layer 1 response and decrypt it
@@ -221,7 +221,7 @@ public class CreateActivationStep implements BaseStep {
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
-                            "activation-create-response-decrypt",
+                            "activation-create-custom-response-decrypt",
                             "Decrypted Layer 1 Response",
                             "Following layer 1 activation data were decrypted",
                             "OK",
@@ -240,7 +240,7 @@ public class CreateActivationStep implements BaseStep {
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
-                            "activation-create-response-decrypt-inner",
+                            "activation-create-custom-response-decrypt-inner",
                             "Decrypted Layer 2 Response",
                             "Following layer 2 activation data were decrypted",
                             "OK",
@@ -304,35 +304,35 @@ public class CreateActivationStep implements BaseStep {
                 objectMap.put("deviceKeyFingerprint", activation.computeActivationFingerprint(deviceKeyPair.getPublic(), serverPublicKey, activationId));
                 if (stepLogger != null) {
                     stepLogger.writeItem(
-                            "activation-create-activation-done",
+                            "activation-create-custom-activation-done",
                             "Activation Done",
                             "Public key exchange was successfully completed, commit the activation on server if required",
                             "OK",
                             objectMap
                     );
-                    stepLogger.writeDoneOK("activation-create-success");
+                    stepLogger.writeDoneOK("activation-create-custom-success");
                 }
 
                 return model.getResultStatusObject();
 
             } else {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallError("activation-create-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                    stepLogger.writeDoneFailed("activation-create-failed");
+                    stepLogger.writeServerCallError("activation-create-custom-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeDoneFailed("activation-create-custom-failed");
                 }
                 return null;
             }
 
         } catch (UnirestException exception) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError("activation-create-error-connection", exception);
-                stepLogger.writeDoneFailed("activation-create-failed");
+                stepLogger.writeServerCallConnectionError("activation-create-custom-error-connection", exception);
+                stepLogger.writeDoneFailed("activation-create-custom-failed");
             }
             return null;
         } catch (Exception exception) {
             if (stepLogger != null) {
-                stepLogger.writeError("activation-create-error-generic", exception);
-                stepLogger.writeDoneFailed("activation-create-failed");
+                stepLogger.writeError("activation-create-custom-error-generic", exception);
+                stepLogger.writeDoneFailed("activation-create-custom-failed");
             }
             return null;
         }

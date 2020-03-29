@@ -174,20 +174,20 @@ public class RemoveStep implements BaseStep {
             } else {
                 if (stepLogger != null) {
                     stepLogger.writeServerCallError("activation-remove-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                    stepLogger.writeDoneFailed("activation-failed");
+                    stepLogger.writeDoneFailed("activation-remove-failed");
                 }
                 return null;
             }
         } catch (UnirestException exception) {
             if (stepLogger != null) {
                 stepLogger.writeServerCallConnectionError("activation-remove-error-connection", exception);
-                stepLogger.writeDoneFailed("activation-failed");
+                stepLogger.writeDoneFailed("activation-remove-failed");
             }
             return null;
         } catch (Exception exception) {
             if (stepLogger != null) {
                 stepLogger.writeError("activation-remove-error-generic", exception);
-                stepLogger.writeDoneFailed("activation-failed");
+                stepLogger.writeDoneFailed("activation-remove-failed");
             }
             return null;
         }

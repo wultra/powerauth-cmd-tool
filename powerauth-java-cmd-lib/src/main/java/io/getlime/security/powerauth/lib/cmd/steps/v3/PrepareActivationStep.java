@@ -97,7 +97,7 @@ public class PrepareActivationStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
-                    "activation-prepare",
+                    "activation-prepare-start",
                     "Activation Started",
                     null,
                     "OK",
@@ -113,8 +113,8 @@ public class PrepareActivationStep implements BaseStep {
         Matcher m = p.matcher(model.getActivationCode());
         if (!m.find()) {
             if (stepLogger != null) {
-                stepLogger.writeError("activation-prepare-activation-code", "Prepare activation step failed", "Activation code has invalid format");
-                stepLogger.writeDoneFailed("activation-prepare-error-activation-code");
+                stepLogger.writeError("activation-create-activation-code", "Prepare activation step failed", "Activation code has invalid format");
+                stepLogger.writeDoneFailed("activation-create-error-activation-code");
                 return null;
             }
         }
@@ -124,7 +124,7 @@ public class PrepareActivationStep implements BaseStep {
         objectMap.put("activationCode", activationCode);
         if (stepLogger != null) {
             stepLogger.writeItem(
-                    "activation-prepare-activation-code",
+                    "activation-create-activation-code",
                     "Activation code",
                     "Storing activation code",
                     "OK",
@@ -173,7 +173,7 @@ public class PrepareActivationStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
-                    "activation-prepare-request-encrypt",
+                    "activation-create-request-encrypt",
                     "Building activation request object",
                     "Following activation attributes will be encrypted and sent to the server",
                     "OK",
@@ -208,7 +208,7 @@ public class PrepareActivationStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall("activation-prepare-request-sent", uri, "POST", encryptedRequestL1, headers);
+                stepLogger.writeServerCall("activation-create-request-sent", uri, "POST", encryptedRequestL1, headers);
             }
 
             HttpResponse<String> response = Unirest.post(uri)
@@ -220,7 +220,7 @@ public class PrepareActivationStep implements BaseStep {
                 EciesEncryptedResponse encryptedResponseL1 = mapper.readValue(response.getBody(), EciesEncryptedResponse.class);
 
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK("activation-prepare-response-received", encryptedResponseL1, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeServerCallOK("activation-create-response-received", encryptedResponseL1, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
 
                 // Read activation layer 1 response and decrypt it
@@ -253,7 +253,7 @@ public class PrepareActivationStep implements BaseStep {
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
-                            "activation-prepare-response-decrypt-inner",
+                            "activation-create-response-decrypt-inner",
                             "Decrypted Layer 2 Response",
                             "Following layer 2 activation data were decrypted",
                             "OK",
@@ -317,33 +317,33 @@ public class PrepareActivationStep implements BaseStep {
                 objectMap.put("deviceKeyFingerprint", activation.computeActivationFingerprint(deviceKeyPair.getPublic(), serverPublicKey, activationId));
                 if (stepLogger != null) {
                     stepLogger.writeItem(
-                            "activation-prepare-activation-done",
+                            "activation-create-activation-done",
                             "Activation Done",
                             "Public key exchange was successfully completed, commit the activation on server",
                             "OK",
                             objectMap
                     );
-                    stepLogger.writeDoneOK("activation-prepare-success");
+                    stepLogger.writeDoneOK("activation-create-success");
                 }
 
                 return model.getResultStatusObject();
             } else {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallError("activation-prepare-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                    stepLogger.writeDoneFailed("activation-prepare-failed");
+                    stepLogger.writeServerCallError("activation-create-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeDoneFailed("activation-create-failed");
                 }
                 return null;
             }
         } catch (UnirestException exception) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError("activation-prepare-error-connection", exception);
-                stepLogger.writeDoneFailed("activation-prepare-failed");
+                stepLogger.writeServerCallConnectionError("activation-create-error-connection", exception);
+                stepLogger.writeDoneFailed("activation-create-failed");
             }
             return null;
         } catch (Exception exception) {
             if (stepLogger != null) {
-                stepLogger.writeError("activation-prepare-error-generic", exception);
-                stepLogger.writeDoneFailed("activation-prepare-failed");
+                stepLogger.writeError("activation-create-error-generic", exception);
+                stepLogger.writeDoneFailed("activation-create-failed");
             }
             return null;
         }
