@@ -19,7 +19,7 @@ package io.getlime.security.powerauth.lib.cmd.util;
 import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.lib.model.exception.CryptoProviderException;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
-import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import org.json.simple.JSONObject;
 
 import java.security.PublicKey;
@@ -77,7 +77,7 @@ public class ConfigurationUtil {
      * @param stepLogger Step logger instance.
      * @return Master public key.
      */
-    public static PublicKey getMasterKey(JSONObject clientConfigObject, JsonStepLogger stepLogger) {
+    public static PublicKey getMasterKey(JSONObject clientConfigObject, StepLogger stepLogger) {
         if (clientConfigObject != null && clientConfigObject.get("masterPublicKey") != null) {
             try {
                 byte[] masterKeyBytes = BaseEncoding.base64().decode((String) clientConfigObject.get("masterPublicKey"));
