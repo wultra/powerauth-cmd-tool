@@ -33,7 +33,7 @@ public class VerifySignatureStepModel extends BaseStepModel {
     private String httpMethod;
     private String resourceId;
     private PowerAuthSignatureTypes signatureType;
-    private String dataFileName;
+    private byte[] data;
     private String password;
     private boolean dryRun;
 
@@ -86,11 +86,11 @@ public class VerifySignatureStepModel extends BaseStepModel {
     }
 
     /**
-     * File with the request data, used for POST, PUT and DELETE methods.
-     * @param dataFileName Request data filename.
+     * The request data, used for POST, PUT and DELETE methods.
+     * @param data Request data.
      */
-    public void setDataFileName(String dataFileName) {
-        this.dataFileName = dataFileName;
+    public void setData(byte[] data) {
+        this.data = data;
     }
 
     /**
@@ -133,8 +133,8 @@ public class VerifySignatureStepModel extends BaseStepModel {
         return signatureType;
     }
 
-    public String getDataFileName() {
-        return dataFileName;
+    public byte[] getData() {
+        return data;
     }
 
     public String getPassword() {
@@ -154,7 +154,7 @@ public class VerifySignatureStepModel extends BaseStepModel {
         context.put("HTTP_METHOD", httpMethod);
         context.put("ENDPOINT", resourceId);
         context.put("SIGNATURE_TYPE", signatureType.toString());
-        context.put("DATA_FILE_NAME", dataFileName);
+        context.put("DATA", data);
         context.put("PASSWORD", password);
         context.put("DRY_RUN", dryRun);
         return context;
@@ -169,7 +169,7 @@ public class VerifySignatureStepModel extends BaseStepModel {
         setHttpMethod((String) context.get("HTTP_METHOD"));
         setResourceId((String) context.get("ENDPOINT"));
         setSignatureType(PowerAuthSignatureTypes.getEnumFromString((String) context.get("SIGNATURE_TYPE")));
-        setDataFileName((String) context.get("DATA_FILE_NAME"));
+        setData((byte[]) context.get("DATA"));
         setPassword((String) context.get("PASSWORD"));
         setDryRun((boolean) context.get("DRY_RUN"));
     }

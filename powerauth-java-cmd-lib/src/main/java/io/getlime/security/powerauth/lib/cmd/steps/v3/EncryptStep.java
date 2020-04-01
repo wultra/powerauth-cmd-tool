@@ -36,12 +36,10 @@ import kong.unirest.Unirest;
 import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
 
-import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.ECPublicKey;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Scanner;
 
 /**
  * Encrypt step encrypts request data using ECIES encryption in application or activation scope.
@@ -88,22 +86,14 @@ public class EncryptStep implements BaseStep {
         String uri = model.getUriString();
 
         // Read data which needs to be encrypted
-        File dataFile = new File(model.getDataFileName());
-        if (!dataFile.exists()) {
+        final byte[] requestDataBytes = model.getData();
+        if (requestDataBytes == null) {
             if (stepLogger != null) {
-                stepLogger.writeError("encrypt-error-file", "Encrypt Request Failed", "File not found: " + model.getDataFileName());
+                stepLogger.writeError("encrypt-error-file", "Encrypt Request Failed", "Request data for encryption was null.");
                 stepLogger.writeDoneFailed("encrypt-failed");
             }
             return null;
         }
-
-        Scanner scanner = new Scanner(dataFile, "UTF-8");
-        scanner.useDelimiter("\\Z");
-        String requestData = "";
-        if (scanner.hasNext()) {
-            requestData = scanner.next();
-        }
-        scanner.close();
 
         if (stepLogger != null) {
             stepLogger.writeItem(
@@ -111,7 +101,7 @@ public class EncryptStep implements BaseStep {
                     "Preparing Request Data",
                     "Following data will be encrypted",
                     "OK",
-                    requestData
+                    requestDataBytes
             );
         }
 
@@ -149,7 +139,6 @@ public class EncryptStep implements BaseStep {
 
         // Prepare encrypted request
         final boolean useIv = !"3.0".equals(model.getVersion());
-        byte[] requestDataBytes = requestData.getBytes(StandardCharsets.UTF_8);
         final EciesCryptogram eciesCryptogram = encryptor.encryptRequest(requestDataBytes, useIv);
         final EciesEncryptedRequest request = new EciesEncryptedRequest();
         final String ephemeralPublicKeyBase64 = BaseEncoding.base64().encode(eciesCryptogram.getEphemeralPublicKey());

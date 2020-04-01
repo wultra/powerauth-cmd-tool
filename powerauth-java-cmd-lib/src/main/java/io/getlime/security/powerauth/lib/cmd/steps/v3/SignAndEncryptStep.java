@@ -41,7 +41,6 @@ import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
-import java.io.File;
 import java.io.FileWriter;
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.ECPublicKey;
@@ -94,16 +93,6 @@ public class SignAndEncryptStep implements BaseStep {
             );
         }
 
-        // Read data which needs to be encrypted
-        File dataFile = new File(model.getDataFileName());
-        if (!dataFile.exists()) {
-            if (stepLogger != null) {
-                stepLogger.writeError("sign-encrypt-error-file", "Sign and Encrypt Request Failed", "File not found: " + model.getDataFileName());
-                stepLogger.writeDoneFailed("sign-encrypt-failed");
-            }
-            return null;
-        }
-
         // Verify that HTTP method is set
         if (model.getHttpMethod() == null) {
             if (stepLogger != null) {
@@ -122,13 +111,16 @@ public class SignAndEncryptStep implements BaseStep {
             return null;
         }
 
-        Scanner scanner = new Scanner(dataFile, "UTF-8");
-        scanner.useDelimiter("\\Z");
-        String requestData = "";
-        if (scanner.hasNext()) {
-            requestData = scanner.next();
+        // Read data which needs to be encrypted
+        final byte[] requestDataBytes = model.getData();
+        if (requestDataBytes == null) {
+            if (stepLogger != null) {
+                stepLogger.writeError("sign-encrypt-error-file", "Sign and Encrypt Request Failed", "Request data for encryption and signing is null.");
+                stepLogger.writeDoneFailed("sign-encrypt-failed");
+            }
+            return null;
         }
-        scanner.close();
+
 
         if (stepLogger != null) {
             stepLogger.writeItem(
@@ -136,7 +128,7 @@ public class SignAndEncryptStep implements BaseStep {
                     "Preparing Request Data",
                     "Following data will be encrypted",
                     "OK",
-                    requestData
+                    requestDataBytes
             );
         }
 
@@ -217,7 +209,6 @@ public class SignAndEncryptStep implements BaseStep {
 
         // Prepare encrypted request
         final boolean useIv = !"3.0".equals(model.getVersion());
-        byte[] requestDataBytes = requestData.getBytes(StandardCharsets.UTF_8);
         final EciesCryptogram eciesCryptogram = encryptor.encryptRequest(requestDataBytes, useIv);
         final EciesEncryptedRequest request = new EciesEncryptedRequest();
         final String ephemeralPublicKeyBase64 = BaseEncoding.base64().encode(eciesCryptogram.getEphemeralPublicKey());
