@@ -40,6 +40,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
 import javax.net.ssl.*;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -291,12 +292,16 @@ public class Application {
                     model.setTokenId(cmd.getOptionValue("T"));
                     model.setTokenSecret(cmd.getOptionValue("S"));
                     model.setHeaders(httpHeaders);
-                    model.setDataFileName(cmd.getOptionValue("d"));
                     model.setResultStatusObject(resultStatusObject);
                     model.setUriString(uriString);
                     model.setHttpMethod(cmd.getOptionValue("t"));
                     model.setVersion(version);
                     model.setDryRun(cmd.hasOption("dry-run"));
+
+                    // Read the file with request data
+                    String dataFileName = cmd.getOptionValue("d");
+                    final byte[] dataFileBytes = readDataFile(dataFileName, stepLogger);
+                    model.setData(dataFileBytes);
 
                     JSONObject result = new VerifyTokenStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -486,7 +491,6 @@ public class Application {
                     VerifySignatureStepModel model = new VerifySignatureStepModel();
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
-                    model.setDataFileName(cmd.getOptionValue("d"));
                     model.setHeaders(httpHeaders);
                     model.setHttpMethod(cmd.getOptionValue("t"));
                     model.setPassword(cmd.getOptionValue("p"));
@@ -497,6 +501,11 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
                     model.setDryRun(cmd.hasOption("dry-run"));
+
+                    // Read the file with request data
+                    String dataFileName = cmd.getOptionValue("d");
+                    final byte[] dataFileBytes = readDataFile(dataFileName, stepLogger);
+                    model.setData(dataFileBytes);
 
                     JSONObject result = new VerifySignatureStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -654,10 +663,14 @@ public class Application {
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
                     model.setResultStatusObject(resultStatusObject);
-                    model.setDataFileName(cmd.getOptionValue("d"));
                     model.setScope(cmd.getOptionValue("o"));
                     model.setUriString(uriString);
                     model.setVersion(version);
+
+                    // Read the file with request data
+                    String dataFileName = cmd.getOptionValue("d");
+                    final byte[] dataFileBytes = readDataFile(dataFileName, stepLogger);
+                    model.setData(dataFileBytes);
 
                     JSONObject result;
                     switch (version) {
@@ -690,7 +703,6 @@ public class Application {
                     VerifySignatureStepModel model = new VerifySignatureStepModel();
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
-                    model.setDataFileName(cmd.getOptionValue("d"));
                     model.setHeaders(httpHeaders);
                     model.setHttpMethod(cmd.getOptionValue("t"));
                     model.setPassword(cmd.getOptionValue("p"));
@@ -700,6 +712,11 @@ public class Application {
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
                     model.setVersion(version);
+
+                    // Read the file with request data
+                    String dataFileName = cmd.getOptionValue("d");
+                    final byte[] dataFileBytes = readDataFile(dataFileName, stepLogger);
+                    model.setData(dataFileBytes);
 
                     JSONObject result;
                     switch (version) {
@@ -958,6 +975,42 @@ public class Application {
             stepLogger.close();
         }
 
+    }
+
+    /**
+     * Read the contents of a provided data file.
+     * @param fileName File name.
+     * @param stepLogger Logger for error handling.
+     * @return Bytes with the contents of the file.
+     * @throws IOException In case reading the file failed.
+     * @throws ExecutionException In case the filename is null or a file does not exist.
+     */
+    private static byte[] readDataFile(String fileName, JsonStepLogger stepLogger) throws IOException, ExecutionException {
+        // check if the file was provided
+        if (fileName == null) { // filename was not provided, we are assuming empty data and log a warning
+            stepLogger.writeItem(
+                    "generic-warning-request-data-empty",
+                    "Empty request data file",
+                    "Request data file not provided, assuming empty data.",
+                    "WARNING",
+                    fileName
+            );
+            return new byte[0];
+        }
+
+        // Read data input file
+        if (Files.exists(Paths.get(fileName))) {
+            return Files.readAllBytes(Paths.get(fileName));
+        } else { // file name was provided but does not exist, log error and terminate
+            stepLogger.writeItem(
+                    "generic-error-request-data-filename",
+                    "Missing request data file",
+                    "Request data file name was null, or a file does not exist",
+                    "ERROR",
+                    fileName
+            );
+            throw new ExecutionException();
+        }
     }
 
 }

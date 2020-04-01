@@ -31,8 +31,6 @@ import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -86,13 +84,12 @@ public class VerifyTokenStep implements BaseStep {
         }
 
         // Construct the signature base string data part based on HTTP method (GET requires different code).
-        byte[] dataFileBytes = null;
+        byte[] requestDataBytes = null;
         if (!"GET".equals(model.getHttpMethod().toUpperCase())) {
             // Read data input file
-            if (model.getDataFileName() != null && Files.exists(Paths.get(model.getDataFileName()))) {
-                dataFileBytes = Files.readAllBytes(Paths.get(model.getDataFileName()));
-            } else {
-                dataFileBytes = new byte[0];
+            requestDataBytes = model.getData();
+            if (requestDataBytes == null || requestDataBytes.length == 0) {
+                requestDataBytes = new byte[0];
                 if (stepLogger != null) {
                     stepLogger.writeItem(
                             "token-validate-warning-empty-data",
@@ -115,11 +112,11 @@ public class VerifyTokenStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall("token-validate-request-sent", model.getUriString(), model.getHttpMethod().toUpperCase(), dataFileBytes != null ? new String(dataFileBytes, StandardCharsets.UTF_8) : null, headers);
+                stepLogger.writeServerCall("token-validate-request-sent", model.getUriString(), model.getHttpMethod().toUpperCase(), requestDataBytes != null ? new String(requestDataBytes, StandardCharsets.UTF_8) : null, headers);
             }
 
             if (!model.isDryRun()) {
-                final boolean success = executeRequest(model.getHttpMethod().toUpperCase(), headers, model.getUriString(), dataFileBytes, stepLogger);
+                final boolean success = executeRequest(model.getHttpMethod().toUpperCase(), headers, model.getUriString(), requestDataBytes, stepLogger);
                 if (success) {
                     return model.getResultStatusObject();
                 } else {
