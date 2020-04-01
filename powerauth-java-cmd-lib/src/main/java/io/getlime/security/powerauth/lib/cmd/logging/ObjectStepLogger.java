@@ -261,8 +261,11 @@ public class ObjectStepLogger implements StepLogger {
      * @return First {@link StepItem} with given id or {@code null} if logger doesn't contain such item.
      */
     public StepItem getFirstItem(String id) {
+        if (id == null) {
+            return null;
+        }
         for (StepItem item: items) {
-            if (item.getId().equals(id)) {
+            if (id.equals(item.getId())) {
                 return item;
             }
         }
@@ -275,8 +278,11 @@ public class ObjectStepLogger implements StepLogger {
      * @return First {@link StepItem} with given name or {@code null} if logger doesn't contain such item.
      */
     public StepItem getFirstItemByName(String itemName) {
+        if (itemName == null) {
+            return null;
+        }
         for (StepItem item: items) {
-            if (item.getName().equals(itemName)) {
+            if (itemName.equals(item.getName())) {
                 return item;
             }
         }
@@ -297,8 +303,11 @@ public class ObjectStepLogger implements StepLogger {
      * @return First {@link StepError} with given ID or {@code null} if logger doesn't contain such error.
      */
     public StepError getFirstError(String id) {
+        if (id == null) {
+            return null;
+        }
         for (StepError error: errors) {
-            if (error.getId().equals(id)) {
+            if (id.equals(error.getId())) {
                 return error;
             }
         }
@@ -311,8 +320,11 @@ public class ObjectStepLogger implements StepLogger {
      * @return First {@link StepError} with given name or {@code null} if logger doesn't contain such error.
      */
     public StepError getFirstErrorByName(String errorName) {
+        if (errorName == null) {
+            return null;
+        }
         for (StepError error: errors) {
-            if (error.getName().equals(errorName)) {
+            if (errorName.equals(error.getName())) {
                 return error;
             }
         }
