@@ -204,7 +204,7 @@ public class Application {
             }
 
             // Read config file
-            if (Files.exists(Paths.get(configFileName))) {
+            if (Files.isReadable(Paths.get(configFileName))) {
                 byte[] configFileBytes = Files.readAllBytes(Paths.get(configFileName));
                 try {
                     clientConfigObject = (JSONObject) JSONValue.parse(new String(configFileBytes, StandardCharsets.UTF_8));
@@ -234,7 +234,7 @@ public class Application {
 
             // Read current activation state from the activation state file or create an empty state
             JSONObject resultStatusObject;
-            if (statusFileName != null && Files.exists(Paths.get(statusFileName))) {
+            if (statusFileName != null && Files.isReadable(Paths.get(statusFileName))) {
                 byte[] statusFileBytes = Files.readAllBytes(Paths.get(statusFileName));
                 resultStatusObject = (JSONObject) JSONValue.parse(new String(statusFileBytes, StandardCharsets.UTF_8));
             } else {
@@ -561,7 +561,7 @@ public class Application {
                     String customAttributesFileName = cmd.getOptionValue("C");
 
                     Map<String,String> identityAttributes;
-                    if (Files.exists(Paths.get(identityAttributesFileName))) {
+                    if (Files.isReadable(Paths.get(identityAttributesFileName))) {
                         byte[] identityAttributesFileBytes = Files.readAllBytes(Paths.get(identityAttributesFileName));
                         try {
                             identityAttributes = RestClientConfiguration.defaultMapper().readValue(identityAttributesFileBytes, HashMap.class);
@@ -587,7 +587,7 @@ public class Application {
                     }
 
                     Map<String,Object> customAttributes;
-                    if (Files.exists(Paths.get(customAttributesFileName))) {
+                    if (Files.isReadable(Paths.get(customAttributesFileName))) {
                         byte[] customAttributesFileBytes = Files.readAllBytes(Paths.get(customAttributesFileName));
                         try {
                             customAttributes = RestClientConfiguration.defaultMapper().readValue(customAttributesFileBytes, HashMap.class);
@@ -825,7 +825,7 @@ public class Application {
                     }
 
                     Map<String,String> identityAttributes;
-                    if (Files.exists(Paths.get(identityAttributesFileName))) {
+                    if (Files.isReadable(Paths.get(identityAttributesFileName))) {
                         byte[] identityAttributesFileBytes = Files.readAllBytes(Paths.get(identityAttributesFileName));
                         try {
                             identityAttributes = RestClientConfiguration.defaultMapper().readValue(identityAttributesFileBytes, HashMap.class);
@@ -852,7 +852,7 @@ public class Application {
 
                     Map<String, Object> customAttributes = null;
                     if (customAttributesFileName != null) {
-                        if (Files.exists(Paths.get(customAttributesFileName))) {
+                        if (Files.isReadable(Paths.get(customAttributesFileName))) {
                             byte[] customAttributesFileBytes = Files.readAllBytes(Paths.get(customAttributesFileName));
                             try {
                                 customAttributes = RestClientConfiguration.defaultMapper().readValue(customAttributesFileBytes, HashMap.class);
@@ -999,7 +999,7 @@ public class Application {
         }
 
         // Read data input file
-        if (Files.exists(Paths.get(fileName))) {
+        if (Files.isReadable(Paths.get(fileName))) {
             return Files.readAllBytes(Paths.get(fileName));
         } else { // file name was provided but does not exist, log error and terminate
             stepLogger.writeItem(
