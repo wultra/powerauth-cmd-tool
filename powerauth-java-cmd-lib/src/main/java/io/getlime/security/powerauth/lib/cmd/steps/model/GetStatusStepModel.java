@@ -26,11 +26,6 @@ import java.util.Map;
 public class GetStatusStepModel extends BaseStepModel {
 
     @Override
-    public Map<String, Object> toMap() {
-        return super.toMap();
-    }
-
-    @Override
     public void fromMap(Map<String, Object> context) {
         super.fromMap(context);
     }

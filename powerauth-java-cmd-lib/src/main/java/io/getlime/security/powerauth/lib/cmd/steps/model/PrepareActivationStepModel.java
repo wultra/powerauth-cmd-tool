@@ -28,7 +28,10 @@ public class PrepareActivationStepModel extends BaseStepModel {
 
     private String statusFileName;
     private String activationCode;
+    private String additionalActivationOtp;
     private String activationName;
+    private String platform;
+    private String deviceInfo;
     private String applicationKey;
     private String applicationSecret;
     private String password;
@@ -59,6 +62,22 @@ public class PrepareActivationStepModel extends BaseStepModel {
     }
 
     /**
+     * Set user device platform.
+     * @param platform User device platform.
+     */
+    public void setPlatform(String platform) {
+        this.platform = platform;
+    }
+
+    /**
+     * Set information about user device.
+     * @param deviceInfo Information about user device.
+     */
+    public void setDeviceInfo(String deviceInfo) {
+        this.deviceInfo = deviceInfo;
+    }
+
+    /**
      * Application key.
      * @param applicationKey APP_KEY.
      */
@@ -83,6 +102,14 @@ public class PrepareActivationStepModel extends BaseStepModel {
     }
 
     /**
+     * Additional activation OTP, supported by PowerAuth Server {@code 0.24+}.
+     * @param additionalActivationOtp Additional activation OTP.
+     */
+    public void setAdditionalActivationOtp(String additionalActivationOtp) {
+        this.additionalActivationOtp = additionalActivationOtp;
+    }
+
+    /**
      * Password for the password related key encryption.
      * @param password Password.
      */
@@ -98,8 +125,20 @@ public class PrepareActivationStepModel extends BaseStepModel {
         return activationCode;
     }
 
+    public String getAdditionalActivationOtp() {
+        return additionalActivationOtp;
+    }
+
     public String getActivationName() {
         return activationName;
+    }
+
+    public String getPlatform() {
+        return platform;
+    }
+
+    public String getDeviceInfo() {
+        return deviceInfo;
     }
 
     public String getApplicationKey() {
@@ -124,8 +163,11 @@ public class PrepareActivationStepModel extends BaseStepModel {
         context.put("MASTER_PUBLIC_KEY", masterPublicKey);
         context.put("STATUS_FILENAME", statusFileName);
         context.put("ACTIVATION_CODE", activationCode);
+        context.put("ADDITIONAL_ACTIVATION_OTP", additionalActivationOtp);
         context.put("PASSWORD", password);
         context.put("ACTIVATION_NAME", activationName);
+        context.put("PLATFORM", platform);
+        context.put("DEVICE_INFO", deviceInfo);
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
         return context;
@@ -137,8 +179,11 @@ public class PrepareActivationStepModel extends BaseStepModel {
         setMasterPublicKey((PublicKey) context.get("MASTER_PUBLIC_KEY"));
         setStatusFileName((String) context.get("STATUS_FILENAME"));
         setActivationCode((String) context.get("ACTIVATION_CODE"));
+        setAdditionalActivationOtp((String) context.get("ADDITIONAL_ACTIVATION_OTP"));
         setPassword((String) context.get("PASSWORD"));
         setActivationName((String) context.get("ACTIVATION_NAME"));
+        setPlatform((String) context.get("PLATFORM"));
+        setDeviceInfo((String) context.get("DEVICE_INFO"));
         setApplicationKey((String) context.get("APPLICATION_KEY"));
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
     }

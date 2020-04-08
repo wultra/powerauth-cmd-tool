@@ -24,42 +24,46 @@ import java.util.Map;
 public interface StepLogger {
 
     /**
-     * Start the object streaming, outputs start of the JSON object:
+     * Start the object streaming, outputs start of the result object:
      */
     void start();
 
     /**
-     * Writes a JSON object representing the step of the execution.
+     * Writes an object representing the step of the execution.
+     * @param id Step ID.
      * @param name Step name.
      * @param description Step detailed description.
      * @param status Step status result.
      * @param object Custom object associated with the step.
      */
-    void writeItem(String name, String description, String status, Object object);
+    void writeItem(String id, String name, String description, String status, Object object);
 
     /**
      * Write the information about the server call. Uses "writeItem" method under the hood.
+     * @param id Step ID.
      * @param uri URI that will be called.
      * @param method HTTP method of the call.
      * @param requestObject Request object, in case of the POST, PUT, DELETE method.
      * @param headers HTTP request headers.
      */
-    void writeServerCall(String uri, String method, Object requestObject, Map<String, ?> headers);
+    void writeServerCall(String id, String uri, String method, Object requestObject, Map<String, ?> headers);
 
     /**
      * Write information about the successful server request. Uses "writeItem" method under the hood.
+     * @param id Step ID.
      * @param responseObject HTTP response object.
      * @param headers HTTP response headers.
      */
-    void writeServerCallOK(Object responseObject, Map<String, ?> headers);
+    void writeServerCallOK(String id, Object responseObject, Map<String, ?> headers);
 
     /**
      * Write information about the failed server request. Uses "writeItem" method under the hood.
+     * @param id Step ID.
      * @param statusCode HTTP response status code.
      * @param responseObject HTTP response object.
      * @param headers HTTP response headers.
      */
-    void writeServerCallError(int statusCode, Object responseObject, Map<String, ?> headers);
+    void writeServerCallError(String id, int statusCode, Object responseObject, Map<String, ?> headers);
 
     /**
      * Closes the logger output, writes code to close the array and opened object
@@ -68,45 +72,52 @@ public interface StepLogger {
 
     /**
      * Write error in case of a network issues.
+     * @param id Step ID.
      * @param e Network exception.
      */
-    void writeServerCallConnectionError(Exception e);
+    void writeServerCallConnectionError(String id, Exception e);
 
     /**
      * Write error with given error message. Error message is mapped as a step description.
+     * @param id Step ID.
      * @param errorMessage Error message.
      */
-    void writeError(String errorMessage);
+    void writeError(String id, String errorMessage);
 
     /**
      * Write error with given exception information. Exception description is mapped as a step description,
      * exception is passed as a custom object.
+     * @param id Step ID.
      * @param exception Exception that should be logged.
      */
-    void writeError(Exception exception);
+    void writeError(String id, Exception exception);
 
     /**
      * Write error with given error name and error message, that is used as a description.
+     * @param id Step ID.
      * @param name Error name.
      * @param errorMessage Error message.
      */
-    void writeError(String name, String errorMessage);
+    void writeError(String id, String name, String errorMessage);
 
     /**
      * Write error with given error name and error message, that is used as a description.
+     * @param id Step ID.
      * @param name Error name.
      * @param errorMessage Error message.
      * @param exception Exception that caused the error.
      */
-    void writeError(String name, String errorMessage, Exception exception);
+    void writeError(String id, String name, String errorMessage, Exception exception);
 
     /**
      * Write information about successfully finished execution.
+     * @param id Step ID.
      */
-    void writeDoneOK();
+    void writeDoneOK(String id);
 
     /**
      * Write information about incorrectly finished execution.
+     * @param id Step ID.
      */
-    void writeDoneFailed();
+    void writeDoneFailed(String id);
 }

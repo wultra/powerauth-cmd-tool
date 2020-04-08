@@ -19,25 +19,24 @@ package io.getlime.security.powerauth.lib.cmd.steps.v2;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.vault.PowerAuthClientVault;
-import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
+import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.PrepareActivationStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
-import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.request.v2.ActivationCreateRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v2.ActivationCreateResponse;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
@@ -65,7 +64,7 @@ import java.util.regex.Pattern;
 public class PrepareActivationStep implements BaseStep {
 
     private static final PowerAuthClientActivation activation = new PowerAuthClientActivation();
-    private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
+    private static final KeyConvertor keyConversion = new KeyConvertor();
     private static final PowerAuthClientKeyFactory keyFactory = new PowerAuthClientKeyFactory();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientVault vault = new PowerAuthClientVault();
@@ -86,6 +85,7 @@ public class PrepareActivationStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "activation-create-start",
                     "Activation Started",
                     null,
                     "OK",
@@ -101,8 +101,8 @@ public class PrepareActivationStep implements BaseStep {
         Matcher m = p.matcher(model.getActivationCode());
         if (!m.find()) {
             if (stepLogger != null) {
-                stepLogger.writeError("Activation failed", "Activation code has invalid format");
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("activation-create-error-activation-code", "Activation failed", "Activation code has invalid format");
+                stepLogger.writeDoneFailed("activation-create-failed");
                 return null;
             }
         }
@@ -116,6 +116,7 @@ public class PrepareActivationStep implements BaseStep {
         objectMap.put("activationOtp", activationOTP);
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "activation-create-activation-code-parsed",
                     "Activation code",
                     "Parsing activation code to short activation ID and activation OTP",
                     "OK",
@@ -167,10 +168,10 @@ public class PrepareActivationStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall(uri, "POST", requestObject, headers);
+                stepLogger.writeServerCall("activation-create-request-sent", uri, "POST", requestObject, headers);
             }
 
-            HttpResponse response = Unirest.post(uri)
+            HttpResponse<String> response = Unirest.post(uri)
                     .headers(headers)
                     .body(body)
                     .asString();
@@ -179,10 +180,10 @@ public class PrepareActivationStep implements BaseStep {
                 TypeReference<ObjectResponse<ActivationCreateResponse>> typeReference = new TypeReference<ObjectResponse<ActivationCreateResponse>>() {};
                 ObjectResponse<ActivationCreateResponse> responseWrapper = RestClientConfiguration
                         .defaultMapper()
-                        .readValue(response.getRawBody(), typeReference);
+                        .readValue(response.getBody(), typeReference);
 
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeServerCallOK("activation-create-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
 
                 // Process the server response
@@ -253,12 +254,13 @@ public class PrepareActivationStep implements BaseStep {
                     objectMap.put("deviceKeyFingerprint", activation.computeActivationFingerprint(deviceKeyPair.getPublic()));
                     if (stepLogger != null) {
                         stepLogger.writeItem(
+                                "activation-create-activation-done",
                                 "Activation Done",
                                 "Public key exchange was successfully completed, commit the activation on server",
                                 "OK",
                                 objectMap
                         );
-                        stepLogger.writeDoneOK();
+                        stepLogger.writeDoneOK("activation-create-success");
                     }
 
                     return model.getResultStatusObject();
@@ -266,29 +268,29 @@ public class PrepareActivationStep implements BaseStep {
                 } else {
                     if (stepLogger != null) {
                         String message = "Activation data signature does not match. Either someone tried to spoof your connection, or your device master key is invalid.";
-                        stepLogger.writeError(message);
-                        stepLogger.writeDoneFailed();
+                        stepLogger.writeError("activation-create-activation-signature-mismatch", message);
+                        stepLogger.writeDoneFailed("activation-create-failed");
                     }
                     return null;
                 }
             } else {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                    stepLogger.writeDoneFailed();
+                    stepLogger.writeServerCallError("activation-create-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeDoneFailed("activation-create-failed");
                 }
                 return null;
             }
 
         } catch (UnirestException exception) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeServerCallConnectionError("activation-create-error-connection", exception);
+                stepLogger.writeDoneFailed("activation-create-failed");
             }
             return null;
         } catch (Exception exception) {
             if (stepLogger != null) {
-                stepLogger.writeError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("activation-create-error-generic", exception);
+                stepLogger.writeDoneFailed("activation-create-failed");
             }
             return null;
         }

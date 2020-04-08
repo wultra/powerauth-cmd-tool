@@ -17,30 +17,29 @@ package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
 import io.getlime.security.powerauth.crypto.client.vault.PowerAuthClientVault;
-import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureFormat;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
+import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VaultUnlockStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.*;
-import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.request.v3.VaultUnlockRequestPayload;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
 import io.getlime.security.powerauth.rest.api.model.response.v3.VaultUnlockResponsePayload;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
@@ -58,6 +57,7 @@ import java.util.Map;
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
  *      <li>3.0</li>
+ *      <li>3.1</li>
  * </ul>
  *
  * @author Roman Strobl, roman.strobl@wultra.com
@@ -65,7 +65,7 @@ import java.util.Map;
  */
 public class VaultUnlockStep implements BaseStep {
 
-    private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
+    private static final KeyConvertor keyConvertor = new KeyConvertor();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientSignature signature = new PowerAuthClientSignature();
     private static final PowerAuthClientKeyFactory keyFactory = new PowerAuthClientKeyFactory();
@@ -87,6 +87,7 @@ public class VaultUnlockStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "vault-unlock-start",
                     "Vault Unlock Started",
                     null,
                     "OK",
@@ -117,12 +118,12 @@ public class VaultUnlockStep implements BaseStep {
         }
 
         // Get the signature keys
-        SecretKey signaturePossessionKey = keyConversion.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
+        SecretKey signaturePossessionKey = keyConvertor.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
         SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(password, signatureKnowledgeKeyEncryptedBytes, signatureKnowledgeKeySalt, keyGenerator);
-        SecretKey signatureBiometryKey = keyConversion.convertBytesToSharedSecretKey(signatureBiometryKeyBytes);
+        SecretKey signatureBiometryKey = keyConvertor.convertBytesToSharedSecretKey(signatureBiometryKeyBytes);
 
         // Get the transport key
-        SecretKey transportMasterKey = keyConversion.convertBytesToSharedSecretKey(transportMasterKeyBytes);
+        SecretKey transportMasterKey = keyConvertor.convertBytesToSharedSecretKey(transportMasterKeyBytes);
 
         // Generate nonce
         byte[] nonceBytes = keyGenerator.generateRandomBytes(16);
@@ -137,7 +138,7 @@ public class VaultUnlockStep implements BaseStep {
         // Prepare ECIES encryptor and encrypt request data with sharedInfo1 = /pa/vault/unlock
         final boolean useIv = !"3.0".equals(model.getVersion());
         final byte[] applicationSecret = model.getApplicationSecret().getBytes(StandardCharsets.UTF_8);
-        final ECPublicKey serverPublicKey = (ECPublicKey) keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
+        final ECPublicKey serverPublicKey = (ECPublicKey) keyConvertor.convertBytesToPublicKey(serverPublicKeyBytes);
         final EciesEncryptor eciesEncryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
                 transportMasterKeyBytes, EciesSharedInfo1.VAULT_UNLOCK);
 
@@ -158,7 +159,7 @@ public class VaultUnlockStep implements BaseStep {
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/vault/unlock", nonceBytes, requestBytes) + "&" + model.getApplicationSecret();
         byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
         PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion());
-        String signatureValue = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), ctrData, signatureFormat);
+        String signatureValue = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), ctrData, signatureFormat);
         PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion());
         String httpAuthorizationHeader = header.buildHttpHeader();
 
@@ -181,10 +182,10 @@ public class VaultUnlockStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall(uri, "POST", eciesRequest, headers);
+                stepLogger.writeServerCall("vault-unlock-request-sent", uri, "POST", eciesRequest, headers);
             }
 
-            HttpResponse response = Unirest.post(uri)
+            HttpResponse<String> response = Unirest.post(uri)
                     .headers(headers)
                     .body(requestBytes)
                     .asString();
@@ -192,10 +193,10 @@ public class VaultUnlockStep implements BaseStep {
             if (response.getStatus() == 200) {
                 EciesEncryptedResponse encryptedResponse = RestClientConfiguration
                         .defaultMapper()
-                        .readValue(response.getRawBody(), EciesEncryptedResponse.class);
+                        .readValue(response.getBody(), EciesEncryptedResponse.class);
 
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK(encryptedResponse, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeServerCallOK("vault-unlock-response-received", encryptedResponse, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
 
                 // Read encrypted response and decrypt it
@@ -209,6 +210,7 @@ public class VaultUnlockStep implements BaseStep {
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "vault-unlock-response-decrypt",
                             "Decrypted Response",
                             "Following vault unlock data were decrypted",
                             "OK",
@@ -230,38 +232,39 @@ public class VaultUnlockStep implements BaseStep {
                 Map<String, Object> objectMap = new HashMap<>();
                 objectMap.put("activationId", activationId);
                 objectMap.put("encryptedVaultEncryptionKey", BaseEncoding.base64().encode(encryptedVaultEncryptionKey));
-                objectMap.put("transportMasterKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(transportMasterKey)));
-                objectMap.put("vaultEncryptionKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(vaultEncryptionKey)));
-                objectMap.put("devicePrivateKey", BaseEncoding.base64().encode(keyConversion.convertPrivateKeyToBytes(devicePrivateKey)));
+                objectMap.put("transportMasterKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(transportMasterKey)));
+                objectMap.put("vaultEncryptionKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(vaultEncryptionKey)));
+                objectMap.put("devicePrivateKey", BaseEncoding.base64().encode(keyConvertor.convertPrivateKeyToBytes(devicePrivateKey)));
                 objectMap.put("privateKeyDecryptionSuccessful", (equal ? "true" : "false"));
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "vault-unlock-vault-unlocked",
                             "Vault Unlocked",
                             "Secure vault was successfully unlocked",
                             "OK",
                             objectMap
                     );
-                    stepLogger.writeDoneOK();
+                    stepLogger.writeDoneOK("vault-unlock-success");
                 }
                 return model.getResultStatusObject();
             } else {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                    stepLogger.writeDoneFailed();
+                    stepLogger.writeServerCallError("vault-unlock-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeDoneFailed("vault-unlock-failed");
                 }
                 return null;
             }
         } catch (UnirestException exception) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeServerCallConnectionError("vault-unlock-error-connection", exception);
+                stepLogger.writeDoneFailed("vault-unlock-failed");
             }
             return null;
         } catch (Exception exception) {
             if (stepLogger != null) {
-                stepLogger.writeError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("vault-unlock-error-generic", exception);
+                stepLogger.writeDoneFailed("vault-unlock-failed");
             }
             return null;
         }

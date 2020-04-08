@@ -22,6 +22,7 @@ package io.getlime.security.powerauth.lib.cmd.logging.model;
  */
 public class StepItem {
 
+    private final String id;
     private final String name;
     private final String description;
     private final String status;
@@ -30,16 +31,26 @@ public class StepItem {
     /**
      * Constructor with all details.
      *
+     * @param id Identifier of the item.
      * @param name Item name.
      * @param description Item description.
      * @param status Status.
      * @param object Related object (optional).
      */
-    public StepItem(String name, String description, String status, Object object) {
+    public StepItem(String id, String name, String description, String status, Object object) {
+        this.id = id;
         this.name = name;
         this.description = description;
         this.status = status;
         this.object = object;
+    }
+
+    /**
+     * Get the item ID.
+     * @return Item ID.
+     */
+    public String getId() {
+        return id;
     }
 
     /**

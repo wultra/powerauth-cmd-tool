@@ -10,8 +10,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 public class VerifySignatureUtil {
 
@@ -25,14 +23,15 @@ public class VerifySignatureUtil {
      * @throws IOException In case of any IO error.
      */
     public static byte[] extractRequestDataBytes(VerifySignatureStepModel model, StepLogger stepLogger) throws URISyntaxException, IOException {
-        byte[] dataFileBytes;
+        byte[] requestDataBytes;
         if ("GET".equals(model.getHttpMethod().toUpperCase())) {
             String query = new URI(model.getUriString()).getRawQuery();
             String canonizedQuery = PowerAuthRequestCanonizationUtils.canonizeGetParameters(query);
             if (canonizedQuery != null) {
-                dataFileBytes = canonizedQuery.getBytes(StandardCharsets.UTF_8);
+                requestDataBytes = canonizedQuery.getBytes(StandardCharsets.UTF_8);
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "signature-verify-normalize-data",
                             "Normalized GET data",
                             "GET query data were normalized into the canonical string.",
                             "OK",
@@ -40,9 +39,10 @@ public class VerifySignatureUtil {
                     );
                 }
             } else {
-                dataFileBytes = new byte[0];
+                requestDataBytes = new byte[0];
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "signature-verify-empty-data",
                             "Empty data",
                             "No GET query parameters found in provided URL, signature will contain no data",
                             "WARNING",
@@ -52,20 +52,22 @@ public class VerifySignatureUtil {
             }
         } else {
             // Read data input file
-            if (model.getDataFileName() != null && Files.exists(Paths.get(model.getDataFileName()))) {
-                dataFileBytes = Files.readAllBytes(Paths.get(model.getDataFileName()));
+            requestDataBytes = model.getData();
+            if (requestDataBytes != null && requestDataBytes.length > 0) {
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "signature-verify-request-payload",
                             "Request payload",
                             "Data from the request payload file, used as the POST / DELETE / ... method body, encoded as Base64.",
                             "OK",
-                            BaseEncoding.base64().encode(dataFileBytes)
+                            BaseEncoding.base64().encode(requestDataBytes)
                     );
                 }
             } else {
-                dataFileBytes = new byte[0];
+                requestDataBytes = new byte[0];
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "signature-verify-empty-data",
                             "Empty data",
                             "Data file was not found, signature will contain no data",
                             "WARNING",
@@ -74,7 +76,7 @@ public class VerifySignatureUtil {
                 }
             }
         }
-        return dataFileBytes;
+        return requestDataBytes;
     }
 
     /**

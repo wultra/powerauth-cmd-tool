@@ -16,7 +16,8 @@
  */
 package io.getlime.security.powerauth.lib.cmd.util;
 
-import com.mashape.unirest.http.Headers;
+import kong.unirest.Header;
+import kong.unirest.Headers;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,9 +36,8 @@ public class HttpUtil {
      */
     public static Map<String, String> flattenHttpHeaders(Headers headers) {
         Map<String, String> result = new HashMap<>();
-        for (String key : headers.keySet()) {
-            String value = headers.getFirst(key);
-            result.put(key, value);
+        for (Header h : headers.all()) {
+            result.put(h.getName(), h.getValue());
         }
         return result;
     }

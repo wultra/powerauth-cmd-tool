@@ -28,7 +28,8 @@ public class VerifyTokenStepModel extends BaseStepModel {
     private String tokenId;
     private String tokenSecret;
     private String httpMethod;
-    private String dataFileName;
+    private byte[] data;
+    private boolean dryRun;
 
     /**
      * Get token ID.
@@ -78,12 +79,32 @@ public class VerifyTokenStepModel extends BaseStepModel {
         this.httpMethod = httpMethod;
     }
 
-    public String getDataFileName() {
-        return dataFileName;
+    /**
+     * Set HTTP request data.
+     * @param data Request data.
+     */
+    public void setData(byte[] data) {
+        this.data = data;
     }
 
-    public void setDataFileName(String dataFileName) {
-        this.dataFileName = dataFileName;
+    /**
+     * Get HTTP request data.
+     * @return Request data.
+     */
+    public byte[] getData() {
+        return data;
+    }
+
+    /**
+     * Set flag indicating that this step should be terminated before the networking call.
+     * @return Dry run indicator.
+     */
+    public boolean isDryRun() {
+        return dryRun;
+    }
+
+    public void setDryRun(boolean dryRun) {
+        this.dryRun = dryRun;
     }
 
     @Override
@@ -92,7 +113,8 @@ public class VerifyTokenStepModel extends BaseStepModel {
         context.put("TOKEN_ID", tokenId);
         context.put("TOKEN_SECRET", tokenSecret);
         context.put("HTTP_METHOD", httpMethod);
-        context.put("DATA_FILENAME", dataFileName);
+        context.put("DATA", data);
+        context.put("DRY_RUN", dryRun);
         return context;
     }
 
@@ -102,7 +124,8 @@ public class VerifyTokenStepModel extends BaseStepModel {
         setTokenId((String) context.get("TOKEN_ID"));
         setTokenSecret((String) context.get("TOKEN_SECRET"));
         setHttpMethod((String) context.get("HTTP_METHOD"));
-        setDataFileName((String) context.get("DATA_FILENAME"));
+        setData((byte[]) context.get("DATA"));
+        setDryRun((boolean) context.get("DRY_RUN"));
     }
 
 }

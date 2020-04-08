@@ -18,19 +18,15 @@ package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.vault.PowerAuthClientVault;
-import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
-import io.getlime.security.powerauth.crypto.lib.model.ActivationVersion;
+import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
@@ -38,7 +34,6 @@ import io.getlime.security.powerauth.lib.cmd.steps.model.PrepareActivationStepMo
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
-import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.entity.ActivationType;
 import io.getlime.security.powerauth.rest.api.model.request.v3.ActivationLayer1Request;
 import io.getlime.security.powerauth.rest.api.model.request.v3.ActivationLayer2Request;
@@ -46,6 +41,9 @@ import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedReq
 import io.getlime.security.powerauth.rest.api.model.response.v3.ActivationLayer1Response;
 import io.getlime.security.powerauth.rest.api.model.response.v3.ActivationLayer2Response;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
@@ -67,6 +65,7 @@ import java.util.regex.Pattern;
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
  *      <li>3.0</li>
+ *      <li>3.1</li>
  * </ul>
  *
  * @author Roman Strobl, roman.strobl@wultra.com
@@ -75,7 +74,7 @@ import java.util.regex.Pattern;
 public class PrepareActivationStep implements BaseStep {
 
     private static final PowerAuthClientActivation activation = new PowerAuthClientActivation();
-    private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
+    private static final KeyConvertor keyConvertor = new KeyConvertor();
     private static final PowerAuthClientKeyFactory keyFactory = new PowerAuthClientKeyFactory();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientVault vault = new PowerAuthClientVault();
@@ -98,6 +97,7 @@ public class PrepareActivationStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "activation-prepare-start",
                     "Activation Started",
                     null,
                     "OK",
@@ -113,8 +113,8 @@ public class PrepareActivationStep implements BaseStep {
         Matcher m = p.matcher(model.getActivationCode());
         if (!m.find()) {
             if (stepLogger != null) {
-                stepLogger.writeError("Prepare activation step failed", "Activation code has invalid format");
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("activation-create-activation-code", "Prepare activation step failed", "Activation code has invalid format");
+                stepLogger.writeDoneFailed("activation-create-error-activation-code");
                 return null;
             }
         }
@@ -124,6 +124,7 @@ public class PrepareActivationStep implements BaseStep {
         objectMap.put("activationCode", activationCode);
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "activation-create-activation-code",
                     "Activation code",
                     "Storing activation code",
                     "OK",
@@ -137,13 +138,16 @@ public class PrepareActivationStep implements BaseStep {
 
         // Generate device key pair
         KeyPair deviceKeyPair = activation.generateDeviceKeyPair();
-        byte[] devicePublicKeyBytes = keyConversion.convertPublicKeyToBytes(deviceKeyPair.getPublic());
+        byte[] devicePublicKeyBytes = keyConvertor.convertPublicKeyToBytes(deviceKeyPair.getPublic());
         String devicePublicKeyBase64 = BaseEncoding.base64().encode(devicePublicKeyBytes);
 
         // Create activation layer 2 request which is decryptable only on PowerAuth server
         ActivationLayer2Request requestL2 = new ActivationLayer2Request();
         requestL2.setActivationName(model.getActivationName());
         requestL2.setDevicePublicKey(devicePublicKeyBase64);
+        requestL2.setPlatform(model.getPlatform());
+        requestL2.setDeviceInfo(model.getDeviceInfo());
+        requestL2.setActivationOtp(model.getAdditionalActivationOtp());
 
         // Encrypt request data using ECIES in application scope with sharedInfo1 = /pa/activation
         final boolean useIv = !"3.0".equals(model.getVersion());
@@ -169,6 +173,7 @@ public class PrepareActivationStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "activation-create-request-encrypt",
                     "Building activation request object",
                     "Following activation attributes will be encrypted and sent to the server",
                     "OK",
@@ -203,19 +208,19 @@ public class PrepareActivationStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall(uri, "POST", encryptedRequestL1, headers);
+                stepLogger.writeServerCall("activation-create-request-sent", uri, "POST", encryptedRequestL1, headers);
             }
 
-            HttpResponse response = Unirest.post(uri)
+            HttpResponse<String> response = Unirest.post(uri)
                     .headers(headers)
                     .body(encryptedRequestL1)
                     .asString();
 
             if (response.getStatus() == 200) {
-                EciesEncryptedResponse encryptedResponseL1 = mapper.readValue(response.getRawBody(), EciesEncryptedResponse.class);
+                EciesEncryptedResponse encryptedResponseL1 = mapper.readValue(response.getBody(), EciesEncryptedResponse.class);
 
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK(encryptedResponseL1, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeServerCallOK("activation-create-response-received", encryptedResponseL1, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
 
                 // Read activation layer 1 response and decrypt it
@@ -229,6 +234,7 @@ public class PrepareActivationStep implements BaseStep {
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "activation-response-decrypt",
                             "Decrypted Layer 1 Response",
                             "Following layer 1 activation data were decrypted",
                             "OK",
@@ -247,6 +253,7 @@ public class PrepareActivationStep implements BaseStep {
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "activation-create-response-decrypt-inner",
                             "Decrypted Layer 2 Response",
                             "Following layer 2 activation data were decrypted",
                             "OK",
@@ -257,7 +264,7 @@ public class PrepareActivationStep implements BaseStep {
                 String activationId = responseL2.getActivationId();
                 String ctrDataBase64 = responseL2.getCtrData();
                 String serverPublicKeyBase64 = responseL2.getServerPublicKey();
-                PublicKey serverPublicKey = keyConversion.convertBytesToPublicKey(BaseEncoding.base64().decode(serverPublicKeyBase64));
+                PublicKey serverPublicKey = keyConvertor.convertBytesToPublicKey(BaseEncoding.base64().decode(serverPublicKeyBase64));
 
                 // Compute master secret key
                 SecretKey masterSecretKey = keyFactory.generateClientMasterSecretKey(deviceKeyPair.getPrivate(), serverPublicKey);
@@ -286,13 +293,13 @@ public class PrepareActivationStep implements BaseStep {
 
                 // Prepare the status object to be stored
                 model.getResultStatusObject().put("activationId", activationId);
-                model.getResultStatusObject().put("serverPublicKey", BaseEncoding.base64().encode(keyConversion.convertPublicKeyToBytes(serverPublicKey)));
+                model.getResultStatusObject().put("serverPublicKey", BaseEncoding.base64().encode(keyConvertor.convertPublicKeyToBytes(serverPublicKey)));
                 model.getResultStatusObject().put("encryptedDevicePrivateKey", BaseEncoding.base64().encode(encryptedDevicePrivateKey));
-                model.getResultStatusObject().put("signaturePossessionKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signaturePossessionSecretKey)));
+                model.getResultStatusObject().put("signaturePossessionKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(signaturePossessionSecretKey)));
                 model.getResultStatusObject().put("signatureKnowledgeKeyEncrypted", BaseEncoding.base64().encode(cSignatureKnowledgeSecretKey));
                 model.getResultStatusObject().put("signatureKnowledgeKeySalt", BaseEncoding.base64().encode(salt));
-                model.getResultStatusObject().put("signatureBiometryKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signatureBiometrySecretKey)));
-                model.getResultStatusObject().put("transportMasterKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(transportMasterKey)));
+                model.getResultStatusObject().put("signatureBiometryKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(signatureBiometrySecretKey)));
+                model.getResultStatusObject().put("transportMasterKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(transportMasterKey)));
                 model.getResultStatusObject().put("counter", 0L);
                 model.getResultStatusObject().put("ctrData", ctrDataBase64);
                 model.getResultStatusObject().put("version", 3L);
@@ -310,32 +317,33 @@ public class PrepareActivationStep implements BaseStep {
                 objectMap.put("deviceKeyFingerprint", activation.computeActivationFingerprint(deviceKeyPair.getPublic(), serverPublicKey, activationId));
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "activation-create-activation-done",
                             "Activation Done",
                             "Public key exchange was successfully completed, commit the activation on server",
                             "OK",
                             objectMap
                     );
-                    stepLogger.writeDoneOK();
+                    stepLogger.writeDoneOK("activation-create-success");
                 }
 
                 return model.getResultStatusObject();
             } else {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                    stepLogger.writeDoneFailed();
+                    stepLogger.writeServerCallError("activation-create-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeDoneFailed("activation-create-failed");
                 }
                 return null;
             }
         } catch (UnirestException exception) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeServerCallConnectionError("activation-create-error-connection", exception);
+                stepLogger.writeDoneFailed("activation-create-failed");
             }
             return null;
         } catch (Exception exception) {
             if (stepLogger != null) {
-                stepLogger.writeError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("activation-create-error-generic", exception);
+                stepLogger.writeDoneFailed("activation-create-failed");
             }
             return null;
         }
