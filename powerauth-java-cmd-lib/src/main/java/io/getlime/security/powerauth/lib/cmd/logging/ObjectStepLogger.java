@@ -206,7 +206,7 @@ public class ObjectStepLogger implements StepLogger {
      */
     @Override
     public void writeError(String id, String name, String errorMessage, Exception exception) {
-        errors.add(new StepError(name, errorMessage, exception));
+        errors.add(new StepError(id, name, errorMessage, exception));
         String status = "ERROR";
         writeItem(id, name, errorMessage, status, exception);
     }
@@ -256,13 +256,33 @@ public class ObjectStepLogger implements StepLogger {
     }
 
     /**
+     * Get first {@link StepItem} with given ID.
+     * @param id Item ID.
+     * @return First {@link StepItem} with given id or {@code null} if logger doesn't contain such item.
+     */
+    public StepItem getFirstItem(String id) {
+        if (id == null) {
+            return null;
+        }
+        for (StepItem item: items) {
+            if (id.equals(item.getId())) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Get first {@link StepItem} with given name.
      * @param itemName Item name.
      * @return First {@link StepItem} with given name or {@code null} if logger doesn't contain such item.
      */
-    public StepItem getFirstItem(String itemName) {
+    public StepItem getFirstItemByName(String itemName) {
+        if (itemName == null) {
+            return null;
+        }
         for (StepItem item: items) {
-            if (item.getName().equals(itemName)) {
+            if (itemName.equals(item.getName())) {
                 return item;
             }
         }
@@ -279,12 +299,32 @@ public class ObjectStepLogger implements StepLogger {
 
     /**
      * Get first {@link StepError} with given name.
+     * @param id Error ID.
+     * @return First {@link StepError} with given ID or {@code null} if logger doesn't contain such error.
+     */
+    public StepError getFirstError(String id) {
+        if (id == null) {
+            return null;
+        }
+        for (StepError error: errors) {
+            if (id.equals(error.getId())) {
+                return error;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Get first {@link StepError} with given name.
      * @param errorName Error name.
      * @return First {@link StepError} with given name or {@code null} if logger doesn't contain such error.
      */
-    public StepError getFirstError(String errorName) {
+    public StepError getFirstErrorByName(String errorName) {
+        if (errorName == null) {
+            return null;
+        }
         for (StepError error: errors) {
-            if (error.getName().equals(errorName)) {
+            if (errorName.equals(error.getName())) {
                 return error;
             }
         }

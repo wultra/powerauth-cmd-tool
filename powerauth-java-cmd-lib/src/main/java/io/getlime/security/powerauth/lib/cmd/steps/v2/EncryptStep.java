@@ -33,11 +33,9 @@ import kong.unirest.Unirest;
 import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
 
-import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Scanner;
 
 /**
  * Encrypt step encrypts request data using non-personalized end-to-end encryption.
@@ -81,28 +79,18 @@ public class EncryptStep implements BaseStep {
         String uri = model.getUriString();
 
         // Read data which needs to be encrypted
-        File dataFile = new File(model.getDataFileName());
-        if (!dataFile.exists()) {
+        final byte[] requestDataBytes = model.getData();
+        if (requestDataBytes == null) {
             if (stepLogger != null) {
-                stepLogger.writeError("encrypt-error-data-file", "Encrypt Request Failed", "File not found: " + model.getDataFileName());
+                stepLogger.writeError("encrypt-error-data-file", "Encrypt Request Failed", "Request data for encryption was null.");
                 stepLogger.writeDoneFailed("encrypt-failed");
             }
             return null;
         }
-
-        Scanner scanner = new Scanner(dataFile, "UTF-8");
-        scanner.useDelimiter("\\Z");
-        String requestData = "";
-        if (scanner.hasNext()) {
-            requestData = scanner.next();
-        }
-        scanner.close();
-
         // Prepare the encryptor
         ClientNonPersonalizedEncryptor encryptor = new ClientNonPersonalizedEncryptor(BaseEncoding.base64().decode(model.getApplicationKey()), model.getMasterPublicKey());
 
         // Encrypt the request data
-        byte[] requestDataBytes = requestData.getBytes(StandardCharsets.UTF_8);
         final NonPersonalizedEncryptedMessage encryptedMessage = encryptor.encrypt(requestDataBytes);
         if (encryptedMessage == null) {
             if (stepLogger != null) {

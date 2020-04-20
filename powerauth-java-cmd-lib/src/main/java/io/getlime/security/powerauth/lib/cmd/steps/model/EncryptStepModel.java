@@ -27,26 +27,26 @@ import java.util.Map;
  */
 public class EncryptStepModel extends BaseStepModel {
 
-    private String dataFileName;
+    private byte[] data;
     private String applicationKey;
     private String applicationSecret;
     private PublicKey masterPublicKey;
     private String scope;
 
     /**
-     * Set name of file with request data.
-     * @return Data file name.
+     * Get the request data.
+     * @return Request data.
      */
-    public String getDataFileName() {
-        return dataFileName;
+    public byte[] getData() {
+        return data;
     }
 
     /**
-     * Set name of file with request data.
-     * @param dataFileName Data file name.
+     * Set the request data.
+     * @param data Request data.
      */
-    public void setDataFileName(String dataFileName) {
-        this.dataFileName = dataFileName;
+    public void setData(byte[] data) {
+        this.data = data;
     }
 
     /**
@@ -128,7 +128,7 @@ public class EncryptStepModel extends BaseStepModel {
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> context = super.toMap();
-        context.put("DATA_FILE_NAME", dataFileName);
+        context.put("DATA", data);
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
         context.put("MASTER_PUBLIC_KEY", masterPublicKey);
@@ -139,7 +139,7 @@ public class EncryptStepModel extends BaseStepModel {
     @Override
     public void fromMap(Map<String, Object> context) {
         super.fromMap(context);
-        setDataFileName((String) context.get("DATA_FILE_NAME"));
+        setData((byte[]) context.get("DATA"));
         setApplicationKey((String) context.get("APPLICATION_KEY"));
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
         setMasterPublicKey((PublicKey) context.get("MASTER_PUBLIC_KEY"));
