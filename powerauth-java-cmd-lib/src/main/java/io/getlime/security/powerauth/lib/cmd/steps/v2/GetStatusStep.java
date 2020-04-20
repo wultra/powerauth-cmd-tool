@@ -24,6 +24,7 @@ import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientAct
 import io.getlime.security.powerauth.crypto.lib.model.ActivationStatusBlobInfo;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.model.ExtendedActivationStatusBlobInfo;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.GetStatusStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
@@ -66,7 +67,7 @@ public class GetStatusStep implements BaseStep {
     public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) {
 
         // Read properties from "context"
-        GetStatusStepModel model = new GetStatusStepModel();
+        final GetStatusStepModel model = new GetStatusStepModel();
         model.fromMap(context);
 
         if (stepLogger != null) {
@@ -80,22 +81,22 @@ public class GetStatusStep implements BaseStep {
         }
 
         // Prepare the activation URI
-        String uri = model.getUriString() + "/pa/activation/status";
+        final String uri = model.getUriString() + "/pa/activation/status";
 
         // Get data from status
-        String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
-        String transportMasterKeyBase64 = JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey");
-        SecretKey transportMasterKey = keyConvertor.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKeyBase64));
+        final String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
+        final String transportMasterKeyBase64 = JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey");
+        final SecretKey transportMasterKey = keyConvertor.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKeyBase64));
 
         // Send the activation status request to the server
-        ActivationStatusRequest requestObject = new ActivationStatusRequest();
+        final ActivationStatusRequest requestObject = new ActivationStatusRequest();
         requestObject.setActivationId(activationId);
-        ObjectRequest<ActivationStatusRequest> body = new ObjectRequest<>();
+        final ObjectRequest<ActivationStatusRequest> body = new ObjectRequest<>();
         body.setRequestObject(requestObject);
 
         try {
 
-            Map<String, String> headers = new HashMap<>();
+            final Map<String, String> headers = new HashMap<>();
             headers.put("Accept", "application/json");
             headers.put("Content-Type", "application/json");
             headers.putAll(model.getHeaders());
@@ -104,14 +105,14 @@ public class GetStatusStep implements BaseStep {
                 stepLogger.writeServerCall("activation-status-request-sent", uri, "POST", requestObject, headers);
             }
 
-            HttpResponse<String> response = Unirest.post(uri)
+            final HttpResponse<String> response = Unirest.post(uri)
                     .headers(headers)
                     .body(body)
                     .asString();
 
             if (response.getStatus() == 200) {
-                TypeReference<ObjectResponse<ActivationStatusResponse>> typeReference = new TypeReference<ObjectResponse<ActivationStatusResponse>>() {};
-                ObjectResponse<ActivationStatusResponse> responseWrapper = RestClientConfiguration
+                final TypeReference<ObjectResponse<ActivationStatusResponse>> typeReference = new TypeReference<ObjectResponse<ActivationStatusResponse>>() {};
+                final ObjectResponse<ActivationStatusResponse> responseWrapper = RestClientConfiguration
                         .defaultMapper()
                         .readValue(response.getBody(), typeReference);
 
@@ -120,13 +121,14 @@ public class GetStatusStep implements BaseStep {
                 }
 
                 // Process the server response
-                ActivationStatusResponse responseObject = responseWrapper.getResponseObject();
-                byte[] cStatusBlob = BaseEncoding.base64().decode(responseObject.getEncryptedStatusBlob());
+                final ActivationStatusResponse responseObject = responseWrapper.getResponseObject();
+                final byte[] cStatusBlob = BaseEncoding.base64().decode(responseObject.getEncryptedStatusBlob());
 
                 // Print the results
-                ActivationStatusBlobInfo statusBlob = activation.getStatusFromEncryptedBlob(cStatusBlob, null, null, transportMasterKey);
+                final ActivationStatusBlobInfo statusBlobRaw = activation.getStatusFromEncryptedBlob(cStatusBlob, null, null, transportMasterKey);
+                final ExtendedActivationStatusBlobInfo statusBlob = ExtendedActivationStatusBlobInfo.copy(statusBlobRaw);
 
-                Map<String, Object> objectMap = new HashMap<>();
+                final Map<String, Object> objectMap = new HashMap<>();
                 objectMap.put("activationId", activationId);
                 objectMap.put("statusBlob", statusBlob);
                 if (stepLogger != null) {
