@@ -16,9 +16,7 @@
  */
 package io.getlime.security.powerauth.app.cmd;
 
-import com.mashape.unirest.http.Unirest;
 import io.getlime.security.powerauth.app.cmd.exception.ExecutionException;
-import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.VerifySignatureStep;
@@ -30,8 +28,10 @@ import io.getlime.security.powerauth.lib.cmd.steps.v3.ConfirmRecoveryCodeStep;
 import io.getlime.security.powerauth.lib.cmd.steps.v3.StartUpgradeStep;
 import io.getlime.security.powerauth.lib.cmd.util.ConfigurationUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
-import io.getlime.security.powerauth.provider.CryptoProviderUtilFactory;
+import kong.unirest.Unirest;
+import kong.unirest.apache.ApacheClient;
 import org.apache.commons.cli.*;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -40,6 +40,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
 import javax.net.ssl.*;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -74,7 +75,6 @@ public class Application {
 
             // Add Bouncy Castle Security Provider
             Security.addProvider(new BouncyCastleProvider());
-            PowerAuthConfiguration.INSTANCE.setKeyConvertor(CryptoProviderUtilFactory.getCryptoProviderUtils());
 
             // Configure REST client
             RestClientConfiguration.configure();
@@ -87,10 +87,12 @@ public class Application {
             options.addOption("c", "config-file", true, "Specifies a path to the config file with Base64 encoded server master public key, application ID and application secret.");
             options.addOption("s", "status-file", true, "Path to the file with the activation status, serving as the data persistence.");
             options.addOption("a", "activation-code", true, "In case a specified method is 'create', this field contains the activation key (a concatenation of a short activation ID and activation OTP).");
-            options.addOption("t", "http-method", true, "In case a specified method is 'sign', this field specifies a HTTP method, as specified in PowerAuth signature process.");
-            options.addOption("e", "endpoint", true, "In case a specified method is 'sign', this field specifies a URI identifier, as specified in PowerAuth signature process.");
-            options.addOption("l", "signature-type", true, "In case a specified method is 'sign', this field specifies a signature type, as specified in PowerAuth signature process.");
-            options.addOption("d", "data-file", true, "In case a specified method is 'sign', this field specifies a file with the input data to be signed and verified with the server, as specified in PowerAuth signature process.");
+            options.addOption("A", "activation-otp", true, "In case a specified method is 'create', this field contains additional activation OTP (PA server 0.24+)");
+            options.addOption("t", "http-method", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a HTTP method, as specified in PowerAuth signature process.");
+            options.addOption("e", "endpoint", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a URI identifier, as specified in PowerAuth signature process.");
+            options.addOption("l", "signature-type", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a signature type, as specified in PowerAuth signature process.");
+            options.addOption("d", "data-file", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a file with the input data to be signed and verified with the server, as specified in PowerAuth signature process.");
+            options.addOption(null, "dry-run", false, "In case a specified method is 'sign' or 'validate-token' and this attribute is specified, the step is stopped right after signing the request body and preparing appropriate headers.");
             options.addOption("p", "password", true, "Password used for a knowledge related key encryption. If not specified, an interactive input is required.");
             options.addOption("I", "identity-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with identity attributes.");
             options.addOption("C", "custom-attributes-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with custom attributes.");
@@ -100,6 +102,8 @@ public class Application {
             options.addOption("r", "reason", true, "Reason why vault is being unlocked.");
             options.addOption("o", "scope", true, "ECIES encryption scope: 'application' or 'activation'.");
             options.addOption("R", "recovery-code", true, "Recovery code to be confirmed.");
+            options.addOption("P", "platform", true, "User device platform.");
+            options.addOption("D", "device-info", true, "Information about user device.");
             options.addOption("v", "version", true, "PowerAuth protocol version.");
 
             Option httpHeaderOption = Option.builder("H")
@@ -139,36 +143,51 @@ public class Application {
             // Allow invalid SSL certificates
             if (cmd.hasOption("i")) {
 
-                // Configure default Java HTTP Client
-                HttpsURLConnection.setDefaultHostnameVerifier((hostname, session) -> true);
-
-                TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
-                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                        return null;
-                    }
-
-                    public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-                    }
-
-                    public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-                    }
-                }};
-
                 try {
+
+                    TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
+                        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                            return null;
+                        }
+
+                        public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                        }
+
+                        public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+                        }
+                    }};
+
                     // Disable certificate validation on
                     SSLContext sc = SSLContext.getInstance("SSL");
                     sc.init(null, trustAllCerts, new java.security.SecureRandom());
+
+                    // Configure default Java HTTP Client
                     HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+                    HttpsURLConnection.setDefaultHostnameVerifier(NoopHostnameVerifier.INSTANCE);
 
                     // Set correct HTTP client for Unirest
-                    SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sc);
-                    CloseableHttpClient httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
-                    Unirest.setHttpClient(httpclient);
+                    SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(sc, NoopHostnameVerifier.INSTANCE);
+                    CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(socketFactory).build();
+                    Unirest.config().httpClient(ApacheClient.builder(httpClient));
 
                 } catch (Exception e) {
                     //
                 }
 
+            }
+
+            String platform;
+            if (cmd.hasOption("P")) {
+                platform = cmd.getOptionValue("P");
+            } else {
+                platform = "unknown";
+            }
+
+            String deviceInfo;
+            if (cmd.hasOption("D")) {
+                deviceInfo = cmd.getOptionValue("D");
+            } else {
+                deviceInfo = "cmd-tool";
             }
 
             // Read values
@@ -185,12 +204,13 @@ public class Application {
             }
 
             // Read config file
-            if (Files.exists(Paths.get(configFileName))) {
+            if (Files.isReadable(Paths.get(configFileName))) {
                 byte[] configFileBytes = Files.readAllBytes(Paths.get(configFileName));
                 try {
                     clientConfigObject = (JSONObject) JSONValue.parse(new String(configFileBytes, StandardCharsets.UTF_8));
                 } catch (Exception e) {
                     stepLogger.writeItem(
+                            "generic-error-config-file-invalid",
                             "Invalid config file",
                             "Config file must be in a correct JSON format?",
                             "ERROR",
@@ -200,6 +220,7 @@ public class Application {
                 }
             } else {
                 stepLogger.writeItem(
+                        "generic-error-config-file-invalid",
                         "Invalid config file",
                         "Unable to read client config file - did you specify the correct path?",
                         "ERROR",
@@ -213,7 +234,7 @@ public class Application {
 
             // Read current activation state from the activation state file or create an empty state
             JSONObject resultStatusObject;
-            if (statusFileName != null && Files.exists(Paths.get(statusFileName))) {
+            if (statusFileName != null && Files.isReadable(Paths.get(statusFileName))) {
                 byte[] statusFileBytes = Files.readAllBytes(Paths.get(statusFileName));
                 resultStatusObject = (JSONObject) JSONValue.parse(new String(statusFileBytes, StandardCharsets.UTF_8));
             } else {
@@ -250,6 +271,7 @@ public class Application {
 
                         default:
                             stepLogger.writeItem(
+                                    "generic-error-version",
                                     "Unsupported version",
                                     "The version you specified is not supported",
                                     "ERROR",
@@ -270,11 +292,16 @@ public class Application {
                     model.setTokenId(cmd.getOptionValue("T"));
                     model.setTokenSecret(cmd.getOptionValue("S"));
                     model.setHeaders(httpHeaders);
-                    model.setDataFileName(cmd.getOptionValue("d"));
                     model.setResultStatusObject(resultStatusObject);
                     model.setUriString(uriString);
                     model.setHttpMethod(cmd.getOptionValue("t"));
                     model.setVersion(version);
+                    model.setDryRun(cmd.hasOption("dry-run"));
+
+                    // Read the file with request data
+                    String dataFileName = cmd.getOptionValue("d");
+                    final byte[] dataFileBytes = readDataFile(dataFileName, stepLogger);
+                    model.setData(dataFileBytes);
 
                     JSONObject result = new VerifyTokenStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -311,6 +338,7 @@ public class Application {
 
                         default:
                             stepLogger.writeItem(
+                                    "generic-error-version",
                                     "Unsupported version",
                                     "The version you specified is not supported",
                                     "ERROR",
@@ -330,6 +358,7 @@ public class Application {
 
                     if (method.equals("prepare")) {
                         stepLogger.writeItem(
+                                "generic-warning-deprecated",
                                 "Deprecated method",
                                 "Use 'create' method instead of deprecated 'prepare'",
                                 "WARNING",
@@ -339,7 +368,10 @@ public class Application {
 
                     PrepareActivationStepModel model = new PrepareActivationStepModel();
                     model.setActivationCode(cmd.getOptionValue("a"));
+                    model.setAdditionalActivationOtp(cmd.getOptionValue("A"));
                     model.setActivationName(ConfigurationUtil.getApplicationName(clientConfigObject));
+                    model.setPlatform(platform);
+                    model.setDeviceInfo(deviceInfo);
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
                     model.setHeaders(httpHeaders);
@@ -364,6 +396,7 @@ public class Application {
 
                         default:
                             stepLogger.writeItem(
+                                    "generic-error-version",
                                     "Unsupported version",
                                     "The version you specified is not supported",
                                     "ERROR",
@@ -399,6 +432,7 @@ public class Application {
 
                         default:
                             stepLogger.writeItem(
+                                    "generic-error-version",
                                     "Unsupported version",
                                     "The version you specified is not supported",
                                     "ERROR",
@@ -438,6 +472,7 @@ public class Application {
 
                         default:
                             stepLogger.writeItem(
+                                    "generic-error-version",
                                     "Unsupported version",
                                     "The version you specified is not supported",
                                     "ERROR",
@@ -456,7 +491,6 @@ public class Application {
                     VerifySignatureStepModel model = new VerifySignatureStepModel();
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
-                    model.setDataFileName(cmd.getOptionValue("d"));
                     model.setHeaders(httpHeaders);
                     model.setHttpMethod(cmd.getOptionValue("t"));
                     model.setPassword(cmd.getOptionValue("p"));
@@ -466,6 +500,12 @@ public class Application {
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
                     model.setVersion(version);
+                    model.setDryRun(cmd.hasOption("dry-run"));
+
+                    // Read the file with request data
+                    String dataFileName = cmd.getOptionValue("d");
+                    final byte[] dataFileBytes = readDataFile(dataFileName, stepLogger);
+                    model.setData(dataFileBytes);
 
                     JSONObject result = new VerifySignatureStep().execute(stepLogger, model.toMap());
                     if (result == null) {
@@ -502,6 +542,7 @@ public class Application {
 
                         default:
                             stepLogger.writeItem(
+                                    "generic-error-version",
                                     "Unsupported version",
                                     "The version you specified is not supported",
                                     "ERROR",
@@ -520,12 +561,13 @@ public class Application {
                     String customAttributesFileName = cmd.getOptionValue("C");
 
                     Map<String,String> identityAttributes;
-                    if (Files.exists(Paths.get(identityAttributesFileName))) {
+                    if (Files.isReadable(Paths.get(identityAttributesFileName))) {
                         byte[] identityAttributesFileBytes = Files.readAllBytes(Paths.get(identityAttributesFileName));
                         try {
                             identityAttributes = RestClientConfiguration.defaultMapper().readValue(identityAttributesFileBytes, HashMap.class);
                         } catch (Exception e) {
                             stepLogger.writeItem(
+                                    "generic-error-identity-attributes",
                                     "Invalid identity attributes file",
                                     "Identity attribute file must be in a correct JSON format",
                                     "ERROR",
@@ -535,6 +577,7 @@ public class Application {
                         }
                     } else {
                         stepLogger.writeItem(
+                                "generic-error-identity-attributes",
                                 "Invalid identity attributes file",
                                 "Unable to read identity attributes file - did you specify the correct path?",
                                 "ERROR",
@@ -544,12 +587,13 @@ public class Application {
                     }
 
                     Map<String,Object> customAttributes;
-                    if (Files.exists(Paths.get(customAttributesFileName))) {
+                    if (Files.isReadable(Paths.get(customAttributesFileName))) {
                         byte[] customAttributesFileBytes = Files.readAllBytes(Paths.get(customAttributesFileName));
                         try {
                             customAttributes = RestClientConfiguration.defaultMapper().readValue(customAttributesFileBytes, HashMap.class);
                         } catch (Exception e) {
                             stepLogger.writeItem(
+                                    "generic-error-custom-attributes",
                                     "Invalid custom attributes file",
                                     "Custom attribute file must be in a correct JSON format",
                                     "ERROR",
@@ -559,6 +603,7 @@ public class Application {
                         }
                     } else {
                         stepLogger.writeItem(
+                                "generic-error-custom-attributes",
                                 "Invalid custom attributes file",
                                 "Unable to read custom attributes file - did you specify the correct path?",
                                 "ERROR",
@@ -569,6 +614,8 @@ public class Application {
 
                     CreateActivationStepModel model = new CreateActivationStepModel();
                     model.setActivationName(ConfigurationUtil.getApplicationName(clientConfigObject));
+                    model.setPlatform(platform);
+                    model.setDeviceInfo(deviceInfo);
                     model.setActivationOtp(cmd.getOptionValue("a"));
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
@@ -596,6 +643,7 @@ public class Application {
 
                         default:
                             stepLogger.writeItem(
+                                    "generic-error-version",
                                     "Unsupported version",
                                     "The version you specified is not supported",
                                     "ERROR",
@@ -615,10 +663,14 @@ public class Application {
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
                     model.setResultStatusObject(resultStatusObject);
-                    model.setDataFileName(cmd.getOptionValue("d"));
                     model.setScope(cmd.getOptionValue("o"));
                     model.setUriString(uriString);
                     model.setVersion(version);
+
+                    // Read the file with request data
+                    String dataFileName = cmd.getOptionValue("d");
+                    final byte[] dataFileBytes = readDataFile(dataFileName, stepLogger);
+                    model.setData(dataFileBytes);
 
                     JSONObject result;
                     switch (version) {
@@ -634,6 +686,7 @@ public class Application {
 
                         default:
                             stepLogger.writeItem(
+                                    "generic-error-version",
                                     "Unsupported version",
                                     "The version you specified is not supported",
                                     "ERROR",
@@ -650,7 +703,6 @@ public class Application {
                     VerifySignatureStepModel model = new VerifySignatureStepModel();
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
-                    model.setDataFileName(cmd.getOptionValue("d"));
                     model.setHeaders(httpHeaders);
                     model.setHttpMethod(cmd.getOptionValue("t"));
                     model.setPassword(cmd.getOptionValue("p"));
@@ -660,6 +712,11 @@ public class Application {
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
                     model.setVersion(version);
+
+                    // Read the file with request data
+                    String dataFileName = cmd.getOptionValue("d");
+                    final byte[] dataFileBytes = readDataFile(dataFileName, stepLogger);
+                    model.setData(dataFileBytes);
 
                     JSONObject result;
                     switch (version) {
@@ -671,6 +728,7 @@ public class Application {
 
                         default:
                             stepLogger.writeItem(
+                                    "generic-error-version",
                                     "Unsupported version",
                                     "The version you specified is not supported",
                                     "ERROR",
@@ -703,6 +761,7 @@ public class Application {
 
                         default:
                             stepLogger.writeItem(
+                                    "generic-error-version",
                                     "Unsupported version",
                                     "The version you specified is not supported",
                                     "ERROR",
@@ -736,6 +795,7 @@ public class Application {
 
                         default:
                             stepLogger.writeItem(
+                                    "generic-error-version",
                                     "Unsupported version",
                                     "The version you specified is not supported",
                                     "ERROR",
@@ -755,6 +815,7 @@ public class Application {
 
                     if (identityAttributesFileName == null) {
                         stepLogger.writeItem(
+                                "generic-error-identity-attributes",
                                 "Missing identity attributes file",
                                 "Identity attribute file must be specified",
                                 "ERROR",
@@ -764,12 +825,13 @@ public class Application {
                     }
 
                     Map<String,String> identityAttributes;
-                    if (Files.exists(Paths.get(identityAttributesFileName))) {
+                    if (Files.isReadable(Paths.get(identityAttributesFileName))) {
                         byte[] identityAttributesFileBytes = Files.readAllBytes(Paths.get(identityAttributesFileName));
                         try {
                             identityAttributes = RestClientConfiguration.defaultMapper().readValue(identityAttributesFileBytes, HashMap.class);
                         } catch (Exception e) {
                             stepLogger.writeItem(
+                                    "generic-error-identity-attributes",
                                     "Invalid identity attributes file",
                                     "Identity attribute file must be in a correct JSON format",
                                     "ERROR",
@@ -779,6 +841,7 @@ public class Application {
                         }
                     } else {
                         stepLogger.writeItem(
+                                "generic-error-identity-attributes",
                                 "Invalid identity attributes file",
                                 "Unable to read identity attributes file - did you specify the correct path?",
                                 "ERROR",
@@ -789,12 +852,13 @@ public class Application {
 
                     Map<String, Object> customAttributes = null;
                     if (customAttributesFileName != null) {
-                        if (Files.exists(Paths.get(customAttributesFileName))) {
+                        if (Files.isReadable(Paths.get(customAttributesFileName))) {
                             byte[] customAttributesFileBytes = Files.readAllBytes(Paths.get(customAttributesFileName));
                             try {
                                 customAttributes = RestClientConfiguration.defaultMapper().readValue(customAttributesFileBytes, HashMap.class);
                             } catch (Exception e) {
                                 stepLogger.writeItem(
+                                        "generic-error-custom-attributes",
                                         "Invalid custom attributes file",
                                         "Custom attribute file must be in a correct JSON format",
                                         "ERROR",
@@ -804,6 +868,7 @@ public class Application {
                             }
                         } else {
                             stepLogger.writeItem(
+                                    "generic-error-custom-attributes",
                                     "Invalid custom attributes file",
                                     "Unable to read custom attributes file - did you specify the correct path?",
                                     "ERROR",
@@ -815,6 +880,8 @@ public class Application {
 
                     ActivationRecoveryStepModel model = new ActivationRecoveryStepModel();
                     model.setActivationName(ConfigurationUtil.getApplicationName(clientConfigObject));
+                    model.setPlatform(platform);
+                    model.setDeviceInfo(deviceInfo);
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
                     model.setIdentityAttributes(identityAttributes);
@@ -837,6 +904,7 @@ public class Application {
 
                         default:
                             stepLogger.writeItem(
+                                    "generic-error-version",
                                     "Unsupported version",
                                     "The version you specified is not supported",
                                     "ERROR",
@@ -872,6 +940,7 @@ public class Application {
 
                         default:
                             stepLogger.writeItem(
+                                    "generic-error-version",
                                     "Unsupported version",
                                     "The version you specified is not supported",
                                     "ERROR",
@@ -896,6 +965,7 @@ public class Application {
             // silent, just let drop to "finally" clause...
         } catch (Exception e) {
             stepLogger.writeItem(
+                    "generic-error-generic",
                     "Unknown error occurred",
                     e.getMessage(),
                     "ERROR",
@@ -905,6 +975,42 @@ public class Application {
             stepLogger.close();
         }
 
+    }
+
+    /**
+     * Read the contents of a provided data file.
+     * @param fileName File name.
+     * @param stepLogger Logger for error handling.
+     * @return Bytes with the contents of the file.
+     * @throws IOException In case reading the file failed.
+     * @throws ExecutionException In case the filename is null or a file does not exist.
+     */
+    private static byte[] readDataFile(String fileName, JsonStepLogger stepLogger) throws IOException, ExecutionException {
+        // check if the file was provided
+        if (fileName == null) { // filename was not provided, we are assuming empty data and log a warning
+            stepLogger.writeItem(
+                    "generic-warning-request-data-empty",
+                    "Empty request data file",
+                    "Request data file not provided, assuming empty data.",
+                    "WARNING",
+                    fileName
+            );
+            return new byte[0];
+        }
+
+        // Read data input file
+        if (Files.isReadable(Paths.get(fileName))) {
+            return Files.readAllBytes(Paths.get(fileName));
+        } else { // file name was provided but does not exist, log error and terminate
+            stepLogger.writeItem(
+                    "generic-error-request-data-filename",
+                    "Missing request data file",
+                    "Request data file name was null, or a file does not exist",
+                    "ERROR",
+                    fileName
+            );
+            throw new ExecutionException();
+        }
     }
 
 }

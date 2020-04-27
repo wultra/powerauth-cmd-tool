@@ -17,14 +17,11 @@ package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
-import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
+import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
@@ -32,10 +29,12 @@ import io.getlime.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.JsonUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
-import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
 import io.getlime.security.powerauth.rest.api.model.response.v3.UpgradeResponsePayload;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
 
 import java.io.FileWriter;
@@ -50,13 +49,14 @@ import java.util.Map;
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
  *      <li>3.0</li>
+ *      <li>3.1</li>
  * </ul>
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
 public class StartUpgradeStep implements BaseStep {
 
-    private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
+    private static final KeyConvertor keyConvertor = new KeyConvertor();
     private static final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
     private static final EciesFactory eciesFactory = new EciesFactory();
 
@@ -76,6 +76,7 @@ public class StartUpgradeStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "upgrade-start-started",
                     "Upgrade Started",
                     null,
                     "OK",
@@ -92,7 +93,7 @@ public class StartUpgradeStep implements BaseStep {
         byte[] applicationSecret = model.getApplicationSecret().getBytes(StandardCharsets.UTF_8);
         byte[] transportMasterKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey"));
         byte[] serverPublicKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "serverPublicKey"));
-        final ECPublicKey serverPublicKey = (ECPublicKey) keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
+        final ECPublicKey serverPublicKey = (ECPublicKey) keyConvertor.convertBytesToPublicKey(serverPublicKeyBytes);
         final EciesEncryptor encryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
                 transportMasterKeyBytes, EciesSharedInfo1.UPGRADE);
         final EciesCryptogram eciesCryptogram = encryptor.encryptRequest("{}".getBytes(StandardCharsets.UTF_8), useIv);
@@ -124,19 +125,19 @@ public class StartUpgradeStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall(uri, "POST", request, headers);
+                stepLogger.writeServerCall("upgrade-start-request-sent", uri, "POST", request, headers);
             }
 
-            HttpResponse response = Unirest.post(uri)
+            HttpResponse<String> response = Unirest.post(uri)
                     .headers(headers)
                     .body(requestBytes)
                     .asString();
 
             if (response.getStatus() == 200) {
-                EciesEncryptedResponse encryptedResponse = mapper.readValue(response.getRawBody(), EciesEncryptedResponse.class);
+                EciesEncryptedResponse encryptedResponse = mapper.readValue(response.getBody(), EciesEncryptedResponse.class);
 
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK(encryptedResponse, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeServerCallOK("upgrade-start-response-received", encryptedResponse, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
 
                 // Decrypt response
@@ -160,33 +161,34 @@ public class StartUpgradeStep implements BaseStep {
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "upgrade-start-completed",
                             "Upgrade start step successfully completed",
                             "Upgrade start step was successfully completed",
                             "OK",
                             objectMap
 
                     );
-                    stepLogger.writeDoneOK();
+                    stepLogger.writeDoneOK("upgrade-start-success");
                 }
 
                 return model.getResultStatusObject();
             } else {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                    stepLogger.writeDoneFailed();
+                    stepLogger.writeServerCallError("upgrade-start-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeDoneFailed("upgrade-start-failed");
                 }
                 return null;
             }
         } catch (UnirestException exception) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeServerCallConnectionError("upgrade-start-error-connection", exception);
+                stepLogger.writeDoneFailed("upgrade-start-failed");
             }
             return null;
         } catch (Exception exception) {
             if (stepLogger != null) {
-                stepLogger.writeError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("upgrade-start-error-generic", exception);
+                stepLogger.writeDoneFailed("upgrade-start-failed");
             }
             return null;
         }

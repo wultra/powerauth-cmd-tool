@@ -19,28 +19,28 @@ package io.getlime.security.powerauth.lib.cmd.steps.v2;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
-import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureFormat;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
+import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.RemoveStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.*;
-import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.response.v2.ActivationRemoveResponse;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
 import java.io.FileWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,7 +58,7 @@ import java.util.Map;
  */
 public class RemoveStep implements BaseStep {
 
-    private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
+    private static final KeyConvertor keyConvertor = new KeyConvertor();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientSignature signature = new PowerAuthClientSignature();
     private static final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
@@ -78,6 +78,7 @@ public class RemoveStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "activation-remove-start",
                     "Activation Removal Started",
                     null,
                     "OK",
@@ -104,7 +105,7 @@ public class RemoveStep implements BaseStep {
         }
 
         // Get the signature keys
-        SecretKey signaturePossessionKey = keyConversion.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
+        SecretKey signaturePossessionKey = keyConvertor.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
         SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(password, signatureKnowledgeKeyEncryptedBytes, signatureKnowledgeKeySalt, keyGenerator);
 
         // Generate nonce
@@ -115,7 +116,7 @@ public class RemoveStep implements BaseStep {
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/activation/remove", nonceBytes, null) + "&" + model.getApplicationSecret();
         byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
         PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion());
-        String signatureValue = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), Arrays.asList(signaturePossessionKey, signatureKnowledgeKey), ctrData, signatureFormat);
+        String signatureValue = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), Arrays.asList(signaturePossessionKey, signatureKnowledgeKey), ctrData, signatureFormat);
         PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE.toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion());
         String httpAuthorizationHeader = header.buildHttpHeader();
 
@@ -138,10 +139,10 @@ public class RemoveStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall(uri, "POST", null, headers);
+                stepLogger.writeServerCall("activation-remove-request-sent", uri, "POST", null, headers);
             }
 
-            HttpResponse response = Unirest.post(uri)
+            HttpResponse<String> response = Unirest.post(uri)
                     .headers(headers)
                     .asString();
 
@@ -149,10 +150,10 @@ public class RemoveStep implements BaseStep {
                 TypeReference<ObjectResponse<ActivationRemoveResponse>> typeReference = new TypeReference<ObjectResponse<ActivationRemoveResponse>>() {};
                 ObjectResponse<ActivationRemoveResponse> responseWrapper = RestClientConfiguration
                         .defaultMapper()
-                        .readValue(response.getRawBody(), typeReference);
+                        .readValue(response.getBody(), typeReference);
 
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeServerCallOK("activation-remove-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
 
                 Map<String, Object> objectMap = new HashMap<>();
@@ -160,33 +161,34 @@ public class RemoveStep implements BaseStep {
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "activation-remove-finished",
                             "Activation Removed",
                             "Activation was successfully removed from the server",
                             "OK",
                             objectMap
 
                     );
-                    stepLogger.writeDoneOK();
+                    stepLogger.writeDoneOK("activation-remove-success");
                 }
 
                 return model.getResultStatusObject();
             } else {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                    stepLogger.writeDoneFailed();
+                    stepLogger.writeServerCallError("activation-remove-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeDoneFailed("activation-remove-failed");
                 }
                 return null;
             }
         } catch (UnirestException exception) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeServerCallConnectionError("activation-remove-error-connection", exception);
+                stepLogger.writeDoneFailed("activation-remove-failed");
             }
             return null;
         } catch (Exception exception) {
             if (stepLogger != null) {
-                stepLogger.writeError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("activation-remove-error-generic", exception);
+                stepLogger.writeDoneFailed("activation-remove-failed");
             }
             return null;
         }

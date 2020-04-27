@@ -18,27 +18,26 @@ package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
-import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureFormat;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
+import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.CreateTokenStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.*;
-import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.entity.TokenResponsePayload;
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
@@ -56,13 +55,14 @@ import java.util.Map;
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
  *      <li>3.0</li>
+ *      <li>3.1</li>
  * </ul>
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
 public class CreateTokenStep implements BaseStep {
 
-    private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
+    private static final KeyConvertor keyConvertor = new KeyConvertor();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientSignature signature = new PowerAuthClientSignature();
     private static final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
@@ -84,6 +84,7 @@ public class CreateTokenStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "token-create-start",
                     "Token Create Started",
                     null,
                     "OK",
@@ -107,7 +108,7 @@ public class CreateTokenStep implements BaseStep {
         }
 
         // Get the signature keys
-        SecretKey signaturePossessionKey = keyConversion.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
+        SecretKey signaturePossessionKey = keyConvertor.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
         SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(password, signatureKnowledgeKeyEncryptedBytes, signatureKnowledgeKeySalt, keyGenerator);
 
         // Generate nonce
@@ -120,7 +121,7 @@ public class CreateTokenStep implements BaseStep {
         final byte[] applicationSecret = model.getApplicationSecret().getBytes(StandardCharsets.UTF_8);
         final byte[] transportMasterKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey"));
         final byte[] serverPublicKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "serverPublicKey"));
-        final ECPublicKey serverPublicKey = (ECPublicKey) keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
+        final ECPublicKey serverPublicKey = (ECPublicKey) keyConvertor.convertBytesToPublicKey(serverPublicKeyBytes);
         final EciesEncryptor encryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
                 transportMasterKeyBytes, EciesSharedInfo1.CREATE_TOKEN);
         final EciesCryptogram eciesCryptogram = encryptor.encryptRequest("{}".getBytes(StandardCharsets.UTF_8), useIv);
@@ -143,7 +144,7 @@ public class CreateTokenStep implements BaseStep {
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/token/create", nonceBytes, requestBytes) + "&" + model.getApplicationSecret();
         byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
         PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion());
-        String signatureValue = signature.signatureForData(signatureBaseString.getBytes("UTF-8"), Arrays.asList(signaturePossessionKey, signatureKnowledgeKey), ctrData, signatureFormat);
+        String signatureValue = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), Arrays.asList(signaturePossessionKey, signatureKnowledgeKey), ctrData, signatureFormat);
         PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion());
         String httpAuthorizationHeader = header.buildHttpHeader();
 
@@ -166,10 +167,10 @@ public class CreateTokenStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall(uri, "POST", request, headers);
+                stepLogger.writeServerCall("token-create-request-sent", uri, "POST", request, headers);
             }
 
-            HttpResponse response = Unirest.post(uri)
+            HttpResponse<String> response = Unirest.post(uri)
                     .headers(headers)
                     .body(requestBytes)
                     .asString();
@@ -177,10 +178,10 @@ public class CreateTokenStep implements BaseStep {
             if (response.getStatus() == 200) {
                 EciesEncryptedResponse encryptedResponse = RestClientConfiguration
                         .defaultMapper()
-                        .readValue(response.getRawBody(), EciesEncryptedResponse.class);
+                        .readValue(response.getBody(), EciesEncryptedResponse.class);
 
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK(encryptedResponse, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeServerCallOK("token-create-response-received", encryptedResponse, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
 
                 byte[] macResponse = BaseEncoding.base64().decode(encryptedResponse.getMac());
@@ -197,33 +198,34 @@ public class CreateTokenStep implements BaseStep {
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "token-create-token-obtained",
                             "Token successfully obtained",
                             "Token was successfully generated and decrypted",
                             "OK",
                             objectMap
 
                     );
-                    stepLogger.writeDoneOK();
+                    stepLogger.writeDoneOK("token-create-success");
                 }
 
                 return model.getResultStatusObject();
             } else {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                    stepLogger.writeDoneFailed();
+                    stepLogger.writeServerCallError("token-create-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeDoneFailed("token-create-failed");
                 }
                 return null;
             }
         } catch (UnirestException exception) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeServerCallConnectionError("token-create-error-connection", exception);
+                stepLogger.writeDoneFailed("token-create-failed");
             }
             return null;
         } catch (Exception exception) {
             if (stepLogger != null) {
-                stepLogger.writeError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("token-create-error-generic", exception);
+                stepLogger.writeDoneFailed("token-create-failed");
             }
             return null;
         }

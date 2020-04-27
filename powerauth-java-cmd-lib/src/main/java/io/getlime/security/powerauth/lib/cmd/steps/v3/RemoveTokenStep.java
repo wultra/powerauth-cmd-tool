@@ -19,25 +19,24 @@ package io.getlime.security.powerauth.lib.cmd.steps.v3;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
-import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureFormat;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
+import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.RemoveTokenStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.*;
-import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.request.v3.TokenRemoveRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.TokenRemoveResponse;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
@@ -53,13 +52,14 @@ import java.util.Map;
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
  *      <li>3.0</li>
+ *      <li>3.1</li>
  * </ul>
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
 public class RemoveTokenStep implements BaseStep {
 
-    private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
+    private static final KeyConvertor keyConvertor = new KeyConvertor();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientSignature signature = new PowerAuthClientSignature();
     private static final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
@@ -81,6 +81,7 @@ public class RemoveTokenStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "token-remove-start",
                     "Token Remove Started",
                     null,
                     "OK",
@@ -105,9 +106,9 @@ public class RemoveTokenStep implements BaseStep {
         }
 
         // Get the signature keys
-        SecretKey signaturePossessionKey = keyConversion.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
+        SecretKey signaturePossessionKey = keyConvertor.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
         SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(password, signatureKnowledgeKeyEncryptedBytes, signatureKnowledgeKeySalt, keyGenerator);
-        SecretKey signatureBiometryKey = keyConversion.convertBytesToSharedSecretKey(signatureBiometryKeyBytes);
+        SecretKey signatureBiometryKey = keyConvertor.convertBytesToSharedSecretKey(signatureBiometryKeyBytes);
 
         // Generate nonce
         byte[] nonceBytes = keyGenerator.generateRandomBytes(16);
@@ -117,7 +118,7 @@ public class RemoveTokenStep implements BaseStep {
         // Prepare request
         TokenRemoveRequest request = new TokenRemoveRequest();
         request.setTokenId(model.getTokenId());
-        ObjectRequest objectRequest = new ObjectRequest(request);
+        ObjectRequest<TokenRemoveRequest> objectRequest = new ObjectRequest<>(request);
 
         final byte[] requestBytes = RestClientConfiguration.defaultMapper().writeValueAsBytes(objectRequest);
 
@@ -149,10 +150,10 @@ public class RemoveTokenStep implements BaseStep {
             headers.putAll(model.getHeaders());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCall(uri, "POST", request, headers);
+                stepLogger.writeServerCall("token-remove-request-sent", uri, "POST", request, headers);
             }
 
-            HttpResponse response = Unirest.post(uri)
+            HttpResponse<String> response = Unirest.post(uri)
                     .headers(headers)
                     .body(requestBytes)
                     .asString();
@@ -161,41 +162,42 @@ public class RemoveTokenStep implements BaseStep {
                 TypeReference<ObjectResponse<TokenRemoveResponse>> typeReference = new TypeReference<ObjectResponse<TokenRemoveResponse>>() {};
                 ObjectResponse<TokenRemoveResponse> responseWrapper = RestClientConfiguration
                         .defaultMapper()
-                        .readValue(response.getRawBody(), typeReference);
+                        .readValue(response.getBody(), typeReference);
 
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK(responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeServerCallOK("token-remove-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "token-remove-token-removed",
                             "Token successfully removed",
                             "Token was successfully removed",
                             "OK",
                             responseWrapper.getResponseObject().getTokenId()
 
                     );
-                    stepLogger.writeDoneOK();
+                    stepLogger.writeDoneOK("token-remove-success");
                 }
 
                 return model.getResultStatusObject();
             } else {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                    stepLogger.writeDoneFailed();
+                    stepLogger.writeServerCallError("token-remove-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeDoneFailed("token-remove-failed");
                 }
                 return null;
             }
         } catch (UnirestException exception) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeServerCallConnectionError("token-remove-error-connection", exception);
+                stepLogger.writeDoneFailed("token-remove-failed");
             }
             return null;
         } catch (Exception exception) {
             if (stepLogger != null) {
-                stepLogger.writeError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("token-remove-error-generic", exception);
+                stepLogger.writeDoneFailed("token-remove-failed");
             }
             return null;
         }

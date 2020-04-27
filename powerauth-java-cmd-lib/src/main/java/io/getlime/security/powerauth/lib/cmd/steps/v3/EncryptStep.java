@@ -17,14 +17,11 @@
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.google.common.io.BaseEncoding;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
-import io.getlime.security.powerauth.crypto.lib.config.PowerAuthConfiguration;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
+import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
@@ -32,17 +29,17 @@ import io.getlime.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.JsonUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
-import io.getlime.security.powerauth.provider.CryptoProviderUtil;
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
 
-import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.ECPublicKey;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Scanner;
 
 /**
  * Encrypt step encrypts request data using ECIES encryption in application or activation scope.
@@ -50,6 +47,7 @@ import java.util.Scanner;
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
  *     <li>3.0</li>
+ *     <li>3.1</li>
  * </ul>
  *
  * @author Roman Strobl, roman.strobl@wultra.com
@@ -57,7 +55,7 @@ import java.util.Scanner;
  */
 public class EncryptStep implements BaseStep {
 
-    private static final CryptoProviderUtil keyConversion = PowerAuthConfiguration.INSTANCE.getKeyConvertor();
+    private static final KeyConvertor keyConvertor = new KeyConvertor();
     private static final EciesFactory eciesFactory = new EciesFactory();
 
     /**
@@ -76,6 +74,7 @@ public class EncryptStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "encrypt-started",
                     "Encrypt Request Started",
                     null,
                     "OK",
@@ -87,29 +86,22 @@ public class EncryptStep implements BaseStep {
         String uri = model.getUriString();
 
         // Read data which needs to be encrypted
-        File dataFile = new File(model.getDataFileName());
-        if (!dataFile.exists()) {
+        final byte[] requestDataBytes = model.getData();
+        if (requestDataBytes == null) {
             if (stepLogger != null) {
-                stepLogger.writeError("Encrypt Request Failed", "File not found: " + model.getDataFileName());
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("encrypt-error-file", "Encrypt Request Failed", "Request data for encryption was null.");
+                stepLogger.writeDoneFailed("encrypt-failed");
             }
             return null;
         }
 
-        Scanner scanner = new Scanner(dataFile, "UTF-8");
-        scanner.useDelimiter("\\Z");
-        String requestData = "";
-        if (scanner.hasNext()) {
-            requestData = scanner.next();
-        }
-        scanner.close();
-
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "encrypt-request-encrypt",
                     "Preparing Request Data",
                     "Following data will be encrypted",
                     "OK",
-                    requestData
+                    requestDataBytes
             );
         }
 
@@ -129,7 +121,7 @@ public class EncryptStep implements BaseStep {
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/activation
                 final byte[] transportMasterKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey"));
                 final byte[] serverPublicKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "serverPublicKey"));
-                final ECPublicKey serverPublicKey = (ECPublicKey) keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
+                final ECPublicKey serverPublicKey = (ECPublicKey) keyConvertor.convertBytesToPublicKey(serverPublicKeyBytes);
                 final String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
                 encryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
                         transportMasterKeyBytes, EciesSharedInfo1.ACTIVATION_SCOPE_GENERIC);
@@ -138,8 +130,8 @@ public class EncryptStep implements BaseStep {
 
             default:
                 if (stepLogger != null) {
-                    stepLogger.writeError("Encrypt Request Failed", "Unsupported encryption scope: " + model.getScope());
-                    stepLogger.writeDoneFailed();
+                    stepLogger.writeError("encrypt-error-scope", "Encrypt Request Failed", "Unsupported encryption scope: " + model.getScope());
+                    stepLogger.writeDoneFailed("encrypt-failed");
                 }
                 return null;
         }
@@ -147,7 +139,6 @@ public class EncryptStep implements BaseStep {
 
         // Prepare encrypted request
         final boolean useIv = !"3.0".equals(model.getVersion());
-        byte[] requestDataBytes = requestData.getBytes(StandardCharsets.UTF_8);
         final EciesCryptogram eciesCryptogram = encryptor.encryptRequest(requestDataBytes, useIv);
         final EciesEncryptedRequest request = new EciesEncryptedRequest();
         final String ephemeralPublicKeyBase64 = BaseEncoding.base64().encode(eciesCryptogram.getEphemeralPublicKey());
@@ -163,6 +154,7 @@ public class EncryptStep implements BaseStep {
 
         if (stepLogger != null) {
             stepLogger.writeItem(
+                    "encrypt-request-encrypt",
                     "Encrypting Request Data",
                     "Following data is sent to intermediate server",
                     "OK",
@@ -178,7 +170,12 @@ public class EncryptStep implements BaseStep {
             headers.put(PowerAuthEncryptionHttpHeader.HEADER_NAME, httpEncryptionHeader);
             headers.putAll(model.getHeaders());
 
-            HttpResponse response = Unirest.post(uri)
+            if (stepLogger != null) {
+                stepLogger.writeServerCall("encrypt-request-sent", uri, "POST", request, headers);
+            }
+
+
+            HttpResponse<String> response = Unirest.post(uri)
                     .headers(headers)
                     .body(requestBytes)
                     .asString();
@@ -186,10 +183,10 @@ public class EncryptStep implements BaseStep {
             if (response.getStatus() == 200) {
                 EciesEncryptedResponse encryptedResponse = RestClientConfiguration
                         .defaultMapper()
-                        .readValue(response.getRawBody(), EciesEncryptedResponse.class);
+                        .readValue(response.getBody(), EciesEncryptedResponse.class);
 
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK(encryptedResponse, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeServerCallOK("encrypt-response-received", encryptedResponse, HttpUtil.flattenHttpHeaders(response.getHeaders()));
                 }
 
                 byte[] macResponse = BaseEncoding.base64().decode(encryptedResponse.getMac());
@@ -203,31 +200,32 @@ public class EncryptStep implements BaseStep {
 
                 if (stepLogger != null) {
                     stepLogger.writeItem(
+                            "encrypt-response-decrypt",
                             "Decrypted Response",
                             "Following data were decrypted",
                             "OK",
                             decryptedMessage
                     );
-                    stepLogger.writeDoneOK();
+                    stepLogger.writeDoneOK("encrypt-success");
                 }
                 return model.getResultStatusObject();
             } else {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallError(response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                    stepLogger.writeDoneFailed();
+                    stepLogger.writeServerCallError("encrypt-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeDoneFailed("encrypt-failed");
                 }
                 return null;
             }
         } catch (UnirestException exception) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeServerCallConnectionError("encrypt-error-connection", exception);
+                stepLogger.writeDoneFailed("encrypt-failed");
             }
             return null;
         } catch (Exception exception) {
             if (stepLogger != null) {
-                stepLogger.writeError(exception);
-                stepLogger.writeDoneFailed();
+                stepLogger.writeError("encrypt-error-generic", exception);
+                stepLogger.writeDoneFailed("encrypt-failed");
             }
             return null;
         }

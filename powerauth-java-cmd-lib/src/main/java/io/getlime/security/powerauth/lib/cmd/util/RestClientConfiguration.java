@@ -20,7 +20,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.mashape.unirest.http.Unirest;
+import kong.unirest.Unirest;
 
 import java.io.IOException;
 
@@ -55,8 +55,9 @@ public class RestClientConfiguration {
     public static void configure() {
 
         // Prepare converters
-        Unirest.setObjectMapper(new com.mashape.unirest.http.ObjectMapper() {
-            @Override public <T> T readValue(String value, Class<T> valueType) {
+        Unirest.config().setObjectMapper(new kong.unirest.ObjectMapper() {
+            @Override
+            public <T> T readValue(String value, Class<T> valueType) {
                 try {
                     return mapper.readValue(value, valueType);
                 } catch (IOException e) {
@@ -64,7 +65,8 @@ public class RestClientConfiguration {
                 }
             }
 
-            @Override public String writeValue(Object value) {
+            @Override
+            public String writeValue(Object value) {
                 try {
                     return mapper.writeValueAsString(value);
                 } catch (JsonProcessingException e) {

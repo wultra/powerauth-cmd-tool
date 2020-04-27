@@ -31,6 +31,8 @@ public class CreateActivationStepModel extends BaseStepModel {
     private String statusFileName;
     private String activationOtp;
     private String activationName;
+    private String platform;
+    private String deviceInfo;
     private String applicationKey;
     private String applicationSecret;
     private String password;
@@ -81,6 +83,22 @@ public class CreateActivationStepModel extends BaseStepModel {
         this.activationName = activationName;
     }
 
+    public String getPlatform() {
+        return platform;
+    }
+
+    public void setPlatform(String platform) {
+        this.platform = platform;
+    }
+
+    public String getDeviceInfo() {
+        return deviceInfo;
+    }
+
+    public void setDeviceInfo(String deviceInfo) {
+        this.deviceInfo = deviceInfo;
+    }
+
     public String getApplicationKey() {
         return applicationKey;
     }
@@ -123,6 +141,8 @@ public class CreateActivationStepModel extends BaseStepModel {
         context.put("STATUS_FILENAME", statusFileName);
         context.put("PASSWORD", password);
         context.put("ACTIVATION_NAME", activationName);
+        context.put("PLATFORM", platform);
+        context.put("DEVICE_INFO", deviceInfo);
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
         return context;
@@ -139,6 +159,8 @@ public class CreateActivationStepModel extends BaseStepModel {
         setStatusFileName((String) context.get("STATUS_FILENAME"));
         setPassword((String) context.get("PASSWORD"));
         setActivationName((String) context.get("ACTIVATION_NAME"));
+        setPlatform((String) context.get("PLATFORM"));
+        setDeviceInfo((String) context.get("DEVICE_INFO"));
         setApplicationKey((String) context.get("APPLICATION_KEY"));
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
     }
