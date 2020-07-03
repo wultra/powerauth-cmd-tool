@@ -28,18 +28,12 @@ import io.getlime.security.powerauth.lib.cmd.steps.v3.ConfirmRecoveryCodeStep;
 import io.getlime.security.powerauth.lib.cmd.steps.v3.StartUpgradeStep;
 import io.getlime.security.powerauth.lib.cmd.util.ConfigurationUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
-import kong.unirest.Unirest;
-import kong.unirest.apache.ApacheClient;
+import io.getlime.security.powerauth.lib.cmd.util.WebClientFactory;
 import org.apache.commons.cli.*;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
-import javax.net.ssl.*;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -75,9 +69,6 @@ public class Application {
 
             // Add Bouncy Castle Security Provider
             Security.addProvider(new BouncyCastleProvider());
-
-            // Configure REST client
-            RestClientConfiguration.configure();
 
             // Options definition
             Options options = new Options();
@@ -142,38 +133,7 @@ public class Application {
 
             // Allow invalid SSL certificates
             if (cmd.hasOption("i")) {
-
-                try {
-
-                    TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
-                        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                            return null;
-                        }
-
-                        public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-                        }
-
-                        public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-                        }
-                    }};
-
-                    // Disable certificate validation on
-                    SSLContext sc = SSLContext.getInstance("SSL");
-                    sc.init(null, trustAllCerts, new java.security.SecureRandom());
-
-                    // Configure default Java HTTP Client
-                    HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-                    HttpsURLConnection.setDefaultHostnameVerifier(NoopHostnameVerifier.INSTANCE);
-
-                    // Set correct HTTP client for Unirest
-                    SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(sc, NoopHostnameVerifier.INSTANCE);
-                    CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(socketFactory).build();
-                    Unirest.config().httpClient(ApacheClient.builder(httpClient));
-
-                } catch (Exception e) {
-                    //
-                }
-
+                WebClientFactory.setAcceptInvalidSslCertificate(true);
             }
 
             String platform;

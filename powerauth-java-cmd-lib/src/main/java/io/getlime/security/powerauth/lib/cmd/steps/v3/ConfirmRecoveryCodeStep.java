@@ -37,10 +37,10 @@ import io.getlime.security.powerauth.rest.api.model.request.v3.ConfirmRecoveryRe
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.ConfirmRecoveryResponsePayload;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
-import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.ClientResponse;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
@@ -50,6 +50,7 @@ import java.security.interfaces.ECPublicKey;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Helper class with confirm recovery logic.
@@ -178,57 +179,61 @@ public class ConfirmRecoveryCodeStep implements BaseStep {
                 stepLogger.writeServerCall("recovery-confirm-request-sent", uri, "POST", request, headers);
             }
 
-            HttpResponse<String> response = Unirest.post(uri)
-                    .headers(headers)
-                    .body(requestBytes)
-                    .asString();
-
-            if (response.getStatus() == 200) {
-                EciesEncryptedResponse encryptedResponse = RestClientConfiguration
-                        .defaultMapper()
-                        .readValue(response.getBody(), EciesEncryptedResponse.class);
-
+            ClientResponse response = WebClientFactory.getWebClient()
+                    .post()
+                    .uri(uri)
+                    .headers(h -> {
+                        h.addAll(MapUtil.toMultiValueMap(headers));
+                    })
+                    .body(BodyInserters.fromValue(requestBytes))
+                    .exchange()
+                    .block();
+            if (response == null) {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK("recovery-confirm-response-received", encryptedResponse, HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                }
-
-                byte[] macResponse = BaseEncoding.base64().decode(encryptedResponse.getMac());
-                byte[] encryptedDataResponse = BaseEncoding.base64().decode(encryptedResponse.getEncryptedData());
-                EciesCryptogram eciesCryptogramResponse = new EciesCryptogram(macResponse, encryptedDataResponse);
-
-                final byte[] decryptedBytes = encryptor.decryptResponse(eciesCryptogramResponse);
-
-                final ConfirmRecoveryResponsePayload confirmResponsePayload = RestClientConfiguration.defaultMapper().readValue(decryptedBytes, ConfirmRecoveryResponsePayload.class);
-
-                Map<String, Object> objectMap = new HashMap<>();
-                objectMap.put("alreadyConfirmed", confirmResponsePayload.getAlreadyConfirmed());
-
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "recovery-confirm-confirmation-done",
-                            "Recovery Code Confirmed",
-                            "Recovery code was successfully confirmed",
-                            "OK",
-                            objectMap
-
-                    );
-                    stepLogger.writeDoneOK("recovery-confirm-success");
-                }
-
-                return model.getResultStatusObject();
-            } else {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("recovery-confirm-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeError("recovery-confirm-error-generic", "Response is missing");
                     stepLogger.writeDoneFailed("recovery-confirm-failed");
                 }
                 return null;
             }
-        } catch (UnirestException exception) {
-            if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError("recovery-confirm-error-connection", exception);
-                stepLogger.writeDoneFailed("recovery-confirm-failed");
+            if (response.statusCode().isError()) {
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallError("recovery-confirm-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                    stepLogger.writeDoneFailed("recovery-confirm-failed");
+                }
+                return null;
             }
-            return null;
+
+            ResponseEntity<EciesEncryptedResponse> responseEntity = Objects.requireNonNull(response.toEntity(EciesEncryptedResponse.class).block());
+            EciesEncryptedResponse encryptedResponse = Objects.requireNonNull(responseEntity.getBody());
+
+            if (stepLogger != null) {
+                stepLogger.writeServerCallOK("recovery-confirm-response-received", encryptedResponse, HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+            }
+
+            byte[] macResponse = BaseEncoding.base64().decode(encryptedResponse.getMac());
+            byte[] encryptedDataResponse = BaseEncoding.base64().decode(encryptedResponse.getEncryptedData());
+            EciesCryptogram eciesCryptogramResponse = new EciesCryptogram(macResponse, encryptedDataResponse);
+
+            final byte[] decryptedBytes = encryptor.decryptResponse(eciesCryptogramResponse);
+
+            final ConfirmRecoveryResponsePayload confirmResponsePayload = RestClientConfiguration.defaultMapper().readValue(decryptedBytes, ConfirmRecoveryResponsePayload.class);
+
+            Map<String, Object> objectMap = new HashMap<>();
+            objectMap.put("alreadyConfirmed", confirmResponsePayload.getAlreadyConfirmed());
+
+            if (stepLogger != null) {
+                stepLogger.writeItem(
+                        "recovery-confirm-confirmation-done",
+                        "Recovery Code Confirmed",
+                        "Recovery code was successfully confirmed",
+                        "OK",
+                        objectMap
+
+                );
+                stepLogger.writeDoneOK("recovery-confirm-success");
+            }
+
+            return model.getResultStatusObject();
         } catch (Exception exception) {
             if (stepLogger != null) {
                 stepLogger.writeError("recovery-confirm-error-generic", exception);

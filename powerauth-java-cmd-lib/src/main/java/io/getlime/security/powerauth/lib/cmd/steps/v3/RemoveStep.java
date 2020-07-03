@@ -31,10 +31,10 @@ import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.RemoveStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.response.v2.ActivationRemoveResponse;
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
-import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.reactive.function.client.ClientResponse;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
@@ -43,6 +43,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Helper class with activation remove logic.
@@ -141,49 +142,53 @@ public class RemoveStep implements BaseStep {
                 stepLogger.writeServerCall("activation-remove-request-sent", uri, "POST", null, headers);
             }
 
-            HttpResponse<String> response = Unirest.post(uri)
-                    .headers(headers)
-                    .asString();
-
-            if (response.getStatus() == 200) {
-                TypeReference<ObjectResponse<ActivationRemoveResponse>> typeReference = new TypeReference<ObjectResponse<ActivationRemoveResponse>>() {};
-                ObjectResponse<ActivationRemoveResponse> responseWrapper = RestClientConfiguration
-                        .defaultMapper()
-                        .readValue(response.getBody(), typeReference);
-
+            ClientResponse response = WebClientFactory.getWebClient()
+                    .post()
+                    .uri(uri)
+                    .headers(h -> {
+                        h.addAll(MapUtil.toMultiValueMap(headers));
+                    })
+                    .exchange()
+                    .block();
+            if (response == null) {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK("activation-remove-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                }
-
-                Map<String, Object> objectMap = new HashMap<>();
-                objectMap.put("activationId", activationId);
-
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "activation-remove-removal-done",
-                            "Activation Removed",
-                            "Activation was successfully removed from the server",
-                            "OK",
-                            objectMap
-
-                    );
-                    stepLogger.writeDoneOK("activation-remove-success");
-                }
-
-                return model.getResultStatusObject();
-            } else {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("activation-remove-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeError("activation-remove-error-generic", "Response is missing");
                     stepLogger.writeDoneFailed("activation-remove-failed");
                 }
                 return null;
             }
-        } catch (UnirestException exception) {
-            if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError("activation-remove-error-connection", exception);
-                stepLogger.writeDoneFailed("activation-remove-failed");
+            if (response.statusCode().isError()) {
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallError("activation-remove-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                    stepLogger.writeDoneFailed("activation-remove-failed");
+                }
+                return null;
             }
-            return null;
+
+            ParameterizedTypeReference<ObjectResponse<ActivationRemoveResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<ActivationRemoveResponse>>() {};
+            ResponseEntity<ObjectResponse<ActivationRemoveResponse>> responseEntity = Objects.requireNonNull(response.toEntity(typeReference).block());
+            ObjectResponse<ActivationRemoveResponse> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
+
+            if (stepLogger != null) {
+                stepLogger.writeServerCallOK("activation-remove-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+            }
+
+            Map<String, Object> objectMap = new HashMap<>();
+            objectMap.put("activationId", activationId);
+
+            if (stepLogger != null) {
+                stepLogger.writeItem(
+                        "activation-remove-removal-done",
+                        "Activation Removed",
+                        "Activation was successfully removed from the server",
+                        "OK",
+                        objectMap
+
+                );
+                stepLogger.writeDoneOK("activation-remove-success");
+            }
+
+            return model.getResultStatusObject();
         } catch (Exception exception) {
             if (stepLogger != null) {
                 stepLogger.writeError("activation-remove-error-generic", exception);

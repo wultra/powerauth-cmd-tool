@@ -26,22 +26,21 @@ import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
-import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.lib.cmd.util.JsonUtil;
-import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
+import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
 import io.getlime.security.powerauth.rest.api.model.response.v3.UpgradeResponsePayload;
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
-import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.ClientResponse;
 
 import java.io.FileWriter;
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.ECPublicKey;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Step for starting upgrade to PowerAuth protocol version 3.0.
@@ -128,63 +127,68 @@ public class StartUpgradeStep implements BaseStep {
                 stepLogger.writeServerCall("upgrade-start-request-sent", uri, "POST", request, headers);
             }
 
-            HttpResponse<String> response = Unirest.post(uri)
-                    .headers(headers)
-                    .body(requestBytes)
-                    .asString();
-
-            if (response.getStatus() == 200) {
-                EciesEncryptedResponse encryptedResponse = mapper.readValue(response.getBody(), EciesEncryptedResponse.class);
-
+            ClientResponse response = WebClientFactory.getWebClient()
+                    .post()
+                    .uri(uri)
+                    .headers(h -> {
+                        h.addAll(MapUtil.toMultiValueMap(headers));
+                    })
+                    .body(BodyInserters.fromValue(requestBytes))
+                    .exchange()
+                    .block();
+            if (response == null) {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK("upgrade-start-response-received", encryptedResponse, HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                }
-
-                // Decrypt response
-                byte[] macResponse = BaseEncoding.base64().decode(encryptedResponse.getMac());
-                byte[] encryptedDataResponse = BaseEncoding.base64().decode(encryptedResponse.getEncryptedData());
-                final EciesCryptogram eciesCryptogramResponse = new EciesCryptogram(macResponse, encryptedDataResponse);
-
-                byte[] decryptedBytes = encryptor.decryptResponse(eciesCryptogramResponse);
-
-                final UpgradeResponsePayload upgradeResponsePayload = mapper.readValue(decryptedBytes, UpgradeResponsePayload.class);
-
-                // Store the activation status (updated counter)
-                model.getResultStatusObject().put("ctrData", upgradeResponsePayload.getCtrData());
-                String statusFormatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
-                try (FileWriter file = new FileWriter(model.getStatusFileName())) {
-                    file.write(statusFormatted);
-                }
-
-                Map<String, Object> objectMap = new HashMap<>();
-                objectMap.put("ctrData", upgradeResponsePayload.getCtrData());
-
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "upgrade-start-completed",
-                            "Upgrade start step successfully completed",
-                            "Upgrade start step was successfully completed",
-                            "OK",
-                            objectMap
-
-                    );
-                    stepLogger.writeDoneOK("upgrade-start-success");
-                }
-
-                return model.getResultStatusObject();
-            } else {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("upgrade-start-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeError("upgrade-start-error-generic", "Response is missing");
                     stepLogger.writeDoneFailed("upgrade-start-failed");
                 }
                 return null;
             }
-        } catch (UnirestException exception) {
-            if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError("upgrade-start-error-connection", exception);
-                stepLogger.writeDoneFailed("upgrade-start-failed");
+            if (response.statusCode().isError()) {
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallError("upgrade-start-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                    stepLogger.writeDoneFailed("upgrade-start-failed");
+                }
+                return null;
             }
-            return null;
+
+            ResponseEntity<EciesEncryptedResponse> responseEntity = Objects.requireNonNull(response.toEntity(EciesEncryptedResponse.class).block());
+            EciesEncryptedResponse encryptedResponse = Objects.requireNonNull(responseEntity.getBody());
+            if (stepLogger != null) {
+                stepLogger.writeServerCallOK("upgrade-start-response-received", encryptedResponse, HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+            }
+
+            // Decrypt response
+            byte[] macResponse = BaseEncoding.base64().decode(encryptedResponse.getMac());
+            byte[] encryptedDataResponse = BaseEncoding.base64().decode(encryptedResponse.getEncryptedData());
+            final EciesCryptogram eciesCryptogramResponse = new EciesCryptogram(macResponse, encryptedDataResponse);
+
+            byte[] decryptedBytes = encryptor.decryptResponse(eciesCryptogramResponse);
+
+            final UpgradeResponsePayload upgradeResponsePayload = mapper.readValue(decryptedBytes, UpgradeResponsePayload.class);
+
+            // Store the activation status (updated counter)
+            model.getResultStatusObject().put("ctrData", upgradeResponsePayload.getCtrData());
+            String statusFormatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+            try (FileWriter file = new FileWriter(model.getStatusFileName())) {
+                file.write(statusFormatted);
+            }
+
+            Map<String, Object> objectMap = new HashMap<>();
+            objectMap.put("ctrData", upgradeResponsePayload.getCtrData());
+
+            if (stepLogger != null) {
+                stepLogger.writeItem(
+                        "upgrade-start-completed",
+                        "Upgrade start step successfully completed",
+                        "Upgrade start step was successfully completed",
+                        "OK",
+                        objectMap
+
+                );
+                stepLogger.writeDoneOK("upgrade-start-success");
+            }
+
+            return model.getResultStatusObject();
         } catch (Exception exception) {
             if (stepLogger != null) {
                 stepLogger.writeError("upgrade-start-error-generic", exception);

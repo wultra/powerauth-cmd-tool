@@ -16,7 +16,6 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
@@ -29,15 +28,14 @@ import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.PrepareActivationStepModel;
-import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
-import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
+import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.request.v2.ActivationCreateRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v2.ActivationCreateResponse;
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
-import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.ClientResponse;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
@@ -46,6 +44,7 @@ import java.security.KeyPair;
 import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -171,122 +170,125 @@ public class PrepareActivationStep implements BaseStep {
                 stepLogger.writeServerCall("activation-create-request-sent", uri, "POST", requestObject, headers);
             }
 
-            HttpResponse<String> response = Unirest.post(uri)
-                    .headers(headers)
-                    .body(body)
-                    .asString();
-
-            if (response.getStatus() == 200) {
-                TypeReference<ObjectResponse<ActivationCreateResponse>> typeReference = new TypeReference<ObjectResponse<ActivationCreateResponse>>() {};
-                ObjectResponse<ActivationCreateResponse> responseWrapper = RestClientConfiguration
-                        .defaultMapper()
-                        .readValue(response.getBody(), typeReference);
-
+            ClientResponse response = WebClientFactory.getWebClient()
+                    .post()
+                    .uri(uri)
+                    .headers(h -> {
+                        h.addAll(MapUtil.toMultiValueMap(headers));
+                    })
+                    .body(BodyInserters.fromValue(body))
+                    .exchange()
+                    .block();
+            if (response == null) {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK("activation-create-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeError("activation-create-error-generic", "Response is missing");
+                    stepLogger.writeDoneFailed("activation-create-failed");
                 }
-
-                // Process the server response
-                ActivationCreateResponse responseObject = responseWrapper.getResponseObject();
-                String activationId = responseObject.getActivationId();
-                byte[] nonceServerBytes = BaseEncoding.base64().decode(responseObject.getActivationNonce());
-                byte[] cServerPubKeyBytes = BaseEncoding.base64().decode(responseObject.getEncryptedServerPublicKey());
-                byte[] cServerPubKeySignatureBytes = BaseEncoding.base64().decode(responseObject.getEncryptedServerPublicKeySignature());
-                byte[] ephemeralKeyBytes = BaseEncoding.base64().decode(responseObject.getEphemeralPublicKey());
-                PublicKey ephemeralPublicKey = keyConversion.convertBytesToPublicKey(ephemeralKeyBytes);
-
-                // Verify that the server public key signature is valid
-                boolean isDataSignatureValid = activation.verifyServerDataSignature(activationId, cServerPubKeyBytes, cServerPubKeySignatureBytes, model.getMasterPublicKey());
-
-                if (isDataSignatureValid) {
-
-                    // Decrypt the server public key
-                    PublicKey serverPublicKey = activation.decryptServerPublicKey(cServerPubKeyBytes, deviceKeyPair.getPrivate(), ephemeralPublicKey, activationOTP, activationIdShort, nonceServerBytes);
-
-                    // Compute master secret key
-                    SecretKey masterSecretKey = keyFactory.generateClientMasterSecretKey(deviceKeyPair.getPrivate(), serverPublicKey);
-
-                    // Derive PowerAuth keys from master secret key
-                    SecretKey signaturePossessionSecretKey = keyFactory.generateClientSignaturePossessionKey(masterSecretKey);
-                    SecretKey signatureKnowledgeSecretKey = keyFactory.generateClientSignatureKnowledgeKey(masterSecretKey);
-                    SecretKey signatureBiometrySecretKey = keyFactory.generateClientSignatureBiometryKey(masterSecretKey);
-                    SecretKey transportMasterKey = keyFactory.generateServerTransportKey(masterSecretKey);
-                    // DO NOT EVER STORE ...
-                    SecretKey vaultUnlockMasterKey = keyFactory.generateServerEncryptedVaultKey(masterSecretKey);
-
-                    // Encrypt the original device private key using the vault unlock key
-                    byte[] encryptedDevicePrivateKey = vault.encryptDevicePrivateKey(deviceKeyPair.getPrivate(), vaultUnlockMasterKey);
-
-                    char[] password;
-                    if (model.getPassword() == null) {
-                        Console console = System.console();
-                        password = console.readPassword("Select a password to encrypt the knowledge related key: ");
-                    } else {
-                        password = model.getPassword().toCharArray();
-                    }
-
-                    byte[] salt = keyGenerator.generateRandomBytes(16);
-                    byte[] cSignatureKnowledgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, signatureKnowledgeSecretKey, salt, keyGenerator);
-
-                    // Prepare the status object to be stored
-                    model.getResultStatusObject().put("activationId", activationId);
-                    model.getResultStatusObject().put("serverPublicKey", BaseEncoding.base64().encode(keyConversion.convertPublicKeyToBytes(serverPublicKey)));
-                    model.getResultStatusObject().put("encryptedDevicePrivateKey", BaseEncoding.base64().encode(encryptedDevicePrivateKey));
-                    model.getResultStatusObject().put("signaturePossessionKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signaturePossessionSecretKey)));
-                    model.getResultStatusObject().put("signatureKnowledgeKeyEncrypted", BaseEncoding.base64().encode(cSignatureKnowledgeSecretKey));
-                    model.getResultStatusObject().put("signatureKnowledgeKeySalt", BaseEncoding.base64().encode(salt));
-                    model.getResultStatusObject().put("signatureBiometryKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signatureBiometrySecretKey)));
-                    model.getResultStatusObject().put("transportMasterKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(transportMasterKey)));
-                    model.getResultStatusObject().put("counter", 0L);
-                    model.getResultStatusObject().put("ctrData", null);
-                    model.getResultStatusObject().put("version", 2L);
-
-                    // Store the resulting status
-                    String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
-                    try (FileWriter file = new FileWriter(model.getStatusFileName())) {
-                        file.write(formatted);
-                    }
-
-                    objectMap = new HashMap<>();
-                    objectMap.put("activationId", activationId);
-                    objectMap.put("activationStatusFile", model.getStatusFileName());
-                    objectMap.put("activationStatusFileContent", model.getResultStatusObject());
-                    objectMap.put("deviceKeyFingerprint", activation.computeActivationFingerprint(deviceKeyPair.getPublic()));
-                    if (stepLogger != null) {
-                        stepLogger.writeItem(
-                                "activation-create-activation-done",
-                                "Activation Done",
-                                "Public key exchange was successfully completed, commit the activation on server",
-                                "OK",
-                                objectMap
-                        );
-                        stepLogger.writeDoneOK("activation-create-success");
-                    }
-
-                    return model.getResultStatusObject();
-
-                } else {
-                    if (stepLogger != null) {
-                        String message = "Activation data signature does not match. Either someone tried to spoof your connection, or your device master key is invalid.";
-                        stepLogger.writeError("activation-create-activation-signature-mismatch", message);
-                        stepLogger.writeDoneFailed("activation-create-failed");
-                    }
-                    return null;
-                }
-            } else {
+                return null;
+            }
+            if (response.statusCode().isError()) {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallError("activation-create-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeServerCallError("activation-create-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
                     stepLogger.writeDoneFailed("activation-create-failed");
                 }
                 return null;
             }
 
-        } catch (UnirestException exception) {
+            ParameterizedTypeReference<ObjectResponse<ActivationCreateResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<ActivationCreateResponse>>() {};
+            ResponseEntity<ObjectResponse<ActivationCreateResponse>> responseEntity = Objects.requireNonNull(response.toEntity(typeReference).block());
+            ObjectResponse<ActivationCreateResponse> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
+
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError("activation-create-error-connection", exception);
-                stepLogger.writeDoneFailed("activation-create-failed");
+                stepLogger.writeServerCallOK("activation-create-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
             }
-            return null;
+
+            // Process the server response
+            ActivationCreateResponse responseObject = responseWrapper.getResponseObject();
+            String activationId = responseObject.getActivationId();
+            byte[] nonceServerBytes = BaseEncoding.base64().decode(responseObject.getActivationNonce());
+            byte[] cServerPubKeyBytes = BaseEncoding.base64().decode(responseObject.getEncryptedServerPublicKey());
+            byte[] cServerPubKeySignatureBytes = BaseEncoding.base64().decode(responseObject.getEncryptedServerPublicKeySignature());
+            byte[] ephemeralKeyBytes = BaseEncoding.base64().decode(responseObject.getEphemeralPublicKey());
+            PublicKey ephemeralPublicKey = keyConversion.convertBytesToPublicKey(ephemeralKeyBytes);
+
+            // Verify that the server public key signature is valid
+            boolean isDataSignatureValid = activation.verifyServerDataSignature(activationId, cServerPubKeyBytes, cServerPubKeySignatureBytes, model.getMasterPublicKey());
+
+            if (isDataSignatureValid) {
+
+                // Decrypt the server public key
+                PublicKey serverPublicKey = activation.decryptServerPublicKey(cServerPubKeyBytes, deviceKeyPair.getPrivate(), ephemeralPublicKey, activationOTP, activationIdShort, nonceServerBytes);
+
+                // Compute master secret key
+                SecretKey masterSecretKey = keyFactory.generateClientMasterSecretKey(deviceKeyPair.getPrivate(), serverPublicKey);
+
+                // Derive PowerAuth keys from master secret key
+                SecretKey signaturePossessionSecretKey = keyFactory.generateClientSignaturePossessionKey(masterSecretKey);
+                SecretKey signatureKnowledgeSecretKey = keyFactory.generateClientSignatureKnowledgeKey(masterSecretKey);
+                SecretKey signatureBiometrySecretKey = keyFactory.generateClientSignatureBiometryKey(masterSecretKey);
+                SecretKey transportMasterKey = keyFactory.generateServerTransportKey(masterSecretKey);
+                // DO NOT EVER STORE ...
+                SecretKey vaultUnlockMasterKey = keyFactory.generateServerEncryptedVaultKey(masterSecretKey);
+
+                // Encrypt the original device private key using the vault unlock key
+                byte[] encryptedDevicePrivateKey = vault.encryptDevicePrivateKey(deviceKeyPair.getPrivate(), vaultUnlockMasterKey);
+
+                char[] password;
+                if (model.getPassword() == null) {
+                    Console console = System.console();
+                    password = console.readPassword("Select a password to encrypt the knowledge related key: ");
+                } else {
+                    password = model.getPassword().toCharArray();
+                }
+
+                byte[] salt = keyGenerator.generateRandomBytes(16);
+                byte[] cSignatureKnowledgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, signatureKnowledgeSecretKey, salt, keyGenerator);
+
+                // Prepare the status object to be stored
+                model.getResultStatusObject().put("activationId", activationId);
+                model.getResultStatusObject().put("serverPublicKey", BaseEncoding.base64().encode(keyConversion.convertPublicKeyToBytes(serverPublicKey)));
+                model.getResultStatusObject().put("encryptedDevicePrivateKey", BaseEncoding.base64().encode(encryptedDevicePrivateKey));
+                model.getResultStatusObject().put("signaturePossessionKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signaturePossessionSecretKey)));
+                model.getResultStatusObject().put("signatureKnowledgeKeyEncrypted", BaseEncoding.base64().encode(cSignatureKnowledgeSecretKey));
+                model.getResultStatusObject().put("signatureKnowledgeKeySalt", BaseEncoding.base64().encode(salt));
+                model.getResultStatusObject().put("signatureBiometryKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signatureBiometrySecretKey)));
+                model.getResultStatusObject().put("transportMasterKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(transportMasterKey)));
+                model.getResultStatusObject().put("counter", 0L);
+                model.getResultStatusObject().put("ctrData", null);
+                model.getResultStatusObject().put("version", 2L);
+
+                // Store the resulting status
+                String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+                try (FileWriter file = new FileWriter(model.getStatusFileName())) {
+                    file.write(formatted);
+                }
+
+                objectMap = new HashMap<>();
+                objectMap.put("activationId", activationId);
+                objectMap.put("activationStatusFile", model.getStatusFileName());
+                objectMap.put("activationStatusFileContent", model.getResultStatusObject());
+                objectMap.put("deviceKeyFingerprint", activation.computeActivationFingerprint(deviceKeyPair.getPublic()));
+                if (stepLogger != null) {
+                    stepLogger.writeItem(
+                            "activation-create-activation-done",
+                            "Activation Done",
+                            "Public key exchange was successfully completed, commit the activation on server",
+                            "OK",
+                            objectMap
+                    );
+                    stepLogger.writeDoneOK("activation-create-success");
+                }
+
+                return model.getResultStatusObject();
+
+            } else {
+                if (stepLogger != null) {
+                    String message = "Activation data signature does not match. Either someone tried to spoof your connection, or your device master key is invalid.";
+                    stepLogger.writeError("activation-create-activation-signature-mismatch", message);
+                    stepLogger.writeDoneFailed("activation-create-failed");
+                }
+                return null;
+            }
         } catch (Exception exception) {
             if (stepLogger != null) {
                 stepLogger.writeError("activation-create-error-generic", exception);
