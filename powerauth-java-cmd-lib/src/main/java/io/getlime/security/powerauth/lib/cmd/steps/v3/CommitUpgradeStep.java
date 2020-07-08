@@ -28,14 +28,11 @@ import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
-import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
-import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.lib.cmd.util.JsonUtil;
-import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
-import kong.unirest.UnirestException;
+import io.getlime.security.powerauth.lib.cmd.util.*;
 import org.json.simple.JSONObject;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.ClientResponse;
 
 import javax.crypto.SecretKey;
 import java.io.FileWriter;
@@ -43,6 +40,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Step for committing upgrade to PowerAuth protocol version 3.0.
@@ -64,6 +62,7 @@ public class CommitUpgradeStep implements BaseStep {
 
     /**
      * Execute this step with given context.
+     *
      * @param context Provided context.
      * @return Result status object, null in case of failure.
      */
@@ -92,17 +91,17 @@ public class CommitUpgradeStep implements BaseStep {
         byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signaturePossessionKey"));
         final SecretKey signaturePossessionKey = keyConversion.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
 
-        // Generate nonce
-        byte[] nonceBytes = keyGenerator.generateRandomBytes(16);
-
-        // Prepare request data
-        final String request = "{}";
-        byte[] requestBytes = request.getBytes(StandardCharsets.UTF_8);
-
-        // Make sure hash based counter is used for calculating the signature, in case of an error the version change is not saved
-        model.getResultStatusObject().put("version", 3L);
-
         try {
+            // Generate nonce
+            byte[] nonceBytes = keyGenerator.generateRandomBytes(16);
+
+            // Prepare request data
+            final String request = "{}";
+            byte[] requestBytes = request.getBytes(StandardCharsets.UTF_8);
+
+            // Make sure hash based counter is used for calculating the signature, in case of an error the version change is not saved
+            model.getResultStatusObject().put("version", 3L);
+
             // Compute PowerAuth signature for possession factor
             String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/upgrade/commit", nonceBytes, requestBytes) + "&" + model.getApplicationSecret();
             byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
@@ -122,56 +121,58 @@ public class CommitUpgradeStep implements BaseStep {
                 stepLogger.writeServerCall("upgrade-commit-request-sent", uri, "POST", request, headers);
             }
 
-            HttpResponse<String> response = Unirest.post(uri)
-                    .headers(headers)
-                    .body(requestBytes)
-                    .asString();
-
-            if (response.getStatus() == 200) {
-                Response commitResponse = mapper.readValue(response.getBody(), Response.class);
-
+            ClientResponse response = WebClientFactory.getWebClient()
+                    .post()
+                    .uri(uri)
+                    .headers(h -> {
+                        h.addAll(MapUtil.toMultiValueMap(headers));
+                    })
+                    .body(BodyInserters.fromValue(requestBytes))
+                    .exchange()
+                    .block();
+            if (response == null) {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK("upgrade-commit-response-received", commitResponse, HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                }
-
-                // Increment the counter (the signature already used hash based counter)
-                CounterUtil.incrementCounter(model);
-
-                // Store the result status object into file
-                String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
-                try (FileWriter file = new FileWriter(model.getStatusFileName())) {
-                    file.write(formatted);
-                }
-
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "upgrade-commit-upgrade-done",
-                            "Upgrade commit successfully completed",
-                            "Upgrade commit was successfully completed",
-                            "OK",
-                            null
-
-                    );
-                    stepLogger.writeDoneOK("upgrade-commit-success");
-                }
-
-                return model.getResultStatusObject();
-            } else {
-                // Revert upgrade to version 3 because signature failed. The status file was not changed, so no need to save it.
-                model.getResultStatusObject().put("version", 2L);
-
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("upgrade-commit-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeError("upgrade-commit-error-generic", "Response is missing");
                     stepLogger.writeDoneFailed("upgrade-commit-failed");
                 }
                 return null;
             }
-        } catch (UnirestException exception) {
-            if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError("upgrade-commit-error-connection", exception);
-                stepLogger.writeDoneFailed("upgrade-commit-failed");
+            if (!response.statusCode().is2xxSuccessful()) {
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallError("upgrade-commit-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                    stepLogger.writeDoneFailed("upgrade-commit-failed");
+                }
+                return null;
             }
-            return null;
+
+            ResponseEntity<Response> responseEntity = Objects.requireNonNull(response.toEntity(Response.class).block());
+            Response commitResponse = Objects.requireNonNull(responseEntity.getBody());
+            if (stepLogger != null) {
+                stepLogger.writeServerCallOK("upgrade-commit-response-received", commitResponse, HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+            }
+
+            // Increment the counter (the signature already used hash based counter)
+            CounterUtil.incrementCounter(model);
+
+            // Store the result status object into file
+            String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+            try (FileWriter file = new FileWriter(model.getStatusFileName())) {
+                file.write(formatted);
+            }
+
+            if (stepLogger != null) {
+                stepLogger.writeItem(
+                        "upgrade-commit-upgrade-done",
+                        "Upgrade commit successfully completed",
+                        "Upgrade commit was successfully completed",
+                        "OK",
+                        null
+
+                );
+                stepLogger.writeDoneOK("upgrade-commit-success");
+            }
+
+            return model.getResultStatusObject();
         } catch (Exception exception) {
             if (stepLogger != null) {
                 stepLogger.writeError("upgrade-commit-error-generic", exception);

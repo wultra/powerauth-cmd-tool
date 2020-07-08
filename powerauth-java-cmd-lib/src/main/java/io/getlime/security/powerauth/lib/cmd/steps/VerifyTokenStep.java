@@ -17,22 +17,25 @@
 package io.getlime.security.powerauth.lib.cmd.steps;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.client.token.ClientTokenGenerator;
 import io.getlime.security.powerauth.http.PowerAuthTokenHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifyTokenStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
-import kong.unirest.UnirestException;
+import io.getlime.security.powerauth.lib.cmd.util.MapUtil;
+import io.getlime.security.powerauth.lib.cmd.util.WebClientFactory;
 import org.json.simple.JSONObject;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Step for the token validation activity.
@@ -126,9 +129,6 @@ public class VerifyTokenStep implements BaseStep {
                 logTokenValueComputed(stepLogger);
                 return model.getResultStatusObject();
             }
-        } catch (UnirestException exception) {
-            logException("token-validate-error-server-call", exception, stepLogger);
-            return null;
         } catch (Exception exception) {
             logException("token-validate-generic", exception, stepLogger);
             return null;
@@ -202,48 +202,62 @@ public class VerifyTokenStep implements BaseStep {
      * @throws JsonProcessingException In case parsing the response to JSON format fails.
      */
     private boolean executeRequest(String method, Map<String, String> headers, String uri, byte[] data, StepLogger stepLogger) throws JsonProcessingException {
-        HttpResponse<String> response;
+        ClientResponse response;
+        WebClient webClient = WebClientFactory.getWebClient();
         if ("GET".equals(method)) {
-            response = Unirest.get(uri)
-                    .headers(headers)
-                    .asString();
+            response = webClient
+                    .get()
+                    .uri(uri)
+                    .headers(h -> {
+                        h.addAll(MapUtil.toMultiValueMap(headers));
+                    })
+                    .exchange()
+                    .block();
         } else {
-            response = Unirest.post(uri)
-                    .headers(headers)
-                    .body(data)
-                    .asString();
+            response = webClient
+                    .post()
+                    .uri(uri)
+                    .headers(h -> {
+                        h.addAll(MapUtil.toMultiValueMap(headers));
+                    })
+                    .body(BodyInserters.fromValue(data))
+                    .exchange()
+                    .block();
         }
-
-        if (response.getStatus() == 200) {
-            TypeReference<Map<String, Object>> typeReference = new TypeReference<Map<String, Object>>() {
-            };
-            Map<String, Object> responseWrapper = RestClientConfiguration
-                    .defaultMapper()
-                    .readValue(response.getBody(), typeReference);
-
+        if (response == null) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallOK("token-validate-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
-
-                // Print the results
-                stepLogger.writeItem(
-                        "token-validate-digest-verified",
-                        "Token digest verified",
-                        "Token based authentication was successful",
-                        "OK",
-                        null
-
-                );
-
-                stepLogger.writeDoneOK("token-validate-success");
-            }
-            return true;
-        } else {
-            if (stepLogger != null) {
-                stepLogger.writeServerCallError("token-validate-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                stepLogger.writeError("token-validate-error-generic", "Response is missing");
                 stepLogger.writeDoneFailed("token-validate-failed");
             }
             return false;
         }
+        if (!response.statusCode().is2xxSuccessful()) {
+            if (stepLogger != null) {
+                stepLogger.writeServerCallError("token-validate-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                stepLogger.writeDoneFailed("token-validate-failed");
+            }
+            return false;
+        }
+
+        ParameterizedTypeReference<Map<String, Object>> typeReference = new ParameterizedTypeReference<Map<String, Object>>() {};
+        ResponseEntity<Map<String, Object>> responseEntity = Objects.requireNonNull(response.toEntity(typeReference).block());
+        Map<String, Object> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
+
+        if (stepLogger != null) {
+            stepLogger.writeServerCallOK("token-validate-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+
+            // Print the results
+            stepLogger.writeItem(
+                    "token-validate-digest-verified",
+                    "Token digest verified",
+                    "Token based authentication was successful",
+                    "OK",
+                    null
+            );
+
+            stepLogger.writeDoneOK("token-validate-success");
+        }
+        return true;
     }
 
 }

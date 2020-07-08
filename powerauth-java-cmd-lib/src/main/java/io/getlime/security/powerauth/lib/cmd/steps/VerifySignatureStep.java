@@ -17,11 +17,9 @@
 package io.getlime.security.powerauth.lib.cmd.steps;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
-import io.getlime.core.rest.model.base.response.Response;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureFormat;
@@ -32,16 +30,19 @@ import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.*;
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
-import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import javax.crypto.SecretKey;
 import java.io.FileWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Helper class with signature verification logic.
@@ -166,9 +167,6 @@ public class VerifySignatureStep implements BaseStep {
                 logSignatureComputed(stepLogger);
                 return model.getResultStatusObject();
             }
-        } catch (UnirestException exception) {
-            logException("signature-verify-error-connection", exception, stepLogger);
-            return null;
         } catch (Exception exception) {
             logException("signature-verify-error-generic", exception, stepLogger);
             return null;
@@ -234,48 +232,64 @@ public class VerifySignatureStep implements BaseStep {
      * @throws JsonProcessingException In case parsing the response to JSON format fails.
      */
     private boolean executeRequest(String method, Map<String, String> headers, String uri, byte[] data, StepLogger stepLogger) throws JsonProcessingException {
-        HttpResponse<String> response;
+        ClientResponse response;
+        WebClient webClient = WebClientFactory.getWebClient();
         if ("GET".equals(method)) {
-            response = Unirest.get(uri)
-                    .headers(headers)
-                    .asString();
+            response = webClient
+                    .get()
+                    .uri(uri)
+                    .headers(h -> {
+                        h.addAll(MapUtil.toMultiValueMap(headers));
+                    })
+                    .exchange()
+                    .block();
         } else {
-            response = Unirest.post(uri)
-                    .headers(headers)
-                    .body(data)
-                    .asString();
+            response = webClient
+                    .post()
+                    .uri(uri)
+                    .headers(h -> {
+                        h.addAll(MapUtil.toMultiValueMap(headers));
+                    })
+                    .body(BodyInserters.fromValue(data))
+                    .exchange()
+                    .block();
         }
-
-        if (response.getStatus() == 200) {
-            TypeReference<ObjectResponse<Map<String, Object>>> typeReference = new TypeReference<ObjectResponse<Map<String, Object>>>() {
-            };
-            Response responseWrapper = RestClientConfiguration
-                    .defaultMapper()
-                    .readValue(response.getBody(), typeReference);
-
+        if (response == null) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallOK("signature-verify-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
-
-                // Print the results
-                stepLogger.writeItem(
-                        "signature-verify-signature-verified",
-                        "Signature verified",
-                        "Activation signature was verified successfully",
-                        "OK",
-                        null
-
-                );
-
-                stepLogger.writeDoneOK("signature-verify-success");
-            }
-            return true;
-        } else {
-            if (stepLogger != null) {
-                stepLogger.writeServerCallError("signature-verify-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                stepLogger.writeError("signature-verify-error-generic", "Response is missing");
                 stepLogger.writeDoneFailed("signature-verify-failed");
             }
             return false;
         }
+        if (!response.statusCode().is2xxSuccessful()) {
+            if (stepLogger != null) {
+                stepLogger.writeServerCallError("signature-verify-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                stepLogger.writeDoneFailed("signature-verify-failed");
+            }
+            return false;
+        }
+
+        ParameterizedTypeReference<ObjectResponse<Map<String, Object>>> typeReference = new ParameterizedTypeReference<ObjectResponse<Map<String, Object>>>() {};
+        ResponseEntity<ObjectResponse<Map<String, Object>>> responseEntity = Objects.requireNonNull(response.toEntity(typeReference).block());
+        ObjectResponse<Map<String, Object>> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
+
+
+        if (stepLogger != null) {
+            stepLogger.writeServerCallOK("signature-verify-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+
+            // Print the results
+            stepLogger.writeItem(
+                    "signature-verify-signature-verified",
+                    "Signature verified",
+                    "Activation signature was verified successfully",
+                    "OK",
+                    null
+
+            );
+
+            stepLogger.writeDoneOK("signature-verify-success");
+        }
+        return true;
     }
 
 }

@@ -16,7 +16,6 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
@@ -34,10 +33,11 @@ import io.getlime.security.powerauth.lib.cmd.steps.model.RemoveTokenStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.request.v3.TokenRemoveRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.TokenRemoveResponse;
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
-import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.ClientResponse;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
@@ -45,6 +45,7 @@ import java.io.FileWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Helper class with token remove logic.
@@ -67,6 +68,7 @@ public class RemoveTokenStep implements BaseStep {
 
     /**
      * Execute this step with given context
+     *
      * @param context Provided context
      * @return Result status object, null in case of failure.
      * @throws Exception In case of any error.
@@ -153,47 +155,51 @@ public class RemoveTokenStep implements BaseStep {
                 stepLogger.writeServerCall("token-remove-request-sent", uri, "POST", request, headers);
             }
 
-            HttpResponse<String> response = Unirest.post(uri)
-                    .headers(headers)
-                    .body(requestBytes)
-                    .asString();
-
-            if (response.getStatus() == 200) {
-                TypeReference<ObjectResponse<TokenRemoveResponse>> typeReference = new TypeReference<ObjectResponse<TokenRemoveResponse>>() {};
-                ObjectResponse<TokenRemoveResponse> responseWrapper = RestClientConfiguration
-                        .defaultMapper()
-                        .readValue(response.getBody(), typeReference);
-
+            ClientResponse response = WebClientFactory.getWebClient()
+                    .post()
+                    .uri(uri)
+                    .headers(h -> {
+                        h.addAll(MapUtil.toMultiValueMap(headers));
+                    })
+                    .body(BodyInserters.fromValue(requestBytes))
+                    .exchange()
+                    .block();
+            if (response == null) {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK("token-remove-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                }
-
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "token-remove-token-removed",
-                            "Token successfully removed",
-                            "Token was successfully removed",
-                            "OK",
-                            responseWrapper.getResponseObject().getTokenId()
-
-                    );
-                    stepLogger.writeDoneOK("token-remove-success");
-                }
-
-                return model.getResultStatusObject();
-            } else {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("token-remove-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeError("token-remove-error-generic", "Response is missing");
                     stepLogger.writeDoneFailed("token-remove-failed");
                 }
                 return null;
             }
-        } catch (UnirestException exception) {
-            if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError("token-remove-error-connection", exception);
-                stepLogger.writeDoneFailed("token-remove-failed");
+            if (!response.statusCode().is2xxSuccessful()) {
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallError("token-remove-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                    stepLogger.writeDoneFailed("token-remove-failed");
+                }
+                return null;
             }
-            return null;
+
+            ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>>() {};
+            ResponseEntity<ObjectResponse<TokenRemoveResponse>> responseEntity = Objects.requireNonNull(response.toEntity(typeReference).block());
+            ObjectResponse<TokenRemoveResponse> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
+
+            if (stepLogger != null) {
+                stepLogger.writeServerCallOK("token-remove-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+            }
+
+            if (stepLogger != null) {
+                stepLogger.writeItem(
+                        "token-remove-token-removed",
+                        "Token successfully removed",
+                        "Token was successfully removed",
+                        "OK",
+                        responseWrapper.getResponseObject().getTokenId()
+
+                );
+                stepLogger.writeDoneOK("token-remove-success");
+            }
+
+            return model.getResultStatusObject();
         } catch (Exception exception) {
             if (stepLogger != null) {
                 stepLogger.writeError("token-remove-error-generic", exception);
