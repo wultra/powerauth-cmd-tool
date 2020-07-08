@@ -195,7 +195,7 @@ public class ConfirmRecoveryCodeStep implements BaseStep {
                 }
                 return null;
             }
-            if (response.statusCode().isError()) {
+            if (!response.statusCode().is2xxSuccessful()) {
                 if (stepLogger != null) {
                     stepLogger.writeServerCallError("recovery-confirm-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
                     stepLogger.writeDoneFailed("recovery-confirm-failed");

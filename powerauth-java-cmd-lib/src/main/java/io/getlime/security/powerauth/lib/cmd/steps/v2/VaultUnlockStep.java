@@ -190,7 +190,7 @@ public class VaultUnlockStep implements BaseStep {
                 }
                 return null;
             }
-            if (response.statusCode().isError()) {
+            if (!response.statusCode().is2xxSuccessful()) {
                 // Increment the counter
                 CounterUtil.incrementCounter(model);
 

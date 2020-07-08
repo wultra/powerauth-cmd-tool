@@ -231,7 +231,7 @@ public class VerifyTokenStep implements BaseStep {
             }
             return false;
         }
-        if (response.statusCode().isError()) {
+        if (!response.statusCode().is2xxSuccessful()) {
             if (stepLogger != null) {
                 stepLogger.writeServerCallError("token-validate-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
                 stepLogger.writeDoneFailed("token-validate-failed");

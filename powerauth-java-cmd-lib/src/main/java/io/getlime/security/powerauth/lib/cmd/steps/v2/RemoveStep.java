@@ -157,7 +157,7 @@ public class RemoveStep implements BaseStep {
                 }
                 return null;
             }
-            if (response.statusCode().isError()) {
+            if (!response.statusCode().is2xxSuccessful()) {
                 if (stepLogger != null) {
                     stepLogger.writeServerCallError("activation-remove-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
                     stepLogger.writeDoneFailed("activation-remove-failed");

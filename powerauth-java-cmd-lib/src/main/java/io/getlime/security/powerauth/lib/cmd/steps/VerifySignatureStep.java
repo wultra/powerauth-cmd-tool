@@ -261,7 +261,7 @@ public class VerifySignatureStep implements BaseStep {
             }
             return false;
         }
-        if (response.statusCode().isError()) {
+        if (!response.statusCode().is2xxSuccessful()) {
             if (stepLogger != null) {
                 stepLogger.writeServerCallError("signature-verify-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
                 stepLogger.writeDoneFailed("signature-verify-failed");
