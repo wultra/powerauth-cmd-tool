@@ -32,7 +32,7 @@ public class HttpUtil {
     public static Map<String, String> flattenHttpHeaders(HttpHeaders headers) {
         Map<String, String> result = new HashMap<>();
         for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
-            result.put(entry.getKey(), entry.getValue().get(0));
+            result.put(entry.getKey(), headers.getFirst(entry.getKey()));
         }
         return result;
     }
