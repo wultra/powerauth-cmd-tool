@@ -83,7 +83,7 @@ public class Application {
             options.addOption("e", "endpoint", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a URI identifier, as specified in PowerAuth signature process.");
             options.addOption("l", "signature-type", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a signature type, as specified in PowerAuth signature process.");
             options.addOption("d", "data-file", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a file with the input data to be signed and verified with the server, as specified in PowerAuth signature process.");
-            options.addOption(null, "dry-run", false, "In case a specified method is 'sign' or 'validate-token' and this attribute is specified, the step is stopped right after signing the request body and preparing appropriate headers.");
+            options.addOption("y", "dry-run", false, "In case a specified method is 'sign' or 'validate-token' and this attribute is specified, the step is stopped right after signing the request body and preparing appropriate headers.");
             options.addOption("p", "password", true, "Password used for a knowledge related key encryption. If not specified, an interactive input is required.");
             options.addOption("I", "identity-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with identity attributes.");
             options.addOption("C", "custom-attributes-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with custom attributes.");
