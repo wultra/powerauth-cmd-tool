@@ -16,7 +16,6 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
@@ -36,10 +35,11 @@ import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.entity.TokenResponsePayload;
 import io.getlime.security.powerauth.rest.api.model.request.v2.TokenCreateRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v2.TokenCreateResponse;
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
-import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.ClientResponse;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
@@ -49,6 +49,7 @@ import java.security.interfaces.ECPublicKey;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Helper class with token creation logic.
@@ -158,61 +159,65 @@ public class CreateTokenStep implements BaseStep {
                 stepLogger.writeServerCall("token-create-request-sent", uri, "POST", request.getRequestObject(), headers);
             }
 
-            HttpResponse<String> response = Unirest.post(uri)
-                    .headers(headers)
-                    .body(requestBytes)
-                    .asString();
-
-            if (response.getStatus() == 200) {
-                TypeReference<ObjectResponse<TokenCreateResponse>> typeReference = new TypeReference<ObjectResponse<TokenCreateResponse>>() {};
-                ObjectResponse<TokenCreateResponse> responseWrapper = RestClientConfiguration
-                        .defaultMapper()
-                        .readValue(response.getBody(), typeReference);
-
+            ClientResponse response = WebClientFactory.getWebClient()
+                    .post()
+                    .uri(uri)
+                    .headers(h -> {
+                        h.addAll(MapUtil.toMultiValueMap(headers));
+                    })
+                    .body(BodyInserters.fromValue(requestBytes))
+                    .exchange()
+                    .block();
+            if (response == null) {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK("token-create-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                }
-
-                final TokenCreateResponse responseObject = responseWrapper.getResponseObject();
-
-                byte[] macResponse = BaseEncoding.base64().decode(responseObject.getMac());
-                byte[] encryptedDataResponse = BaseEncoding.base64().decode(responseObject.getEncryptedData());
-                EciesCryptogram eciesCryptogramResponse = new EciesCryptogram(macResponse, encryptedDataResponse);
-
-                final byte[] decryptedBytes = encryptor.decryptResponse(eciesCryptogramResponse);
-
-                final TokenResponsePayload tokenResponsePayload = RestClientConfiguration.defaultMapper().readValue(decryptedBytes, TokenResponsePayload.class);
-
-                Map<String, Object> objectMap = new HashMap<>();
-                objectMap.put("tokenId", tokenResponsePayload.getTokenId());
-                objectMap.put("tokenSecret", tokenResponsePayload.getTokenSecret());
-
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "token-create-token-obtained",
-                            "Token successfully obtained",
-                            "Token was successfully generated and decrypted",
-                            "OK",
-                            objectMap
-
-                    );
-                    stepLogger.writeDoneOK("token-create-success");
-                }
-
-                return model.getResultStatusObject();
-            } else {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("token-create-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeError("token-create-error-generic", "Response is missing");
                     stepLogger.writeDoneFailed("token-create-failed");
                 }
                 return null;
             }
-        } catch (UnirestException exception) {
-            if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError("token-create-error-connection", exception);
-                stepLogger.writeDoneFailed("token-create-failed");
+            if (!response.statusCode().is2xxSuccessful()) {
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallError("token-create-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                    stepLogger.writeDoneFailed("token-create-failed");
+                }
+                return null;
             }
-            return null;
+
+            ParameterizedTypeReference<ObjectResponse<TokenCreateResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<TokenCreateResponse>>() {};
+            ResponseEntity<ObjectResponse<TokenCreateResponse>> responseEntity = Objects.requireNonNull(response.toEntity(typeReference).block());
+            ObjectResponse<TokenCreateResponse> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
+
+            if (stepLogger != null) {
+                stepLogger.writeServerCallOK("token-create-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+            }
+
+            final TokenCreateResponse responseObject = responseWrapper.getResponseObject();
+
+            byte[] macResponse = BaseEncoding.base64().decode(responseObject.getMac());
+            byte[] encryptedDataResponse = BaseEncoding.base64().decode(responseObject.getEncryptedData());
+            EciesCryptogram eciesCryptogramResponse = new EciesCryptogram(macResponse, encryptedDataResponse);
+
+            final byte[] decryptedBytes = encryptor.decryptResponse(eciesCryptogramResponse);
+
+            final TokenResponsePayload tokenResponsePayload = RestClientConfiguration.defaultMapper().readValue(decryptedBytes, TokenResponsePayload.class);
+
+            Map<String, Object> objectMap = new HashMap<>();
+            objectMap.put("tokenId", tokenResponsePayload.getTokenId());
+            objectMap.put("tokenSecret", tokenResponsePayload.getTokenSecret());
+
+            if (stepLogger != null) {
+                stepLogger.writeItem(
+                        "token-create-token-obtained",
+                        "Token successfully obtained",
+                        "Token was successfully generated and decrypted",
+                        "OK",
+                        objectMap
+
+                );
+                stepLogger.writeDoneOK("token-create-success");
+            }
+
+            return model.getResultStatusObject();
         } catch (Exception exception) {
             if (stepLogger != null) {
                 stepLogger.writeError("token-create-error-generic", exception);

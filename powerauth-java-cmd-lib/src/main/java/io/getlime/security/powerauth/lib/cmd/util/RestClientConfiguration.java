@@ -16,13 +16,9 @@
  */
 package io.getlime.security.powerauth.lib.cmd.util;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import kong.unirest.Unirest;
-
-import java.io.IOException;
 
 /**
  * REST client configuration class.
@@ -47,33 +43,6 @@ public class RestClientConfiguration {
      */
     public static ObjectMapper defaultMapper() {
         return mapper;
-    }
-
-    /**
-     * Run default REST client configuration.
-     */
-    public static void configure() {
-
-        // Prepare converters
-        Unirest.config().setObjectMapper(new kong.unirest.ObjectMapper() {
-            @Override
-            public <T> T readValue(String value, Class<T> valueType) {
-                try {
-                    return mapper.readValue(value, valueType);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
-            @Override
-            public String writeValue(Object value) {
-                try {
-                    return mapper.writeValueAsString(value);
-                } catch (JsonProcessingException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        });
     }
 
 }

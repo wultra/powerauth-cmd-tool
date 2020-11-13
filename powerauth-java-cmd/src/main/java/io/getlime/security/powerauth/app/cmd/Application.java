@@ -28,18 +28,12 @@ import io.getlime.security.powerauth.lib.cmd.steps.v3.ConfirmRecoveryCodeStep;
 import io.getlime.security.powerauth.lib.cmd.steps.v3.StartUpgradeStep;
 import io.getlime.security.powerauth.lib.cmd.util.ConfigurationUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
-import kong.unirest.Unirest;
-import kong.unirest.apache.ApacheClient;
+import io.getlime.security.powerauth.lib.cmd.util.WebClientFactory;
 import org.apache.commons.cli.*;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
-import javax.net.ssl.*;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -76,9 +70,6 @@ public class Application {
             // Add Bouncy Castle Security Provider
             Security.addProvider(new BouncyCastleProvider());
 
-            // Configure REST client
-            RestClientConfiguration.configure();
-
             // Options definition
             Options options = new Options();
             options.addOption("h", "help", false, "Print this help manual.");
@@ -92,7 +83,7 @@ public class Application {
             options.addOption("e", "endpoint", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a URI identifier, as specified in PowerAuth signature process.");
             options.addOption("l", "signature-type", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a signature type, as specified in PowerAuth signature process.");
             options.addOption("d", "data-file", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a file with the input data to be signed and verified with the server, as specified in PowerAuth signature process.");
-            options.addOption(null, "dry-run", false, "In case a specified method is 'sign' or 'validate-token' and this attribute is specified, the step is stopped right after signing the request body and preparing appropriate headers.");
+            options.addOption("y", "dry-run", false, "In case a specified method is 'sign' or 'validate-token' and this attribute is specified, the step is stopped right after signing the request body and preparing appropriate headers.");
             options.addOption("p", "password", true, "Password used for a knowledge related key encryption. If not specified, an interactive input is required.");
             options.addOption("I", "identity-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with identity attributes.");
             options.addOption("C", "custom-attributes-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with custom attributes.");
@@ -142,38 +133,7 @@ public class Application {
 
             // Allow invalid SSL certificates
             if (cmd.hasOption("i")) {
-
-                try {
-
-                    TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
-                        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                            return null;
-                        }
-
-                        public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-                        }
-
-                        public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-                        }
-                    }};
-
-                    // Disable certificate validation on
-                    SSLContext sc = SSLContext.getInstance("SSL");
-                    sc.init(null, trustAllCerts, new java.security.SecureRandom());
-
-                    // Configure default Java HTTP Client
-                    HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-                    HttpsURLConnection.setDefaultHostnameVerifier(NoopHostnameVerifier.INSTANCE);
-
-                    // Set correct HTTP client for Unirest
-                    SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(sc, NoopHostnameVerifier.INSTANCE);
-                    CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(socketFactory).build();
-                    Unirest.config().httpClient(ApacheClient.builder(httpClient));
-
-                } catch (Exception e) {
-                    //
-                }
-
+                WebClientFactory.setAcceptInvalidSslCertificate(true);
             }
 
             String platform;

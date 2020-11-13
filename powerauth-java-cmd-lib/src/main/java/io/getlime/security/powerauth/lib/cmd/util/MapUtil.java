@@ -1,6 +1,6 @@
 /*
  * PowerAuth Command-line utility
- * Copyright 2018 Wultra s.r.o.
+ * Copyright 2020 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,25 +16,24 @@
  */
 package io.getlime.security.powerauth.lib.cmd.util;
 
-import org.springframework.http.HttpHeaders;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
-import java.util.HashMap;
-import java.util.List;
+import java.util.Collections;
 import java.util.Map;
 
 /**
- * Simple HTTP utilities class.
+ * Map utilities.
  *
- * @author Petr Dvorak, petr@wultra.com
+ * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class HttpUtil {
+public class MapUtil {
 
-    public static Map<String, String> flattenHttpHeaders(HttpHeaders headers) {
-        Map<String, String> result = new HashMap<>();
-        for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
-            result.put(entry.getKey(), headers.getFirst(entry.getKey()));
+    public static <K, V> MultiValueMap<K, V> toMultiValueMap(Map<K, V> map) {
+        MultiValueMap<K, V> resultMap = new LinkedMultiValueMap<>();
+        for (Map.Entry<K, V> entry: map.entrySet()) {
+            resultMap.put(entry.getKey(), Collections.singletonList(entry.getValue()));
         }
-        return result;
+        return resultMap;
     }
-
 }
