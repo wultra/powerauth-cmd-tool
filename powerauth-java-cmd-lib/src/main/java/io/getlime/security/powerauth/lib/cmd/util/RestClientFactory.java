@@ -42,14 +42,14 @@ public class RestClientFactory {
         if (restClient != null) {
             return restClient;
         }
-        DefaultRestClient.Builder builder = DefaultRestClient.builder()
-                .acceptInvalidCertificate(acceptInvalidSslCertificate);
         try {
-            restClient = builder.build();
+            return DefaultRestClient.builder()
+                    .acceptInvalidCertificate(acceptInvalidSslCertificate)
+                    .build();
         } catch (RestClientException ex) {
             logger.error(ex.getMessage(), ex);
         }
-        return restClient;
+        return null;
     }
 
     /**
