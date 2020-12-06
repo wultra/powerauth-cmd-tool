@@ -233,6 +233,9 @@ public class VerifySignatureStep implements BaseStep {
     private boolean executeRequest(String method, Map<String, String> headers, String uri, byte[] data, StepLogger stepLogger) throws JsonProcessingException {
         ResponseEntity<ObjectResponse<Map<String, Object>>> responseEntity;
         RestClient restClient = RestClientFactory.getRestClient();
+        if (restClient == null) {
+            return false;
+        }
         ParameterizedTypeReference<ObjectResponse<Map<String, Object>>> typeReference = new ParameterizedTypeReference<ObjectResponse<Map<String, Object>>>() {};
 
         try {

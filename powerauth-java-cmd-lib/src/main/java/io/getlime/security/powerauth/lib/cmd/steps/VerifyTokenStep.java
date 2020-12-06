@@ -203,6 +203,9 @@ public class VerifyTokenStep implements BaseStep {
     private boolean executeRequest(String method, Map<String, String> headers, String uri, byte[] data, StepLogger stepLogger) throws JsonProcessingException {
         ResponseEntity<Map<String, Object>> responseEntity;
         RestClient restClient = RestClientFactory.getRestClient();
+        if (restClient == null) {
+            return false;
+        }
         ParameterizedTypeReference<Map<String, Object>> typeReference = new ParameterizedTypeReference<Map<String, Object>>() {};
         try {
             if ("GET".equals(method)) {

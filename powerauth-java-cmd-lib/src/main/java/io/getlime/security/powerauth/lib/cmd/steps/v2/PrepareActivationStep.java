@@ -172,6 +172,9 @@ public class PrepareActivationStep implements BaseStep {
 
             ResponseEntity<ObjectResponse<ActivationCreateResponse>> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();
+            if (restClient == null) {
+                return null;
+            }
             ParameterizedTypeReference<ObjectResponse<ActivationCreateResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<ActivationCreateResponse>>() {};
             try {
                 responseEntity = restClient.post(uri, body, MapUtil.toMultiValueMap(headers), typeReference);

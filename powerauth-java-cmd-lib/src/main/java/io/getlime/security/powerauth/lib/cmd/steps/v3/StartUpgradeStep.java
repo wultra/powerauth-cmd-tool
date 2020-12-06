@@ -130,6 +130,9 @@ public class StartUpgradeStep implements BaseStep {
 
             ResponseEntity<EciesEncryptedResponse> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();
+            if (restClient == null) {
+                return null;
+            }
             ParameterizedTypeReference<EciesEncryptedResponse> typeReference = new ParameterizedTypeReference<EciesEncryptedResponse>() {};
             try {
                 responseEntity = restClient.post(uri, requestBytes, MapUtil.toMultiValueMap(headers), typeReference);

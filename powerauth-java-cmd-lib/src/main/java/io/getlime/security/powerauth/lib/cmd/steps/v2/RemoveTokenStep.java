@@ -156,6 +156,9 @@ public class RemoveTokenStep implements BaseStep {
 
             ResponseEntity<ObjectResponse<TokenRemoveResponse>> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();
+            if (restClient == null) {
+                return null;
+            }
             ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>>() {};
             try {
                 responseEntity = restClient.post(uri, requestBytes, MapUtil.toMultiValueMap(headers), typeReference);

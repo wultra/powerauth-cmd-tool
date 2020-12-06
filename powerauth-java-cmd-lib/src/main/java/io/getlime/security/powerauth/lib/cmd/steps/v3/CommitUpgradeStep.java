@@ -124,6 +124,9 @@ public class CommitUpgradeStep implements BaseStep {
 
             ResponseEntity<Response> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();
+            if (restClient == null) {
+                return null;
+            }
             ParameterizedTypeReference<Response> typeReference = new ParameterizedTypeReference<Response>() {};
             try {
                 responseEntity = restClient.post(uri, requestBytes, MapUtil.toMultiValueMap(headers), typeReference);

@@ -214,6 +214,9 @@ public class PrepareActivationStep implements BaseStep {
 
             ResponseEntity<EciesEncryptedResponse> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();
+            if (restClient == null) {
+                return null;
+            }
             ParameterizedTypeReference<EciesEncryptedResponse> typeReference = new ParameterizedTypeReference<EciesEncryptedResponse>() {};
             try {
                 responseEntity = restClient.post(uri, encryptedRequestL1, MapUtil.toMultiValueMap(headers), typeReference);

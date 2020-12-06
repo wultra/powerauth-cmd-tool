@@ -161,6 +161,9 @@ public class CreateTokenStep implements BaseStep {
 
             ResponseEntity<ObjectResponse<TokenCreateResponse>> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();
+            if (restClient == null) {
+                return null;
+            }
             ParameterizedTypeReference<ObjectResponse<TokenCreateResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<TokenCreateResponse>>() {};
             try {
                 responseEntity = restClient.post(uri, requestBytes, MapUtil.toMultiValueMap(headers), typeReference);

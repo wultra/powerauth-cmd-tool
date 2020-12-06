@@ -138,6 +138,9 @@ public class EncryptStep implements BaseStep {
 
             ResponseEntity<ObjectResponse<NonPersonalizedEncryptedPayloadModel>> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();
+            if (restClient == null) {
+                return null;
+            }
             ParameterizedTypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>> typeReference = new ParameterizedTypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>>() {};
             try {
                 responseEntity = restClient.post(uri, body, MapUtil.toMultiValueMap(headers), typeReference);

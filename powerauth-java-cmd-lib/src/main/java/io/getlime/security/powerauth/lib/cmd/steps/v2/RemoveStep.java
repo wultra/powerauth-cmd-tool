@@ -145,6 +145,9 @@ public class RemoveStep implements BaseStep {
 
             ResponseEntity<ObjectResponse<ActivationRemoveResponse>> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();
+            if (restClient == null) {
+                return null;
+            }
             ParameterizedTypeReference<ObjectResponse<ActivationRemoveResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<ActivationRemoveResponse>>() {};
             try {
                 responseEntity = restClient.post(uri, null, MapUtil.toMultiValueMap(headers), typeReference);

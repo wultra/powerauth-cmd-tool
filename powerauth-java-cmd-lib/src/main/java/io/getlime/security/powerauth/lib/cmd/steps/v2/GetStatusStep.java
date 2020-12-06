@@ -110,6 +110,9 @@ public class GetStatusStep implements BaseStep {
 
             ResponseEntity<ObjectResponse<ActivationStatusResponse>> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();
+            if (restClient == null) {
+                return null;
+            }
             ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>>() {};
             try {
                 responseEntity = restClient.post(uri, body, MapUtil.toMultiValueMap(headers), typeReference);
