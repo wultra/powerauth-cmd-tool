@@ -31,8 +31,10 @@ public class HttpUtil {
 
     public static Map<String, String> flattenHttpHeaders(HttpHeaders headers) {
         Map<String, String> result = new HashMap<>();
-        for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
-            result.put(entry.getKey(), headers.getFirst(entry.getKey()));
+        if (headers != null) {
+            for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
+                result.put(entry.getKey(), headers.getFirst(entry.getKey()));
+            }
         }
         return result;
     }

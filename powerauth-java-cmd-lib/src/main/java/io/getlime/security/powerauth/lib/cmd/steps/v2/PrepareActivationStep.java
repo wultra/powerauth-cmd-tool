@@ -18,6 +18,8 @@ package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
+import com.wultra.core.rest.client.base.RestClient;
+import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
@@ -34,8 +36,6 @@ import io.getlime.security.powerauth.rest.api.model.response.v2.ActivationCreate
 import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.ClientResponse;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
@@ -170,36 +170,23 @@ public class PrepareActivationStep implements BaseStep {
                 stepLogger.writeServerCall("activation-create-request-sent", uri, "POST", requestObject, headers);
             }
 
-            ClientResponse response = WebClientFactory.getWebClient()
-                    .post()
-                    .uri(uri)
-                    .headers(h -> {
-                        h.addAll(MapUtil.toMultiValueMap(headers));
-                    })
-                    .body(BodyInserters.fromValue(body))
-                    .exchange()
-                    .block();
-            if (response == null) {
+            ResponseEntity<ObjectResponse<ActivationCreateResponse>> responseEntity;
+            RestClient restClient = RestClientFactory.getRestClient();
+            ParameterizedTypeReference<ObjectResponse<ActivationCreateResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<ActivationCreateResponse>>() {};
+            try {
+                responseEntity = restClient.post(uri, body, MapUtil.toMultiValueMap(headers), typeReference);
+            } catch (RestClientException ex) {
                 if (stepLogger != null) {
-                    stepLogger.writeError("activation-create-error-generic", "Response is missing");
-                    stepLogger.writeDoneFailed("activation-create-failed");
-                }
-                return null;
-            }
-            if (!response.statusCode().is2xxSuccessful()) {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("activation-create-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                    stepLogger.writeServerCallError("activation-create-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
                     stepLogger.writeDoneFailed("activation-create-failed");
                 }
                 return null;
             }
 
-            ParameterizedTypeReference<ObjectResponse<ActivationCreateResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<ActivationCreateResponse>>() {};
-            ResponseEntity<ObjectResponse<ActivationCreateResponse>> responseEntity = Objects.requireNonNull(response.toEntity(typeReference).block());
             ObjectResponse<ActivationCreateResponse> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCallOK("activation-create-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                stepLogger.writeServerCallOK("activation-create-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
             }
 
             // Process the server response

@@ -18,6 +18,8 @@ package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
+import com.wultra.core.rest.client.base.RestClient;
+import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
@@ -36,9 +38,8 @@ import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
 import org.json.simple.JSONObject;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.ClientResponse;
 
 import javax.crypto.SecretKey;
 import java.io.FileWriter;
@@ -245,35 +246,23 @@ public class SignAndEncryptStep implements BaseStep {
                 stepLogger.writeServerCall("sign-encrypt-request-sent", model.getUriString(), model.getHttpMethod().toUpperCase(), new String(dataFileBytes, StandardCharsets.UTF_8), headers);
             }
 
-            ClientResponse response = WebClientFactory.getWebClient()
-                    .post()
-                    .uri(uri)
-                    .headers(h -> {
-                        h.addAll(MapUtil.toMultiValueMap(headers));
-                    })
-                    .body(BodyInserters.fromValue(requestBytes))
-                    .exchange()
-                    .block();
-            if (response == null) {
+            ResponseEntity<EciesEncryptedResponse> responseEntity;
+            RestClient restClient = RestClientFactory.getRestClient();
+            ParameterizedTypeReference<EciesEncryptedResponse> typeReference = new ParameterizedTypeReference<EciesEncryptedResponse>() {};
+            try {
+                responseEntity = restClient.post(uri, requestBytes, MapUtil.toMultiValueMap(headers), typeReference);
+            } catch (RestClientException ex) {
                 if (stepLogger != null) {
-                    stepLogger.writeError("sign-encrypt-error-generic", "Response is missing");
-                    stepLogger.writeDoneFailed("sign-encrypt-failed");
-                }
-                return null;
-            }
-            if (!response.statusCode().is2xxSuccessful()) {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("sign-encrypt-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                    stepLogger.writeServerCallError("sign-encrypt-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
                     stepLogger.writeDoneFailed("sign-encrypt-failed");
                 }
                 return null;
             }
 
-            ResponseEntity<EciesEncryptedResponse> responseEntity = Objects.requireNonNull(response.toEntity(EciesEncryptedResponse.class).block());
             EciesEncryptedResponse encryptedResponse = Objects.requireNonNull(responseEntity.getBody());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCallOK("sign-encrypt-response-received", encryptedResponse, HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                stepLogger.writeServerCallOK("sign-encrypt-response-received", encryptedResponse, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
             }
 
             byte[] macResponse = BaseEncoding.base64().decode(encryptedResponse.getMac());

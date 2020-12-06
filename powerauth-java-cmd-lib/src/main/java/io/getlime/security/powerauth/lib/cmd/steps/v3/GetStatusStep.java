@@ -16,6 +16,8 @@
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.google.common.io.BaseEncoding;
+import com.wultra.core.rest.client.base.RestClient;
+import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
@@ -29,14 +31,12 @@ import io.getlime.security.powerauth.lib.cmd.steps.model.GetStatusStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.JsonUtil;
 import io.getlime.security.powerauth.lib.cmd.util.MapUtil;
-import io.getlime.security.powerauth.lib.cmd.util.WebClientFactory;
+import io.getlime.security.powerauth.lib.cmd.util.RestClientFactory;
 import io.getlime.security.powerauth.rest.api.model.request.v3.ActivationStatusRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.ActivationStatusResponse;
 import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.ClientResponse;
 
 import javax.crypto.SecretKey;
 import java.util.HashMap;
@@ -111,36 +111,23 @@ public class GetStatusStep implements BaseStep {
                 stepLogger.writeServerCall("activation-status-request-sent", uri, "POST", requestObject, headers);
             }
 
-            ClientResponse response = WebClientFactory.getWebClient()
-                    .post()
-                    .uri(uri)
-                    .headers(h -> {
-                        h.addAll(MapUtil.toMultiValueMap(headers));
-                    })
-                    .body(BodyInserters.fromValue(body))
-                    .exchange()
-                    .block();
-            if (response == null) {
+            ResponseEntity<ObjectResponse<ActivationStatusResponse>> responseEntity;
+            RestClient restClient = RestClientFactory.getRestClient();
+            ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>>() {};
+            try {
+                responseEntity = restClient.post(uri, body, MapUtil.toMultiValueMap(headers), typeReference);
+            } catch (RestClientException ex) {
                 if (stepLogger != null) {
-                    stepLogger.writeError("activation-status-error-generic", "Response is missing");
-                    stepLogger.writeDoneFailed("activation-status-failed");
-                }
-                return null;
-            }
-            if (!response.statusCode().is2xxSuccessful()) {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("activation-status-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                    stepLogger.writeServerCallError("activation-status-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
                     stepLogger.writeDoneFailed("activation-status-failed");
                 }
                 return null;
             }
 
-            ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>>() {};
-            ResponseEntity<ObjectResponse<ActivationStatusResponse>> responseEntity = Objects.requireNonNull(response.toEntity(typeReference).block());
             ObjectResponse<ActivationStatusResponse> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCallOK("activation-status-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                stepLogger.writeServerCallOK("activation-status-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
             }
 
             // Process the server response
