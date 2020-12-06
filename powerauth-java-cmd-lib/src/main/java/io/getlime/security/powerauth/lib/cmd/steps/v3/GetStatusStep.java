@@ -112,7 +112,8 @@ public class GetStatusStep implements BaseStep {
             }
 
             ResponseEntity<ObjectResponse<ActivationStatusResponse>> responseEntity;
-            RestClient restClient = RestClientFactory.getRestClient();            if (restClient == null) {
+            RestClient restClient = RestClientFactory.getRestClient();
+            if (restClient == null) {
                 return null;
             }
             ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>>() {};
