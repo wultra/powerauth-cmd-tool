@@ -28,7 +28,7 @@ import io.getlime.security.powerauth.lib.cmd.steps.v3.ConfirmRecoveryCodeStep;
 import io.getlime.security.powerauth.lib.cmd.steps.v3.StartUpgradeStep;
 import io.getlime.security.powerauth.lib.cmd.util.ConfigurationUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
-import io.getlime.security.powerauth.lib.cmd.util.WebClientFactory;
+import io.getlime.security.powerauth.lib.cmd.util.RestClientFactory;
 import org.apache.commons.cli.*;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONObject;
@@ -133,7 +133,7 @@ public class Application {
 
             // Allow invalid SSL certificates
             if (cmd.hasOption("i")) {
-                WebClientFactory.setAcceptInvalidSslCertificate(true);
+                RestClientFactory.setAcceptInvalidSslCertificate(true);
             }
 
             String platform;

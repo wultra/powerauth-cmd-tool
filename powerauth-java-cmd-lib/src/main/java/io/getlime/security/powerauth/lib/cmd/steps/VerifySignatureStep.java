@@ -19,6 +19,8 @@ package io.getlime.security.powerauth.lib.cmd.steps;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
+import com.wultra.core.rest.client.base.RestClient;
+import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
@@ -33,9 +35,6 @@ import io.getlime.security.powerauth.lib.cmd.util.*;
 import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.ClientResponse;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import javax.crypto.SecretKey;
 import java.io.FileWriter;
@@ -232,50 +231,31 @@ public class VerifySignatureStep implements BaseStep {
      * @throws JsonProcessingException In case parsing the response to JSON format fails.
      */
     private boolean executeRequest(String method, Map<String, String> headers, String uri, byte[] data, StepLogger stepLogger) throws JsonProcessingException {
-        ClientResponse response;
-        WebClient webClient = WebClientFactory.getWebClient();
-        if ("GET".equals(method)) {
-            response = webClient
-                    .get()
-                    .uri(uri)
-                    .headers(h -> {
-                        h.addAll(MapUtil.toMultiValueMap(headers));
-                    })
-                    .exchange()
-                    .block();
-        } else {
-            response = webClient
-                    .post()
-                    .uri(uri)
-                    .headers(h -> {
-                        h.addAll(MapUtil.toMultiValueMap(headers));
-                    })
-                    .body(BodyInserters.fromValue(data))
-                    .exchange()
-                    .block();
-        }
-        if (response == null) {
-            if (stepLogger != null) {
-                stepLogger.writeError("signature-verify-error-generic", "Response is missing");
-                stepLogger.writeDoneFailed("signature-verify-failed");
-            }
+        ResponseEntity<ObjectResponse<Map<String, Object>>> responseEntity;
+        RestClient restClient = RestClientFactory.getRestClient();
+        if (restClient == null) {
             return false;
         }
-        if (!response.statusCode().is2xxSuccessful()) {
+        ParameterizedTypeReference<ObjectResponse<Map<String, Object>>> typeReference = new ParameterizedTypeReference<ObjectResponse<Map<String, Object>>>() {};
+
+        try {
+            if ("GET".equals(method)) {
+                responseEntity = restClient.get(uri, MapUtil.toMultiValueMap(headers), typeReference);
+            } else {
+                responseEntity = restClient.post(uri, data, MapUtil.toMultiValueMap(headers), typeReference);
+            }
+        } catch (RestClientException ex) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallError("signature-verify-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                stepLogger.writeServerCallError("signature-verify-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
                 stepLogger.writeDoneFailed("signature-verify-failed");
             }
             return false;
         }
 
-        ParameterizedTypeReference<ObjectResponse<Map<String, Object>>> typeReference = new ParameterizedTypeReference<ObjectResponse<Map<String, Object>>>() {};
-        ResponseEntity<ObjectResponse<Map<String, Object>>> responseEntity = Objects.requireNonNull(response.toEntity(typeReference).block());
         ObjectResponse<Map<String, Object>> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
 
-
         if (stepLogger != null) {
-            stepLogger.writeServerCallOK("signature-verify-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+            stepLogger.writeServerCallOK("signature-verify-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
 
             // Print the results
             stepLogger.writeItem(

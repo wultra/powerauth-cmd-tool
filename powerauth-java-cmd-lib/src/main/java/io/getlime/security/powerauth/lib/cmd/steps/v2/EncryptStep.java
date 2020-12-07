@@ -17,6 +17,8 @@
 package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
 import com.google.common.io.BaseEncoding;
+import com.wultra.core.rest.client.base.RestClient;
+import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.encryptor.ClientNonPersonalizedEncryptor;
@@ -26,13 +28,11 @@ import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.MapUtil;
-import io.getlime.security.powerauth.lib.cmd.util.WebClientFactory;
+import io.getlime.security.powerauth.lib.cmd.util.RestClientFactory;
 import io.getlime.security.powerauth.rest.api.model.entity.NonPersonalizedEncryptedPayloadModel;
 import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.ClientResponse;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -136,36 +136,26 @@ public class EncryptStep implements BaseStep {
                 stepLogger.writeServerCall("encrypt-request-sent", uri, "POST", body, headers);
             }
 
-            ClientResponse response = WebClientFactory.getWebClient()
-                    .post()
-                    .uri(uri)
-                    .headers(h -> {
-                        h.addAll(MapUtil.toMultiValueMap(headers));
-                    })
-                    .body(BodyInserters.fromValue(body))
-                    .exchange()
-                    .block();
-            if (response == null) {
-                if (stepLogger != null) {
-                    stepLogger.writeError("encrypt-error-generic", "Response is missing");
-                    stepLogger.writeDoneFailed("encrypt-failed");
-                }
+            ResponseEntity<ObjectResponse<NonPersonalizedEncryptedPayloadModel>> responseEntity;
+            RestClient restClient = RestClientFactory.getRestClient();
+            if (restClient == null) {
                 return null;
             }
-            if (!response.statusCode().is2xxSuccessful()) {
+            ParameterizedTypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>> typeReference = new ParameterizedTypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>>() {};
+            try {
+                responseEntity = restClient.post(uri, body, MapUtil.toMultiValueMap(headers), typeReference);
+            } catch (RestClientException ex) {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallError("encrypt-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                    stepLogger.writeServerCallError("encrypt-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
                     stepLogger.writeDoneFailed("encrypt-failed");
                 }
                 return null;
             }
 
-            ParameterizedTypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>> typeReference = new ParameterizedTypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>>() {};
-            ResponseEntity<ObjectResponse<NonPersonalizedEncryptedPayloadModel>> responseEntity = Objects.requireNonNull(response.toEntity(typeReference).block());
             ObjectResponse<NonPersonalizedEncryptedPayloadModel> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCallOK("encrypt-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                stepLogger.writeServerCallOK("encrypt-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
             }
 
             // Decrypt the server response

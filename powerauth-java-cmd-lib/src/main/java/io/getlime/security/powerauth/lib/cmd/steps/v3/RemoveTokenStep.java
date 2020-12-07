@@ -18,6 +18,8 @@ package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
+import com.wultra.core.rest.client.base.RestClient;
+import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
@@ -36,8 +38,6 @@ import io.getlime.security.powerauth.rest.api.model.response.v3.TokenRemoveRespo
 import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.ClientResponse;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
@@ -155,36 +155,26 @@ public class RemoveTokenStep implements BaseStep {
                 stepLogger.writeServerCall("token-remove-request-sent", uri, "POST", request, headers);
             }
 
-            ClientResponse response = WebClientFactory.getWebClient()
-                    .post()
-                    .uri(uri)
-                    .headers(h -> {
-                        h.addAll(MapUtil.toMultiValueMap(headers));
-                    })
-                    .body(BodyInserters.fromValue(requestBytes))
-                    .exchange()
-                    .block();
-            if (response == null) {
-                if (stepLogger != null) {
-                    stepLogger.writeError("token-remove-error-generic", "Response is missing");
-                    stepLogger.writeDoneFailed("token-remove-failed");
-                }
+            ResponseEntity<ObjectResponse<TokenRemoveResponse>> responseEntity;
+            RestClient restClient = RestClientFactory.getRestClient();
+            if (restClient == null) {
                 return null;
             }
-            if (!response.statusCode().is2xxSuccessful()) {
+            ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>>() {};
+            try {
+                responseEntity = restClient.post(uri, requestBytes, MapUtil.toMultiValueMap(headers), typeReference);
+            } catch (RestClientException ex) {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallError("token-remove-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                    stepLogger.writeServerCallError("token-remove-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
                     stepLogger.writeDoneFailed("token-remove-failed");
                 }
                 return null;
             }
 
-            ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>>() {};
-            ResponseEntity<ObjectResponse<TokenRemoveResponse>> responseEntity = Objects.requireNonNull(response.toEntity(typeReference).block());
             ObjectResponse<TokenRemoveResponse> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCallOK("token-remove-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                stepLogger.writeServerCallOK("token-remove-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
             }
 
             if (stepLogger != null) {
