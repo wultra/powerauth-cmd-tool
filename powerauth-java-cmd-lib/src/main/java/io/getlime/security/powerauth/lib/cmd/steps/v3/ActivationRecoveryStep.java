@@ -205,7 +205,7 @@ public class ActivationRecoveryStep implements BaseStep {
             }
             ParameterizedTypeReference<EciesEncryptedResponse> typeReference = new ParameterizedTypeReference<EciesEncryptedResponse>() {};
             try {
-                responseEntity = restClient.post(uri, encryptedRequestL1, MapUtil.toMultiValueMap(headers), typeReference);
+                responseEntity = restClient.post(uri, encryptedRequestL1, null, MapUtil.toMultiValueMap(headers), typeReference);
             } catch (RestClientException ex) {
                 if (stepLogger != null) {
                     stepLogger.writeServerCallError("activation-recovery-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));

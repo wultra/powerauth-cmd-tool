@@ -129,7 +129,7 @@ public class CommitUpgradeStep implements BaseStep {
             }
             ParameterizedTypeReference<Response> typeReference = new ParameterizedTypeReference<Response>() {};
             try {
-                responseEntity = restClient.post(uri, requestBytes, MapUtil.toMultiValueMap(headers), typeReference);
+                responseEntity = restClient.post(uri, requestBytes, null, MapUtil.toMultiValueMap(headers), typeReference);
             } catch (RestClientException ex) {
                 if (stepLogger != null) {
                     stepLogger.writeServerCallError("upgrade-commit-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));

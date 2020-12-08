@@ -209,9 +209,9 @@ public class VerifyTokenStep implements BaseStep {
         ParameterizedTypeReference<Map<String, Object>> typeReference = new ParameterizedTypeReference<Map<String, Object>>() {};
         try {
             if ("GET".equals(method)) {
-                responseEntity = restClient.get(uri, MapUtil.toMultiValueMap(headers), typeReference);
+                responseEntity = restClient.get(uri, null, MapUtil.toMultiValueMap(headers), typeReference);
             } else {
-                responseEntity = restClient.post(uri, data, MapUtil.toMultiValueMap(headers), typeReference);
+                responseEntity = restClient.post(uri, data, null, MapUtil.toMultiValueMap(headers), typeReference);
             }
         } catch (RestClientException ex) {
             if (stepLogger != null) {
