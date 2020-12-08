@@ -220,7 +220,6 @@ public class PrepareActivationStep implements BaseStep {
             try {
                 responseEntity = restClient.post(uri, encryptedRequestL1, null, MapUtil.toMultiValueMap(headers), typeReference);
             } catch (RestClientException ex) {
-                ex.printStackTrace();
                 if (stepLogger != null) {
                     stepLogger.writeServerCallError("activation-create-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
                     stepLogger.writeDoneFailed("activation-create-failed");
