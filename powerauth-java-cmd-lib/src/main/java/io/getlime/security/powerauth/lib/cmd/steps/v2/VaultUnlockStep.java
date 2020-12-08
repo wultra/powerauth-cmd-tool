@@ -172,7 +172,7 @@ public class VaultUnlockStep implements BaseStep {
             }
             ParameterizedTypeReference<ObjectResponse<VaultUnlockResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<VaultUnlockResponse>>() {};
             try {
-                responseEntity = restClient.post(uri, requestBytes, MapUtil.toMultiValueMap(headers), typeReference);
+                responseEntity = restClient.post(uri, requestBytes, null, MapUtil.toMultiValueMap(headers), typeReference);
             } catch (RestClientException ex) {
                 // Increment the counter
                 CounterUtil.incrementCounter(model);

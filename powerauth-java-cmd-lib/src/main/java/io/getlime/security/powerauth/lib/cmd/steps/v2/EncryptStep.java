@@ -143,7 +143,7 @@ public class EncryptStep implements BaseStep {
             }
             ParameterizedTypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>> typeReference = new ParameterizedTypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>>() {};
             try {
-                responseEntity = restClient.post(uri, body, MapUtil.toMultiValueMap(headers), typeReference);
+                responseEntity = restClient.post(uri, body, null, MapUtil.toMultiValueMap(headers), typeReference);
             } catch (RestClientException ex) {
                 if (stepLogger != null) {
                     stepLogger.writeServerCallError("encrypt-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));

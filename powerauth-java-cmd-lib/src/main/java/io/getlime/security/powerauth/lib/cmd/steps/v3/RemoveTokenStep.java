@@ -162,7 +162,7 @@ public class RemoveTokenStep implements BaseStep {
             }
             ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>>() {};
             try {
-                responseEntity = restClient.post(uri, requestBytes, MapUtil.toMultiValueMap(headers), typeReference);
+                responseEntity = restClient.post(uri, requestBytes, null, MapUtil.toMultiValueMap(headers), typeReference);
             } catch (RestClientException ex) {
                 if (stepLogger != null) {
                     stepLogger.writeServerCallError("token-remove-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));

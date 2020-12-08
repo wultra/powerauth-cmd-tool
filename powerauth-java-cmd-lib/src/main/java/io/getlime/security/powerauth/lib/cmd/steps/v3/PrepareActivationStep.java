@@ -44,7 +44,6 @@ import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedRe
 import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import javax.crypto.SecretKey;
 import java.io.ByteArrayOutputStream;
@@ -219,7 +218,7 @@ public class PrepareActivationStep implements BaseStep {
             }
             ParameterizedTypeReference<EciesEncryptedResponse> typeReference = new ParameterizedTypeReference<EciesEncryptedResponse>() {};
             try {
-                responseEntity = restClient.post(uri, encryptedRequestL1, MapUtil.toMultiValueMap(headers), typeReference);
+                responseEntity = restClient.post(uri, encryptedRequestL1, null, MapUtil.toMultiValueMap(headers), typeReference);
             } catch (RestClientException ex) {
                 if (stepLogger != null) {
                     stepLogger.writeServerCallError("activation-create-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
@@ -338,12 +337,6 @@ public class PrepareActivationStep implements BaseStep {
             }
 
             return model.getResultStatusObject();
-        } catch (WebClientResponseException ex) {
-            if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError("activation-create-error-connection", ex);
-                stepLogger.writeDoneFailed("activation-create-failed");
-            }
-            return null;
         } catch (Exception ex) {
             if (stepLogger != null) {
                 stepLogger.writeError("activation-create-error-generic", ex);

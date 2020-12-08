@@ -150,7 +150,7 @@ public class RemoveStep implements BaseStep {
             }
             ParameterizedTypeReference<ObjectResponse<ActivationRemoveResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<ActivationRemoveResponse>>() {};
             try {
-                responseEntity = restClient.post(uri, null, MapUtil.toMultiValueMap(headers), typeReference);
+                responseEntity = restClient.post(uri, null, null, MapUtil.toMultiValueMap(headers), typeReference);
             } catch (RestClientException ex) {
                 if (stepLogger != null) {
                     stepLogger.writeServerCallError("activation-remove-error-server-callactivation-remove-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));

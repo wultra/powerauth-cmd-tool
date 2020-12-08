@@ -177,7 +177,7 @@ public class PrepareActivationStep implements BaseStep {
             }
             ParameterizedTypeReference<ObjectResponse<ActivationCreateResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<ActivationCreateResponse>>() {};
             try {
-                responseEntity = restClient.post(uri, body, MapUtil.toMultiValueMap(headers), typeReference);
+                responseEntity = restClient.post(uri, body, null, MapUtil.toMultiValueMap(headers), typeReference);
             } catch (RestClientException ex) {
                 if (stepLogger != null) {
                     stepLogger.writeServerCallError("activation-create-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
