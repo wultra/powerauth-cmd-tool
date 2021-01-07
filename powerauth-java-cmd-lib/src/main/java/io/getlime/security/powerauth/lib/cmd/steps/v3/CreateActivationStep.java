@@ -17,6 +17,8 @@ package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
+import com.wultra.core.rest.client.base.RestClient;
+import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.vault.PowerAuthClientVault;
@@ -30,9 +32,7 @@ import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.CreateActivationStepModel;
-import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
-import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
+import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.entity.ActivationType;
 import io.getlime.security.powerauth.rest.api.model.request.v3.ActivationLayer1Request;
 import io.getlime.security.powerauth.rest.api.model.request.v3.ActivationLayer2Request;
@@ -40,10 +40,9 @@ import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedReq
 import io.getlime.security.powerauth.rest.api.model.response.v3.ActivationLayer1Response;
 import io.getlime.security.powerauth.rest.api.model.response.v3.ActivationLayer2Response;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
-import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.ResponseEntity;
 
 import javax.crypto.SecretKey;
 import java.io.ByteArrayOutputStream;
@@ -55,6 +54,7 @@ import java.security.PublicKey;
 import java.security.interfaces.ECPublicKey;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Class with create activation logic.
@@ -198,137 +198,132 @@ public class CreateActivationStep implements BaseStep {
                 stepLogger.writeServerCall("activation-create-custom-request-sent", uri, "POST", encryptedRequestL1, headers);
             }
 
-            HttpResponse<String> response = Unirest.post(uri)
-                    .headers(headers)
-                    .body(encryptedRequestL1)
-                    .asString();
-
-            if (response.getStatus() == 200) {
-                EciesEncryptedResponse encryptedResponseL1 = mapper.readValue(response.getBody(), EciesEncryptedResponse.class);
-
+            ResponseEntity<EciesEncryptedResponse> responseEntity;
+            RestClient restClient = RestClientFactory.getRestClient();
+            if (restClient == null) {
+                return null;
+            }
+            ParameterizedTypeReference<EciesEncryptedResponse> typeReference = new ParameterizedTypeReference<EciesEncryptedResponse>() {};
+            try {
+                responseEntity = restClient.post(uri, encryptedRequestL1, null, MapUtil.toMultiValueMap(headers), typeReference);
+            } catch (RestClientException ex) {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK("activation-create-custom-response-received", encryptedResponseL1, HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                }
-
-                // Read activation layer 1 response and decrypt it
-                byte[] macL1 = BaseEncoding.base64().decode(encryptedResponseL1.getMac());
-                byte[] encryptedDataL1 = BaseEncoding.base64().decode(encryptedResponseL1.getEncryptedData());
-                EciesCryptogram responseCryptogramL1 = new EciesCryptogram(macL1, encryptedDataL1);
-                byte[] decryptedDataL1 = eciesEncryptorL1.decryptResponse(responseCryptogramL1);
-
-                // Read activation layer 1 response from data
-                ActivationLayer1Response responseL1 = mapper.readValue(decryptedDataL1, ActivationLayer1Response.class);
-
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "activation-create-custom-response-decrypt",
-                            "Decrypted Layer 1 Response",
-                            "Following layer 1 activation data were decrypted",
-                            "OK",
-                            responseL1
-                    );
-                }
-
-                // Decrypt layer 2 response
-                byte[] macL2 = BaseEncoding.base64().decode(responseL1.getActivationData().getMac());
-                byte[] encryptedDataL2 = BaseEncoding.base64().decode(responseL1.getActivationData().getEncryptedData());
-                EciesCryptogram responseCryptogramL2 = new EciesCryptogram(macL2, encryptedDataL2);
-                byte[] decryptedDataL2 = eciesEncryptorL2.decryptResponse(responseCryptogramL2);
-
-                // Convert activation layer 2 response from JSON to object and extract activation parameters
-                ActivationLayer2Response responseL2 = mapper.readValue(decryptedDataL2, ActivationLayer2Response.class);
-
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "activation-create-custom-response-decrypt-inner",
-                            "Decrypted Layer 2 Response",
-                            "Following layer 2 activation data were decrypted",
-                            "OK",
-                            responseL2
-                    );
-                }
-
-                String activationId = responseL2.getActivationId();
-                String ctrDataBase64 = responseL2.getCtrData();
-                String serverPublicKeyBase64 = responseL2.getServerPublicKey();
-                PublicKey serverPublicKey = keyConvertor.convertBytesToPublicKey(BaseEncoding.base64().decode(serverPublicKeyBase64));
-
-                // Compute master secret key
-                SecretKey masterSecretKey = keyFactory.generateClientMasterSecretKey(deviceKeyPair.getPrivate(), serverPublicKey);
-
-                // Derive PowerAuth keys from master secret key
-                SecretKey signaturePossessionSecretKey = keyFactory.generateClientSignaturePossessionKey(masterSecretKey);
-                SecretKey signatureKnowledgeSecretKey = keyFactory.generateClientSignatureKnowledgeKey(masterSecretKey);
-                SecretKey signatureBiometrySecretKey = keyFactory.generateClientSignatureBiometryKey(masterSecretKey);
-                SecretKey transportMasterKey = keyFactory.generateServerTransportKey(masterSecretKey);
-                // DO NOT EVER STORE ...
-                SecretKey vaultUnlockMasterKey = keyFactory.generateServerEncryptedVaultKey(masterSecretKey);
-
-                // Encrypt the original device private key using the vault unlock key
-                byte[] encryptedDevicePrivateKey = vault.encryptDevicePrivateKey(deviceKeyPair.getPrivate(), vaultUnlockMasterKey);
-
-                char[] password;
-                if (model.getPassword() == null) {
-                    Console console = System.console();
-                    password = console.readPassword("Select a password to encrypt the knowledge related key: ");
-                } else {
-                    password = model.getPassword().toCharArray();
-                }
-
-                byte[] salt = keyGenerator.generateRandomBytes(16);
-                byte[] cSignatureKnowledgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, signatureKnowledgeSecretKey, salt, keyGenerator);
-
-                // Prepare the status object to be stored
-                model.getResultStatusObject().put("activationId", activationId);
-                model.getResultStatusObject().put("serverPublicKey", BaseEncoding.base64().encode(keyConvertor.convertPublicKeyToBytes(serverPublicKey)));
-                model.getResultStatusObject().put("encryptedDevicePrivateKey", BaseEncoding.base64().encode(encryptedDevicePrivateKey));
-                model.getResultStatusObject().put("signaturePossessionKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(signaturePossessionSecretKey)));
-                model.getResultStatusObject().put("signatureKnowledgeKeyEncrypted", BaseEncoding.base64().encode(cSignatureKnowledgeSecretKey));
-                model.getResultStatusObject().put("signatureKnowledgeKeySalt", BaseEncoding.base64().encode(salt));
-                model.getResultStatusObject().put("signatureBiometryKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(signatureBiometrySecretKey)));
-                model.getResultStatusObject().put("transportMasterKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(transportMasterKey)));
-                model.getResultStatusObject().put("counter", 0L);
-                model.getResultStatusObject().put("ctrData", ctrDataBase64);
-                model.getResultStatusObject().put("version", 3L);
-
-                // Store the resulting status
-                String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
-                try (FileWriter file = new FileWriter(model.getStatusFileName())) {
-                    file.write(formatted);
-                }
-
-                Map<String, Object> objectMap = new HashMap<>();
-                objectMap.put("activationId", activationId);
-                objectMap.put("activationStatusFile", model.getStatusFileName());
-                objectMap.put("activationStatusFileContent", model.getResultStatusObject());
-                objectMap.put("deviceKeyFingerprint", activation.computeActivationFingerprint(deviceKeyPair.getPublic(), serverPublicKey, activationId));
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "activation-create-custom-activation-done",
-                            "Activation Done",
-                            "Public key exchange was successfully completed, commit the activation on server if required",
-                            "OK",
-                            objectMap
-                    );
-                    stepLogger.writeDoneOK("activation-create-custom-success");
-                }
-
-                return model.getResultStatusObject();
-
-            } else {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("activation-create-custom-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeServerCallError("activation-create-custom-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
                     stepLogger.writeDoneFailed("activation-create-custom-failed");
                 }
                 return null;
             }
 
-        } catch (UnirestException exception) {
+            EciesEncryptedResponse encryptedResponseL1 = Objects.requireNonNull(responseEntity.getBody());
+
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError("activation-create-custom-error-connection", exception);
-                stepLogger.writeDoneFailed("activation-create-custom-failed");
+                stepLogger.writeServerCallOK("activation-create-custom-response-received", encryptedResponseL1, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
             }
-            return null;
+
+            // Read activation layer 1 response and decrypt it
+            byte[] macL1 = BaseEncoding.base64().decode(encryptedResponseL1.getMac());
+            byte[] encryptedDataL1 = BaseEncoding.base64().decode(encryptedResponseL1.getEncryptedData());
+            EciesCryptogram responseCryptogramL1 = new EciesCryptogram(macL1, encryptedDataL1);
+            byte[] decryptedDataL1 = eciesEncryptorL1.decryptResponse(responseCryptogramL1);
+
+            // Read activation layer 1 response from data
+            ActivationLayer1Response responseL1 = mapper.readValue(decryptedDataL1, ActivationLayer1Response.class);
+
+            if (stepLogger != null) {
+                stepLogger.writeItem(
+                        "activation-create-custom-response-decrypt",
+                        "Decrypted Layer 1 Response",
+                        "Following layer 1 activation data were decrypted",
+                        "OK",
+                        responseL1
+                );
+            }
+
+            // Decrypt layer 2 response
+            byte[] macL2 = BaseEncoding.base64().decode(responseL1.getActivationData().getMac());
+            byte[] encryptedDataL2 = BaseEncoding.base64().decode(responseL1.getActivationData().getEncryptedData());
+            EciesCryptogram responseCryptogramL2 = new EciesCryptogram(macL2, encryptedDataL2);
+            byte[] decryptedDataL2 = eciesEncryptorL2.decryptResponse(responseCryptogramL2);
+
+            // Convert activation layer 2 response from JSON to object and extract activation parameters
+            ActivationLayer2Response responseL2 = mapper.readValue(decryptedDataL2, ActivationLayer2Response.class);
+
+            if (stepLogger != null) {
+                stepLogger.writeItem(
+                        "activation-create-custom-response-decrypt-inner",
+                        "Decrypted Layer 2 Response",
+                        "Following layer 2 activation data were decrypted",
+                        "OK",
+                        responseL2
+                );
+            }
+
+            String activationId = responseL2.getActivationId();
+            String ctrDataBase64 = responseL2.getCtrData();
+            String serverPublicKeyBase64 = responseL2.getServerPublicKey();
+            PublicKey serverPublicKey = keyConvertor.convertBytesToPublicKey(BaseEncoding.base64().decode(serverPublicKeyBase64));
+
+            // Compute master secret key
+            SecretKey masterSecretKey = keyFactory.generateClientMasterSecretKey(deviceKeyPair.getPrivate(), serverPublicKey);
+
+            // Derive PowerAuth keys from master secret key
+            SecretKey signaturePossessionSecretKey = keyFactory.generateClientSignaturePossessionKey(masterSecretKey);
+            SecretKey signatureKnowledgeSecretKey = keyFactory.generateClientSignatureKnowledgeKey(masterSecretKey);
+            SecretKey signatureBiometrySecretKey = keyFactory.generateClientSignatureBiometryKey(masterSecretKey);
+            SecretKey transportMasterKey = keyFactory.generateServerTransportKey(masterSecretKey);
+            // DO NOT EVER STORE ...
+            SecretKey vaultUnlockMasterKey = keyFactory.generateServerEncryptedVaultKey(masterSecretKey);
+
+            // Encrypt the original device private key using the vault unlock key
+            byte[] encryptedDevicePrivateKey = vault.encryptDevicePrivateKey(deviceKeyPair.getPrivate(), vaultUnlockMasterKey);
+
+            char[] password;
+            if (model.getPassword() == null) {
+                Console console = System.console();
+                password = console.readPassword("Select a password to encrypt the knowledge related key: ");
+            } else {
+                password = model.getPassword().toCharArray();
+            }
+
+            byte[] salt = keyGenerator.generateRandomBytes(16);
+            byte[] cSignatureKnowledgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, signatureKnowledgeSecretKey, salt, keyGenerator);
+
+            // Prepare the status object to be stored
+            model.getResultStatusObject().put("activationId", activationId);
+            model.getResultStatusObject().put("serverPublicKey", BaseEncoding.base64().encode(keyConvertor.convertPublicKeyToBytes(serverPublicKey)));
+            model.getResultStatusObject().put("encryptedDevicePrivateKey", BaseEncoding.base64().encode(encryptedDevicePrivateKey));
+            model.getResultStatusObject().put("signaturePossessionKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(signaturePossessionSecretKey)));
+            model.getResultStatusObject().put("signatureKnowledgeKeyEncrypted", BaseEncoding.base64().encode(cSignatureKnowledgeSecretKey));
+            model.getResultStatusObject().put("signatureKnowledgeKeySalt", BaseEncoding.base64().encode(salt));
+            model.getResultStatusObject().put("signatureBiometryKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(signatureBiometrySecretKey)));
+            model.getResultStatusObject().put("transportMasterKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(transportMasterKey)));
+            model.getResultStatusObject().put("counter", 0L);
+            model.getResultStatusObject().put("ctrData", ctrDataBase64);
+            model.getResultStatusObject().put("version", 3L);
+
+            // Store the resulting status
+            String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+            try (FileWriter file = new FileWriter(model.getStatusFileName())) {
+                file.write(formatted);
+            }
+
+            Map<String, Object> objectMap = new HashMap<>();
+            objectMap.put("activationId", activationId);
+            objectMap.put("activationStatusFile", model.getStatusFileName());
+            objectMap.put("activationStatusFileContent", model.getResultStatusObject());
+            objectMap.put("deviceKeyFingerprint", activation.computeActivationFingerprint(deviceKeyPair.getPublic(), serverPublicKey, activationId));
+            if (stepLogger != null) {
+                stepLogger.writeItem(
+                        "activation-create-custom-activation-done",
+                        "Activation Done",
+                        "Public key exchange was successfully completed, commit the activation on server if required",
+                        "OK",
+                        objectMap
+                );
+                stepLogger.writeDoneOK("activation-create-custom-success");
+            }
+
+            return model.getResultStatusObject();
         } catch (Exception exception) {
             if (stepLogger != null) {
                 stepLogger.writeError("activation-create-custom-error-generic", exception);

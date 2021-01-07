@@ -17,22 +17,24 @@
 package io.getlime.security.powerauth.lib.cmd.steps;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.io.BaseEncoding;
+import com.wultra.core.rest.client.base.RestClient;
+import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.security.powerauth.crypto.client.token.ClientTokenGenerator;
 import io.getlime.security.powerauth.http.PowerAuthTokenHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifyTokenStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
-import kong.unirest.UnirestException;
+import io.getlime.security.powerauth.lib.cmd.util.MapUtil;
+import io.getlime.security.powerauth.lib.cmd.util.RestClientFactory;
 import org.json.simple.JSONObject;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.ResponseEntity;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Step for the token validation activity.
@@ -126,9 +128,6 @@ public class VerifyTokenStep implements BaseStep {
                 logTokenValueComputed(stepLogger);
                 return model.getResultStatusObject();
             }
-        } catch (UnirestException exception) {
-            logException("token-validate-error-server-call", exception, stepLogger);
-            return null;
         } catch (Exception exception) {
             logException("token-validate-generic", exception, stepLogger);
             return null;
@@ -202,48 +201,43 @@ public class VerifyTokenStep implements BaseStep {
      * @throws JsonProcessingException In case parsing the response to JSON format fails.
      */
     private boolean executeRequest(String method, Map<String, String> headers, String uri, byte[] data, StepLogger stepLogger) throws JsonProcessingException {
-        HttpResponse<String> response;
-        if ("GET".equals(method)) {
-            response = Unirest.get(uri)
-                    .headers(headers)
-                    .asString();
-        } else {
-            response = Unirest.post(uri)
-                    .headers(headers)
-                    .body(data)
-                    .asString();
+        ResponseEntity<Map<String, Object>> responseEntity;
+        RestClient restClient = RestClientFactory.getRestClient();
+        if (restClient == null) {
+            return false;
         }
-
-        if (response.getStatus() == 200) {
-            TypeReference<Map<String, Object>> typeReference = new TypeReference<Map<String, Object>>() {
-            };
-            Map<String, Object> responseWrapper = RestClientConfiguration
-                    .defaultMapper()
-                    .readValue(response.getBody(), typeReference);
-
-            if (stepLogger != null) {
-                stepLogger.writeServerCallOK("token-validate-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
-
-                // Print the results
-                stepLogger.writeItem(
-                        "token-validate-digest-verified",
-                        "Token digest verified",
-                        "Token based authentication was successful",
-                        "OK",
-                        null
-
-                );
-
-                stepLogger.writeDoneOK("token-validate-success");
+        ParameterizedTypeReference<Map<String, Object>> typeReference = new ParameterizedTypeReference<Map<String, Object>>() {};
+        try {
+            if ("GET".equals(method)) {
+                responseEntity = restClient.get(uri, null, MapUtil.toMultiValueMap(headers), typeReference);
+            } else {
+                responseEntity = restClient.post(uri, data, null, MapUtil.toMultiValueMap(headers), typeReference);
             }
-            return true;
-        } else {
+        } catch (RestClientException ex) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallError("token-validate-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                stepLogger.writeServerCallError("token-validate-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
                 stepLogger.writeDoneFailed("token-validate-failed");
             }
             return false;
         }
+
+        Map<String, Object> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
+
+        if (stepLogger != null) {
+            stepLogger.writeServerCallOK("token-validate-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
+
+            // Print the results
+            stepLogger.writeItem(
+                    "token-validate-digest-verified",
+                    "Token digest verified",
+                    "Token based authentication was successful",
+                    "OK",
+                    null
+            );
+
+            stepLogger.writeDoneOK("token-validate-success");
+        }
+        return true;
     }
 
 }

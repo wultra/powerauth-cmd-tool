@@ -16,8 +16,9 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.io.BaseEncoding;
+import com.wultra.core.rest.client.base.RestClient;
+import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.encryptor.ClientNonPersonalizedEncryptor;
@@ -26,16 +27,17 @@ import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
+import io.getlime.security.powerauth.lib.cmd.util.MapUtil;
+import io.getlime.security.powerauth.lib.cmd.util.RestClientFactory;
 import io.getlime.security.powerauth.rest.api.model.entity.NonPersonalizedEncryptedPayloadModel;
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
-import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.ResponseEntity;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Encrypt step encrypts request data using non-personalized end-to-end encryption.
@@ -134,68 +136,62 @@ public class EncryptStep implements BaseStep {
                 stepLogger.writeServerCall("encrypt-request-sent", uri, "POST", body, headers);
             }
 
-            HttpResponse<String> response = Unirest.post(uri)
-                    .headers(headers)
-                    .body(body)
-                    .asString();
-
-            if (response.getStatus() == 200) {
-                TypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>> typeReference = new TypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>>() {};
-                ObjectResponse<NonPersonalizedEncryptedPayloadModel> responseWrapper = RestClientConfiguration
-                        .defaultMapper()
-                        .readValue(response.getBody(), typeReference);
-
+            ResponseEntity<ObjectResponse<NonPersonalizedEncryptedPayloadModel>> responseEntity;
+            RestClient restClient = RestClientFactory.getRestClient();
+            if (restClient == null) {
+                return null;
+            }
+            ParameterizedTypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>> typeReference = new ParameterizedTypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>>() {};
+            try {
+                responseEntity = restClient.post(uri, body, null, MapUtil.toMultiValueMap(headers), typeReference);
+            } catch (RestClientException ex) {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK("encrypt-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                }
-
-                // Decrypt the server response
-                final NonPersonalizedEncryptedPayloadModel encryptedResponseObject = responseWrapper.getResponseObject();
-                encryptedMessage.setApplicationKey(BaseEncoding.base64().decode(encryptedResponseObject.getApplicationKey()));
-                encryptedMessage.setAdHocIndex(BaseEncoding.base64().decode(encryptedResponseObject.getAdHocIndex()));
-                encryptedMessage.setEphemeralPublicKey(BaseEncoding.base64().decode(encryptedResponseObject.getEphemeralPublicKey()));
-                encryptedMessage.setEncryptedData(BaseEncoding.base64().decode(encryptedResponseObject.getEncryptedData()));
-                encryptedMessage.setMac(BaseEncoding.base64().decode(encryptedResponseObject.getMac()));
-                encryptedMessage.setMacIndex(BaseEncoding.base64().decode(encryptedResponseObject.getMacIndex()));
-                encryptedMessage.setNonce(BaseEncoding.base64().decode(encryptedResponseObject.getNonce()));
-                encryptedMessage.setSessionIndex(BaseEncoding.base64().decode(encryptedResponseObject.getSessionIndex()));
-
-                byte[] decryptedMessageBytes = encryptor.decrypt(encryptedMessage);
-                if (decryptedMessageBytes == null) {
-                    if (stepLogger != null) {
-                        stepLogger.writeError("encrypt-error-decrypt", "Decryption failed", "Decrypted message is not available");
-                        stepLogger.writeDoneFailed("encrypt-failed");
-                    }
-                    return null;
-                }
-
-                String decryptedMessage = new String(decryptedMessageBytes, StandardCharsets.UTF_8);
-                model.getResultStatusObject().put("responseData", decryptedMessage);
-
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "encrypt-response-decrypt",
-                            "Decrypted response",
-                            "Following data were decrypted",
-                            "OK",
-                            decryptedMessage
-                    );
-                    stepLogger.writeDoneOK("encrypt-success");
-                }
-                return model.getResultStatusObject();
-            } else {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("encrypt-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeServerCallError("encrypt-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
                     stepLogger.writeDoneFailed("encrypt-failed");
                 }
                 return null;
             }
-        } catch (UnirestException exception) {
+
+            ObjectResponse<NonPersonalizedEncryptedPayloadModel> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
+
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError("encrypt-error-connection", exception);
-                stepLogger.writeDoneFailed("encrypt-failed");
+                stepLogger.writeServerCallOK("encrypt-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
             }
-            return null;
+
+            // Decrypt the server response
+            final NonPersonalizedEncryptedPayloadModel encryptedResponseObject = responseWrapper.getResponseObject();
+            encryptedMessage.setApplicationKey(BaseEncoding.base64().decode(encryptedResponseObject.getApplicationKey()));
+            encryptedMessage.setAdHocIndex(BaseEncoding.base64().decode(encryptedResponseObject.getAdHocIndex()));
+            encryptedMessage.setEphemeralPublicKey(BaseEncoding.base64().decode(encryptedResponseObject.getEphemeralPublicKey()));
+            encryptedMessage.setEncryptedData(BaseEncoding.base64().decode(encryptedResponseObject.getEncryptedData()));
+            encryptedMessage.setMac(BaseEncoding.base64().decode(encryptedResponseObject.getMac()));
+            encryptedMessage.setMacIndex(BaseEncoding.base64().decode(encryptedResponseObject.getMacIndex()));
+            encryptedMessage.setNonce(BaseEncoding.base64().decode(encryptedResponseObject.getNonce()));
+            encryptedMessage.setSessionIndex(BaseEncoding.base64().decode(encryptedResponseObject.getSessionIndex()));
+
+            byte[] decryptedMessageBytes = encryptor.decrypt(encryptedMessage);
+            if (decryptedMessageBytes == null) {
+                if (stepLogger != null) {
+                    stepLogger.writeError("encrypt-error-decrypt", "Decryption failed", "Decrypted message is not available");
+                    stepLogger.writeDoneFailed("encrypt-failed");
+                }
+                return null;
+            }
+
+            String decryptedMessage = new String(decryptedMessageBytes, StandardCharsets.UTF_8);
+            model.getResultStatusObject().put("responseData", decryptedMessage);
+
+            if (stepLogger != null) {
+                stepLogger.writeItem(
+                        "encrypt-response-decrypt",
+                        "Decrypted response",
+                        "Following data were decrypted",
+                        "OK",
+                        decryptedMessage
+                );
+                stepLogger.writeDoneOK("encrypt-success");
+            }
+            return model.getResultStatusObject();
         } catch (Exception exception) {
             if (stepLogger != null) {
                 stepLogger.writeError("encrypt-error-generic", exception);

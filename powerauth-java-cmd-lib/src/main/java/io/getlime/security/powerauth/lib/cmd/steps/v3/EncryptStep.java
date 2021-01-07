@@ -17,6 +17,8 @@
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.google.common.io.BaseEncoding;
+import com.wultra.core.rest.client.base.RestClient;
+import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
@@ -26,20 +28,18 @@ import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
-import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.lib.cmd.util.JsonUtil;
-import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
+import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
-import kong.unirest.UnirestException;
 import org.json.simple.JSONObject;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.ResponseEntity;
 
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.ECPublicKey;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Encrypt step encrypts request data using ECIES encryption in application or activation scope.
@@ -174,54 +174,48 @@ public class EncryptStep implements BaseStep {
                 stepLogger.writeServerCall("encrypt-request-sent", uri, "POST", request, headers);
             }
 
-
-            HttpResponse<String> response = Unirest.post(uri)
-                    .headers(headers)
-                    .body(requestBytes)
-                    .asString();
-
-            if (response.getStatus() == 200) {
-                EciesEncryptedResponse encryptedResponse = RestClientConfiguration
-                        .defaultMapper()
-                        .readValue(response.getBody(), EciesEncryptedResponse.class);
-
+            ResponseEntity<EciesEncryptedResponse> responseEntity;
+            RestClient restClient = RestClientFactory.getRestClient();
+            if (restClient == null) {
+                return null;
+            }
+            ParameterizedTypeReference<EciesEncryptedResponse> typeReference = new ParameterizedTypeReference<EciesEncryptedResponse>() {};
+            try {
+                responseEntity = restClient.post(uri, requestBytes, null, MapUtil.toMultiValueMap(headers), typeReference);
+            } catch (RestClientException ex) {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallOK("encrypt-response-received", encryptedResponse, HttpUtil.flattenHttpHeaders(response.getHeaders()));
-                }
-
-                byte[] macResponse = BaseEncoding.base64().decode(encryptedResponse.getMac());
-                byte[] encryptedDataResponse = BaseEncoding.base64().decode(encryptedResponse.getEncryptedData());
-                EciesCryptogram eciesCryptogramResponse = new EciesCryptogram(macResponse, encryptedDataResponse);
-
-                final byte[] decryptedBytes = encryptor.decryptResponse(eciesCryptogramResponse);
-
-                String decryptedMessage = new String(decryptedBytes, StandardCharsets.UTF_8);
-                model.getResultStatusObject().put("responseData", decryptedMessage);
-
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "encrypt-response-decrypt",
-                            "Decrypted Response",
-                            "Following data were decrypted",
-                            "OK",
-                            decryptedMessage
-                    );
-                    stepLogger.writeDoneOK("encrypt-success");
-                }
-                return model.getResultStatusObject();
-            } else {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("encrypt-error-server-call", response.getStatus(), response.getBody(), HttpUtil.flattenHttpHeaders(response.getHeaders()));
+                    stepLogger.writeServerCallError("encrypt-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
                     stepLogger.writeDoneFailed("encrypt-failed");
                 }
                 return null;
             }
-        } catch (UnirestException exception) {
+
+            EciesEncryptedResponse encryptedResponse = Objects.requireNonNull(responseEntity.getBody());
+
             if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError("encrypt-error-connection", exception);
-                stepLogger.writeDoneFailed("encrypt-failed");
+                stepLogger.writeServerCallOK("encrypt-response-received", encryptedResponse, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
             }
-            return null;
+
+            byte[] macResponse = BaseEncoding.base64().decode(encryptedResponse.getMac());
+            byte[] encryptedDataResponse = BaseEncoding.base64().decode(encryptedResponse.getEncryptedData());
+            EciesCryptogram eciesCryptogramResponse = new EciesCryptogram(macResponse, encryptedDataResponse);
+
+            final byte[] decryptedBytes = encryptor.decryptResponse(eciesCryptogramResponse);
+
+            String decryptedMessage = new String(decryptedBytes, StandardCharsets.UTF_8);
+            model.getResultStatusObject().put("responseData", decryptedMessage);
+
+            if (stepLogger != null) {
+                stepLogger.writeItem(
+                        "encrypt-response-decrypt",
+                        "Decrypted Response",
+                        "Following data were decrypted",
+                        "OK",
+                        decryptedMessage
+                );
+                stepLogger.writeDoneOK("encrypt-success");
+            }
+            return model.getResultStatusObject();
         } catch (Exception exception) {
             if (stepLogger != null) {
                 stepLogger.writeError("encrypt-error-generic", exception);

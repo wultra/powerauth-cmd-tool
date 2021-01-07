@@ -140,6 +140,8 @@ _Note: If a `--password` option is not provided, this method requires interactiv
 
 In case you are validating signature on requests that require authenticated session, use `--http-header` option:
 
+You can use the `dry-run` parameter, in this case the step is stopped right after signing the request body and preparing appropriate headers.
+
 ```bash
 java -jar powerauth-java-cmd.jar \
     --url "http://localhost:8080/powerauth-restful-server/pa/v3/signature/validate" \
@@ -210,6 +212,8 @@ java -jar powerauth-java-cmd.jar \
 ```
 
 Uses the `validate-token` method for an activation with activation ID stored in the status file `/tmp/pa_status.json`, by calling an endpoint `/api/auth/token` hosted on root URL `http://localhost:8080/powerauth-restful-server`. The endpoint must be published by the application -- see [Token Based Authentication](https://github.com/wultra/powerauth-restful-integration/blob/develop/docs/RESTful-API-for-Spring.md#use-token-based-authentication). Uses the application identifiers stored in the `/tmp/pamk.json` file. The request data is taken from file `/tmp/request.json`.
+
+You can use the `dry-run` parameter, in this case the step is stopped right after signing the request body and preparing appropriate headers.
 
 ### Remove Token
 
@@ -342,6 +346,7 @@ usage: java -jar powerauth-java-cmd.jar
  -d,--data-file <arg>                In case a specified method is 'sign', this field specifies a
                                      file with the input data to be signed and verified with the
                                      server, as specified in PowerAuth signature process.
+ -D,--device-info <arg>              Information about user device.
  -e,--endpoint <arg>                 In case a specified method is 'sign', this field specifies a
                                      URI identifier, as specified in PowerAuth signature process.
  -h,--help                           Print this help manual.
@@ -359,7 +364,9 @@ usage: java -jar powerauth-java-cmd.jar
  -o,--scope <arg>                    ECIES encryption scope: 'application' or 'activation'.
  -p,--password <arg>                 Password used for a knowledge related key encryption. If not
                                      specified, an interactive input is required.
+ -P,--platform <arg>                 User device platform.
  -r,--reason <arg>                   Reason why vault is being unlocked.
+ -R,--recovery-code <arg>            Recovery code to be confirmed.
  -s,--status-file <arg>              Path to the file with the activation status, serving as the
                                      data persistence.
  -S,--token-secret <arg>             Token secret (Base64 encoded bytes), in case of
@@ -369,6 +376,9 @@ usage: java -jar powerauth-java-cmd.jar
  -T,--token-id <arg>                 Token ID (UUID4), in case of 'token-validate' method.
  -u,--url <arg>                      Base URL of the PowerAuth Standard RESTful API.
  -v,--version <arg>                  PowerAuth protocol version.
+ -y,--dry-run                        In case a specified method is 'sign' or 'validate-token' and 
+                                     this attribute is specified, the step is stopped right after 
+                                     signing the request body and preparing appropriate headers.
 ```
 
 ## Troubleshooting
