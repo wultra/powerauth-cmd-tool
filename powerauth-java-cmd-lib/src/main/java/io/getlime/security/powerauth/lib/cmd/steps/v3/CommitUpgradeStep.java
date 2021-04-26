@@ -17,6 +17,8 @@ package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
+import com.wultra.core.rest.client.base.RestClient;
+import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.core.rest.model.base.response.Response;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureFormat;
@@ -30,9 +32,8 @@ import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.*;
 import org.json.simple.JSONObject;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.ClientResponse;
 
 import javax.crypto.SecretKey;
 import java.io.FileWriter;
@@ -121,34 +122,26 @@ public class CommitUpgradeStep implements BaseStep {
                 stepLogger.writeServerCall("upgrade-commit-request-sent", uri, "POST", request, headers);
             }
 
-            ClientResponse response = WebClientFactory.getWebClient()
-                    .post()
-                    .uri(uri)
-                    .headers(h -> {
-                        h.addAll(MapUtil.toMultiValueMap(headers));
-                    })
-                    .body(BodyInserters.fromValue(requestBytes))
-                    .exchange()
-                    .block();
-            if (response == null) {
-                if (stepLogger != null) {
-                    stepLogger.writeError("upgrade-commit-error-generic", "Response is missing");
-                    stepLogger.writeDoneFailed("upgrade-commit-failed");
-                }
+            ResponseEntity<Response> responseEntity;
+            RestClient restClient = RestClientFactory.getRestClient();
+            if (restClient == null) {
                 return null;
             }
-            if (!response.statusCode().is2xxSuccessful()) {
+            ParameterizedTypeReference<Response> typeReference = new ParameterizedTypeReference<Response>() {};
+            try {
+                responseEntity = restClient.post(uri, requestBytes, null, MapUtil.toMultiValueMap(headers), typeReference);
+            } catch (RestClientException ex) {
                 if (stepLogger != null) {
-                    stepLogger.writeServerCallError("upgrade-commit-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                    stepLogger.writeServerCallError("upgrade-commit-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
                     stepLogger.writeDoneFailed("upgrade-commit-failed");
                 }
                 return null;
             }
 
-            ResponseEntity<Response> responseEntity = Objects.requireNonNull(response.toEntity(Response.class).block());
             Response commitResponse = Objects.requireNonNull(responseEntity.getBody());
+
             if (stepLogger != null) {
-                stepLogger.writeServerCallOK("upgrade-commit-response-received", commitResponse, HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                stepLogger.writeServerCallOK("upgrade-commit-response-received", commitResponse, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
             }
 
             // Increment the counter (the signature already used hash based counter)

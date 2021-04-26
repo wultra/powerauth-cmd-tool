@@ -18,6 +18,8 @@ package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
+import com.wultra.core.rest.client.base.RestClient;
+import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.vault.PowerAuthClientVault;
@@ -40,10 +42,8 @@ import io.getlime.security.powerauth.rest.api.model.response.v3.ActivationLayer1
 import io.getlime.security.powerauth.rest.api.model.response.v3.ActivationLayer2Response;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
 import org.json.simple.JSONObject;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.ClientResponse;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import javax.crypto.SecretKey;
 import java.io.ByteArrayOutputStream;
@@ -211,33 +211,26 @@ public class PrepareActivationStep implements BaseStep {
                 stepLogger.writeServerCall("activation-create-request-sent", uri, "POST", encryptedRequestL1, headers);
             }
 
-            ClientResponse response = WebClientFactory.getWebClient()
-                    .post()
-                    .uri(uri)
-                    .headers(h -> {
-                        h.addAll(MapUtil.toMultiValueMap(headers));
-                    })
-                    .body(BodyInserters.fromValue(encryptedRequestL1))
-                    .exchange()
-                    .block();
-            if (response == null) {
+            ResponseEntity<EciesEncryptedResponse> responseEntity;
+            RestClient restClient = RestClientFactory.getRestClient();
+            if (restClient == null) {
+                return null;
+            }
+            ParameterizedTypeReference<EciesEncryptedResponse> typeReference = new ParameterizedTypeReference<EciesEncryptedResponse>() {};
+            try {
+                responseEntity = restClient.post(uri, encryptedRequestL1, null, MapUtil.toMultiValueMap(headers), typeReference);
+            } catch (RestClientException ex) {
                 if (stepLogger != null) {
-                    stepLogger.writeError("activation-create-error-generic", "Response is missing");
+                    stepLogger.writeServerCallError("activation-create-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
                     stepLogger.writeDoneFailed("activation-create-failed");
                 }
                 return null;
             }
-            if (!response.statusCode().is2xxSuccessful()) {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("activation-create-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
-                    stepLogger.writeDoneFailed("activation-create-failed");
-                }
-                return null;
-            }
-            ResponseEntity<EciesEncryptedResponse> responseEntity = Objects.requireNonNull(response.toEntity(EciesEncryptedResponse.class).block());
+
             EciesEncryptedResponse encryptedResponseL1 = Objects.requireNonNull(responseEntity.getBody());
+
             if (stepLogger != null) {
-                stepLogger.writeServerCallOK("activation-create-response-received", encryptedResponseL1, HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                stepLogger.writeServerCallOK("activation-create-response-received", encryptedResponseL1, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
             }
 
             // Read activation layer 1 response and decrypt it
@@ -344,12 +337,6 @@ public class PrepareActivationStep implements BaseStep {
             }
 
             return model.getResultStatusObject();
-        } catch (WebClientResponseException ex) {
-            if (stepLogger != null) {
-                stepLogger.writeServerCallConnectionError("activation-create-error-connection", ex);
-                stepLogger.writeDoneFailed("activation-create-failed");
-            }
-            return null;
         } catch (Exception ex) {
             if (stepLogger != null) {
                 stepLogger.writeError("activation-create-error-generic", ex);

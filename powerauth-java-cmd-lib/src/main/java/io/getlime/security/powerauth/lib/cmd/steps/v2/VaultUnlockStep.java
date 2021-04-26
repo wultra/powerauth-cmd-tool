@@ -18,6 +18,8 @@ package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
+import com.wultra.core.rest.client.base.RestClient;
+import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
@@ -37,8 +39,6 @@ import io.getlime.security.powerauth.rest.api.model.response.v2.VaultUnlockRespo
 import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.ClientResponse;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
@@ -165,54 +165,35 @@ public class VaultUnlockStep implements BaseStep {
                 stepLogger.writeServerCall("vault-unlock-request-sent", uri, "POST", request.getRequestObject(), headers);
             }
 
-            ClientResponse response = WebClientFactory.getWebClient()
-                    .post()
-                    .uri(uri)
-                    .headers(h -> {
-                        h.addAll(MapUtil.toMultiValueMap(headers));
-                    })
-                    .body(BodyInserters.fromValue(requestBytes))
-                    .exchange()
-                    .block();
-            if (response == null) {
-                // Increment the counter
-                CounterUtil.incrementCounter(model);
-
-                // Store the activation status (updated counter)
-                formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
-                try (FileWriter file = new FileWriter(model.getStatusFileName())) {
-                    file.write(formatted);
-                }
-
-                if (stepLogger != null) {
-                    stepLogger.writeError("vault-unlock-error-generic", "Response is missing");
-                    stepLogger.writeDoneFailed("vault-unlock-failed");
-                }
+            ResponseEntity<ObjectResponse<VaultUnlockResponse>> responseEntity;
+            RestClient restClient = RestClientFactory.getRestClient();
+            if (restClient == null) {
                 return null;
             }
-            if (!response.statusCode().is2xxSuccessful()) {
-                // Increment the counter
-                CounterUtil.incrementCounter(model);
-
-                // Store the activation status (updated counter)
-                formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
-                try (FileWriter file = new FileWriter(model.getStatusFileName())) {
-                    file.write(formatted);
-                }
-
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("vault-unlock-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
-                    stepLogger.writeDoneFailed("vault-unlock-failed");
-                }
-                return null;
-            }
-
             ParameterizedTypeReference<ObjectResponse<VaultUnlockResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<VaultUnlockResponse>>() {};
-            ResponseEntity<ObjectResponse<VaultUnlockResponse>> responseEntity = Objects.requireNonNull(response.toEntity(typeReference).block());
+            try {
+                responseEntity = restClient.post(uri, requestBytes, null, MapUtil.toMultiValueMap(headers), typeReference);
+            } catch (RestClientException ex) {
+                // Increment the counter
+                CounterUtil.incrementCounter(model);
+
+                // Store the activation status (updated counter)
+                formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+                try (FileWriter file = new FileWriter(model.getStatusFileName())) {
+                    file.write(formatted);
+                }
+
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallError("vault-unlock-error-server-call",  ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
+                    stepLogger.writeDoneFailed("vault-unlock-failed");
+                }
+                return null;
+            }
+
             ObjectResponse<VaultUnlockResponse> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCallOK("vault-unlock-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                stepLogger.writeServerCallOK("vault-unlock-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
             }
 
             VaultUnlockResponse responseObject = responseWrapper.getResponseObject();

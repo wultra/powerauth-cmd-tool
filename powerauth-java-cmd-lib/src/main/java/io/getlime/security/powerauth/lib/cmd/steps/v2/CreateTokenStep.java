@@ -18,6 +18,8 @@ package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.BaseEncoding;
+import com.wultra.core.rest.client.base.RestClient;
+import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
@@ -38,8 +40,6 @@ import io.getlime.security.powerauth.rest.api.model.response.v2.TokenCreateRespo
 import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.ClientResponse;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
@@ -159,36 +159,25 @@ public class CreateTokenStep implements BaseStep {
                 stepLogger.writeServerCall("token-create-request-sent", uri, "POST", request.getRequestObject(), headers);
             }
 
-            ClientResponse response = WebClientFactory.getWebClient()
-                    .post()
-                    .uri(uri)
-                    .headers(h -> {
-                        h.addAll(MapUtil.toMultiValueMap(headers));
-                    })
-                    .body(BodyInserters.fromValue(requestBytes))
-                    .exchange()
-                    .block();
-            if (response == null) {
-                if (stepLogger != null) {
-                    stepLogger.writeError("token-create-error-generic", "Response is missing");
-                    stepLogger.writeDoneFailed("token-create-failed");
-                }
+            ResponseEntity<ObjectResponse<TokenCreateResponse>> responseEntity;
+            RestClient restClient = RestClientFactory.getRestClient();
+            if (restClient == null) {
                 return null;
             }
-            if (!response.statusCode().is2xxSuccessful()) {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("token-create-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
-                    stepLogger.writeDoneFailed("token-create-failed");
-                }
-                return null;
-            }
-
             ParameterizedTypeReference<ObjectResponse<TokenCreateResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<TokenCreateResponse>>() {};
-            ResponseEntity<ObjectResponse<TokenCreateResponse>> responseEntity = Objects.requireNonNull(response.toEntity(typeReference).block());
+            try {
+                responseEntity = restClient.post(uri, requestBytes, null, MapUtil.toMultiValueMap(headers), typeReference);
+            } catch (RestClientException ex) {
+                if (stepLogger != null) {
+                    stepLogger.writeServerCallError("token-create-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
+                    stepLogger.writeDoneFailed("token-create-failed");
+                }
+                return null;
+            }
             ObjectResponse<TokenCreateResponse> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
 
             if (stepLogger != null) {
-                stepLogger.writeServerCallOK("token-create-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                stepLogger.writeServerCallOK("token-create-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
             }
 
             final TokenCreateResponse responseObject = responseWrapper.getResponseObject();

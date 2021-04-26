@@ -18,19 +18,18 @@ package io.getlime.security.powerauth.lib.cmd.steps;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.io.BaseEncoding;
+import com.wultra.core.rest.client.base.RestClient;
+import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.security.powerauth.crypto.client.token.ClientTokenGenerator;
 import io.getlime.security.powerauth.http.PowerAuthTokenHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifyTokenStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.MapUtil;
-import io.getlime.security.powerauth.lib.cmd.util.WebClientFactory;
+import io.getlime.security.powerauth.lib.cmd.util.RestClientFactory;
 import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.ClientResponse;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -202,49 +201,30 @@ public class VerifyTokenStep implements BaseStep {
      * @throws JsonProcessingException In case parsing the response to JSON format fails.
      */
     private boolean executeRequest(String method, Map<String, String> headers, String uri, byte[] data, StepLogger stepLogger) throws JsonProcessingException {
-        ClientResponse response;
-        WebClient webClient = WebClientFactory.getWebClient();
-        if ("GET".equals(method)) {
-            response = webClient
-                    .get()
-                    .uri(uri)
-                    .headers(h -> {
-                        h.addAll(MapUtil.toMultiValueMap(headers));
-                    })
-                    .exchange()
-                    .block();
-        } else {
-            response = webClient
-                    .post()
-                    .uri(uri)
-                    .headers(h -> {
-                        h.addAll(MapUtil.toMultiValueMap(headers));
-                    })
-                    .body(BodyInserters.fromValue(data))
-                    .exchange()
-                    .block();
-        }
-        if (response == null) {
-            if (stepLogger != null) {
-                stepLogger.writeError("token-validate-error-generic", "Response is missing");
-                stepLogger.writeDoneFailed("token-validate-failed");
-            }
+        ResponseEntity<Map<String, Object>> responseEntity;
+        RestClient restClient = RestClientFactory.getRestClient();
+        if (restClient == null) {
             return false;
         }
-        if (!response.statusCode().is2xxSuccessful()) {
+        ParameterizedTypeReference<Map<String, Object>> typeReference = new ParameterizedTypeReference<Map<String, Object>>() {};
+        try {
+            if ("GET".equals(method)) {
+                responseEntity = restClient.get(uri, null, MapUtil.toMultiValueMap(headers), typeReference);
+            } else {
+                responseEntity = restClient.post(uri, data, null, MapUtil.toMultiValueMap(headers), typeReference);
+            }
+        } catch (RestClientException ex) {
             if (stepLogger != null) {
-                stepLogger.writeServerCallError("token-validate-error-server-call", response.rawStatusCode(), response.bodyToMono(String.class).block(), HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+                stepLogger.writeServerCallError("token-validate-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
                 stepLogger.writeDoneFailed("token-validate-failed");
             }
             return false;
         }
 
-        ParameterizedTypeReference<Map<String, Object>> typeReference = new ParameterizedTypeReference<Map<String, Object>>() {};
-        ResponseEntity<Map<String, Object>> responseEntity = Objects.requireNonNull(response.toEntity(typeReference).block());
         Map<String, Object> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
 
         if (stepLogger != null) {
-            stepLogger.writeServerCallOK("token-validate-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(response.headers().asHttpHeaders()));
+            stepLogger.writeServerCallOK("token-validate-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
 
             // Print the results
             stepLogger.writeItem(
