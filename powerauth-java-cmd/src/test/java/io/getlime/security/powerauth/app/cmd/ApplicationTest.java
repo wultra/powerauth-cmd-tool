@@ -20,14 +20,14 @@ import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import javax.crypto.SecretKey;
 import java.security.KeyPair;
 import java.security.Security;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Test command-line client implementation.
@@ -40,8 +40,8 @@ public class ApplicationTest {
 	/**
 	 * Register crypto providers.
 	 */
-	@Before
-	public void setUp() {
+	@BeforeAll
+	public static void setUp() {
 		// Add Bouncy Castle Security Provider
 		Security.addProvider(new BouncyCastleProvider());
 	}

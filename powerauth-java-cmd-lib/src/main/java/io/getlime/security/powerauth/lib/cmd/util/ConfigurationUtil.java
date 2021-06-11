@@ -18,6 +18,7 @@ package io.getlime.security.powerauth.lib.cmd.util;
 
 import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.lib.model.exception.CryptoProviderException;
+import io.getlime.security.powerauth.crypto.lib.model.exception.GenericCryptoException;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import org.json.simple.JSONObject;
@@ -91,7 +92,11 @@ public class ConfigurationUtil {
                 stepLogger.writeDoneFailed("master-key-failed");
                 System.exit(1);
             } catch (CryptoProviderException e) {
-                stepLogger.writeError("master-key-error-cryptography", "Cryptography Provider Error", "Cryptography provider is initialized incorrectly", e);
+                stepLogger.writeError("master-key-error-cryptography-provider", "Cryptography Provider Error", "Cryptography provider is initialized incorrectly", e);
+                stepLogger.writeDoneFailed("master-key-failed");
+                System.exit(1);
+            } catch (GenericCryptoException e) {
+                stepLogger.writeError("master-key-error-cryptography-generic", "Cryptography Generic Error", "Cryptography error occurred", e);
                 stepLogger.writeDoneFailed("master-key-failed");
                 System.exit(1);
             }
