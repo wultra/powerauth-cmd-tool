@@ -22,7 +22,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>powerauth-java-cmd</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <name>powerauth-java-cmd</name>
     <description>PowerAuth Reference Client Application connected to PowerAuth Standard RESTful API</description>
 
