@@ -16,7 +16,7 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
-import org.json.simple.JSONObject;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,7 +30,7 @@ public class BaseStepModel {
 
     private Map<String, String> headers;
     private String uriString;
-    private JSONObject resultStatusObject;
+    private ResultStatusObject resultStatusObject;
     private String version;
 
     /**
@@ -45,7 +45,7 @@ public class BaseStepModel {
      * Set the object representing activation status.
      * @param resultStatusObject Activation status object.
      */
-    public void setResultStatusObject(JSONObject resultStatusObject) {
+    public void setResultStatusObject(ResultStatusObject resultStatusObject) {
         this.resultStatusObject = resultStatusObject;
     }
 
@@ -73,7 +73,7 @@ public class BaseStepModel {
         return uriString;
     }
 
-    public JSONObject getResultStatusObject() {
+    public ResultStatusObject getResultStatusObject() {
         return resultStatusObject;
     }
 
@@ -102,7 +102,7 @@ public class BaseStepModel {
     public void fromMap(Map<String, Object> context) {
         setHeaders((Map<String, String>) context.get("HTTP_HEADERS"));
         setUriString((String) context.get("URI_STRING"));
-        setResultStatusObject((JSONObject) context.get("STATUS_OBJECT"));
+        setResultStatusObject((ResultStatusObject) context.get("STATUS_OBJECT"));
         setVersion((String) context.get("VERSION"));
     }
 

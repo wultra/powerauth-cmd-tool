@@ -28,6 +28,7 @@ import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
@@ -68,7 +69,7 @@ public class StartUpgradeStep implements BaseStep {
      */
     @SuppressWarnings("unchecked")
     @Override
-    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public ResultStatusObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         StartUpgradeStepModel model = new StartUpgradeStepModel();
@@ -84,15 +85,17 @@ public class StartUpgradeStep implements BaseStep {
             );
         }
 
+        ResultStatusObject resultStatusObject = model.getResultStatusObject();
+
         final String uri = model.getUriString() + "/pa/v3/upgrade/start";
         final String applicationKey = model.getApplicationKey();
-        final String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
+        final String activationId = resultStatusObject.getActivationId();
 
         // Prepare ECIES encryptor and encrypt request data with sharedInfo1 = /pa/upgrade
         final boolean useIv = !"3.0".equals(model.getVersion());
         byte[] applicationSecret = model.getApplicationSecret().getBytes(StandardCharsets.UTF_8);
-        byte[] transportMasterKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey"));
-        byte[] serverPublicKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "serverPublicKey"));
+        byte[] transportMasterKeyBytes = resultStatusObject.getTransportMasterKey().getEncoded();
+        byte[] serverPublicKeyBytes = resultStatusObject.getServerPublicKey().getEncoded();
         final ECPublicKey serverPublicKey = (ECPublicKey) keyConvertor.convertBytesToPublicKey(serverPublicKeyBytes);
         final EciesEncryptor encryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
                 transportMasterKeyBytes, EciesSharedInfo1.UPGRADE);
@@ -159,7 +162,7 @@ public class StartUpgradeStep implements BaseStep {
             final UpgradeResponsePayload upgradeResponsePayload = mapper.readValue(decryptedBytes, UpgradeResponsePayload.class);
 
             // Store the activation status (updated counter)
-            model.getResultStatusObject().put("ctrData", upgradeResponsePayload.getCtrData());
+            model.getResultStatusObject().setCtrDataBase64(upgradeResponsePayload.getCtrData());
             String statusFormatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
             try (FileWriter file = new FileWriter(model.getStatusFileName())) {
                 file.write(statusFormatted);

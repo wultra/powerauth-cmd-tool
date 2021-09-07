@@ -34,6 +34,7 @@ import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
@@ -77,7 +78,7 @@ public class SignAndEncryptStep implements BaseStep {
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public ResultStatusObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         VerifySignatureStepModel model = new VerifySignatureStepModel();
@@ -135,20 +136,20 @@ public class SignAndEncryptStep implements BaseStep {
             );
         }
 
+        ResultStatusObject resultStatusObject = model.getResultStatusObject();
+
         // Get data from status
-        String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
-        long counter = JsonUtil.longValue(model.getResultStatusObject(), ("counter"));
-        byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signaturePossessionKey"));
-        byte[] signatureBiometryKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signatureBiometryKey"));
-        byte[] signatureKnowledgeKeySalt = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signatureKnowledgeKeySalt"));
-        byte[] signatureKnowledgeKeyEncryptedBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signatureKnowledgeKeyEncrypted"));
+        String activationId = resultStatusObject.getActivationId();
+        long counter = resultStatusObject.getCounter();
+        byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySalt();
+        byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncrypted();
 
         char[] password = VerifySignatureUtil.getKnowledgeKeyPassword(model);
 
         // Get the signature keys
-        SecretKey signaturePossessionKey = keyConvertor.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
+        SecretKey signaturePossessionKey = resultStatusObject.getSignaturePossessionKey();
         SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(password, signatureKnowledgeKeyEncryptedBytes, signatureKnowledgeKeySalt, keyGenerator);
-        SecretKey signatureBiometryKey = keyConvertor.convertBytesToSharedSecretKey(signatureBiometryKeyBytes);
+        SecretKey signatureBiometryKey = resultStatusObject.getSignatureBiometryKey();
 
         // Generate nonce
         byte[] nonceBytes = keyGenerator.generateRandomBytes(16);
@@ -173,8 +174,8 @@ public class SignAndEncryptStep implements BaseStep {
             file.write(formatted);
         }
 
-        final String transportKeyBase64 = JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey");
-        final String serverPublicKeyBase64 = JsonUtil.stringValue(model.getResultStatusObject(), "serverPublicKey");
+        final String transportKeyBase64 = resultStatusObject.getTransportMasterKeyBase64();
+        final String serverPublicKeyBase64 = resultStatusObject.getServerPublicKeyBase64();
 
         // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/activation
         final byte[] applicationSecret = model.getApplicationSecret().getBytes(StandardCharsets.UTF_8);
@@ -188,7 +189,7 @@ public class SignAndEncryptStep implements BaseStep {
 
             Map<String, String> lowLevelData = new HashMap<>();
             lowLevelData.put("counter", String.valueOf(counter));
-            int version = JsonUtil.intValue(model.getResultStatusObject(), "version");
+            int version = resultStatusObject.getVersion().intValue();
             if (version == 3) {
                 lowLevelData.put("ctrData", BaseEncoding.base64().encode(ctrData));
             }
@@ -275,7 +276,7 @@ public class SignAndEncryptStep implements BaseStep {
             final byte[] decryptedBytes = encryptor.decryptResponse(eciesCryptogramResponse);
 
             String decryptedMessage = new String(decryptedBytes, StandardCharsets.UTF_8);
-            model.getResultStatusObject().put("responseData", decryptedMessage);
+            model.getResultStatusObject().setResponseData(decryptedMessage);
 
             if (stepLogger != null) {
                 stepLogger.writeItem(

@@ -30,6 +30,7 @@ import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.RemoveStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.response.v2.ActivationRemoveResponse;
 import org.json.simple.JSONObject;
@@ -70,7 +71,7 @@ public class RemoveStep implements BaseStep {
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public ResultStatusObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         RemoveStepModel model = new RemoveStepModel();
@@ -89,11 +90,12 @@ public class RemoveStep implements BaseStep {
         // Prepare the activation URI
         String uri = model.getUriString() + "/pa/v3/activation/remove";
 
+        ResultStatusObject resultStatusObject = model.getResultStatusObject();
+
         // Get data from status
-        String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
-        byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signaturePossessionKey"));
-        byte[] signatureKnowledgeKeySalt = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signatureKnowledgeKeySalt"));
-        byte[] signatureKnowledgeKeyEncryptedBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signatureKnowledgeKeyEncrypted"));
+        String activationId = resultStatusObject.getActivationId();
+        byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySalt();
+        byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncrypted();
 
         // Ask for the password to unlock knowledge factor key
         char[] password;
@@ -105,7 +107,7 @@ public class RemoveStep implements BaseStep {
         }
 
         // Get the signature keys
-        SecretKey signaturePossessionKey = keyConvertor.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
+        SecretKey signaturePossessionKey = resultStatusObject.getSignaturePossessionKey();
         SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(password, signatureKnowledgeKeyEncryptedBytes, signatureKnowledgeKeySalt, keyGenerator);
 
         // Generate nonce

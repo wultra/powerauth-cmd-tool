@@ -33,6 +33,7 @@ import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VaultUnlockStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.request.v2.VaultUnlockRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v2.VaultUnlockResponse;
@@ -77,7 +78,7 @@ public class VaultUnlockStep implements BaseStep {
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public ResultStatusObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         VaultUnlockStepModel model = new VaultUnlockStepModel();
@@ -96,15 +97,15 @@ public class VaultUnlockStep implements BaseStep {
         // Prepare the activation URI
         String uri = model.getUriString() + "/pa/vault/unlock";
 
+        ResultStatusObject resultStatusObject = model.getResultStatusObject();
+
         // Get data from status
-        String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
-        byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signaturePossessionKey"));
-        byte[] signatureBiometryKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signatureBiometryKey"));
-        byte[] signatureKnowledgeKeySalt = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signatureKnowledgeKeySalt"));
-        byte[] signatureKnowledgeKeyEncryptedBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signatureKnowledgeKeyEncrypted"));
-        byte[] transportMasterKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey"));
-        byte[] encryptedDevicePrivateKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "encryptedDevicePrivateKey"));
-        byte[] serverPublicKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "serverPublicKey"));
+        String activationId = resultStatusObject.getActivationId();
+        byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySalt();
+        byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncrypted();
+        byte[] transportMasterKeyBytes = resultStatusObject.getTransportMasterKey().getEncoded();
+        byte[] encryptedDevicePrivateKeyBytes = resultStatusObject.getEncryptedDevicePrivateKey();
+        byte[] serverPublicKeyBytes = resultStatusObject.getServerPublicKey().getEncoded();
 
         // Ask for the password to unlock knowledge factor key
         char[] password;
@@ -116,9 +117,9 @@ public class VaultUnlockStep implements BaseStep {
         }
 
         // Get the signature keys
-        SecretKey signaturePossessionKey = keyConvertor.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
+        SecretKey signaturePossessionKey = resultStatusObject.getSignaturePossessionKey();
         SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(password, signatureKnowledgeKeyEncryptedBytes, signatureKnowledgeKeySalt, keyGenerator);
-        SecretKey signatureBiometryKey = keyConvertor.convertBytesToSharedSecretKey(signatureBiometryKeyBytes);
+        SecretKey signatureBiometryKey = resultStatusObject.getSignatureBiometryKey();
 
         // Get the transport key
         SecretKey transportMasterKey = keyConvertor.convertBytesToSharedSecretKey(transportMasterKeyBytes);

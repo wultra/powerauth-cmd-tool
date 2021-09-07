@@ -28,6 +28,7 @@ import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.logging.model.ExtendedActivationStatusBlobInfo;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.GetStatusStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.JsonUtil;
 import io.getlime.security.powerauth.lib.cmd.util.MapUtil;
@@ -67,7 +68,7 @@ public class GetStatusStep implements BaseStep {
      * @return Result status object, null in case of failure.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) {
+    public ResultStatusObject execute(StepLogger stepLogger, Map<String, Object> context) {
 
         // Read properties from "context"
         final GetStatusStepModel model = new GetStatusStepModel();
@@ -88,10 +89,12 @@ public class GetStatusStep implements BaseStep {
         // Decide whether "challenge" must be used in the request.
         final boolean useChallenge = !model.getVersion().equals("3.0");
 
+        ResultStatusObject resultStatusObject = model.getResultStatusObject();
+
         try {
             // Get data from status
-            final String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
-            final String transportMasterKeyBase64 = JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey");
+            final String activationId = resultStatusObject.getActivationId();
+            final String transportMasterKeyBase64 = resultStatusObject.getTransportMasterKeyBase64();
             final SecretKey transportMasterKey = keyConvertor.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKeyBase64));
             final byte[] challenge = useChallenge ? keyGenerator.generateRandomBytes(16) : null;
 

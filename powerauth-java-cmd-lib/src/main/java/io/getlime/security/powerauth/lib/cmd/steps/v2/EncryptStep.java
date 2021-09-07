@@ -26,6 +26,7 @@ import io.getlime.security.powerauth.crypto.lib.encryptor.model.NonPersonalizedE
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.MapUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientFactory;
@@ -61,7 +62,7 @@ public class EncryptStep implements BaseStep {
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public ResultStatusObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         EncryptStepModel model = new EncryptStepModel();
@@ -179,7 +180,7 @@ public class EncryptStep implements BaseStep {
             }
 
             String decryptedMessage = new String(decryptedMessageBytes, StandardCharsets.UTF_8);
-            model.getResultStatusObject().put("responseData", decryptedMessage);
+            model.getResultStatusObject().setResponseData(decryptedMessage);
 
             if (stepLogger != null) {
                 stepLogger.writeItem(
