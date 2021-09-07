@@ -16,12 +16,14 @@
  */
 package io.getlime.security.powerauth.app.cmd;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.getlime.security.powerauth.app.cmd.exception.ExecutionException;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.VerifySignatureStep;
 import io.getlime.security.powerauth.lib.cmd.steps.VerifyTokenStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.*;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.steps.v3.ActivationRecoveryStep;
 import io.getlime.security.powerauth.lib.cmd.steps.v3.CommitUpgradeStep;
 import io.getlime.security.powerauth.lib.cmd.steps.v3.ConfirmRecoveryCodeStep;
@@ -61,6 +63,7 @@ public class Application {
     @SuppressWarnings("unchecked")
     public static void main(String[] args) {
 
+        ObjectMapper objectMapper = new ObjectMapper();
         JsonStepLogger stepLogger = new JsonStepLogger(System.out);
 
         try {
@@ -193,12 +196,12 @@ public class Application {
             PublicKey masterPublicKey = ConfigurationUtil.getMasterKey(clientConfigObject, stepLogger);
 
             // Read current activation state from the activation state file or create an empty state
-            JSONObject resultStatusObject;
+            ResultStatusObject resultStatusObject;
             if (statusFileName != null && Files.isReadable(Paths.get(statusFileName))) {
                 byte[] statusFileBytes = Files.readAllBytes(Paths.get(statusFileName));
-                resultStatusObject = (JSONObject) JSONValue.parse(new String(statusFileBytes, StandardCharsets.UTF_8));
+                resultStatusObject = RestClientConfiguration.defaultMapper().readValue(new String(statusFileBytes, StandardCharsets.UTF_8), ResultStatusObject.class);
             } else {
-                resultStatusObject = new JSONObject();
+                resultStatusObject = new ResultStatusObject();
             }
 
             // Execute the code for given methods
@@ -217,7 +220,7 @@ public class Application {
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
                     model.setVersion(version);
 
-                    JSONObject result;
+                    ResultStatusObject result;
                     switch (version) {
                         case "3.0":
                         case "3.1":
@@ -263,7 +266,7 @@ public class Application {
                     final byte[] dataFileBytes = readDataFile(dataFileName, stepLogger);
                     model.setData(dataFileBytes);
 
-                    JSONObject result = new VerifyTokenStep().execute(stepLogger, model.toMap());
+                    ResultStatusObject result = new VerifyTokenStep().execute(stepLogger, model.toMap());
                     if (result == null) {
                         throw new ExecutionException();
                     }
@@ -284,7 +287,7 @@ public class Application {
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
                     model.setVersion(version);
 
-                    JSONObject result;
+                    ResultStatusObject result;
                     switch (version) {
                         case "3.0":
                         case "3.1":
@@ -342,7 +345,7 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    JSONObject result;
+                    ResultStatusObject result;
                     switch (version) {
                         case "3.0":
                         case "3.1":
@@ -378,7 +381,7 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    JSONObject result;
+                    ResultStatusObject result;
                     switch (version) {
                         case "3.0":
                         case "3.1":
@@ -418,7 +421,7 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    JSONObject result;
+                    ResultStatusObject result;
                     switch (version) {
                         case "3.0":
                         case "3.1":
@@ -467,7 +470,7 @@ public class Application {
                     final byte[] dataFileBytes = readDataFile(dataFileName, stepLogger);
                     model.setData(dataFileBytes);
 
-                    JSONObject result = new VerifySignatureStep().execute(stepLogger, model.toMap());
+                    ResultStatusObject result = new VerifySignatureStep().execute(stepLogger, model.toMap());
                     if (result == null) {
                         throw new ExecutionException();
                     }
@@ -488,7 +491,7 @@ public class Application {
                     model.setReason(reason);
                     model.setVersion(version);
 
-                    JSONObject result;
+                    ResultStatusObject result;
                     switch (version) {
                         case "3.0":
                         case "3.1":
@@ -589,7 +592,7 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    JSONObject result;
+                    ResultStatusObject result;
                     switch (version) {
                         case "3.0":
                         case "3.1":
@@ -632,7 +635,7 @@ public class Application {
                     final byte[] dataFileBytes = readDataFile(dataFileName, stepLogger);
                     model.setData(dataFileBytes);
 
-                    JSONObject result;
+                    ResultStatusObject result;
                     switch (version) {
                         case "3.0":
                         case "3.1":
@@ -678,7 +681,7 @@ public class Application {
                     final byte[] dataFileBytes = readDataFile(dataFileName, stepLogger);
                     model.setData(dataFileBytes);
 
-                    JSONObject result;
+                    ResultStatusObject result;
                     switch (version) {
                         // Sign and encrypt step is only supported since version 3.0
                         case "3.0":
@@ -711,7 +714,7 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    JSONObject result;
+                    ResultStatusObject result;
                     switch (version) {
                         // Only upgrade to version 3.0 or 3.1 is supported
                         case "3.0":
@@ -745,7 +748,7 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    JSONObject result;
+                    ResultStatusObject result;
                     switch (version) {
                         // Only upgrade to version 3.0 or 3.1 is supported
                         case "3.0":
@@ -854,7 +857,7 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    JSONObject result;
+                    ResultStatusObject result;
                     switch (version) {
                         // Activation recovery is supported since version 3.0
                         case "3.0":
@@ -890,7 +893,7 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    JSONObject result;
+                    ResultStatusObject result;
                     switch (version) {
                         // Recovery code confirmation is supported since version 3.0
                         case "3.0":

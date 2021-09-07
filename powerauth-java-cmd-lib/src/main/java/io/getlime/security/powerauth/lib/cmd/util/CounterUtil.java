@@ -20,6 +20,7 @@ import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.lib.generator.HashBasedCounter;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.BaseStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 
 import java.nio.ByteBuffer;
 
@@ -40,14 +41,15 @@ public class CounterUtil {
      */
     public static byte[] getCtrData(BaseStepModel model, StepLogger stepLogger) {
         byte[] ctrData = new byte[16];
-        long counter = JsonUtil.longValue(model.getResultStatusObject(), "counter");
-        int version = JsonUtil.intValue(model.getResultStatusObject(), "version");
+        ResultStatusObject resultStatusObject = model.getResultStatusObject();
+        long counter = resultStatusObject.getCounter();
+        int version = resultStatusObject.getVersion().intValue();
         switch (version) {
             case 2:
                 ctrData = ByteBuffer.allocate(16).putLong(8, counter).array();
                 break;
             case 3:
-                String ctrDataBase64 = JsonUtil.stringValue(model.getResultStatusObject(), "ctrData");
+                String ctrDataBase64 = resultStatusObject.getCtrDataBase64();
                 if (!ctrDataBase64.isEmpty()) {
                     ctrData = BaseEncoding.base64().decode(ctrDataBase64);
                 }
@@ -75,18 +77,20 @@ public class CounterUtil {
     @SuppressWarnings("unchecked")
     public static void incrementCounter(BaseStepModel model) {
         // Increment the numeric counter
-        long counter = JsonUtil.longValue(model.getResultStatusObject(), "counter");
+        ResultStatusObject resultStatusObject = model.getResultStatusObject();
+
+        long counter = resultStatusObject.getCounter();
         counter += 1;
-        model.getResultStatusObject().put("counter", counter);
+        resultStatusObject.setCounter(counter);
 
         // Increment the hash based counter in case activation version is 3.
-        int version = JsonUtil.intValue(model.getResultStatusObject(), "version");
+        int version = resultStatusObject.getVersion().intValue();
         if (version == 3) {
-            String ctrDataBase64 = JsonUtil.stringValue(model.getResultStatusObject(), "ctrData");
+            String ctrDataBase64 = resultStatusObject.getCtrDataBase64();
             if (!ctrDataBase64.isEmpty()) {
                 byte[] ctrData = BaseEncoding.base64().decode(ctrDataBase64);
                 ctrData = new HashBasedCounter().next(ctrData);
-                model.getResultStatusObject().put("ctrData", BaseEncoding.base64().encode(ctrData));
+                resultStatusObject.setCtrDataBase64(BaseEncoding.base64().encode(ctrData));
             }
         }
     }

@@ -30,6 +30,7 @@ import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.*;
 import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
@@ -69,7 +70,7 @@ public class CommitUpgradeStep implements BaseStep {
      */
     @SuppressWarnings("unchecked")
     @Override
-    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) {
+    public ResultStatusObject execute(StepLogger stepLogger, Map<String, Object> context) {
 
         // Read properties from "context"
         StartUpgradeStepModel model = new StartUpgradeStepModel();
@@ -85,12 +86,13 @@ public class CommitUpgradeStep implements BaseStep {
             );
         }
 
+        ResultStatusObject resultStatusObject = model.getResultStatusObject();
+
         final String uri = model.getUriString() + "/pa/v3/upgrade/commit";
-        final String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
+        final String activationId = resultStatusObject.getActivationId();
 
         // Get the signature key (possession factor)
-        byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signaturePossessionKey"));
-        final SecretKey signaturePossessionKey = keyConversion.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
+        final SecretKey signaturePossessionKey = resultStatusObject.getSignaturePossessionKey();
 
         try {
             // Generate nonce
@@ -101,7 +103,7 @@ public class CommitUpgradeStep implements BaseStep {
             byte[] requestBytes = request.getBytes(StandardCharsets.UTF_8);
 
             // Make sure hash based counter is used for calculating the signature, in case of an error the version change is not saved
-            model.getResultStatusObject().put("version", 3L);
+            resultStatusObject.setVersion(3L);
 
             // Compute PowerAuth signature for possession factor
             String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/upgrade/commit", nonceBytes, requestBytes) + "&" + model.getApplicationSecret();

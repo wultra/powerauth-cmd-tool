@@ -30,10 +30,10 @@ import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.PrepareActivationStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.request.v2.ActivationCreateRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v2.ActivationCreateResponse;
-import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
 
@@ -76,7 +76,7 @@ public class PrepareActivationStep implements BaseStep {
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public ResultStatusObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         PrepareActivationStepModel model = new PrepareActivationStepModel();
@@ -235,17 +235,21 @@ public class PrepareActivationStep implements BaseStep {
                 byte[] cSignatureKnowledgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, signatureKnowledgeSecretKey, salt, keyGenerator);
 
                 // Prepare the status object to be stored
-                model.getResultStatusObject().put("activationId", activationId);
-                model.getResultStatusObject().put("serverPublicKey", BaseEncoding.base64().encode(keyConversion.convertPublicKeyToBytes(serverPublicKey)));
-                model.getResultStatusObject().put("encryptedDevicePrivateKey", BaseEncoding.base64().encode(encryptedDevicePrivateKey));
-                model.getResultStatusObject().put("signaturePossessionKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signaturePossessionSecretKey)));
-                model.getResultStatusObject().put("signatureKnowledgeKeyEncrypted", BaseEncoding.base64().encode(cSignatureKnowledgeSecretKey));
-                model.getResultStatusObject().put("signatureKnowledgeKeySalt", BaseEncoding.base64().encode(salt));
-                model.getResultStatusObject().put("signatureBiometryKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signatureBiometrySecretKey)));
-                model.getResultStatusObject().put("transportMasterKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(transportMasterKey)));
-                model.getResultStatusObject().put("counter", 0L);
-                model.getResultStatusObject().put("ctrData", null);
-                model.getResultStatusObject().put("version", 2L);
+                ResultStatusObject resultStatusObject = model.getResultStatusObject();
+
+                resultStatusObject.setActivationId(activationId);
+                resultStatusObject.setCounter(0L);
+                resultStatusObject.setCtrDataBase64(null);
+                resultStatusObject.setEncryptedDevicePrivateKey(encryptedDevicePrivateKey);
+                resultStatusObject.setServerPublicKey(serverPublicKey);
+                resultStatusObject.setSignatureBiometryKey(signatureBiometrySecretKey);
+                resultStatusObject.setSignatureKnowledgeKeyEncrypted(cSignatureKnowledgeSecretKey);
+                resultStatusObject.setSignatureKnowledgeKeySalt(salt);
+                resultStatusObject.setSignaturePossessionKey(signaturePossessionSecretKey);
+                resultStatusObject.setTransportMasterKey(transportMasterKey);
+                resultStatusObject.setVersion(2L);
+
+                model.setResultStatusObject(resultStatusObject);
 
                 // Store the resulting status
                 String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());

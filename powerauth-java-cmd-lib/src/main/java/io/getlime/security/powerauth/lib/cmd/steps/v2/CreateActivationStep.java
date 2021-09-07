@@ -17,6 +17,7 @@ import io.getlime.security.powerauth.http.PowerAuthRequestCanonizationUtils;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.CreateActivationStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.entity.NonPersonalizedEncryptedPayloadModel;
 import io.getlime.security.powerauth.rest.api.model.request.v2.ActivationCreateCustomRequest;
@@ -58,7 +59,7 @@ public class CreateActivationStep implements BaseStep {
 
     @Override
     @SuppressWarnings("unchecked")
-    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public ResultStatusObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         // Read properties from "context"
         CreateActivationStepModel model = new CreateActivationStepModel();
         model.fromMap(context);
@@ -330,17 +331,21 @@ public class CreateActivationStep implements BaseStep {
                 byte[] cSignatureKnowledgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, signatureKnowledgeSecretKey, salt, keyGenerator);
 
                 // Prepare the status object to be stored
-                model.getResultStatusObject().put("activationId", activationId);
-                model.getResultStatusObject().put("serverPublicKey", BaseEncoding.base64().encode(keyConvertor.convertPublicKeyToBytes(serverPublicKey)));
-                model.getResultStatusObject().put("encryptedDevicePrivateKey", BaseEncoding.base64().encode(encryptedDevicePrivateKey));
-                model.getResultStatusObject().put("signaturePossessionKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(signaturePossessionSecretKey)));
-                model.getResultStatusObject().put("signatureKnowledgeKeyEncrypted", BaseEncoding.base64().encode(cSignatureKnowledgeSecretKey));
-                model.getResultStatusObject().put("signatureKnowledgeKeySalt", BaseEncoding.base64().encode(salt));
-                model.getResultStatusObject().put("signatureBiometryKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(signatureBiometrySecretKey)));
-                model.getResultStatusObject().put("transportMasterKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(transportMasterKey)));
-                model.getResultStatusObject().put("counter", 0L);
-                model.getResultStatusObject().put("ctrData", null);
-                model.getResultStatusObject().put("version", 2L);
+                ResultStatusObject resultStatusObject = model.getResultStatusObject();
+
+                resultStatusObject.setActivationId(activationId);
+                resultStatusObject.setCounter(0L);
+                resultStatusObject.setCtrDataBase64(null);
+                resultStatusObject.setEncryptedDevicePrivateKey(encryptedDevicePrivateKey);
+                resultStatusObject.setServerPublicKey(serverPublicKey);
+                resultStatusObject.setSignatureBiometryKey(signatureBiometrySecretKey);
+                resultStatusObject.setSignatureKnowledgeKeyEncrypted(cSignatureKnowledgeSecretKey);
+                resultStatusObject.setSignatureKnowledgeKeySalt(salt);
+                resultStatusObject.setSignaturePossessionKey(signaturePossessionSecretKey);
+                resultStatusObject.setTransportMasterKey(transportMasterKey);
+                resultStatusObject.setVersion(2L);
+
+                model.setResultStatusObject(resultStatusObject);
 
                 // Store the resulting status
                 String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());

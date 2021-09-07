@@ -28,7 +28,11 @@ import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
-import io.getlime.security.powerauth.lib.cmd.util.*;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
+import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
+import io.getlime.security.powerauth.lib.cmd.util.MapUtil;
+import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
+import io.getlime.security.powerauth.lib.cmd.util.RestClientFactory;
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
 import org.json.simple.JSONObject;
@@ -66,7 +70,7 @@ public class EncryptStep implements BaseStep {
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public ResultStatusObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         EncryptStepModel model = new EncryptStepModel();
@@ -118,11 +122,13 @@ public class EncryptStep implements BaseStep {
                 break;
 
             case "activation":
+                ResultStatusObject resultStatusObject = model.getResultStatusObject();
+
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/activation
-                final byte[] transportMasterKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey"));
-                final byte[] serverPublicKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "serverPublicKey"));
+                final byte[] transportMasterKeyBytes = resultStatusObject.getTransportMasterKey().getEncoded();
+                final byte[] serverPublicKeyBytes = resultStatusObject.getServerPublicKey().getEncoded();
                 final ECPublicKey serverPublicKey = (ECPublicKey) keyConvertor.convertBytesToPublicKey(serverPublicKeyBytes);
-                final String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
+                final String activationId = resultStatusObject.getActivationId();
                 encryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
                         transportMasterKeyBytes, EciesSharedInfo1.ACTIVATION_SCOPE_GENERIC);
                 header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), activationId, model.getVersion());
@@ -203,7 +209,7 @@ public class EncryptStep implements BaseStep {
             final byte[] decryptedBytes = encryptor.decryptResponse(eciesCryptogramResponse);
 
             String decryptedMessage = new String(decryptedBytes, StandardCharsets.UTF_8);
-            model.getResultStatusObject().put("responseData", decryptedMessage);
+            model.getResultStatusObject().setResponseData(decryptedMessage);
 
             if (stepLogger != null) {
                 stepLogger.writeItem(

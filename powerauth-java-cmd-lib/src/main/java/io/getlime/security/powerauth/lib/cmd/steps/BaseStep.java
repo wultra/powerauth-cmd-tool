@@ -17,7 +17,7 @@
 package io.getlime.security.powerauth.lib.cmd.steps;
 
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
-import org.json.simple.JSONObject;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 
 import java.util.Map;
 
@@ -35,6 +35,6 @@ public interface BaseStep {
      * @return Result status object (with current activation status), null in case of failure.
      * @throws Exception In case of a failure.
      */
-    JSONObject execute(StepLogger logger, Map<String, Object> context) throws Exception;
+    ResultStatusObject execute(StepLogger logger, Map<String, Object> context) throws Exception;
 
 }
