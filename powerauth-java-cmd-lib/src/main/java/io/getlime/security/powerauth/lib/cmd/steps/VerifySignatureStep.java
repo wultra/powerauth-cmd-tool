@@ -32,8 +32,8 @@ import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.VerifySignatureContext;
 import io.getlime.security.powerauth.lib.cmd.util.*;
-import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
 
@@ -82,57 +82,17 @@ public class VerifySignatureStep implements BaseStep {
         // Intiate the step sequence
         logStart(stepLogger);
 
-        ResultStatusObject resultStatusObject = model.getResultStatusObject();
-
-        // Get data from status
-        String activationId = resultStatusObject.getActivationId();
-        long counter = resultStatusObject.getCounter();
-        byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySalt();
-        byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncrypted();
-
-        // Get password to unlock the knowledge factor key
-        char[] password = VerifySignatureUtil.getKnowledgeKeyPassword(model);
-
-        // Get the signature keys
-        SecretKey signaturePossessionKey = resultStatusObject.getSignaturePossessionKey();
-        SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(password, signatureKnowledgeKeyEncryptedBytes, signatureKnowledgeKeySalt, keyGenerator);
-        SecretKey signatureBiometryKey = resultStatusObject.getSignatureBiometryKey();
-
-        // Generate nonce
-        byte[] nonceBytes = keyGenerator.generateRandomBytes(16);
+        VerifySignatureContext stepContext = VerifySignatureContext.builder()
+                .model(model)
+                .resultStatusObject(model.getResultStatusObject())
+                .stepLogger(stepLogger)
+                .build();
 
         // Construct the signature base string data part based on HTTP method (GET requires different code).
         byte[] dataFileBytes = VerifySignatureUtil.extractRequestDataBytes(model, stepLogger);
 
-        // Compute the current PowerAuth signature for possession and knowledge factor
-        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString(model.getHttpMethod().toUpperCase(), model.getResourceId(), nonceBytes, dataFileBytes) + "&" + model.getApplicationSecret();
-        byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
-        PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion());
-        String signatureValue = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), ctrData, signatureFormat);
-        final PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion());
-        String httpAuthorizationHeader = header.buildHttpHeader();
-
-        if (stepLogger != null) {
-
-            Map<String, String> lowLevelData = new HashMap<>();
-            lowLevelData.put("counter", String.valueOf(counter));
-            int version = model.getResultStatusObject().getVersion().intValue();
-            if (version == 3) {
-                lowLevelData.put("ctrData", BaseEncoding.base64().encode(ctrData));
-            }
-            lowLevelData.put("signatureBaseString", signatureBaseString);
-            lowLevelData.put("resourceId", model.getResourceId());
-            lowLevelData.put("nonce", BaseEncoding.base64().encode(nonceBytes));
-            lowLevelData.put("applicationSecret", model.getApplicationSecret());
-
-            stepLogger.writeItem(
-                    "signature-verify-prepare-request",
-                    "Signature Calculation Parameters",
-                    "Low level cryptographic inputs required to compute signature - mainly a signature base string and a counter value.",
-                    "OK",
-                    lowLevelData
-            );
-        }
+        PowerAuthSignatureHttpHeader signatureHttpHeader = createSignature(stepContext, dataFileBytes);
+        String httpAuthorizationHeader = signatureHttpHeader.buildHttpHeader();
 
         // Increment the counter
         CounterUtil.incrementCounter(model);
@@ -271,6 +231,59 @@ public class VerifySignatureStep implements BaseStep {
             stepLogger.writeDoneOK("signature-verify-success");
         }
         return true;
+    }
+
+    public PowerAuthSignatureHttpHeader createSignature(VerifySignatureContext context, byte[] dataFileBytes) throws Exception {
+        ResultStatusObject resultStatusObject = context.getResultStatusObject();
+        StepLogger stepLogger = context.getStepLogger();
+        VerifySignatureStepModel model = context.getModel();
+
+        // Get data from status
+        String activationId = resultStatusObject.getActivationId();
+        long counter = resultStatusObject.getCounter().longValue();
+        byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySalt();
+        byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncrypted();
+
+        // Get password to unlock the knowledge factor key
+        char[] password = VerifySignatureUtil.getKnowledgeKeyPassword(model);
+
+        // Get the signature keys
+        SecretKey signaturePossessionKey = resultStatusObject.getSignaturePossessionKey();
+        SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(password, signatureKnowledgeKeyEncryptedBytes, signatureKnowledgeKeySalt, keyGenerator);
+        SecretKey signatureBiometryKey = resultStatusObject.getSignatureBiometryKey();
+
+        // Generate nonce
+        byte[] nonceBytes = keyGenerator.generateRandomBytes(16);
+
+        // Compute the current PowerAuth signature for possession and knowledge factor
+        String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString(model.getHttpMethod().toUpperCase(), model.getResourceId(), nonceBytes, dataFileBytes) + "&" + model.getApplicationSecret();
+        byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
+        PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion());
+        String signatureValue = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), ctrData, signatureFormat);
+        final PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion());
+
+        if (stepLogger != null) {
+
+            Map<String, String> lowLevelData = new HashMap<>();
+            lowLevelData.put("counter", String.valueOf(counter));
+            int version = model.getResultStatusObject().getVersion().intValue();
+            if (version == 3) {
+                lowLevelData.put("ctrData", BaseEncoding.base64().encode(ctrData));
+            }
+            lowLevelData.put("signatureBaseString", signatureBaseString);
+            lowLevelData.put("resourceId", model.getResourceId());
+            lowLevelData.put("nonce", BaseEncoding.base64().encode(nonceBytes));
+            lowLevelData.put("applicationSecret", model.getApplicationSecret());
+
+            stepLogger.writeItem(
+                    "signature-verify-prepare-request",
+                    "Signature Calculation Parameters",
+                    "Low level cryptographic inputs required to compute signature - mainly a signature base string and a counter value.",
+                    "OK",
+                    lowLevelData
+            );
+        }
+        return header;
     }
 
 }

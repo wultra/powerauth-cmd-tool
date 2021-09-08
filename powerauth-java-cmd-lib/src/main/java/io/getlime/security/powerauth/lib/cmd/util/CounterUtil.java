@@ -42,7 +42,7 @@ public class CounterUtil {
     public static byte[] getCtrData(BaseStepModel model, StepLogger stepLogger) {
         byte[] ctrData = new byte[16];
         ResultStatusObject resultStatusObject = model.getResultStatusObject();
-        long counter = resultStatusObject.getCounter();
+        long counter = resultStatusObject.getCounter().longValue();
         int version = resultStatusObject.getVersion().intValue();
         switch (version) {
             case 2:
@@ -79,9 +79,7 @@ public class CounterUtil {
         // Increment the numeric counter
         ResultStatusObject resultStatusObject = model.getResultStatusObject();
 
-        long counter = resultStatusObject.getCounter();
-        counter += 1;
-        resultStatusObject.setCounter(counter);
+        resultStatusObject.getCounter().incrementAndGet();
 
         // Increment the hash based counter in case activation version is 3.
         int version = resultStatusObject.getVersion().intValue();

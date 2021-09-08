@@ -19,11 +19,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import lombok.*;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import javax.crypto.SecretKey;
 import java.security.PublicKey;
-import java.security.Security;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
@@ -35,7 +34,7 @@ public class ResultStatusObject {
 
     private String activationId;
 
-    private Long counter;
+    private AtomicLong counter = new AtomicLong();
 
     private String ctrDataBase64;
 
