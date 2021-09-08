@@ -140,7 +140,7 @@ public class SignAndEncryptStep implements BaseStep {
 
         // Get data from status
         String activationId = resultStatusObject.getActivationId();
-        long counter = resultStatusObject.getCounter();
+        long counter = resultStatusObject.getCounter().longValue();
         byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySalt();
         byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncrypted();
 

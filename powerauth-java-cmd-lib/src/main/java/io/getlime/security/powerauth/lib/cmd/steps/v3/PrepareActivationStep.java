@@ -365,7 +365,7 @@ public class PrepareActivationStep implements BaseStep {
         ResultStatusObject resultStatusObject = context.getResultStatusObject();
 
         resultStatusObject.setActivationId(activationId);
-        resultStatusObject.setCounter(0L);
+        resultStatusObject.getCounter().set(0L);
         resultStatusObject.setCtrDataBase64(ctrDataBase64);
         resultStatusObject.setEncryptedDevicePrivateKey(encryptedDevicePrivateKey);
         resultStatusObject.setServerPublicKey(serverPublicKey);

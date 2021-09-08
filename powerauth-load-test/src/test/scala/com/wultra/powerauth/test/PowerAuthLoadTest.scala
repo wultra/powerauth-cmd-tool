@@ -1,6 +1,6 @@
 /*
  * Wultra Antivirus Server and Related Components
- * Copyright (c) 2019, Wultra s.r.o. (www.wultra.com).
+ * Copyright (c) 2021, Wultra s.r.o. (www.wultra.com).
  *
  * All rights reserved. This source code can be used only for purposes specified
  * by the given license contract signed by the rightful deputy of Wultra s.r.o.
@@ -17,17 +17,16 @@ import io.gatling.core.structure.ScenarioBuilder
 import io.gatling.http.Predef._
 import io.gatling.http.protocol.HttpProtocolBuilder
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation
+import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.{EciesEncryptor, EciesFactory}
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes
-import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor
 import io.getlime.security.powerauth.http.{PowerAuthEncryptionHttpHeader, PowerAuthSignatureHttpHeader}
 import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger
+import io.getlime.security.powerauth.lib.cmd.steps.VerifySignatureStep
 import io.getlime.security.powerauth.lib.cmd.steps.model.{CreateTokenStepModel, PrepareActivationStepModel}
-import io.getlime.security.powerauth.lib.cmd.steps.pojo.{ActivationContext, ResultStatusObject, TokenContext}
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.{ActivationContext, ResultStatusObject, TokenContext, VerifySignatureContext}
 import io.getlime.security.powerauth.lib.cmd.steps.v3.{CreateTokenStep, PrepareActivationStep}
-import io.getlime.security.powerauth.lib.cmd.util.{ConfigurationUtil, RestClientConfiguration}
-import io.getlime.security.powerauth.rest.api.model.entity.TokenResponsePayload
+import io.getlime.security.powerauth.lib.cmd.util.{ConfigurationUtil, CounterUtil, RestClientConfiguration}
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -38,8 +37,8 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 import java.security.interfaces.ECPublicKey
 import java.security.{KeyPair, Security}
+import java.util.Collections
 import java.util.concurrent.atomic.AtomicInteger
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 // necessary `import scala.concurrent.duration._` for compilation of duration definitions
 import scala.concurrent.duration._
@@ -49,313 +48,373 @@ import scala.concurrent.duration._
  */
 class PowerAuthLoadTest extends Simulation {
 
-	// Add Bouncy Castle Security Provider
-	Security.addProvider(new BouncyCastleProvider)
+  class Device {
 
-	val httpProtocolPowerAuthServer: HttpProtocolBuilder = http
-		.baseUrl("http://localhost:8080")
-		.inferHtmlResources()
-		.acceptHeader("application/json")
-		.contentTypeHeader("application/json")
-		.userAgentHeader("PowerAuthLoadTest/gatling (macOS; cs-CZ; Wifi) com.wultra.powerauth/0.0.1-SNAPSHOT")
+    var activationCode: String = _
+    var activationId: String = _
+    var activationSignature: String = _
+    var deviceKeyPair: KeyPair = _
+    var password: String = _
+    var resultStatusObject: ResultStatusObject = _
+    var userId: String = _
 
-	val httpProtocolPowerAuthRestServer: HttpProtocolBuilder = http
-		.baseUrl("http://localhost:8081")
-		.inferHtmlResources()
-		.acceptHeader("application/json")
-		.contentTypeHeader("application/json")
-		.userAgentHeader("PowerAuthLoadTest/gatling (macOS; cs-CZ; Wifi) com.wultra.powerauth/0.0.1-SNAPSHOT")
+    def copy(): Device = {
+      val device = new Device()
+      device.activationCode = this.activationCode
+      device.activationId = this.activationId
+      device.activationSignature = this.activationSignature
+      device.deviceKeyPair = this.deviceKeyPair
+      device.password = this.password
+      device.resultStatusObject = this.resultStatusObject
+      device.userId = this.userId
 
-	val signatureType: String = "possession_knowledge"
+      device
+    }
+  }
 
-	val prepareActivationStep = new PrepareActivationStep
-	val createTokenStep = new CreateTokenStep
+  class ActivationCreateCall(
+                              val httpEncryptionHeader: String,
+                              val encryptedRequestL1: EciesEncryptedRequest,
+                              val stepContext: ActivationContext
+                            )
 
-	private val activation = new PowerAuthClientActivation
-	private val eciesFactory = new EciesFactory
-	private val keyConvertor = new KeyConvertor
-	private val mapper = RestClientConfiguration.defaultMapper
+  class TokenCreateCall(
+                         val header: String,
+                         val request: EciesEncryptedRequest,
+                         val stepContext: TokenContext
+                       )
 
-	// disable/enable step logger
-	val stepLogger: JsonStepLogger = null // new JsonStepLogger(System.out)
+  class SignatureVerifyCall(
+                             val header: String,
+                             val request: Array[Byte],
+                             val stepContext: VerifySignatureContext
+                           )
 
-	val NUMBER_OF_DEVICES = 1
+  // Add Bouncy Castle Security Provider
+  Security.addProvider(new BouncyCastleProvider)
 
-	val configFileBytes: Array[Byte] = Files.readAllBytes(Paths.get("/Users/lukas/projects/powerauth/test/config.json"))
+  val POWERAUTH_SERVER_URL: String = "http://localhost:8080"
 
-	val clientConfigObject: JSONObject = {
-		try {
-			JSONValue.parse(new String(configFileBytes, StandardCharsets.UTF_8)).asInstanceOf[JSONObject]
-		} catch {
-			case e: Throwable =>
-				if (stepLogger != null) {
-					stepLogger.writeItem("generic-error-config-file-invalid", "Invalid config file", "Config file must be in a correct JSON format?", "ERROR", e)
-				}
-				throw e
-		}
-	}
+  val POWERAUTH_REST_SERVER_URL: String = "http://localhost:8081"
 
-	println(s"Load testing PowerAuth")
+  val httpProtocolPowerAuthServer: HttpProtocolBuilder = http
+    .baseUrl(POWERAUTH_SERVER_URL)
+    .inferHtmlResources()
+    .acceptHeader("application/json")
+    .contentTypeHeader("application/json")
+    .userAgentHeader("PowerAuthLoadTest/gatling (macOS; cs-CZ; Wifi) com.wultra.powerauth/0.0.1-SNAPSHOT")
 
-	val devicesSequence: Seq[Int] = (1 to NUMBER_OF_DEVICES).toList
-	val devicesToInit: Array[mutable.Map[String, Any]] = devicesSequence
-		.map(index =>
-			mutable.Map(
-				"index" -> index,
-				"userId" -> s"loadTestUser_$index"
-			)
-		).toArray
+  val httpProtocolPowerAuthRestServer: HttpProtocolBuilder = http
+    .baseUrl(POWERAUTH_REST_SERVER_URL)
+    .inferHtmlResources()
+    .acceptHeader("application/json")
+    .contentTypeHeader("application/json")
+    .userAgentHeader("PowerAuthLoadTest/gatling (macOS; cs-CZ; Wifi) com.wultra.powerauth/0.0.1-SNAPSHOT")
 
-	val userIds: Array[String] = devicesToInit.map(device => device("userId").asInstanceOf[String])
-	val devicesByUserIdMap: mutable.Map[String, mutable.Map[String, Any]] = (userIds zip devicesToInit).toMap.to(collection.mutable.Map)
+  val activationPrepareStep = new PrepareActivationStep
+  val signatureVerifyStep = new VerifySignatureStep
+  val tokenCreateStep = new CreateTokenStep
 
-	val devicesInitialized: ListBuffer[mutable.Map[String, Any]] = ListBuffer.empty[mutable.Map[String, Any]]
+  private val activation = new PowerAuthClientActivation
+  private val eciesFactory = new EciesFactory
+  private val mapper = RestClientConfiguration.defaultMapper
 
-	val devicesActivated: ListBuffer[mutable.Map[String, Any]] = ListBuffer.empty[mutable.Map[String, Any]]
+  // disable/enable step logger
+  val stepLogger: JsonStepLogger = null // new JsonStepLogger(System.out)
 
-	val scnDeviceActivationInit: ScenarioBuilder = scenario("scnDeviceActivationInit")
-		.feed(devicesToInit.map(value => value.toMap).queue)
-		.exec(http("PowerAuth - init activation")
-			.post("/rest/v3/activation/init")
-			.body(StringBody(session => {
-				s"""{
+  val clientConfigObject: JSONObject = {
+    try {
+      val configFileBytes: Array[Byte] = Files.readAllBytes(Paths.get("/Users/lukas/projects/powerauth/test/config.json"))
+      JSONValue.parse(new String(configFileBytes, StandardCharsets.UTF_8)).asInstanceOf[JSONObject]
+    } catch {
+      case e: Throwable =>
+        if (stepLogger != null) {
+          stepLogger.writeItem("generic-error-config-file-invalid", "Invalid config file", "Config file must be in a correct JSON format?", "ERROR", e)
+        }
+        throw e
+    }
+  }
+
+  val activationName: String = ConfigurationUtil.getApplicationName(clientConfigObject)
+  val applicationId: Long = clientConfigObject.get("applicationId").asInstanceOf[Long]
+  val applicationKey: String = ConfigurationUtil.getApplicationKey(clientConfigObject)
+  val applicationSecret: String = ConfigurationUtil.getApplicationSecret(clientConfigObject)
+  val masterPublicKey: ECPublicKey = ConfigurationUtil.getMasterKey(clientConfigObject, stepLogger).asInstanceOf[ECPublicKey]
+  val modelVersion: String = "3.1"
+
+  val NUMBER_OF_DEVICES = 1_000
+
+  println(s"Load testing PowerAuth")
+
+  val devicesToInit: Array[Device] = (1 to NUMBER_OF_DEVICES).toList
+    .map(index => {
+      val device = new Device()
+      device.userId = s"loadTestUser_$index"
+      device
+    }).toArray
+
+  val devicesActivated: ListBuffer[Device] = ListBuffer.empty[Device]
+  val devicesInitialized: ListBuffer[Device] = ListBuffer.empty[Device]
+  val indexInitialized: AtomicInteger = new AtomicInteger(0)
+  val indexTokenCreate: AtomicInteger = new AtomicInteger(0)
+  val indexSignatureVerify: AtomicInteger = new AtomicInteger(0)
+
+  val scnActivationInit: ScenarioBuilder = scenario("scnActivationInit")
+    .feed(devicesToInit.map(device => Map("device" -> device, "userId" -> device.userId)).circular)
+    .exec(http("PowerAuth - activation init")
+      .post("/rest/v3/activation/init")
+      .body(StringBody(session => {
+        s"""{
 			    "requestObject": {
 					  "activationOtpValidation": "NONE",
-						"applicationId": "${clientConfigObject.get("applicationId").asInstanceOf[Long]}",
+						"applicationId": "$applicationId",
 						"userId": "${session("userId").as[String]}"
 					}
 				}"""
-			}
-			))
-			.check(
-				jsonPath("$.status").saveAs("status")
-			)
-			.check(
-				jsonPath("$.responseObject.activationCode").saveAs("activationCode")
-			)
-			.check(
-				jsonPath("$.responseObject.activationId").saveAs("activationId")
-			)
-			.check(
-				jsonPath("$.responseObject.activationSignature").saveAs("activationSignature")
-			)
-		)
-		.exec(session => {
-			val userId = session("userId").as[String]
+      }
+      ))
+      .check(jsonPath("$.status").is("OK"))
+      .check(jsonPath("$.responseObject.activationCode").saveAs("activationCode"))
+      .check(jsonPath("$.responseObject.activationId").saveAs("activationId"))
+      .check(jsonPath("$.responseObject.activationSignature").saveAs("activationSignature"))
+    )
+    .exec(session => {
+      val deviceToInit = session("device").as[Device]
 
-			// Prepare activation key and secret
-			val applicationSecret = ConfigurationUtil.getApplicationSecret(clientConfigObject).getBytes(StandardCharsets.UTF_8)
+      val deviceKeyPair = activation.generateDeviceKeyPair
 
-			val masterPublicKey = ConfigurationUtil.getMasterKey(clientConfigObject, stepLogger).asInstanceOf[ECPublicKey]
-			val eciesEncryptorL1 = eciesFactory.getEciesEncryptorForApplication(masterPublicKey, applicationSecret, EciesSharedInfo1.APPLICATION_SCOPE_GENERIC)
-			val eciesEncryptorL2 = eciesFactory.getEciesEncryptorForApplication(masterPublicKey, applicationSecret, EciesSharedInfo1.ACTIVATION_LAYER_2)
+      val device: Device = deviceToInit.copy()
+      device.activationCode = session("activationCode").as[String]
+      device.activationId = session("activationId").as[String]
+      device.activationSignature = session("activationSignature").as[String]
+      device.deviceKeyPair = deviceKeyPair
+      device.password = s"Password_${deviceToInit.userId}"
+      device.resultStatusObject = new ResultStatusObject()
 
-			val deviceKeyPair = activation.generateDeviceKeyPair
+      synchronized {
+        devicesInitialized += device
+      }
+      session
+    })
 
-			val device: mutable.Map[String, Any] = devicesByUserIdMap(userId) ++
-				Map(
-					"activationCode" -> session("activationCode").as[String],
-					"activationId" -> session("activationId").as[String],
-					"activationSignature" -> session("activationSignature").as[String],
-					"deviceKeyPair" -> deviceKeyPair,
-					"eciesEncryptorL1" -> eciesEncryptorL1,
-					"eciesEncryptorL2" -> eciesEncryptorL2,
-					"password" -> s"Password $userId",
-					"resultStatusObject" -> new ResultStatusObject(),
-				)
+  val scnActivationCreate: ScenarioBuilder = scenario("scnActivationCreate")
+    .exec(session => {
+      val device = nextDevice(devicesInitialized, indexInitialized)
+      val data = prepareActivationCall(device)
+      session
+        .set("device", device)
+        .set("encryptedRequestL1", data.encryptedRequestL1)
+        .set("httpEncryptionHeader", data.httpEncryptionHeader)
+        .set("stepContext", data.stepContext)
+    })
+    .exec(http("PowerAuth - activation create")
+      .post("/pa/v3/activation/create")
+      .header(PowerAuthEncryptionHttpHeader.HEADER_NAME, "${httpEncryptionHeader}")
+      .body(StringBody(session => {
+        val objectRequest = session("encryptedRequestL1").as[EciesEncryptedRequest]
+        mapper.writeValueAsString(objectRequest)
+      }))
+      .check(jsonPath("$.encryptedData").saveAs("encryptedData"))
+      .check(jsonPath("$.mac").saveAs("mac"))
+    )
+    .exec(session => {
+      val device: Device = session("device").as[Device]
 
-			synchronized {
-				devicesByUserIdMap(userId) = device
-				devicesInitialized += device
-			}
-			session
-		})
+      val response = new EciesEncryptedResponse(session("encryptedData").as[String], session("mac").as[String])
+      val stepContext = session("stepContext").as[ActivationContext]
+      val resultStatusObject = activationPrepareStep.processResponse(response, stepContext)
 
-	val deviceIndex: AtomicInteger = new AtomicInteger(0)
+      val deviceActivated: Device = device.copy()
+      deviceActivated.resultStatusObject = resultStatusObject
 
-	val scnDeviceRegisterApi: ScenarioBuilder = scenario("scnDeviceRegisterApi")
-		.exec(session => {
-			var index = deviceIndex.incrementAndGet()
-			if (index >= devicesInitialized.size) {
-				deviceIndex.set(0)
-				index = 0
-			}
-			val userId = devicesInitialized(index)("userId").asInstanceOf[String]
-			val data = prepareDeviceActivation(userId)
-			session
-				.set("userId", userId)
-				.set("context", data("context"))
-				.set("httpEncryptionHeader", data("httpEncryptionHeader"))
-				.set("encryptedRequestL1", data("encryptedRequestL1"))
-		})
-		//		.rendezVous(NUMBER_OF_DEVICES)
-		.exec(http("PowerAuth - create activation")
-			.post("/pa/v3/activation/create")
-			.header(PowerAuthEncryptionHttpHeader.HEADER_NAME, "${httpEncryptionHeader}")
-			.body(StringBody(session => {
-				val objectRequest = session("encryptedRequestL1").as[EciesEncryptedRequest]
-				mapper.writeValueAsString(objectRequest)
-			}))
-			.check(jsonPath("$.encryptedData").saveAs("encryptedData"))
-			.check(jsonPath("$.mac").saveAs("mac"))
-		)
-		.exec(session => {
-			val userId: String = session("userId").as[String]
-			val device: mutable.Map[String, Any] = devicesByUserIdMap(userId)
+      synchronized {
+        // TODO remove device from devicesInitialized
+        devicesActivated += deviceActivated
+      }
+      session
+    })
 
-			val response = new EciesEncryptedResponse(session("encryptedData").as[String], session("mac").as[String])
+  val scnTokenCreate: ScenarioBuilder = scenario("scnTokenCreate")
+    .exec(session => {
+      val device = nextDevice(devicesActivated, indexTokenCreate)
+      val data = prepareTokenCreateCall(device)
+      session
+        .set("device", device)
+        .set("httpAuthorizationHeader", data.header)
+        .set("request", data.request)
+        .set("stepContext", data.stepContext)
+    })
+    .exec(http("PowerAuth - token create")
+      .post("/pa/v3/token/create")
+      .header(PowerAuthSignatureHttpHeader.HEADER_NAME, "${httpAuthorizationHeader}")
+      .body(ByteArrayBody(session => {
+        RestClientConfiguration.defaultMapper.writeValueAsBytes(session("request").as[EciesEncryptedRequest])
+      }))
+      .check(jsonPath("$.encryptedData").saveAs("encryptedData"))
+      .check(jsonPath("$.mac").saveAs("mac"))
+    )
+    .exec(session => {
+      val response = new EciesEncryptedResponse(session("encryptedData").as[String], session("mac").as[String])
+      val stepContext = session("stepContext").as[TokenContext]
 
-			val context = session("context").as[ActivationContext]
+      tokenCreateStep.processResponse(response, new HttpHeaders(), stepContext)
 
-			val resultStatusObject = prepareActivationStep.processResponse(response, context)
-			val deviceActivated = device ++ Map(
-				"resultStatusObject" -> resultStatusObject,
-			)
-			synchronized {
-				devicesByUserIdMap(userId) = deviceActivated
-				devicesActivated += deviceActivated
-			}
-			session
-		})
+      session
+    })
 
-	val deviceCreateTokenIndex: AtomicInteger = new AtomicInteger(0)
+  val scnSignatureVerify: ScenarioBuilder = scenario("scnSignatureVerify")
+    .exec(session => {
+      val device = nextDevice(devicesActivated, indexSignatureVerify)
+      val data = prepareSignatureVerifyCall(device)
+      session
+        .set("device", device)
+        .set("httpAuthorizationHeader", data.header)
+        .set("request", data.request)
+        .set("stepContext", data.stepContext)
+    })
+    .exec(http("PowerAuth - signature verify")
+      .post("/pa/v3/signature/validate")
+      .header(PowerAuthSignatureHttpHeader.HEADER_NAME, "${httpAuthorizationHeader}")
+      .body(ByteArrayBody(session => {
+        session("request").as[Array[Byte]]
+      }))
+      .check(jsonPath("$.status").is("OK"))
+    )
+    .exec(session => {
+      session
+    })
 
-	val scnCreateTokenApi: ScenarioBuilder = scenario("scnCreateTokenApi")
-		.exec(session => {
-			var index = deviceCreateTokenIndex.incrementAndGet()
-			if (index >= devicesActivated.size) {
-				deviceCreateTokenIndex.set(0)
-				index = 0
-			}
-			val device = devicesActivated(index)
-			val data = prepareCreateToken(device)
-			session
-				.set("userId", device("userId").asInstanceOf[String])
-				.set("context", data("context"))
-				.set("httpAuthorizationHeader", data("httpAuthorizationHeader"))
-				.set("requestBytes", data("requestBytes"))
-		})
-		.exec(http("PowerAuth - create token")
-			.post("/pa/v3/token/create")
-			.header(PowerAuthSignatureHttpHeader.HEADER_NAME, "${httpAuthorizationHeader}")
-			.body(ByteArrayBody(session => {
-				session("requestBytes").as[Array[Byte]]
-			}))
-			.check(jsonPath("$.encryptedData").saveAs("encryptedData"))
-			.check(jsonPath("$.mac").saveAs("mac"))
-		)
-		.exec(session => {
-			val response = new EciesEncryptedResponse(session("encryptedData").as[String], session("mac").as[String])
-			val context = session("context").as[TokenContext]
+  setUp(
+    scnActivationInit.inject(
+      rampUsers(NUMBER_OF_DEVICES).during(60.seconds)
+    ).protocols(httpProtocolPowerAuthServer)
+      .andThen(
+        scnActivationCreate.inject(
+          rampUsers(NUMBER_OF_DEVICES).during(2.minutes)
+        ).protocols(httpProtocolPowerAuthRestServer)
+          .andThen(
+            scnTokenCreate.inject(
+              rampUsersPerSec(1).to(20).during(15.minutes)
+//              rampUsers(NUMBER_OF_DEVICES).during(1.minutes)
+            ).protocols(httpProtocolPowerAuthRestServer),
+            scnSignatureVerify.inject(
+              rampUsersPerSec(1).to(20).during(15.minutes)
+            ).protocols(httpProtocolPowerAuthRestServer)
+          )
+      )
+  )
 
-			val tokenResponsePayload: TokenResponsePayload = createTokenStep.processResponse(response, new HttpHeaders(), context)
+  def prepareActivationCall(device: Device): ActivationCreateCall = {
+    val model: PrepareActivationStepModel = new PrepareActivationStepModel()
+    model.setActivationCode(device.activationCode)
+    model.setActivationName(activationName)
+    model.setApplicationKey(applicationKey)
+    model.setApplicationSecret(applicationSecret)
+    model.setDeviceInfo(s"Device Info ${device.userId}")
+    model.setMasterPublicKey(masterPublicKey)
+    model.setPassword(device.password)
+    model.setPlatform("devicePlatform")
+    model.setVersion(modelVersion)
 
-			Map(
-				"tokenId" -> tokenResponsePayload.getTokenId,
-				"tokenSecret" -> tokenResponsePayload.getTokenSecret,
-			)
+    val applicationSecretBytes = applicationSecret.getBytes(StandardCharsets.UTF_8)
 
-			session
-		})
+    val eciesEncryptorL1 = eciesFactory.getEciesEncryptorForApplication(masterPublicKey, applicationSecretBytes, EciesSharedInfo1.APPLICATION_SCOPE_GENERIC)
+    val eciesEncryptorL2 = eciesFactory.getEciesEncryptorForApplication(masterPublicKey, applicationSecretBytes, EciesSharedInfo1.ACTIVATION_LAYER_2)
 
-	setUp(
-		scnDeviceActivationInit.inject(
-			rampUsers(NUMBER_OF_DEVICES).during(1.minutes)
-		).protocols(httpProtocolPowerAuthServer)
-			.andThen(
-				scnDeviceRegisterApi.inject(
-					rampUsers(NUMBER_OF_DEVICES).during(1.minutes)
-				).protocols(httpProtocolPowerAuthRestServer)
-					.andThen(
-						scnCreateTokenApi.inject(
-							rampUsers(NUMBER_OF_DEVICES).during(1.minutes)
-						).protocols(httpProtocolPowerAuthRestServer)
-					)
-			)
-	)
+    val stepContext = ActivationContext.builder
+      .deviceKeyPair(device.deviceKeyPair)
+      .eciesEncryptorL1(eciesEncryptorL1)
+      .eciesEncryptorL2(eciesEncryptorL2)
+      .modelPrepare(model)
+      .password(device.password)
+      .resultStatusObject(device.resultStatusObject)
+      .stepLogger(stepLogger).build
 
-	def prepareDeviceActivation(userId: String): Map[String, Object] = {
-		var device: mutable.Map[String, Any] = mutable.Map() ++ devicesByUserIdMap(userId)
+    val encryptedRequestL1: EciesEncryptedRequest = activationPrepareStep.createRequest(stepContext)
 
-		val model: PrepareActivationStepModel = new PrepareActivationStepModel()
-		model.setActivationCode(device("activationCode").asInstanceOf[String])
-		model.setActivationName(ConfigurationUtil.getApplicationName(clientConfigObject))
-		model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject))
-		model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject))
-		model.setDeviceInfo(s"Device Info $userId")
-		model.setMasterPublicKey(ConfigurationUtil.getMasterKey(clientConfigObject, stepLogger))
-		model.setPassword(device("password").asInstanceOf[String])
-		model.setPlatform("devicePlatform")
-		model.setVersion("3.1")
+    val header: PowerAuthEncryptionHttpHeader = new PowerAuthEncryptionHttpHeader(model.getApplicationKey, model.getVersion)
+    val httpEncryptionHeader: String = header.buildHttpHeader
 
-		val context = ActivationContext.builder
-			.deviceKeyPair(device("deviceKeyPair").asInstanceOf[KeyPair])
-			.eciesEncryptorL1(device("eciesEncryptorL1").asInstanceOf[EciesEncryptor])
-			.eciesEncryptorL2(device("eciesEncryptorL2").asInstanceOf[EciesEncryptor])
-			.modelPrepare(model)
-			.password(device("password").asInstanceOf[String])
-			.resultStatusObject(device("resultStatusObject").asInstanceOf[ResultStatusObject])
-			.stepLogger(stepLogger).build
+    new ActivationCreateCall(httpEncryptionHeader, encryptedRequestL1, stepContext)
+  }
 
-		val encryptedRequestL1: EciesEncryptedRequest = prepareActivationStep.createRequest(context)
+  def prepareTokenCreateCall(device: Device): TokenCreateCall = {
+    val resultStatusObject = device.resultStatusObject
 
-		// Prepare the encryption header
-		val header: PowerAuthEncryptionHttpHeader = new PowerAuthEncryptionHttpHeader(model.getApplicationKey, model.getVersion)
-		val httpEncryptionHeader: String = header.buildHttpHeader
+    val model = new CreateTokenStepModel
+    model.setApplicationKey(applicationKey)
+    model.setApplicationSecret(applicationSecret)
+    model.setPassword(device.password)
+    model.setResultStatusObject(resultStatusObject)
+    model.setSignatureType(PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE)
+    model.setVersion(modelVersion)
 
-		device = device ++
-			Map(
-				"model" -> model
-			)
+    val transportMasterKeyBytes = BaseEncoding.base64.decode(resultStatusObject.getTransportMasterKeyBase64)
+    val serverPublicKey = resultStatusObject.getServerPublicKey.asInstanceOf[ECPublicKey]
+    val encryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret.getBytes(StandardCharsets.UTF_8), transportMasterKeyBytes, EciesSharedInfo1.CREATE_TOKEN)
 
-		synchronized {
-			devicesByUserIdMap(userId) = device
-		}
+    val stepContext = TokenContext.builder
+      .encryptor(encryptor)
+      .model(model)
+      .password(device.password)
+      .resultStatusObject(resultStatusObject)
+      .stepLogger(stepLogger)
+      .build
 
-		Map(
-			"httpEncryptionHeader" -> httpEncryptionHeader,
-			"encryptedRequestL1" -> encryptedRequestL1,
-			"context" -> context,
-		)
-	}
+    val request = tokenCreateStep.createRequest(stepContext)
 
-	def prepareCreateToken(device: mutable.Map[String, Any]): Map[String, Object] = {
-		val resultStatusObject = device("resultStatusObject").asInstanceOf[ResultStatusObject]
+    val signatureHeader = tokenCreateStep.createSignatureHeader(request, stepContext)
+    val httpAuthorizationHeader = signatureHeader.buildHttpHeader
 
-		val applicationSecret = ConfigurationUtil.getApplicationSecret(clientConfigObject)
+    CounterUtil.incrementCounter(model)
 
-		val model = new CreateTokenStepModel
-		model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject))
-		model.setApplicationSecret(applicationSecret)
-		model.setPassword(device("password").asInstanceOf[String])
-		model.setResultStatusObject(resultStatusObject)
-		model.setSignatureType(PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE)
-		model.setVersion("3.1")
+    new TokenCreateCall(httpAuthorizationHeader, request, stepContext)
+  }
 
-		val transportMasterKeyBytes = BaseEncoding.base64.decode(resultStatusObject.getTransportMasterKeyBase64)
-		val serverPublicKey = resultStatusObject.getServerPublicKey.asInstanceOf[ECPublicKey]
-		val encryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret.getBytes(StandardCharsets.UTF_8), transportMasterKeyBytes, EciesSharedInfo1.CREATE_TOKEN)
+  def prepareSignatureVerifyCall(device: Device): SignatureVerifyCall = {
+    val resultStatusObject = device.resultStatusObject
 
-		val tokenContext = TokenContext.builder
-			.encryptor(encryptor)
-			.model(model)
-			.password(model.getPassword)
-			.resultStatusObject(resultStatusObject)
-			.stepLogger(stepLogger)
-			.build
+    import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes
+    import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel
+    import io.getlime.security.powerauth.lib.cmd.util.ConfigurationUtil
 
-		val request = createTokenStep.createRequest(tokenContext)
+    val model = new VerifySignatureStepModel
+    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject))
+    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject))
+    model.setHeaders(Collections.emptyMap())
+    model.setHttpMethod("POST")
+    model.setPassword(device.password)
+    model.setResourceId("/pa/signature/validate")
+    model.setResultStatusObject(resultStatusObject)
+    model.setSignatureType(PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE)
+    model.setUriString(s"$POWERAUTH_REST_SERVER_URL/pa/v3/signature/validate")
+    model.setVersion(modelVersion)
+    model.setDryRun(false)
 
-		val signatureHeader = createTokenStep.createSignatureHeader(request, tokenContext)
-		val httpAuthorizationHeader = signatureHeader.buildHttpHeader
+    val dataFileBytes = "TEST_DATA".getBytes(StandardCharsets.UTF_8)
+    model.setData(dataFileBytes)
 
-		val requestBytes: Array[Byte] = RestClientConfiguration.defaultMapper.writeValueAsBytes(request)
+    val stepContext = VerifySignatureContext.builder
+      .model(model)
+      .resultStatusObject(resultStatusObject)
+      .stepLogger(stepLogger)
+      .build()
 
-		Map(
-			"context" -> tokenContext,
-			"httpAuthorizationHeader" -> httpAuthorizationHeader,
-			"requestBytes" -> requestBytes,
-		)
-	}
+    val signatureHeader = signatureVerifyStep.createSignature(stepContext, dataFileBytes)
+    val httpAuthorizationHeader = signatureHeader.buildHttpHeader
+
+    CounterUtil.incrementCounter(model)
+
+    new SignatureVerifyCall(httpAuthorizationHeader, dataFileBytes, stepContext)
+  }
+
+  def nextDevice(devices: ListBuffer[Device], indexCounter: AtomicInteger): Device = {
+    var index = indexCounter.incrementAndGet()
+    if (index >= devices.size) {
+      indexCounter.set(0)
+      index = 0
+    }
+    devices(index)
+  }
 
 }
