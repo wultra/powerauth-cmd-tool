@@ -35,7 +35,6 @@ import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientFactory;
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
-import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
 
@@ -125,8 +124,8 @@ public class EncryptStep implements BaseStep {
                 ResultStatusObject resultStatusObject = model.getResultStatusObject();
 
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/activation
-                final byte[] transportMasterKeyBytes = resultStatusObject.getTransportMasterKey().getEncoded();
-                final byte[] serverPublicKeyBytes = resultStatusObject.getServerPublicKey().getEncoded();
+                final byte[] transportMasterKeyBytes = resultStatusObject.getTransportMasterKeyObject().getEncoded();
+                final byte[] serverPublicKeyBytes = resultStatusObject.getServerPublicKeyObject().getEncoded();
                 final ECPublicKey serverPublicKey = (ECPublicKey) keyConvertor.convertBytesToPublicKey(serverPublicKeyBytes);
                 final String activationId = resultStatusObject.getActivationId();
                 encryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,

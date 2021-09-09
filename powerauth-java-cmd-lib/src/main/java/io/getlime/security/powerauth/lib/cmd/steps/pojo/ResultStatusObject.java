@@ -36,122 +36,122 @@ public class ResultStatusObject {
 
     private AtomicLong counter = new AtomicLong();
 
-    private String ctrDataBase64;
+    private String ctrDataBase;
 
     @JsonIgnore
-    private byte[] encryptedDevicePrivateKey;
+    private byte[] encryptedDevicePrivateKeyBytes;
 
     @Setter(AccessLevel.NONE)
-    private String encryptedDevicePrivateKeyBase64;
+    private String encryptedDevicePrivateKey;
 
     @JsonIgnore
-    private PublicKey serverPublicKey;
+    private PublicKey serverPublicKeyObject;
 
     @Setter(AccessLevel.NONE)
-    private String serverPublicKeyBase64;
+    private String serverPublicKey;
 
     @JsonIgnore
-    private SecretKey signatureBiometryKey;
+    private SecretKey signatureBiometryKeyObject;
 
     @Setter(AccessLevel.NONE)
-    private String signatureBiometryKeyBase64;
+    private String signatureBiometryKey;
 
     @JsonIgnore
-    private byte[] signatureKnowledgeKeyEncrypted;
+    private byte[] signatureKnowledgeKeyEncryptedBytes;
 
     @Setter(AccessLevel.NONE)
-    private String signatureKnowledgeKeyEncryptedBase64;
+    private String signatureKnowledgeKeyEncrypted;
 
     @JsonIgnore
-    private byte[] signatureKnowledgeKeySalt;
+    private byte[] signatureKnowledgeKeySaltBytes;
 
     @Setter(AccessLevel.NONE)
-    private String signatureKnowledgeKeySaltBase64;
+    private String signatureKnowledgeKeySalt;
 
     @JsonIgnore
-    private SecretKey signaturePossessionKey;
+    private SecretKey signaturePossessionKeyObject;
 
     @Setter(AccessLevel.NONE)
-    private String signaturePossessionKeyBase64;
+    private String signaturePossessionKey;
 
     private String responseData;
 
     @JsonIgnore
-    private SecretKey transportMasterKey;
+    private SecretKey transportMasterKeyObject;
 
     @Setter(AccessLevel.NONE)
-    private String transportMasterKeyBase64;
+    private String transportMasterKey;
 
     private Long version;
 
-    public void setEncryptedDevicePrivateKey(byte[] encryptedDevicePrivateKey) {
+    public void setEncryptedDevicePrivateKeyBytes(byte[] encryptedDevicePrivateKeyBytes) {
+        this.encryptedDevicePrivateKeyBytes = encryptedDevicePrivateKeyBytes;
+        this.encryptedDevicePrivateKey = BaseEncoding.base64().encode(encryptedDevicePrivateKeyBytes);
+    }
+
+    public void setEncryptedDevicePrivateKey(String encryptedDevicePrivateKey) {
         this.encryptedDevicePrivateKey = encryptedDevicePrivateKey;
-        this.encryptedDevicePrivateKeyBase64 = BaseEncoding.base64().encode(encryptedDevicePrivateKey);
+        this.encryptedDevicePrivateKeyBytes = BaseEncoding.base64().decode(encryptedDevicePrivateKey);
     }
 
-    public void setEncryptedDevicePrivateKeyBase64(String encryptedDevicePrivateKeyBase64) {
-        this.encryptedDevicePrivateKeyBase64 = encryptedDevicePrivateKeyBase64;
-        this.encryptedDevicePrivateKey = BaseEncoding.base64().decode(encryptedDevicePrivateKeyBase64);
+    public void setServerPublicKeyObject(PublicKey serverPublicKeyObject) throws Exception {
+        this.serverPublicKeyObject = serverPublicKeyObject;
+        this.serverPublicKey = BaseEncoding.base64().encode(KEY_CONVERTOR.convertPublicKeyToBytes(serverPublicKeyObject));
     }
 
-    public void setServerPublicKey(PublicKey serverPublicKey) throws Exception {
+    public void setServerPublicKey(String serverPublicKey) throws Exception {
         this.serverPublicKey = serverPublicKey;
-        this.serverPublicKeyBase64 = BaseEncoding.base64().encode(KEY_CONVERTOR.convertPublicKeyToBytes(serverPublicKey));
+        this.serverPublicKeyObject = KEY_CONVERTOR.convertBytesToPublicKey(BaseEncoding.base64().decode(serverPublicKey));
     }
 
-    public void setServerPublicKeyBase64(String serverPublicKeyBase64) throws Exception {
-        this.serverPublicKeyBase64 = serverPublicKeyBase64;
-        this.serverPublicKey = KEY_CONVERTOR.convertBytesToPublicKey(BaseEncoding.base64().decode(serverPublicKeyBase64));
+    public void setSignatureBiometryKeyObject(SecretKey signatureBiometryKeyObject) {
+        this.signatureBiometryKeyObject = signatureBiometryKeyObject;
+        this.signatureBiometryKey = BaseEncoding.base64().encode(KEY_CONVERTOR.convertSharedSecretKeyToBytes(signatureBiometryKeyObject));
     }
 
-    public void setSignatureBiometryKey(SecretKey signatureBiometryKey) {
+    public void setSignatureBiometryKey(String signatureBiometryKey) {
         this.signatureBiometryKey = signatureBiometryKey;
-        this.signatureBiometryKeyBase64 = BaseEncoding.base64().encode(KEY_CONVERTOR.convertSharedSecretKeyToBytes(signatureBiometryKey));
+        this.signatureBiometryKeyObject = KEY_CONVERTOR.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(signatureBiometryKey));
     }
 
-    public void setSignatureBiometryKeyBase64(String signatureBiometryKeyBase64) {
-        this.signatureBiometryKeyBase64 = signatureBiometryKeyBase64;
-        this.signatureBiometryKey = KEY_CONVERTOR.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(signatureBiometryKeyBase64));
+    public void setSignatureKnowledgeKeyEncryptedBytes(byte[] signatureKnowledgeKeyEncryptedBytes) {
+        this.signatureKnowledgeKeyEncryptedBytes = signatureKnowledgeKeyEncryptedBytes;
+        this.signatureKnowledgeKeyEncrypted = BaseEncoding.base64().encode(signatureKnowledgeKeyEncryptedBytes);
     }
 
-    public void setSignatureKnowledgeKeyEncrypted(byte[] signatureKnowledgeKeyEncrypted) {
+    public void setSignatureKnowledgeKeyEncrypted(String signatureKnowledgeKeyEncrypted) {
         this.signatureKnowledgeKeyEncrypted = signatureKnowledgeKeyEncrypted;
-        this.signatureKnowledgeKeyEncryptedBase64 = BaseEncoding.base64().encode(signatureKnowledgeKeyEncrypted);
+        this.signatureKnowledgeKeyEncryptedBytes = BaseEncoding.base64().decode(signatureKnowledgeKeyEncrypted);
     }
 
-    public void setSignatureKnowledgeKeyEncryptedBase64(String signatureKnowledgeKeyEncryptedBase64) {
-        this.signatureKnowledgeKeyEncryptedBase64 = signatureKnowledgeKeyEncryptedBase64;
-        this.signatureKnowledgeKeyEncrypted = BaseEncoding.base64().decode(signatureKnowledgeKeyEncryptedBase64);
+    public void setSignatureKnowledgeKeySaltBytes(byte[] signatureKnowledgeKeySaltBytes) {
+        this.signatureKnowledgeKeySaltBytes = signatureKnowledgeKeySaltBytes;
+        this.signatureKnowledgeKeySalt = BaseEncoding.base64().encode(signatureKnowledgeKeySaltBytes);
     }
 
-    public void setSignatureKnowledgeKeySalt(byte[] signatureKnowledgeKeySalt) {
+    public void setSignatureKnowledgeKeySalt(String signatureKnowledgeKeySalt) {
         this.signatureKnowledgeKeySalt = signatureKnowledgeKeySalt;
-        this.signatureKnowledgeKeySaltBase64 = BaseEncoding.base64().encode(signatureKnowledgeKeySalt);
+        this.signatureKnowledgeKeySaltBytes = BaseEncoding.base64().decode(signatureKnowledgeKeySalt);
     }
 
-    public void setSignatureKnowledgeKeySaltBase64(String signatureKnowledgeKeySaltBase64) {
-        this.signatureKnowledgeKeySaltBase64 = signatureKnowledgeKeySaltBase64;
-        this.signatureKnowledgeKeySalt = BaseEncoding.base64().decode(signatureKnowledgeKeySaltBase64);
+    public void setSignaturePossessionKeyObject(SecretKey signaturePossessionKeyObject) {
+        this.signaturePossessionKeyObject = signaturePossessionKeyObject;
+        this.signaturePossessionKey = BaseEncoding.base64().encode(KEY_CONVERTOR.convertSharedSecretKeyToBytes(signaturePossessionKeyObject));
     }
 
-    public void setSignaturePossessionKey(SecretKey signaturePossessionKey) {
+    public void setSignaturePossessionKey(String signaturePossessionKey) {
         this.signaturePossessionKey = signaturePossessionKey;
-        this.signaturePossessionKeyBase64 = BaseEncoding.base64().encode(KEY_CONVERTOR.convertSharedSecretKeyToBytes(signaturePossessionKey));
+        this.signaturePossessionKeyObject = KEY_CONVERTOR.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(signaturePossessionKey));
     }
 
-    public void setSignaturePossessionKeyBase64(String signaturePossessionKeyBase64) {
-        this.signaturePossessionKeyBase64 = signaturePossessionKeyBase64;
-        this.signaturePossessionKey = KEY_CONVERTOR.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(signaturePossessionKeyBase64));
+    public void setTransportMasterKeyObject(SecretKey transportMasterKeyObject) {
+        this.transportMasterKeyObject = transportMasterKeyObject;
+        this.transportMasterKey = BaseEncoding.base64().encode(KEY_CONVERTOR.convertSharedSecretKeyToBytes(transportMasterKeyObject));
     }
 
-    public void setTransportMasterKey(SecretKey transportMasterKey) {
+    public void setTransportMasterKey(String transportMasterKey) {
         this.transportMasterKey = transportMasterKey;
-        this.transportMasterKeyBase64 = BaseEncoding.base64().encode(KEY_CONVERTOR.convertSharedSecretKeyToBytes(transportMasterKey));
-    }
-
-    public void setTransportMasterKeyBase64(String transportMasterKeyBase64) {
-        this.transportMasterKeyBase64 = transportMasterKeyBase64;
-        this.transportMasterKey = KEY_CONVERTOR.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKeyBase64));
+        this.transportMasterKeyObject = KEY_CONVERTOR.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKey));
     }
 
 }

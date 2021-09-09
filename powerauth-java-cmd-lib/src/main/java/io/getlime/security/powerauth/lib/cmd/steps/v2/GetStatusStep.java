@@ -34,7 +34,6 @@ import io.getlime.security.powerauth.lib.cmd.util.MapUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientFactory;
 import io.getlime.security.powerauth.rest.api.model.request.v2.ActivationStatusRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v2.ActivationStatusResponse;
-import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
 
@@ -90,7 +89,7 @@ public class GetStatusStep implements BaseStep {
 
         // Get data from status
         final String activationId = resultStatusObject.getActivationId();
-        final String transportMasterKeyBase64 = resultStatusObject.getTransportMasterKeyBase64();
+        final String transportMasterKeyBase64 = resultStatusObject.getTransportMasterKey();
         final SecretKey transportMasterKey = keyConvertor.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKeyBase64));
 
         // Send the activation status request to the server

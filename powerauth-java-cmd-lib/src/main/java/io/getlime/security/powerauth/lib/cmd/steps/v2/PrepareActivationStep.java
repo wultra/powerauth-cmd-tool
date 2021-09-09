@@ -239,14 +239,14 @@ public class PrepareActivationStep implements BaseStep {
 
                 resultStatusObject.setActivationId(activationId);
                 resultStatusObject.getCounter().set(0L);
-                resultStatusObject.setCtrDataBase64(null);
-                resultStatusObject.setEncryptedDevicePrivateKey(encryptedDevicePrivateKey);
-                resultStatusObject.setServerPublicKey(serverPublicKey);
-                resultStatusObject.setSignatureBiometryKey(signatureBiometrySecretKey);
-                resultStatusObject.setSignatureKnowledgeKeyEncrypted(cSignatureKnowledgeSecretKey);
-                resultStatusObject.setSignatureKnowledgeKeySalt(salt);
-                resultStatusObject.setSignaturePossessionKey(signaturePossessionSecretKey);
-                resultStatusObject.setTransportMasterKey(transportMasterKey);
+                resultStatusObject.setCtrDataBase(null);
+                resultStatusObject.setEncryptedDevicePrivateKeyBytes(encryptedDevicePrivateKey);
+                resultStatusObject.setServerPublicKeyObject(serverPublicKey);
+                resultStatusObject.setSignatureBiometryKeyObject(signatureBiometrySecretKey);
+                resultStatusObject.setSignatureKnowledgeKeyEncryptedBytes(cSignatureKnowledgeSecretKey);
+                resultStatusObject.setSignatureKnowledgeKeySaltBytes(salt);
+                resultStatusObject.setSignaturePossessionKeyObject(signaturePossessionSecretKey);
+                resultStatusObject.setTransportMasterKeyObject(transportMasterKey);
                 resultStatusObject.setVersion(2L);
 
                 model.setResultStatusObject(resultStatusObject);

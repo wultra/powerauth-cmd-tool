@@ -181,7 +181,7 @@ public class PrepareActivationStep implements BaseStep {
             objectMap.put("activationId", resultStatusObject.getActivationId());
             objectMap.put("activationStatusFile", model.getStatusFileName());
             objectMap.put("activationStatusFileContent", model.getResultStatusObject());
-            objectMap.put("deviceKeyFingerprint", activation.computeActivationFingerprint(deviceKeyPair.getPublic(), resultStatusObject.getServerPublicKey(), resultStatusObject.getActivationId()));
+            objectMap.put("deviceKeyFingerprint", activation.computeActivationFingerprint(deviceKeyPair.getPublic(), resultStatusObject.getServerPublicKeyObject(), resultStatusObject.getActivationId()));
             if (stepLogger != null) {
                 stepLogger.writeItem(
                         "activation-create-activation-done",
@@ -366,14 +366,14 @@ public class PrepareActivationStep implements BaseStep {
 
         resultStatusObject.setActivationId(activationId);
         resultStatusObject.getCounter().set(0L);
-        resultStatusObject.setCtrDataBase64(ctrDataBase64);
-        resultStatusObject.setEncryptedDevicePrivateKey(encryptedDevicePrivateKey);
-        resultStatusObject.setServerPublicKey(serverPublicKey);
-        resultStatusObject.setSignatureBiometryKey(signatureBiometrySecretKey);
-        resultStatusObject.setSignatureKnowledgeKeyEncrypted(cSignatureKnowledgeSecretKey);
-        resultStatusObject.setSignatureKnowledgeKeySalt(salt);
-        resultStatusObject.setSignaturePossessionKey(signaturePossessionSecretKey);
-        resultStatusObject.setTransportMasterKey(transportMasterKey);
+        resultStatusObject.setCtrDataBase(ctrDataBase64);
+        resultStatusObject.setEncryptedDevicePrivateKeyBytes(encryptedDevicePrivateKey);
+        resultStatusObject.setServerPublicKeyObject(serverPublicKey);
+        resultStatusObject.setSignatureBiometryKeyObject(signatureBiometrySecretKey);
+        resultStatusObject.setSignatureKnowledgeKeyEncryptedBytes(cSignatureKnowledgeSecretKey);
+        resultStatusObject.setSignatureKnowledgeKeySaltBytes(salt);
+        resultStatusObject.setSignaturePossessionKeyObject(signaturePossessionSecretKey);
+        resultStatusObject.setTransportMasterKeyObject(transportMasterKey);
         resultStatusObject.setVersion(3L);
 
         return resultStatusObject;

@@ -30,12 +30,10 @@ import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.GetStatusStepModel;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.lib.cmd.util.JsonUtil;
 import io.getlime.security.powerauth.lib.cmd.util.MapUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientFactory;
 import io.getlime.security.powerauth.rest.api.model.request.v3.ActivationStatusRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.ActivationStatusResponse;
-import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
 
@@ -94,7 +92,7 @@ public class GetStatusStep implements BaseStep {
         try {
             // Get data from status
             final String activationId = resultStatusObject.getActivationId();
-            final String transportMasterKeyBase64 = resultStatusObject.getTransportMasterKeyBase64();
+            final String transportMasterKeyBase64 = resultStatusObject.getTransportMasterKey();
             final SecretKey transportMasterKey = keyConvertor.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKeyBase64));
             final byte[] challenge = useChallenge ? keyGenerator.generateRandomBytes(16) : null;
 
