@@ -38,7 +38,6 @@ import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
-import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
 
@@ -141,15 +140,15 @@ public class SignAndEncryptStep implements BaseStep {
         // Get data from status
         String activationId = resultStatusObject.getActivationId();
         long counter = resultStatusObject.getCounter().longValue();
-        byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySalt();
-        byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncrypted();
+        byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySaltBytes();
+        byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncryptedBytes();
 
         char[] password = VerifySignatureUtil.getKnowledgeKeyPassword(model);
 
         // Get the signature keys
-        SecretKey signaturePossessionKey = resultStatusObject.getSignaturePossessionKey();
+        SecretKey signaturePossessionKey = resultStatusObject.getSignaturePossessionKeyObject();
         SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(password, signatureKnowledgeKeyEncryptedBytes, signatureKnowledgeKeySalt, keyGenerator);
-        SecretKey signatureBiometryKey = resultStatusObject.getSignatureBiometryKey();
+        SecretKey signatureBiometryKey = resultStatusObject.getSignatureBiometryKeyObject();
 
         // Generate nonce
         byte[] nonceBytes = keyGenerator.generateRandomBytes(16);
@@ -174,8 +173,8 @@ public class SignAndEncryptStep implements BaseStep {
             file.write(formatted);
         }
 
-        final String transportKeyBase64 = resultStatusObject.getTransportMasterKeyBase64();
-        final String serverPublicKeyBase64 = resultStatusObject.getServerPublicKeyBase64();
+        final String transportKeyBase64 = resultStatusObject.getTransportMasterKey();
+        final String serverPublicKeyBase64 = resultStatusObject.getServerPublicKey();
 
         // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/activation
         final byte[] applicationSecret = model.getApplicationSecret().getBytes(StandardCharsets.UTF_8);

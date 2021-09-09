@@ -240,17 +240,16 @@ public class VerifySignatureStep implements BaseStep {
 
         // Get data from status
         String activationId = resultStatusObject.getActivationId();
-        long counter = resultStatusObject.getCounter().longValue();
-        byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySalt();
-        byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncrypted();
+        byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySaltBytes();
+        byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncryptedBytes();
 
         // Get password to unlock the knowledge factor key
         char[] password = VerifySignatureUtil.getKnowledgeKeyPassword(model);
 
         // Get the signature keys
-        SecretKey signaturePossessionKey = resultStatusObject.getSignaturePossessionKey();
+        SecretKey signaturePossessionKey = resultStatusObject.getSignaturePossessionKeyObject();
         SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(password, signatureKnowledgeKeyEncryptedBytes, signatureKnowledgeKeySalt, keyGenerator);
-        SecretKey signatureBiometryKey = resultStatusObject.getSignatureBiometryKey();
+        SecretKey signatureBiometryKey = resultStatusObject.getSignatureBiometryKeyObject();
 
         // Generate nonce
         byte[] nonceBytes = keyGenerator.generateRandomBytes(16);
@@ -265,7 +264,7 @@ public class VerifySignatureStep implements BaseStep {
         if (stepLogger != null) {
 
             Map<String, String> lowLevelData = new HashMap<>();
-            lowLevelData.put("counter", String.valueOf(counter));
+            lowLevelData.put("counter", String.valueOf(model.getResultStatusObject().getCounter()));
             int version = model.getResultStatusObject().getVersion().intValue();
             if (version == 3) {
                 lowLevelData.put("ctrData", BaseEncoding.base64().encode(ctrData));

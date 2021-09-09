@@ -90,8 +90,8 @@ public class CreateTokenStep implements BaseStep {
         ResultStatusObject resultStatusObject = model.getResultStatusObject();
 
         final byte[] applicationSecret = model.getApplicationSecret().getBytes(StandardCharsets.UTF_8);
-        final byte[] transportMasterKeyBytes = BaseEncoding.base64().decode(resultStatusObject.getTransportMasterKeyBase64());
-        final ECPublicKey serverPublicKey = (ECPublicKey) resultStatusObject.getServerPublicKey();
+        final byte[] transportMasterKeyBytes = BaseEncoding.base64().decode(resultStatusObject.getTransportMasterKey());
+        final ECPublicKey serverPublicKey = (ECPublicKey) resultStatusObject.getServerPublicKeyObject();
         final EciesEncryptor encryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
                 transportMasterKeyBytes, EciesSharedInfo1.CREATE_TOKEN);
 
@@ -197,8 +197,8 @@ public class CreateTokenStep implements BaseStep {
         CreateTokenStepModel model = tokenContext.getModel();
         ResultStatusObject resultStatusObject = tokenContext.getResultStatusObject();
 
-        byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySalt();
-        byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncrypted();
+        byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySaltBytes();
+        byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncryptedBytes();
 
         // Ask for the password to unlock knowledge factor key
         char[] password;
@@ -210,7 +210,7 @@ public class CreateTokenStep implements BaseStep {
         }
 
         // Get the signature keys
-        SecretKey signaturePossessionKey = resultStatusObject.getSignaturePossessionKey();
+        SecretKey signaturePossessionKey = resultStatusObject.getSignaturePossessionKeyObject();
         SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(password, signatureKnowledgeKeyEncryptedBytes, signatureKnowledgeKeySalt, keyGenerator);
 
         // Generate nonce

@@ -40,7 +40,6 @@ import io.getlime.security.powerauth.rest.api.model.request.v3.ConfirmRecoveryRe
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.ConfirmRecoveryResponsePayload;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
-import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
 
@@ -101,8 +100,8 @@ public class ConfirmRecoveryCodeStep implements BaseStep {
 
         // Get data from status
         String activationId = resultStatusObject.getActivationId();
-        byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySalt();
-        byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncrypted();
+        byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySaltBytes();
+        byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncryptedBytes();
 
         // Ask for the password to unlock knowledge factor key
         char[] password;
@@ -114,7 +113,7 @@ public class ConfirmRecoveryCodeStep implements BaseStep {
         }
 
         // Get the signature keys
-        SecretKey signaturePossessionKey = resultStatusObject.getSignaturePossessionKey();
+        SecretKey signaturePossessionKey = resultStatusObject.getSignaturePossessionKeyObject();
         SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(password, signatureKnowledgeKeyEncryptedBytes, signatureKnowledgeKeySalt, keyGenerator);
 
         // Generate nonce
@@ -125,8 +124,8 @@ public class ConfirmRecoveryCodeStep implements BaseStep {
         // Prepare ECIES encryptor and encrypt request data with sharedInfo1 = /pa/token/create
         final boolean useIv = !"3.0".equals(model.getVersion());
         final byte[] applicationSecret = model.getApplicationSecret().getBytes(StandardCharsets.UTF_8);
-        final byte[] transportMasterKeyBytes = resultStatusObject.getTransportMasterKey().getEncoded();
-        final byte[] serverPublicKeyBytes = resultStatusObject.getServerPublicKey().getEncoded();
+        final byte[] transportMasterKeyBytes = resultStatusObject.getTransportMasterKeyObject().getEncoded();
+        final byte[] serverPublicKeyBytes = resultStatusObject.getServerPublicKeyObject().getEncoded();
         final ECPublicKey serverPublicKey = (ECPublicKey) keyConversion.convertBytesToPublicKey(serverPublicKeyBytes);
         final EciesEncryptor encryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
                 transportMasterKeyBytes, EciesSharedInfo1.CONFIRM_RECOVERY_CODE);

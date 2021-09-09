@@ -41,7 +41,6 @@ import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedReq
 import io.getlime.security.powerauth.rest.api.model.response.v3.ActivationLayer1Response;
 import io.getlime.security.powerauth.rest.api.model.response.v3.ActivationLayer2Response;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
-import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
 
@@ -294,14 +293,14 @@ public class ActivationRecoveryStep implements BaseStep {
 
             resultStatusObject.setActivationId(activationId);
             resultStatusObject.getCounter().set(0L);
-            resultStatusObject.setCtrDataBase64(ctrDataBase64);
-            resultStatusObject.setEncryptedDevicePrivateKey(encryptedDevicePrivateKey);
-            resultStatusObject.setServerPublicKey(serverPublicKey);
-            resultStatusObject.setSignatureBiometryKey(signatureBiometrySecretKey);
-            resultStatusObject.setSignatureKnowledgeKeyEncrypted(cSignatureKnowledgeSecretKey);
-            resultStatusObject.setSignatureKnowledgeKeySalt(salt);
-            resultStatusObject.setSignaturePossessionKey(signaturePossessionSecretKey);
-            resultStatusObject.setTransportMasterKey(transportMasterKey);
+            resultStatusObject.setCtrDataBase(ctrDataBase64);
+            resultStatusObject.setEncryptedDevicePrivateKeyBytes(encryptedDevicePrivateKey);
+            resultStatusObject.setServerPublicKeyObject(serverPublicKey);
+            resultStatusObject.setSignatureBiometryKeyObject(signatureBiometrySecretKey);
+            resultStatusObject.setSignatureKnowledgeKeyEncryptedBytes(cSignatureKnowledgeSecretKey);
+            resultStatusObject.setSignatureKnowledgeKeySaltBytes(salt);
+            resultStatusObject.setSignaturePossessionKeyObject(signaturePossessionSecretKey);
+            resultStatusObject.setTransportMasterKeyObject(transportMasterKey);
             resultStatusObject.setVersion(3L);
 
             model.setResultStatusObject(resultStatusObject);

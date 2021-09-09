@@ -42,14 +42,14 @@ public class CounterUtil {
     public static byte[] getCtrData(BaseStepModel model, StepLogger stepLogger) {
         byte[] ctrData = new byte[16];
         ResultStatusObject resultStatusObject = model.getResultStatusObject();
-        long counter = resultStatusObject.getCounter().longValue();
+        long counter = resultStatusObject.getCounter().incrementAndGet();
         int version = resultStatusObject.getVersion().intValue();
         switch (version) {
             case 2:
                 ctrData = ByteBuffer.allocate(16).putLong(8, counter).array();
                 break;
             case 3:
-                String ctrDataBase64 = resultStatusObject.getCtrDataBase64();
+                String ctrDataBase64 = resultStatusObject.getCtrDataBase();
                 if (!ctrDataBase64.isEmpty()) {
                     ctrData = BaseEncoding.base64().decode(ctrDataBase64);
                 }
@@ -84,11 +84,11 @@ public class CounterUtil {
         // Increment the hash based counter in case activation version is 3.
         int version = resultStatusObject.getVersion().intValue();
         if (version == 3) {
-            String ctrDataBase64 = resultStatusObject.getCtrDataBase64();
+            String ctrDataBase64 = resultStatusObject.getCtrDataBase();
             if (!ctrDataBase64.isEmpty()) {
                 byte[] ctrData = BaseEncoding.base64().decode(ctrDataBase64);
                 ctrData = new HashBasedCounter().next(ctrData);
-                resultStatusObject.setCtrDataBase64(BaseEncoding.base64().encode(ctrData));
+                resultStatusObject.setCtrDataBase(BaseEncoding.base64().encode(ctrData));
             }
         }
     }

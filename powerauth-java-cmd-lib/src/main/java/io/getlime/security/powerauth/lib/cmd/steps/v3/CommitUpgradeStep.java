@@ -32,7 +32,6 @@ import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.*;
-import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
 
@@ -92,7 +91,7 @@ public class CommitUpgradeStep implements BaseStep {
         final String activationId = resultStatusObject.getActivationId();
 
         // Get the signature key (possession factor)
-        final SecretKey signaturePossessionKey = resultStatusObject.getSignaturePossessionKey();
+        final SecretKey signaturePossessionKey = resultStatusObject.getSignaturePossessionKeyObject();
 
         try {
             // Generate nonce

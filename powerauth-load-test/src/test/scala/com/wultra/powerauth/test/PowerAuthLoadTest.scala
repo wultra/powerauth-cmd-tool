@@ -93,9 +93,9 @@ class PowerAuthLoadTest extends Simulation {
   // Add Bouncy Castle Security Provider
   Security.addProvider(new BouncyCastleProvider)
 
-  val POWERAUTH_SERVER_URL: String = "http://localhost:8080"
+  val POWERAUTH_SERVER_URL: String = System.getProperty("powerAuthServerUrl", "http://localhost:8080")
 
-  val POWERAUTH_REST_SERVER_URL: String = "http://localhost:8081"
+  val POWERAUTH_REST_SERVER_URL: String = System.getProperty("powerAuthRestServerUrl", "http://localhost:8081")
 
   val httpProtocolPowerAuthServer: HttpProtocolBuilder = http
     .baseUrl(POWERAUTH_SERVER_URL)
@@ -124,7 +124,7 @@ class PowerAuthLoadTest extends Simulation {
 
   val clientConfigObject: JSONObject = {
     try {
-      val configFileBytes: Array[Byte] = Files.readAllBytes(Paths.get("/Users/lukas/projects/powerauth/test/config.json"))
+      val configFileBytes: Array[Byte] = Files.readAllBytes(Paths.get(System.getProperty("configFile", "./config.json")))
       JSONValue.parse(new String(configFileBytes, StandardCharsets.UTF_8)).asInstanceOf[JSONObject]
     } catch {
       case e: Throwable =>
@@ -142,7 +142,7 @@ class PowerAuthLoadTest extends Simulation {
   val masterPublicKey: ECPublicKey = ConfigurationUtil.getMasterKey(clientConfigObject, stepLogger).asInstanceOf[ECPublicKey]
   val modelVersion: String = "3.1"
 
-  val NUMBER_OF_DEVICES = 1_000
+  val NUMBER_OF_DEVICES: Integer = Integer.getInteger("numberOfDevices", 1)
 
   println(s"Load testing PowerAuth")
 
@@ -237,7 +237,9 @@ class PowerAuthLoadTest extends Simulation {
   val scnTokenCreate: ScenarioBuilder = scenario("scnTokenCreate")
     .exec(session => {
       val device = nextDevice(devicesActivated, indexTokenCreate)
-      val data = prepareTokenCreateCall(device)
+      val data = device.synchronized {
+        prepareTokenCreateCall(device)
+      }
       session
         .set("device", device)
         .set("httpAuthorizationHeader", data.header)
@@ -265,7 +267,9 @@ class PowerAuthLoadTest extends Simulation {
   val scnSignatureVerify: ScenarioBuilder = scenario("scnSignatureVerify")
     .exec(session => {
       val device = nextDevice(devicesActivated, indexSignatureVerify)
-      val data = prepareSignatureVerifyCall(device)
+      val data = device.synchronized {
+        prepareSignatureVerifyCall(device)
+      }
       session
         .set("device", device)
         .set("httpAuthorizationHeader", data.header)
@@ -286,19 +290,18 @@ class PowerAuthLoadTest extends Simulation {
 
   setUp(
     scnActivationInit.inject(
-      rampUsers(NUMBER_OF_DEVICES).during(60.seconds)
+      rampUsers(NUMBER_OF_DEVICES).during((NUMBER_OF_DEVICES.floatValue() / 200).intValue().seconds)
     ).protocols(httpProtocolPowerAuthServer)
       .andThen(
         scnActivationCreate.inject(
-          rampUsers(NUMBER_OF_DEVICES).during(2.minutes)
+          rampUsers(NUMBER_OF_DEVICES).during((NUMBER_OF_DEVICES.floatValue() / 100).intValue().seconds)
         ).protocols(httpProtocolPowerAuthRestServer)
           .andThen(
             scnTokenCreate.inject(
-              rampUsersPerSec(1).to(20).during(15.minutes)
-//              rampUsers(NUMBER_OF_DEVICES).during(1.minutes)
+              rampUsersPerSec(1).to(30).during(10.minutes)
             ).protocols(httpProtocolPowerAuthRestServer),
             scnSignatureVerify.inject(
-              rampUsersPerSec(1).to(20).during(15.minutes)
+              rampUsersPerSec(1).to(30).during(10.minutes)
             ).protocols(httpProtocolPowerAuthRestServer)
           )
       )
@@ -349,8 +352,8 @@ class PowerAuthLoadTest extends Simulation {
     model.setSignatureType(PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE)
     model.setVersion(modelVersion)
 
-    val transportMasterKeyBytes = BaseEncoding.base64.decode(resultStatusObject.getTransportMasterKeyBase64)
-    val serverPublicKey = resultStatusObject.getServerPublicKey.asInstanceOf[ECPublicKey]
+    val transportMasterKeyBytes = BaseEncoding.base64.decode(resultStatusObject.getTransportMasterKey)
+    val serverPublicKey = resultStatusObject.getServerPublicKeyObject.asInstanceOf[ECPublicKey]
     val encryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret.getBytes(StandardCharsets.UTF_8), transportMasterKeyBytes, EciesSharedInfo1.CREATE_TOKEN)
 
     val stepContext = TokenContext.builder
