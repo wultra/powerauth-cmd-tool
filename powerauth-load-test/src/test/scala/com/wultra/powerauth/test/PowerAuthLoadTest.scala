@@ -156,8 +156,7 @@ class PowerAuthLoadTest extends Simulation {
   val devicesActivated: ListBuffer[Device] = ListBuffer.empty[Device]
   val devicesInitialized: ListBuffer[Device] = ListBuffer.empty[Device]
   val indexInitialized: AtomicInteger = new AtomicInteger(0)
-  val indexTokenCreate: AtomicInteger = new AtomicInteger(0)
-  val indexSignatureVerify: AtomicInteger = new AtomicInteger(0)
+  val indexDevice: AtomicInteger = new AtomicInteger(0)
 
   val scnActivationInit: ScenarioBuilder = scenario("scnActivationInit")
     .feed(devicesToInit.map(device => Map("device" -> device, "userId" -> device.userId)).circular)
@@ -236,7 +235,7 @@ class PowerAuthLoadTest extends Simulation {
 
   val scnTokenCreate: ScenarioBuilder = scenario("scnTokenCreate")
     .exec(session => {
-      val device = nextDevice(devicesActivated, indexTokenCreate)
+      val device = nextDevice(devicesActivated, indexDevice)
       val data = device.synchronized {
         prepareTokenCreateCall(device)
       }
@@ -266,7 +265,7 @@ class PowerAuthLoadTest extends Simulation {
 
   val scnSignatureVerify: ScenarioBuilder = scenario("scnSignatureVerify")
     .exec(session => {
-      val device = nextDevice(devicesActivated, indexSignatureVerify)
+      val device = nextDevice(devicesActivated, indexDevice)
       val data = device.synchronized {
         prepareSignatureVerifyCall(device)
       }
@@ -298,10 +297,10 @@ class PowerAuthLoadTest extends Simulation {
         ).protocols(httpProtocolPowerAuthRestServer)
           .andThen(
             scnTokenCreate.inject(
-              rampUsersPerSec(1).to(30).during(10.minutes)
+              rampUsersPerSec(1).to(50).during(30.minutes)
             ).protocols(httpProtocolPowerAuthRestServer),
             scnSignatureVerify.inject(
-              rampUsersPerSec(1).to(30).during(10.minutes)
+              rampUsersPerSec(1).to(50).during(30.minutes)
             ).protocols(httpProtocolPowerAuthRestServer)
           )
       )
