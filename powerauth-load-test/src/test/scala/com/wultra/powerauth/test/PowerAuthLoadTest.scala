@@ -1,13 +1,17 @@
 /*
- * Wultra Antivirus Server and Related Components
- * Copyright (c) 2021, Wultra s.r.o. (www.wultra.com).
+ * Copyright 2021 Wultra s.r.o.
  *
- * All rights reserved. This source code can be used only for purposes specified
- * by the given license contract signed by the rightful deputy of Wultra s.r.o.
- * This source code can be used only by the owner of the license.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Any disputes arising in respect of this agreement (license) shall be brought
- * before the Municipal Court of Prague.
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.wultra.powerauth.test
 
