@@ -3,9 +3,9 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.wultra.antivirus</groupId>
-    <artifactId>antivirus-load-test</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <groupId>com.wultra.powerauth.test</groupId>
+    <artifactId>powerauth-load-test</artifactId>
+    <version>1.2.0-SNAPSHOT</version>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -28,7 +28,7 @@
         <dependency>
             <groupId>io.getlime.security</groupId>
             <artifactId>powerauth-java-cmd-lib</artifactId>
-            <version>1.1.0-SNAPSHOT</version>
+            <version>1.2.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
@@ -98,7 +98,7 @@
                 <configuration>
                     <resultsFolder>${project.basedir}/target/test-results/gatling</resultsFolder>
                     <simulationsFolder>${project.basedir}/src/test/scala</simulationsFolder>
-                    <runDescription>Wultra Antivirus Load Test</runDescription>
+                    <runDescription>Wultra PowerAuth Load Test</runDescription>
                 </configuration>
             </plugin>
             <plugin>
