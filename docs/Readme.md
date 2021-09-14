@@ -286,12 +286,12 @@ Use this method to send signed and encrypted data to the server.
 
 ```bash
 java -jar powerauth-java-cmd.jar \
-    --url "http://localhost:8080/powerauth-restful-server-spring/exchange/signed" \
+    --url "http://localhost:8080/powerauth-restful-server-spring/exchange/v3/signed" \
     --status-file "pa_status.json" \
     --config-file "config.json" \
     --method "sign-encrypt" \
     --http-method "POST" \
-    --endpoint "/exchange/signed" \
+    --endpoint "/exchange/v3/signed" \
     --signature-type "possession_knowledge" \
     --data-file "request.json" \
     --password "1234"
