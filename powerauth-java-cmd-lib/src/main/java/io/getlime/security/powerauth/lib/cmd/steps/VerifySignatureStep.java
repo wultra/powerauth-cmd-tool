@@ -16,6 +16,7 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps;
 
+import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
@@ -63,6 +64,17 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
         this.powerAuthHeaderService = powerAuthHeaderService;
     }
 
+    /**
+     * Constructor for backward compatibility
+     */
+    public VerifySignatureStep() {
+        this(
+                BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
+                BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
+                BackwardCompatibilityConst.STEP_LOGGER
+        );
+    }
+
     @Override
     public ParameterizedTypeReference<Map<String, Object>> getResponseTypeReference() {
         return RESPONSE_TYPE_REFERENCE;
@@ -78,6 +90,8 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
         RequestContext requestContext = RequestContext.builder()
                 .httpMethod(model.getHttpMethod())
                 .requestObject(dataFileBytes)
+                .signatureHttpMethod(model.getHttpMethod())
+                .signatureRequestUri(model.getResourceId())
                 .uri(model.getUriString())
                 .build();
 

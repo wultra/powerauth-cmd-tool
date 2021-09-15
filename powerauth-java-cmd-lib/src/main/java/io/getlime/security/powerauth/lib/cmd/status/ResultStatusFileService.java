@@ -42,7 +42,7 @@ public class ResultStatusFileService implements ResultStatusService {
     public void save(ResultStatusChangeable model) throws IOException {
         String formatted = RestClientConfiguration.defaultMapper()
                 .writerWithDefaultPrettyPrinter()
-                .writeValueAsString(model.getResultStatusObject());
+                .writeValueAsString(model.getResultStatus());
         try (FileWriter file = new FileWriter(model.getStatusFileName())) {
             file.write(formatted);
         }

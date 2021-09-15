@@ -19,7 +19,9 @@ package io.getlime.security.powerauth.lib.cmd.steps.model;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
+import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import lombok.Data;
+import org.json.simple.JSONObject;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -51,6 +53,55 @@ public class BaseStepModel implements BaseStepData {
      * PowerAuth protocol version
      */
     private PowerAuthVersion version;
+
+    /**
+     * Sets activation status object from JSON object
+     * @param jsonObject Activation status object as JSON
+     */
+    public void setResultStatusObject(JSONObject jsonObject) {
+        ResultStatusObject resultStatusObject;
+        try {
+            resultStatusObject = RestClientConfiguration.defaultMapper().readValue(jsonObject.toJSONString(), ResultStatusObject.class);
+        } catch (Exception e) {
+            System.err.println("Invalid json data specified for result status object");
+            e.printStackTrace(System.err);
+            resultStatusObject = new ResultStatusObject();
+        }
+        this.resultStatusObject = resultStatusObject;
+    }
+
+    public ResultStatusObject getResultStatus() {
+        return resultStatusObject;
+    }
+
+    public JSONObject getResultStatusObject() {
+        return resultStatusObject != null ? resultStatusObject.toJsonObject() : null;
+    }
+
+    /**
+     * Sets activation status object
+     * @param resultStatusObject Activation status object
+     */
+    public void setResultStatusObject(ResultStatusObject resultStatusObject) {
+        this.resultStatusObject = resultStatusObject;
+    }
+
+    /**
+     * Sets the version value
+     * <p>the PowerAuth version is detected from the provided value</p>
+     * @param versionValue string version value, must correspond with any of {@link PowerAuthVersion}
+     */
+    public void setVersion(String versionValue) {
+        this.version = PowerAuthVersion.fromValue(versionValue);
+    }
+
+    /**
+     * Sets the version value
+     * @param version PowerAuth version value
+     */
+    public void setVersion(PowerAuthVersion version) {
+        this.version = version;
+    }
 
     /**
      * Convert this object to map.

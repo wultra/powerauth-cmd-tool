@@ -76,6 +76,13 @@ public class RemoveStep extends AbstractBaseStepV2 {
     }
 
     /**
+     * Constructor for backward compatibility
+     */
+    public RemoveStep() {
+        this(DEFAULT_STEP_LOGGER);
+    }
+
+    /**
      * Execute this step with given context
      *
      * @param context Provided context
@@ -94,7 +101,7 @@ public class RemoveStep extends AbstractBaseStepV2 {
         String uri = model.getUriString() + "/pa/activation/remove";
 
         // Get data from status
-        ResultStatusObject resultStatusObject = model.getResultStatusObject();
+        ResultStatusObject resultStatusObject = model.getResultStatus();
         String activationId = resultStatusObject.getActivationId();
         byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySaltBytes();
         byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncryptedBytes();
@@ -118,7 +125,7 @@ public class RemoveStep extends AbstractBaseStepV2 {
         // Compute the current PowerAuth signature for possession
         // and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/activation/remove", nonceBytes, null) + "&" + model.getApplicationSecret();
-        byte[] ctrData = CounterUtil.getCtrData(model.getResultStatusObject(), stepLogger);
+        byte[] ctrData = CounterUtil.getCtrData(model.getResultStatus(), stepLogger);
         PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion().value());
         String signatureValue = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), Arrays.asList(signaturePossessionKey, signatureKnowledgeKey), ctrData, signatureFormat);
         PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE.toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion().value());
@@ -128,7 +135,7 @@ public class RemoveStep extends AbstractBaseStepV2 {
         CounterUtil.incrementCounter(model);
 
         // Store the activation status (updated counter)
-        String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+        String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatus());
         try (FileWriter file = new FileWriter(model.getStatusFileName())) {
             file.write(formatted);
         }
@@ -174,7 +181,7 @@ public class RemoveStep extends AbstractBaseStepV2 {
                     objectMap
 
             );
-            return model.getResultStatusObject();
+            return model.getResultStatus();
         } catch (Exception exception) {
             stepLogger.writeError("activation-remove-error-generic", exception);
             stepLogger.writeDoneFailed("activation-remove-failed");

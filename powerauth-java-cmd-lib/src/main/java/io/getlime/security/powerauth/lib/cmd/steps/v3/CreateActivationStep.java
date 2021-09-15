@@ -15,6 +15,7 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
+import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
@@ -58,6 +59,17 @@ public class CreateActivationStep extends AbstractActivationStep<CreateActivatio
         super(PowerAuthStep.ACTIVATION_CREATE_CUSTOM, PowerAuthVersion.VERSION_3, resultStatusService, stepLogger);
 
         this.powerAuthHeaderService = powerAuthHeaderService;
+    }
+
+    /**
+     * Constructor for backward compatibility
+     */
+    public CreateActivationStep() {
+        this(
+                BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
+                BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
+                BackwardCompatibilityConst.STEP_LOGGER
+        );
     }
 
     @Override

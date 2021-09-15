@@ -81,7 +81,7 @@ public class PowerAuthHeaderService {
      * @param <T> Generic model type
      */
     public <T extends EncryptionHeaderData> void addEncryptionHeader(RequestContext requestContext, T model) {
-        String activationId = model.getResultStatusObject().getActivationId();
+        String activationId = model.getResultStatus().getActivationId();
         PowerAuthEncryptionHttpHeader header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), activationId, model.getVersion().value());
         requestContext.setAuthorizationHeader(header.buildHttpHeader());
     }
@@ -97,7 +97,7 @@ public class PowerAuthHeaderService {
     public <M extends SignatureHeaderData, R> void addSignatureHeader(StepContext<M, R> stepContext, boolean signatureBiometric) throws Exception {
         M model = stepContext.getModel();
         RequestContext requestContext = stepContext.getRequestContext();
-        ResultStatusObject resultStatusObject = model.getResultStatusObject();
+        ResultStatusObject resultStatusObject = model.getResultStatus();
         byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySaltBytes();
         byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncryptedBytes();
 

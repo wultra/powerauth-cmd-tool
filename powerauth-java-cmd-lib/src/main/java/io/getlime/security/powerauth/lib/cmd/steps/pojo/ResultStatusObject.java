@@ -19,6 +19,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import lombok.*;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
 
 import javax.crypto.SecretKey;
 import java.security.PublicKey;
@@ -156,6 +158,10 @@ public class ResultStatusObject {
     public void setTransportMasterKey(String transportMasterKey) {
         this.transportMasterKey = transportMasterKey;
         this.transportMasterKeyObject = KEY_CONVERTOR.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKey));
+    }
+
+    public JSONObject toJsonObject() {
+        return (JSONObject) JSONValue.parse(JSONValue.toJSONString(this));
     }
 
 }

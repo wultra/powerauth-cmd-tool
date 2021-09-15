@@ -18,6 +18,7 @@ package io.getlime.security.powerauth.lib.cmd.steps.model.data;
 
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
+import org.json.simple.JSONObject;
 
 import java.util.Map;
 
@@ -34,9 +35,14 @@ public interface BaseStepData {
     Map<String, String> getHeaders();
 
     /**
-     * @return Activation status object
+     * @return Activation status object as JSON
      */
-    ResultStatusObject getResultStatusObject();
+    JSONObject getResultStatusObject();
+
+    /**
+     * @return Activation status objectø
+     */
+    ResultStatusObject getResultStatus();
 
     /**
      * @return Base URI of PowerAuth Standard RESTful API

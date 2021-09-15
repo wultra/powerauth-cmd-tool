@@ -72,6 +72,13 @@ public class RemoveTokenStep extends AbstractBaseStepV2 {
         super(PowerAuthStep.TOKEN_REMOVE, PowerAuthVersion.VERSION_2, stepLogger);
     }
 
+    /**
+     * Constructor for backward compatibility
+     */
+    public RemoveTokenStep() {
+        this(DEFAULT_STEP_LOGGER);
+    }
+
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientSignature signature = new PowerAuthClientSignature();
     private static final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
@@ -92,7 +99,7 @@ public class RemoveTokenStep extends AbstractBaseStepV2 {
         RemoveTokenStepModel model = new RemoveTokenStepModel();
         model.fromMap(context);
 
-        ResultStatusObject resultStatusObject = model.getResultStatusObject();
+        ResultStatusObject resultStatusObject = model.getResultStatus();
 
         // Get data from status
         String activationId = resultStatusObject.getActivationId();
@@ -128,7 +135,7 @@ public class RemoveTokenStep extends AbstractBaseStepV2 {
         // Compute the current PowerAuth signature for possession
         // and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/token/remove", nonceBytes, requestBytes) + "&" + model.getApplicationSecret();
-        byte[] ctrData = CounterUtil.getCtrData(model.getResultStatusObject(), stepLogger);
+        byte[] ctrData = CounterUtil.getCtrData(model.getResultStatus(), stepLogger);
         PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion().value());
         String signatureValue = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), ctrData, signatureFormat);
         final PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion().value());
@@ -138,7 +145,7 @@ public class RemoveTokenStep extends AbstractBaseStepV2 {
         CounterUtil.incrementCounter(model);
 
         // Store the activation status (updated counter)
-        String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+        String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatus());
         try (FileWriter file = new FileWriter(model.getStatusFileName())) {
             file.write(formatted);
         }
@@ -180,7 +187,7 @@ public class RemoveTokenStep extends AbstractBaseStepV2 {
                     responseWrapper.getResponseObject().getTokenId()
 
             );
-            return model.getResultStatusObject();
+            return model.getResultStatus();
         } catch (Exception exception) {
             stepLogger.writeError("token-remove-error-generic", exception);
             stepLogger.writeDoneFailed("token-remove-failed");

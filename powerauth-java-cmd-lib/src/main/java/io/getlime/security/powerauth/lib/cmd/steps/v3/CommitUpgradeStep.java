@@ -16,6 +16,7 @@
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import io.getlime.core.rest.model.base.response.Response;
+import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
@@ -63,6 +64,17 @@ public class CommitUpgradeStep extends AbstractBaseStep<CommitUpgradeStepModel, 
         this.powerAuthHeaderService = powerAuthHeaderService;
     }
 
+    /**
+     * Constructor for backward compatibility
+     */
+    public CommitUpgradeStep() {
+        this(
+                BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
+                BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
+                BackwardCompatibilityConst.STEP_LOGGER
+        );
+    }
+
     @Override
     protected ParameterizedTypeReference<Response> getResponseTypeReference() {
         return RESPONSE_TYPE_REFERENCE;
@@ -73,7 +85,7 @@ public class CommitUpgradeStep extends AbstractBaseStep<CommitUpgradeStepModel, 
         CommitUpgradeStepModel model = new CommitUpgradeStepModel();
         model.fromMap(context);
 
-        ResultStatusObject resultStatusObject = model.getResultStatusObject();
+        ResultStatusObject resultStatusObject = model.getResultStatus();
 
         RequestContext requestContext = RequestContext.builder()
                 .signatureHttpMethod("POST")

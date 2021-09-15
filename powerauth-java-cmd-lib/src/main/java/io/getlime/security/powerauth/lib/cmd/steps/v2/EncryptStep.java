@@ -62,6 +62,13 @@ public class EncryptStep extends AbstractBaseStepV2 {
     }
 
     /**
+     * Constructor for backward compatibility
+     */
+    public EncryptStep() {
+        this(DEFAULT_STEP_LOGGER);
+    }
+
+    /**
      * Execute this step with given context.
      *
      * @param context Provided context.
@@ -165,7 +172,7 @@ public class EncryptStep extends AbstractBaseStepV2 {
             }
 
             String decryptedMessage = new String(decryptedMessageBytes, StandardCharsets.UTF_8);
-            model.getResultStatusObject().setResponseData(decryptedMessage);
+            model.getResultStatus().setResponseData(decryptedMessage);
 
             stepLogger.writeItem(
                     "encrypt-response-decrypt",
@@ -174,7 +181,7 @@ public class EncryptStep extends AbstractBaseStepV2 {
                     "OK",
                     decryptedMessage
             );
-            return model.getResultStatusObject();
+            return model.getResultStatus();
         } catch (Exception exception) {
             stepLogger.writeError("encrypt-error-generic", exception);
             stepLogger.writeDoneFailed("encrypt-failed");

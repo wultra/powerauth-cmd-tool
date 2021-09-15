@@ -42,7 +42,7 @@ public class ResultStatusMemoryService implements ResultStatusService {
 
     @Override
     public void save(ResultStatusChangeable model) throws IOException {
-        ResultStatusObject status = model.getResultStatusObject();
+        ResultStatusObject status = model.getResultStatus();
         resultStatusMemoryHolder.put(status.getActivationId(), status);
     }
 
