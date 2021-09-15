@@ -23,6 +23,7 @@ import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCrypt
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
+import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
@@ -64,6 +65,16 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
     @Autowired
     public EncryptStep(ResultStatusService resultStatusService, StepLogger stepLogger) {
         super(PowerAuthStep.ENCRYPT, PowerAuthVersion.VERSION_3, resultStatusService, stepLogger);
+    }
+
+    /**
+     * Constructor for backward compatibility
+     */
+    public EncryptStep() {
+        this(
+                BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
+                BackwardCompatibilityConst.STEP_LOGGER
+        );
     }
 
     @Override
@@ -112,7 +123,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
                 break;
 
             case "activation":
-                ResultStatusObject resultStatusObject = model.getResultStatusObject();
+                ResultStatusObject resultStatusObject = model.getResultStatus();
 
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/activation
                 final byte[] transportMasterKeyBytes = resultStatusObject.getTransportMasterKeyObject().getEncoded();
@@ -159,7 +170,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
         final byte[] decryptedBytes = encryptor.decryptResponse(eciesCryptogramResponse);
 
         String decryptedMessage = new String(decryptedBytes, StandardCharsets.UTF_8);
-        model.getResultStatusObject().setResponseData(decryptedMessage);
+        model.getResultStatus().setResponseData(decryptedMessage);
 
         stepLogger.writeItem(
                 getStep().id() + "-response-decrypt",

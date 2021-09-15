@@ -16,6 +16,7 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model.feature;
 
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 
 /**
@@ -23,12 +24,12 @@ import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  */
-public interface ResultStatusChangeable {
+public interface ResultStatusChangeable extends BaseStepData {
 
     /**
      * @return Activation status object
      */
-    ResultStatusObject getResultStatusObject();
+    ResultStatusObject getResultStatus();
 
     /**
      * Sets activation status object

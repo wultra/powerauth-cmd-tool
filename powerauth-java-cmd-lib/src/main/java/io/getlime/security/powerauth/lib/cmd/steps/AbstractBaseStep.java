@@ -27,6 +27,7 @@ import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
 import lombok.Getter;
+import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -121,6 +122,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
 
         StepContext<M, R> stepContext = prepareStepContext(context);
 
+        // TODO is this necessary?
         M model = stepContext.getModel();
         if (model instanceof ResultStatusChangeable) {
             // Store the activation status (typically with updated counter)
@@ -140,7 +142,23 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             stepLogger.writeDoneFailed(getStep().id() + "-failed");
             return null;
         }
-        return model.getResultStatusObject();
+        return model.getResultStatus();
+    }
+
+    /**
+     * Execute this step with given logger and context objects.
+     *
+     * <p>Keeps backward compatibility with former approaches of step instantiation and execution</p>
+     *
+     * @param stepLogger Step logger.
+     * @param context Context objects.
+     * @return Result status object (with current activation status), null in case of failure.
+     * @throws Exception In case of a failure.
+     */
+    public final JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+        this.stepLogger = stepLogger;
+        ResultStatusObject resultStatusObject = execute(context);
+        return resultStatusObject != null ? resultStatusObject.toJsonObject() : null;
     }
 
     /**
@@ -155,7 +173,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      */
     public void addEncryptedRequest(StepContext<M, R> stepContext, String applicationSecret, EciesSharedInfo1 eciesSharedInfo, byte[] data) throws Exception {
         M model = stepContext.getModel();
-        ResultStatusObject resultStatusObject = model.getResultStatusObject();
+        ResultStatusObject resultStatusObject = model.getResultStatus();
 
         EciesEncryptor encryptor = SecurityUtil.createEncryptor(applicationSecret, resultStatusObject, eciesSharedInfo);
         stepContext.setEncryptor(encryptor);

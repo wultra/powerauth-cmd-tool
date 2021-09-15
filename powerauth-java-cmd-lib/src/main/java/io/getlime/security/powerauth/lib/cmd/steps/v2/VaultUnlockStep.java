@@ -76,6 +76,13 @@ public class VaultUnlockStep extends AbstractBaseStepV2 {
         super(PowerAuthStep.VAULT_UNLOCK, PowerAuthVersion.VERSION_2, stepLogger);
     }
 
+    /**
+     * Constructor for backward compatibility
+     */
+    public VaultUnlockStep() {
+        this(DEFAULT_STEP_LOGGER);
+    }
+
     private static final KeyConvertor keyConvertor = new KeyConvertor();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientSignature signature = new PowerAuthClientSignature();
@@ -100,7 +107,7 @@ public class VaultUnlockStep extends AbstractBaseStepV2 {
         // Prepare the activation URI
         String uri = model.getUriString() + "/pa/vault/unlock";
 
-        ResultStatusObject resultStatusObject = model.getResultStatusObject();
+        ResultStatusObject resultStatusObject = model.getResultStatus();
 
         // Get data from status
         String activationId = resultStatusObject.getActivationId();
@@ -141,7 +148,7 @@ public class VaultUnlockStep extends AbstractBaseStepV2 {
 
         // Compute the current PowerAuth signature for possession and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/vault/unlock", nonceBytes, requestBytes) + "&" + model.getApplicationSecret();
-        byte[] ctrData = CounterUtil.getCtrData(model.getResultStatusObject(), stepLogger);
+        byte[] ctrData = CounterUtil.getCtrData(model.getResultStatus(), stepLogger);
         PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion().value());
         String signatureValue = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), ctrData, signatureFormat);
         PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion().value());
@@ -151,7 +158,7 @@ public class VaultUnlockStep extends AbstractBaseStepV2 {
         CounterUtil.incrementCounter(model);
 
         // Store the activation status (updated counter)
-        String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+        String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatus());
         try (FileWriter file = new FileWriter(model.getStatusFileName())) {
             file.write(formatted);
         }
@@ -181,7 +188,7 @@ public class VaultUnlockStep extends AbstractBaseStepV2 {
                 CounterUtil.incrementCounter(model);
 
                 // Store the activation status (updated counter)
-                formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+                formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatus());
                 try (FileWriter file = new FileWriter(model.getStatusFileName())) {
                     file.write(formatted);
                 }
@@ -199,7 +206,7 @@ public class VaultUnlockStep extends AbstractBaseStepV2 {
             byte[] encryptedVaultEncryptionKey = BaseEncoding.base64().decode(responseObject.getEncryptedVaultEncryptionKey());
 
             PowerAuthClientVault vault = new PowerAuthClientVault();
-            ctrData = CounterUtil.getCtrData(model.getResultStatusObject(), stepLogger);
+            ctrData = CounterUtil.getCtrData(model.getResultStatus(), stepLogger);
             SecretKey vaultEncryptionKey = vault.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey, ctrData);
             PrivateKey devicePrivateKey = vault.decryptDevicePrivateKey(encryptedDevicePrivateKeyBytes, vaultEncryptionKey);
             PublicKey serverPublicKey = keyConvertor.convertBytesToPublicKey(serverPublicKeyBytes);
@@ -208,7 +215,7 @@ public class VaultUnlockStep extends AbstractBaseStepV2 {
             CounterUtil.incrementCounter(model);
 
             // Store the activation status (updated counter)
-            formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+            formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatus());
             try (FileWriter file = new FileWriter(model.getStatusFileName())) {
                 file.write(formatted);
             }
@@ -233,14 +240,14 @@ public class VaultUnlockStep extends AbstractBaseStepV2 {
                     "OK",
                     objectMap
             );
-            return model.getResultStatusObject();
+            return model.getResultStatus();
         } catch (Exception exception) {
 
             // Increment the counter, second time for vault unlock
             CounterUtil.incrementCounter(model);
 
             // Store the activation status (updated counter)
-            formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+            formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatus());
             try (FileWriter file = new FileWriter(model.getStatusFileName())) {
                 file.write(formatted);
             }

@@ -82,6 +82,13 @@ public class PrepareActivationStep extends AbstractBaseStepV2 {
     }
 
     /**
+     * Constructor for backward compatibility
+     */
+    public PrepareActivationStep() {
+        this(DEFAULT_STEP_LOGGER);
+    }
+
+    /**
      * Execute this step with given context
      *
      * @param context Provided context
@@ -232,7 +239,7 @@ public class PrepareActivationStep extends AbstractBaseStepV2 {
                 byte[] cSignatureKnowledgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, signatureKnowledgeSecretKey, salt, keyGenerator);
 
                 // Prepare the status object to be stored
-                ResultStatusObject resultStatusObject = model.getResultStatusObject();
+                ResultStatusObject resultStatusObject = model.getResultStatus();
 
                 resultStatusObject.setActivationId(activationId);
                 resultStatusObject.getCounter().set(0L);
@@ -249,7 +256,7 @@ public class PrepareActivationStep extends AbstractBaseStepV2 {
                 model.setResultStatusObject(resultStatusObject);
 
                 // Store the resulting status
-                String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+                String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatus());
                 try (FileWriter file = new FileWriter(model.getStatusFileName())) {
                     file.write(formatted);
                 }
@@ -257,7 +264,7 @@ public class PrepareActivationStep extends AbstractBaseStepV2 {
                 objectMap = new HashMap<>();
                 objectMap.put("activationId", activationId);
                 objectMap.put("activationStatusFile", model.getStatusFileName());
-                objectMap.put("activationStatusFileContent", model.getResultStatusObject());
+                objectMap.put("activationStatusFileContent", model.getResultStatus());
                 objectMap.put("deviceKeyFingerprint", activation.computeActivationFingerprint(deviceKeyPair.getPublic()));
                 stepLogger.writeItem(
                         "activation-create-activation-done",
@@ -266,7 +273,7 @@ public class PrepareActivationStep extends AbstractBaseStepV2 {
                         "OK",
                         objectMap
                 );
-                return model.getResultStatusObject();
+                return model.getResultStatus();
 
             } else {
                 String message = "Activation data signature does not match. Either someone tried to spoof your connection, or your device master key is invalid.";

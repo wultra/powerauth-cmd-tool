@@ -21,6 +21,7 @@ import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.crypto.lib.model.ActivationStatusBlobInfo;
+import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
@@ -75,6 +76,16 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, ObjectRe
         super(PowerAuthStep.ACTIVATION_STATUS, PowerAuthVersion.VERSION_3, resultStatusService, stepLogger);
     }
 
+    /**
+     * Constructor for backward compatibility
+     */
+    public GetStatusStep() {
+        this(
+                BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
+                BackwardCompatibilityConst.STEP_LOGGER
+        );
+    }
+
     @Override
     protected ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>> getResponseTypeReference() {
         return RESPONSE_TYPE_REFERENCE;
@@ -104,7 +115,7 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, ObjectRe
 
         // Send the activation status request to the server
         final ActivationStatusRequest requestObject = new ActivationStatusRequest();
-        requestObject.setActivationId(model.getResultStatusObject().getActivationId());
+        requestObject.setActivationId(model.getResultStatus().getActivationId());
         requestObject.setChallenge(challenge != null ? BaseEncoding.base64().encode(challenge) : null);
         final ObjectRequest<ActivationStatusRequest> body = new ObjectRequest<>();
         body.setRequestObject(requestObject);
@@ -119,7 +130,7 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, ObjectRe
         ResponseContext<ObjectResponse<ActivationStatusResponse>> responseContext = stepContext.getResponseContext();
         ObjectResponse<ActivationStatusResponse> responseWrapper = Objects.requireNonNull(responseContext.getResponseBodyObject());
 
-        ResultStatusObject resultStatusObject = stepContext.getModel().getResultStatusObject();
+        ResultStatusObject resultStatusObject = stepContext.getModel().getResultStatus();
 
         final boolean useChallenge = !stepContext.getModel().getVersion().equals(PowerAuthVersion.V3_0);
 

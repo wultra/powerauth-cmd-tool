@@ -32,7 +32,7 @@ import java.util.Map;
 public interface BaseStep {
 
     /**
-     * Execute this step with given logger and context objects.
+     * Execute this step with given context objects.
      *
      * @param context Context objects.
      * @return Result status object (with current activation status), null in case of failure.

@@ -16,6 +16,7 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps;
 
+import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
@@ -61,6 +62,17 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
         super(PowerAuthStep.TOKEN_VALIDATE, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLogger);
 
         this.powerAuthHeaderService = powerAuthHeaderService;
+    }
+
+    /**
+     * Constructor for backward compatibility
+     */
+    public VerifyTokenStep() {
+        this(
+                BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
+                BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
+                BackwardCompatibilityConst.STEP_LOGGER
+        );
     }
 
     @Override

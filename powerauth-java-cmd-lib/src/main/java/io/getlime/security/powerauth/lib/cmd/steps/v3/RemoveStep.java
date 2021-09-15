@@ -15,6 +15,7 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
+import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
@@ -59,6 +60,17 @@ public class RemoveStep extends AbstractBaseStep<RemoveStepModel, EciesEncrypted
         this.powerAuthHeaderService = powerAuthHeaderService;
     }
 
+    /**
+     * Constructor for backward compatibility
+     */
+    public RemoveStep() {
+        this(
+                BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
+                BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
+                BackwardCompatibilityConst.STEP_LOGGER
+        );
+    }
+
     @Override
     protected ParameterizedTypeReference<EciesEncryptedResponse> getResponseTypeReference() {
         return PowerAuthConst.RESPONSE_TYPE_REFERENCE_V3;
@@ -87,7 +99,7 @@ public class RemoveStep extends AbstractBaseStep<RemoveStepModel, EciesEncrypted
 
     @Override
     public void processResponse(StepContext<RemoveStepModel, EciesEncryptedResponse> stepContext) {
-        String activationId = stepContext.getModel().getResultStatusObject().getActivationId();
+        String activationId = stepContext.getModel().getResultStatus().getActivationId();
         Map<String, Object> objectMap = new HashMap<>();
         objectMap.put("activationId", activationId);
 

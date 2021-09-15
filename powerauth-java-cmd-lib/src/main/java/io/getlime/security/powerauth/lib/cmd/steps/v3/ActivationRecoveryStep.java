@@ -15,6 +15,7 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
+import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
@@ -31,6 +32,7 @@ import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedRe
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -58,6 +60,17 @@ public class ActivationRecoveryStep extends AbstractActivationStep<ActivationRec
         super(PowerAuthStep.ACTIVATION_RECOVERY, PowerAuthVersion.VERSION_3, resultStatusService, stepLogger);
 
         this.powerAuthHeaderService = powerAuthHeaderService;
+    }
+
+    /**
+     * Constructor for backward compatibility
+     */
+    public ActivationRecoveryStep() {
+        this(
+                BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
+                BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
+                BackwardCompatibilityConst.STEP_LOGGER
+        );
     }
 
     @Override

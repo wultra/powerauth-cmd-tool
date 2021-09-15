@@ -81,6 +81,13 @@ public class CreateTokenStep extends AbstractBaseStepV2 {
     }
 
     /**
+     * Constructor for backward compatibility
+     */
+    public CreateTokenStep() {
+        this(DEFAULT_STEP_LOGGER);
+    }
+
+    /**
      * Execute this step with given context
      *
      * @param context Provided context
@@ -95,7 +102,7 @@ public class CreateTokenStep extends AbstractBaseStepV2 {
         CreateTokenStepModel model = new CreateTokenStepModel();
         model.fromMap(context);
 
-        ResultStatusObject resultStatusObject = model.getResultStatusObject();
+        ResultStatusObject resultStatusObject = model.getResultStatus();
 
         // Get data from status
         String activationId = resultStatusObject.getActivationId();
@@ -134,7 +141,7 @@ public class CreateTokenStep extends AbstractBaseStepV2 {
         // Compute the current PowerAuth signature for possession
         // and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/token/create", nonceBytes, requestBytes) + "&" + model.getApplicationSecret();
-        byte[] ctrData = CounterUtil.getCtrData(model.getResultStatusObject(), stepLogger);
+        byte[] ctrData = CounterUtil.getCtrData(model.getResultStatus(), stepLogger);
         PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion().value());
         String signatureValue = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), Arrays.asList(signaturePossessionKey, signatureKnowledgeKey), ctrData, signatureFormat);
         PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion().value());
@@ -144,7 +151,7 @@ public class CreateTokenStep extends AbstractBaseStepV2 {
         CounterUtil.incrementCounter(model);
 
         // Store the activation status (updated counter)
-        String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+        String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatus());
         try (FileWriter file = new FileWriter(model.getStatusFileName())) {
             file.write(formatted);
         }
@@ -200,7 +207,7 @@ public class CreateTokenStep extends AbstractBaseStepV2 {
                     objectMap
 
             );
-            return model.getResultStatusObject();
+            return model.getResultStatus();
         } catch (Exception exception) {
             stepLogger.writeError("token-create-error-generic", exception);
             stepLogger.writeDoneFailed("token-create-failed");

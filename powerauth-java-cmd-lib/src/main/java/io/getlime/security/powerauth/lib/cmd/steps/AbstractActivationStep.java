@@ -111,7 +111,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         Map<String, Object> objectMap = new HashMap<>();
         objectMap.put("activationId", resultStatusObject.getActivationId());
         objectMap.put("activationStatusFile", model.getStatusFileName());
-        objectMap.put("activationStatusFileContent", model.getResultStatusObject());
+        objectMap.put("activationStatusFileContent", model.getResultStatus());
         objectMap.put("deviceKeyFingerprint", ACTIVATION.computeActivationFingerprint(stepContext.getDeviceKeyPair().getPublic(), resultStatusObject.getServerPublicKeyObject(), resultStatusObject.getActivationId()));
         stepLogger.writeItem(
                 getStep().id() + "-custom-activation-done",
@@ -198,7 +198,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         byte[] salt = KEY_GENERATOR.generateRandomBytes(16);
         byte[] cSignatureKnowledgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, signatureKnowledgeSecretKey, salt, KEY_GENERATOR);
 
-        ResultStatusObject resultStatusObject = model.getResultStatusObject();
+        ResultStatusObject resultStatusObject = model.getResultStatus();
 
         resultStatusObject.setActivationId(activationId);
         resultStatusObject.getCounter().set(0L);

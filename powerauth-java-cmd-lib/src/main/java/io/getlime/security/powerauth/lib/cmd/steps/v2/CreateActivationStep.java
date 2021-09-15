@@ -16,6 +16,7 @@ import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.http.PowerAuthRequestCanonizationUtils;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
+import io.getlime.security.powerauth.lib.cmd.logging.DisabledStepLogger;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.CreateActivationStepModel;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
@@ -56,6 +57,13 @@ public class CreateActivationStep extends AbstractBaseStepV2 {
     @Autowired
     public CreateActivationStep(StepLogger stepLogger) {
         super(PowerAuthStep.ACTIVATION_CREATE_CUSTOM, PowerAuthVersion.VERSION_2, stepLogger);
+    }
+
+    /**
+     * Constructor for backward compatibility
+     */
+    public CreateActivationStep() {
+        this(DEFAULT_STEP_LOGGER);
     }
 
     private static final PowerAuthClientActivation activation = new PowerAuthClientActivation();
@@ -306,7 +314,7 @@ public class CreateActivationStep extends AbstractBaseStepV2 {
                 byte[] cSignatureKnowledgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, signatureKnowledgeSecretKey, salt, keyGenerator);
 
                 // Prepare the status object to be stored
-                ResultStatusObject resultStatusObject = model.getResultStatusObject();
+                ResultStatusObject resultStatusObject = model.getResultStatus();
 
                 resultStatusObject.setActivationId(activationId);
                 resultStatusObject.getCounter().set(0L);
@@ -323,7 +331,7 @@ public class CreateActivationStep extends AbstractBaseStepV2 {
                 model.setResultStatusObject(resultStatusObject);
 
                 // Store the resulting status
-                String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+                String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatus());
                 try (FileWriter file = new FileWriter(model.getStatusFileName())) {
                     file.write(formatted);
                 }
@@ -331,7 +339,7 @@ public class CreateActivationStep extends AbstractBaseStepV2 {
                 Map<String, Object> objectMap = new HashMap<>();
                 objectMap.put("activationId", activationId);
                 objectMap.put("activationStatusFile", model.getStatusFileName());
-                objectMap.put("activationStatusFileContent", model.getResultStatusObject());
+                objectMap.put("activationStatusFileContent", model.getResultStatus());
                 objectMap.put("deviceKeyFingerprint", activation.computeActivationFingerprint(deviceKeyPair.getPublic()));
                 stepLogger.writeItem(
                         "activation-create-custom-activation-done",
@@ -340,7 +348,7 @@ public class CreateActivationStep extends AbstractBaseStepV2 {
                         "OK",
                         objectMap
                 );
-                return model.getResultStatusObject();
+                return model.getResultStatus();
 
             } else {
                 String message = "Activation data signature does not match. Either someone tried to spoof your connection, or your device master key is invalid.";

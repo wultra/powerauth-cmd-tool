@@ -72,6 +72,13 @@ public class GetStatusStep extends AbstractBaseStepV2 {
     }
 
     /**
+     * Constructor for backward compatibility
+     */
+    public GetStatusStep() {
+        this(DEFAULT_STEP_LOGGER);
+    }
+
+    /**
      * Execute this step with given context
      *
      * @param context Provided context
@@ -88,7 +95,7 @@ public class GetStatusStep extends AbstractBaseStepV2 {
         // Prepare the activation URI
         final String uri = model.getUriString() + "/pa/activation/status";
 
-        ResultStatusObject resultStatusObject = model.getResultStatusObject();
+        ResultStatusObject resultStatusObject = model.getResultStatus();
 
         // Get data from status
         final String activationId = resultStatusObject.getActivationId();
@@ -147,7 +154,7 @@ public class GetStatusStep extends AbstractBaseStepV2 {
                     "OK",
                     objectMap
             );
-            return model.getResultStatusObject();
+            return model.getResultStatus();
         } catch (Exception exception) {
             stepLogger.writeError("activation-status-error-generic", exception);
             stepLogger.writeDoneFailed("activation-status-failed");

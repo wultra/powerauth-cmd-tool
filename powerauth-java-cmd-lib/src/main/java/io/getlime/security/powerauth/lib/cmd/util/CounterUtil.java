@@ -19,7 +19,8 @@ package io.getlime.security.powerauth.lib.cmd.util;
 import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.lib.generator.HashBasedCounter;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
-import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
+import io.getlime.security.powerauth.lib.cmd.steps.model.BaseStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 
 import java.nio.ByteBuffer;
@@ -31,6 +32,20 @@ import java.nio.ByteBuffer;
  *
  */
 public class CounterUtil {
+
+    /**
+     * Get counter data. In activation version 2, numeric counter is converted to counter data. In version 3 the
+     * counter data is available in model.
+     *
+     * <p>Keeps backward compatibility with former approaches</p>
+     *
+     * @param model Step model.
+     * @param stepLogger Step logger.
+     * @return Counter data.
+     */
+    public static byte[] getCtrData(BaseStepModel model, StepLogger stepLogger) {
+        return getCtrData(model.getResultStatus(), stepLogger);
+    }
 
     /**
      * Get counter data. In activation version 2, numeric counter is converted to counter data. In version 3 the
@@ -74,9 +89,9 @@ public class CounterUtil {
      * @param model Step model.
      */
     @SuppressWarnings("unchecked")
-    public static void incrementCounter(ResultStatusChangeable model) {
+    public static void incrementCounter(BaseStepData model) {
         // Increment the numeric counter
-        ResultStatusObject resultStatusObject = model.getResultStatusObject();
+        ResultStatusObject resultStatusObject = model.getResultStatus();
 
         resultStatusObject.getCounter().incrementAndGet();
 
