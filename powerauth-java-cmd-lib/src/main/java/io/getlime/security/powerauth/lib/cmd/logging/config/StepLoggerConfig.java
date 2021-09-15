@@ -1,4 +1,5 @@
 /*
+ * PowerAuth Command-line utility
  * Copyright 2021 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,28 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.getlime.security.powerauth.lib.cmd.steps.pojo;
+package io.getlime.security.powerauth.lib.cmd.logging.config;
 
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
-import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
-import io.getlime.security.powerauth.lib.cmd.steps.model.CreateTokenStepModel;
-import lombok.Builder;
+import io.getlime.security.powerauth.lib.cmd.consts.StepLoggerType;
 import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
 
 /**
+ * Configuration of step logger
+ *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  */
-@Data @Builder
-public class TokenContext {
+@Data
+@Configuration
+@ConfigurationProperties(prefix = "steplogger")
+public class StepLoggerConfig {
 
-    private CreateTokenStepModel model;
-
-    private EciesEncryptor encryptor;
-
-    private String password;
-
-    private ResultStatusObject resultStatusObject;
-
-    private StepLogger stepLogger;
+    /**
+     * Format type of logged messages
+     */
+    private StepLoggerType type = StepLoggerType.JSON;
 
 }

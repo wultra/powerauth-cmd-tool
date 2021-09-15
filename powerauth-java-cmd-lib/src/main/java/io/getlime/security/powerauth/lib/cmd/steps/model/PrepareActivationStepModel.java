@@ -16,7 +16,12 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.ActivationData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
+
 import java.security.PublicKey;
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -24,7 +29,8 @@ import java.util.Map;
  *
  * @author Petr Dvorak, petr@wultra.com
  */
-public class PrepareActivationStepModel extends BaseStepModel {
+public class PrepareActivationStepModel extends BaseStepModel
+        implements ActivationData, ResultStatusChangeable, EncryptionHeaderData {
 
     private String statusFileName;
     private String activationCode;
@@ -39,6 +45,7 @@ public class PrepareActivationStepModel extends BaseStepModel {
 
     /**
      * Set Master Server Public Key, a value specific for given application.
+     *
      * @param masterPublicKey KEY_MASTER_SERVER_PUBLIC.
      */
     public void setMasterPublicKey(PublicKey masterPublicKey) {
@@ -47,6 +54,7 @@ public class PrepareActivationStepModel extends BaseStepModel {
 
     /**
      * File name of the file with stored activation status.
+     *
      * @param statusFileName Status file name.
      */
     public void setStatusFileName(String statusFileName) {
@@ -55,6 +63,7 @@ public class PrepareActivationStepModel extends BaseStepModel {
 
     /**
      * Activation name.
+     *
      * @param activationName Activation name.
      */
     public void setActivationName(String activationName) {
@@ -63,6 +72,7 @@ public class PrepareActivationStepModel extends BaseStepModel {
 
     /**
      * Set user device platform.
+     *
      * @param platform User device platform.
      */
     public void setPlatform(String platform) {
@@ -71,6 +81,7 @@ public class PrepareActivationStepModel extends BaseStepModel {
 
     /**
      * Set information about user device.
+     *
      * @param deviceInfo Information about user device.
      */
     public void setDeviceInfo(String deviceInfo) {
@@ -79,6 +90,7 @@ public class PrepareActivationStepModel extends BaseStepModel {
 
     /**
      * Application key.
+     *
      * @param applicationKey APP_KEY.
      */
     public void setApplicationKey(String applicationKey) {
@@ -87,6 +99,7 @@ public class PrepareActivationStepModel extends BaseStepModel {
 
     /**
      * Application secret.
+     *
      * @param applicationSecret APP_SECRET.
      */
     public void setApplicationSecret(String applicationSecret) {
@@ -95,6 +108,7 @@ public class PrepareActivationStepModel extends BaseStepModel {
 
     /**
      * Activation code, in following format: "XXXXX-XXXXX-XXXXX-XXXXX" where each "X" is from Base32.
+     *
      * @param activationCode Activation code.
      */
     public void setActivationCode(String activationCode) {
@@ -103,6 +117,7 @@ public class PrepareActivationStepModel extends BaseStepModel {
 
     /**
      * Additional activation OTP, supported by PowerAuth Server {@code 0.24+}.
+     *
      * @param additionalActivationOtp Additional activation OTP.
      */
     public void setAdditionalActivationOtp(String additionalActivationOtp) {
@@ -111,6 +126,7 @@ public class PrepareActivationStepModel extends BaseStepModel {
 
     /**
      * Password for the password related key encryption.
+     *
      * @param password Password.
      */
     public void setPassword(String password) {
@@ -155,6 +171,16 @@ public class PrepareActivationStepModel extends BaseStepModel {
 
     public PublicKey getMasterPublicKey() {
         return masterPublicKey;
+    }
+
+    @Override
+    public Map<String, Object> getCustomAttributes() {
+        return Collections.emptyMap();
+    }
+
+    @Override
+    public Map<String, String> getIdentityAttributes() {
+        return Collections.emptyMap();
     }
 
     @Override

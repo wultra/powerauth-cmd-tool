@@ -15,6 +15,10 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.ActivationData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
+
 import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,7 +28,8 @@ import java.util.Map;
  *
  * @author Petr Dvorak, petr@wultra.com
  */
-public class CreateActivationStepModel extends BaseStepModel {
+public class CreateActivationStepModel extends BaseStepModel
+        implements ActivationData, ResultStatusChangeable, EncryptionHeaderData {
 
     private Map<String, String> identityAttributes;
     private Map<String, Object> customAttributes;

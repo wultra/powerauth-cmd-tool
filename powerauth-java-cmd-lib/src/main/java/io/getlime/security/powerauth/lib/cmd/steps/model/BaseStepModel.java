@@ -16,7 +16,10 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
+import lombok.Data;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,63 +29,32 @@ import java.util.Map;
  *
  * @author Petr Dvorak, petr@wultra.com
  */
-public class BaseStepModel {
+@Data
+public class BaseStepModel implements BaseStepData {
 
+    /**
+     * HTTP headers
+     */
     private Map<String, String> headers;
+
+    /**
+     * Base URI of PowerAuth Standard RESTful API
+     */
     private String uriString;
+
+    /**
+     * Activation status object
+     */
     private ResultStatusObject resultStatusObject;
-    private String version;
 
     /**
-     * Set base URI string of the PowerAuth Standard RESTful API.
-     * @param uriString Base URI of PA2.0 Standard RESTful API.
+     * PowerAuth protocol version
      */
-    public void setUriString(String uriString) {
-        this.uriString = uriString;
-    }
-
-    /**
-     * Set the object representing activation status.
-     * @param resultStatusObject Activation status object.
-     */
-    public void setResultStatusObject(ResultStatusObject resultStatusObject) {
-        this.resultStatusObject = resultStatusObject;
-    }
-
-    /**
-     * Set PowerAuth protocol version.
-     * @param version PowerAuth protocol version.
-     */
-    public void setVersion(String version) {
-        this.version = version;
-    }
-
-    /**
-     * Set HTTP headers used for requests.
-     * @param headers HTTP headers.
-     */
-    public void setHeaders(Map<String, String> headers) {
-        this.headers = headers;
-    }
-
-    public Map<String, String> getHeaders() {
-        return headers;
-    }
-
-    public String getUriString() {
-        return uriString;
-    }
-
-    public ResultStatusObject getResultStatusObject() {
-        return resultStatusObject;
-    }
-
-    public String getVersion() {
-        return version;
-    }
+    private PowerAuthVersion version;
 
     /**
      * Convert this object to map.
+     *
      * @return Map representing this object.
      */
     public Map<String, Object> toMap() {
@@ -96,6 +68,7 @@ public class BaseStepModel {
 
     /**
      * Initialize object with given attribute map.
+     *
      * @param context Context with attributes.
      */
     @SuppressWarnings("unchecked")
@@ -103,7 +76,7 @@ public class BaseStepModel {
         setHeaders((Map<String, String>) context.get("HTTP_HEADERS"));
         setUriString((String) context.get("URI_STRING"));
         setResultStatusObject((ResultStatusObject) context.get("STATUS_OBJECT"));
-        setVersion((String) context.get("VERSION"));
+        setVersion((PowerAuthVersion) context.get("VERSION"));
     }
 
 }

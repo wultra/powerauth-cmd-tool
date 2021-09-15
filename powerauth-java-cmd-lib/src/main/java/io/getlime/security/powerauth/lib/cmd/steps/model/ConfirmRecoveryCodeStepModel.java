@@ -16,6 +16,10 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
+import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
+
 import java.security.PublicKey;
 import java.util.Map;
 
@@ -24,7 +28,8 @@ import java.util.Map;
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class ConfirmRecoveryCodeStepModel extends BaseStepModel {
+public class ConfirmRecoveryCodeStepModel extends BaseStepModel
+        implements ResultStatusChangeable, SignatureHeaderData {
 
     private String statusFileName;
     private String applicationKey;
@@ -35,6 +40,7 @@ public class ConfirmRecoveryCodeStepModel extends BaseStepModel {
 
     /**
      * Get file name of the file with stored activation status.
+     *
      * @return Status file name.
      */
     public String getStatusFileName() {
@@ -43,6 +49,7 @@ public class ConfirmRecoveryCodeStepModel extends BaseStepModel {
 
     /**
      * File name of the file with stored activation status.
+     *
      * @param statusFileName Status file name.
      */
     public void setStatusFileName(String statusFileName) {
@@ -51,6 +58,7 @@ public class ConfirmRecoveryCodeStepModel extends BaseStepModel {
 
     /**
      * Get application key.
+     *
      * @return Application key.
      */
     public String getApplicationKey() {
@@ -59,6 +67,7 @@ public class ConfirmRecoveryCodeStepModel extends BaseStepModel {
 
     /**
      * Application key.
+     *
      * @param applicationKey Application key.
      */
     public void setApplicationKey(String applicationKey) {
@@ -67,6 +76,7 @@ public class ConfirmRecoveryCodeStepModel extends BaseStepModel {
 
     /**
      * Get application secret.
+     *
      * @return Application secret.
      */
     public String getApplicationSecret() {
@@ -75,6 +85,7 @@ public class ConfirmRecoveryCodeStepModel extends BaseStepModel {
 
     /**
      * Application secret.
+     *
      * @param applicationSecret Application secret.
      */
     public void setApplicationSecret(String applicationSecret) {
@@ -83,6 +94,7 @@ public class ConfirmRecoveryCodeStepModel extends BaseStepModel {
 
     /**
      * Get knowledge key password.
+     *
      * @return Knowledge key password.
      */
     public String getPassword() {
@@ -91,6 +103,7 @@ public class ConfirmRecoveryCodeStepModel extends BaseStepModel {
 
     /**
      * Set knowledge key password.
+     *
      * @param password Knowledge key password.
      */
     public void setPassword(String password) {
@@ -99,6 +112,7 @@ public class ConfirmRecoveryCodeStepModel extends BaseStepModel {
 
     /**
      * Get recovery code.
+     *
      * @return Recovery code.
      */
     public String getRecoveryCode() {
@@ -107,6 +121,7 @@ public class ConfirmRecoveryCodeStepModel extends BaseStepModel {
 
     /**
      * Set recovery code.
+     *
      * @param recoveryCode Recovery code.
      */
     public void setRecoveryCode(String recoveryCode) {
@@ -115,6 +130,7 @@ public class ConfirmRecoveryCodeStepModel extends BaseStepModel {
 
     /**
      * Get Base64 encoded master public key.
+     *
      * @return Base64 encoded master public key.
      */
     public PublicKey getMasterPublicKey() {
@@ -123,10 +139,16 @@ public class ConfirmRecoveryCodeStepModel extends BaseStepModel {
 
     /**
      * Set master public key
+     *
      * @param masterPublicKey Master public key
      */
     public void setMasterPublicKey(PublicKey masterPublicKey) {
         this.masterPublicKey = masterPublicKey;
+    }
+
+    @Override
+    public PowerAuthSignatureTypes getSignatureType() {
+        return PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE;
     }
 
     @Override

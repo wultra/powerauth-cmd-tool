@@ -15,33 +15,26 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.io.BaseEncoding;
-import com.wultra.core.rest.client.base.RestClient;
-import com.wultra.core.rest.client.base.RestClientException;
+import com.google.common.collect.ImmutableMap;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
-import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
-import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
-import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
+import io.getlime.security.powerauth.lib.cmd.service.PowerAuthHeaderService;
+import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
+import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
+import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
+import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
-import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
-import io.getlime.security.powerauth.lib.cmd.util.*;
-import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
 import io.getlime.security.powerauth.rest.api.model.response.v3.UpgradeResponsePayload;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 
-import java.io.FileWriter;
-import java.nio.charset.StandardCharsets;
-import java.security.interfaces.ECPublicKey;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Step for starting upgrade to PowerAuth protocol version 3.0.
@@ -52,144 +45,66 @@ import java.util.Objects;
  *      <li>3.1</li>
  * </ul>
  *
+ * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class StartUpgradeStep implements BaseStep {
+@Component
+public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, EciesEncryptedResponse> {
 
-    private static final KeyConvertor keyConvertor = new KeyConvertor();
-    private static final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
-    private static final EciesFactory eciesFactory = new EciesFactory();
+    private final PowerAuthHeaderService powerAuthHeaderService;
 
-    /**
-     * Execute this step with given context.
-     * @param context Provided context.
-     * @return Result status object, null in case of failure.
-     * @throws Exception In case of any error.
-     */
-    @SuppressWarnings("unchecked")
+    @Autowired
+    public StartUpgradeStep(PowerAuthHeaderService powerAuthHeaderService,
+                            ResultStatusService resultStatusService,
+                            StepLogger stepLogger) {
+        super(PowerAuthStep.UPGRADE_START, PowerAuthVersion.VERSION_3, resultStatusService, stepLogger);
+
+        this.powerAuthHeaderService = powerAuthHeaderService;
+    }
+
     @Override
-    public ResultStatusObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    protected ParameterizedTypeReference<EciesEncryptedResponse> getResponseTypeReference() {
+        return PowerAuthConst.RESPONSE_TYPE_REFERENCE_V3;
+    }
 
-        // Read properties from "context"
+    @Override
+    public StepContext<StartUpgradeStepModel, EciesEncryptedResponse> prepareStepContext(Map<String, Object> context) throws Exception {
         StartUpgradeStepModel model = new StartUpgradeStepModel();
         model.fromMap(context);
 
-        if (stepLogger != null) {
-            stepLogger.writeItem(
-                    "upgrade-start-started",
-                    "Upgrade Started",
-                    null,
-                    "OK",
-                    null
-            );
-        }
+        RequestContext requestContext = RequestContext.builder()
+                .uri(model.getUriString() + "/pa/v3/upgrade/start")
+                .build();
 
-        ResultStatusObject resultStatusObject = model.getResultStatusObject();
+        StepContext<StartUpgradeStepModel, EciesEncryptedResponse> stepContext =
+                buildStepContext(model, requestContext);
 
-        final String uri = model.getUriString() + "/pa/v3/upgrade/start";
-        final String applicationKey = model.getApplicationKey();
-        final String activationId = resultStatusObject.getActivationId();
+        addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.UPGRADE, PowerAuthConst.EMPTY_JSON_BYTES);
 
-        // Prepare ECIES encryptor and encrypt request data with sharedInfo1 = /pa/upgrade
-        final boolean useIv = !"3.0".equals(model.getVersion());
-        byte[] applicationSecret = model.getApplicationSecret().getBytes(StandardCharsets.UTF_8);
-        byte[] transportMasterKeyBytes = resultStatusObject.getTransportMasterKeyObject().getEncoded();
-        byte[] serverPublicKeyBytes = resultStatusObject.getServerPublicKeyObject().getEncoded();
-        final ECPublicKey serverPublicKey = (ECPublicKey) keyConvertor.convertBytesToPublicKey(serverPublicKeyBytes);
-        final EciesEncryptor encryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
-                transportMasterKeyBytes, EciesSharedInfo1.UPGRADE);
-        final EciesCryptogram eciesCryptogram = encryptor.encryptRequest("{}".getBytes(StandardCharsets.UTF_8), useIv);
+        powerAuthHeaderService.addEncryptionHeader(requestContext, model);
 
-        // Prepare encrypted request
-        final EciesEncryptedRequest request = new EciesEncryptedRequest();
-        final String ephemeralPublicKeyBase64 = BaseEncoding.base64().encode(eciesCryptogram.getEphemeralPublicKey());
-        final String encryptedData = BaseEncoding.base64().encode(eciesCryptogram.getEncryptedData());
-        final String mac = BaseEncoding.base64().encode(eciesCryptogram.getMac());
-        final String nonce = useIv ? BaseEncoding.base64().encode(eciesCryptogram.getNonce()) : null;
-        request.setEphemeralPublicKey(ephemeralPublicKeyBase64);
-        request.setEncryptedData(encryptedData);
-        request.setMac(mac);
-        request.setNonce(nonce);
+        return stepContext;
+    }
 
-        byte[] requestBytes = mapper.writeValueAsBytes(request);
+    @Override
+    public void processResponse(StepContext<StartUpgradeStepModel, EciesEncryptedResponse> stepContext) throws Exception {
+        StartUpgradeStepModel model = stepContext.getModel();
+        EciesEncryptor encryptor = stepContext.getEncryptor();
+        EciesEncryptedResponse response = stepContext.getResponseContext().getResponseBodyObject();
+        final UpgradeResponsePayload responsePayload =
+                decryptResponse(encryptor, response, UpgradeResponsePayload.class);
 
-        // Prepare the encryption header
-        PowerAuthEncryptionHttpHeader header = new PowerAuthEncryptionHttpHeader(applicationKey, activationId, model.getVersion());
-        String httpEncryptionHeader = header.buildHttpHeader();
+        // Store the activation status (updated counter)
+        model.getResultStatusObject().setCtrDataBase(responsePayload.getCtrData());
+        resultStatusService.save(model);
 
-        // Call the server with activation data
-        try {
-
-            Map<String, String> headers = new HashMap<>();
-            headers.put("Accept", "application/json");
-            headers.put("Content-Type", "application/json");
-            headers.put(PowerAuthEncryptionHttpHeader.HEADER_NAME, httpEncryptionHeader);
-            headers.putAll(model.getHeaders());
-
-            if (stepLogger != null) {
-                stepLogger.writeServerCall("upgrade-start-request-sent", uri, "POST", request, headers);
-            }
-
-            ResponseEntity<EciesEncryptedResponse> responseEntity;
-            RestClient restClient = RestClientFactory.getRestClient();
-            if (restClient == null) {
-                return null;
-            }
-            ParameterizedTypeReference<EciesEncryptedResponse> typeReference = new ParameterizedTypeReference<EciesEncryptedResponse>() {};
-            try {
-                responseEntity = restClient.post(uri, requestBytes, null, MapUtil.toMultiValueMap(headers), typeReference);
-            } catch (RestClientException ex) {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("upgrade-start-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
-                    stepLogger.writeDoneFailed("upgrade-start-failed");
-                }
-                return null;
-            }
-
-            EciesEncryptedResponse encryptedResponse = Objects.requireNonNull(responseEntity.getBody());
-            if (stepLogger != null) {
-                stepLogger.writeServerCallOK("upgrade-start-response-received", encryptedResponse, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
-            }
-
-            // Decrypt response
-            byte[] macResponse = BaseEncoding.base64().decode(encryptedResponse.getMac());
-            byte[] encryptedDataResponse = BaseEncoding.base64().decode(encryptedResponse.getEncryptedData());
-            final EciesCryptogram eciesCryptogramResponse = new EciesCryptogram(macResponse, encryptedDataResponse);
-
-            byte[] decryptedBytes = encryptor.decryptResponse(eciesCryptogramResponse);
-
-            final UpgradeResponsePayload upgradeResponsePayload = mapper.readValue(decryptedBytes, UpgradeResponsePayload.class);
-
-            // Store the activation status (updated counter)
-            model.getResultStatusObject().setCtrDataBase(upgradeResponsePayload.getCtrData());
-            String statusFormatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
-            try (FileWriter file = new FileWriter(model.getStatusFileName())) {
-                file.write(statusFormatted);
-            }
-
-            Map<String, Object> objectMap = new HashMap<>();
-            objectMap.put("ctrData", upgradeResponsePayload.getCtrData());
-
-            if (stepLogger != null) {
-                stepLogger.writeItem(
-                        "upgrade-start-completed",
-                        "Upgrade start step successfully completed",
-                        "Upgrade start step was successfully completed",
-                        "OK",
-                        objectMap
-
-                );
-                stepLogger.writeDoneOK("upgrade-start-success");
-            }
-
-            return model.getResultStatusObject();
-        } catch (Exception exception) {
-            if (stepLogger != null) {
-                stepLogger.writeError("upgrade-start-error-generic", exception);
-                stepLogger.writeDoneFailed("upgrade-start-failed");
-            }
-            return null;
-        }
+        stepLogger.writeItem(
+                getStep().id() + "-completed",
+                "Upgrade start step successfully completed",
+                "Upgrade start step was successfully completed",
+                "OK",
+                ImmutableMap.of("ctrData", responsePayload.getCtrData())
+        );
     }
 
 }

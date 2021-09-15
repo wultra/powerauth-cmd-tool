@@ -17,6 +17,9 @@
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
 
 import java.util.Map;
 
@@ -25,7 +28,8 @@ import java.util.Map;
  *
  * @author Petr Dvorak, petr@wultra.com
  */
-public class VerifySignatureStepModel extends BaseStepModel {
+public class VerifySignatureStepModel extends BaseStepModel
+        implements ResultStatusChangeable, DryRunCapable, SignatureHeaderData {
 
     private String statusFileName;
     private String applicationKey;
@@ -39,6 +43,7 @@ public class VerifySignatureStepModel extends BaseStepModel {
 
     /**
      * File name of the file with stored activation status.
+     *
      * @param statusFileName Status file name.
      */
     public void setStatusFileName(String statusFileName) {
@@ -47,6 +52,7 @@ public class VerifySignatureStepModel extends BaseStepModel {
 
     /**
      * Application key.
+     *
      * @param applicationKey APP_KEY.
      */
     public void setApplicationKey(String applicationKey) {
@@ -55,6 +61,7 @@ public class VerifySignatureStepModel extends BaseStepModel {
 
     /**
      * Application secret.
+     *
      * @param applicationSecret APP_SECRET.
      */
     public void setApplicationSecret(String applicationSecret) {
@@ -63,6 +70,7 @@ public class VerifySignatureStepModel extends BaseStepModel {
 
     /**
      * HTTP method used for the request call.
+     *
      * @param httpMethod HTTP method for the call.
      */
     public void setHttpMethod(String httpMethod) {
@@ -71,6 +79,7 @@ public class VerifySignatureStepModel extends BaseStepModel {
 
     /**
      * Resource identifier for a given call.
+     *
      * @param resourceId Resource identifier.
      */
     public void setResourceId(String resourceId) {
@@ -79,6 +88,7 @@ public class VerifySignatureStepModel extends BaseStepModel {
 
     /**
      * PowerAuth signature type.
+     *
      * @param signatureType Signature type.
      */
     public void setSignatureType(PowerAuthSignatureTypes signatureType) {
@@ -87,6 +97,7 @@ public class VerifySignatureStepModel extends BaseStepModel {
 
     /**
      * The request data, used for POST, PUT and DELETE methods.
+     *
      * @param data Request data.
      */
     public void setData(byte[] data) {
@@ -95,6 +106,7 @@ public class VerifySignatureStepModel extends BaseStepModel {
 
     /**
      * Password for the password related key encryption.
+     *
      * @param password Password.
      */
     public void setPassword(String password) {
@@ -103,6 +115,7 @@ public class VerifySignatureStepModel extends BaseStepModel {
 
     /**
      * Set flag indicating that this step should be terminated before the networking call.
+     *
      * @return Dry run indicator.
      */
     public boolean isDryRun() {

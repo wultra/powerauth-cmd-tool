@@ -17,6 +17,8 @@
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
 
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
+
 import java.security.PublicKey;
 import java.util.Map;
 
@@ -25,7 +27,8 @@ import java.util.Map;
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class EncryptStepModel extends BaseStepModel {
+public class EncryptStepModel extends BaseStepModel
+        implements EncryptionHeaderData {
 
     private byte[] data;
     private String applicationKey;
@@ -35,6 +38,7 @@ public class EncryptStepModel extends BaseStepModel {
 
     /**
      * Get the request data.
+     *
      * @return Request data.
      */
     public byte[] getData() {
@@ -43,6 +47,7 @@ public class EncryptStepModel extends BaseStepModel {
 
     /**
      * Set the request data.
+     *
      * @param data Request data.
      */
     public void setData(byte[] data) {
@@ -51,6 +56,7 @@ public class EncryptStepModel extends BaseStepModel {
 
     /**
      * Get application key.
+     *
      * @return Application key.
      */
     public String getApplicationKey() {
@@ -59,6 +65,7 @@ public class EncryptStepModel extends BaseStepModel {
 
     /**
      * Set application key.
+     *
      * @param applicationKey Application key.
      */
     public void setApplicationKey(String applicationKey) {
@@ -67,6 +74,7 @@ public class EncryptStepModel extends BaseStepModel {
 
     /**
      * Get application secret.
+     *
      * @return Application secret.
      */
     public String getApplicationSecret() {
@@ -75,6 +83,7 @@ public class EncryptStepModel extends BaseStepModel {
 
     /**
      * Set application secret.
+     *
      * @param applicationSecret Application secret.
      */
     public void setApplicationSecret(String applicationSecret) {
@@ -83,6 +92,7 @@ public class EncryptStepModel extends BaseStepModel {
 
     /**
      * Get master public key.
+     *
      * @return Master public key.
      */
     public PublicKey getMasterPublicKey() {
@@ -91,6 +101,7 @@ public class EncryptStepModel extends BaseStepModel {
 
     /**
      * Set master public key.
+     *
      * @param masterPublicKey Master public key.
      */
     public void setMasterPublicKey(PublicKey masterPublicKey) {

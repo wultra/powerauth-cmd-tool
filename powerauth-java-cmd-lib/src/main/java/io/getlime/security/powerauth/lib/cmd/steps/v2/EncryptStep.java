@@ -23,17 +23,19 @@ import io.getlime.core.rest.model.base.request.ObjectRequest;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.encryptor.ClientNonPersonalizedEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.model.NonPersonalizedEncryptedMessage;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
-import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.MapUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientFactory;
 import io.getlime.security.powerauth.rest.api.model.entity.NonPersonalizedEncryptedPayloadModel;
-import org.json.simple.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -50,33 +52,29 @@ import java.util.Objects;
  * </ul>
  *
  * @author Roman Strobl, roman.strobl@wultra.com
- *
  */
-public class EncryptStep implements BaseStep {
+@Component(value = "encryptStepV2")
+public class EncryptStep extends AbstractBaseStepV2 {
+
+    @Autowired
+    public EncryptStep(StepLogger stepLogger) {
+        super(PowerAuthStep.ENCRYPT, PowerAuthVersion.VERSION_2, stepLogger);
+    }
 
     /**
      * Execute this step with given context.
-     * @param stepLogger Step logger.
+     *
      * @param context Provided context.
      * @return Result status object, null in case of failure.
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public ResultStatusObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    @Override
+    public ResultStatusObject execute(Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         EncryptStepModel model = new EncryptStepModel();
         model.fromMap(context);
-
-        if (stepLogger != null) {
-            stepLogger.writeItem(
-                    "encrypt-start",
-                    "Encrypt Request Started",
-                    null,
-                    "OK",
-                    null
-            );
-        }
 
         // Prepare the encryption URI
         String uri = model.getUriString();
@@ -84,10 +82,8 @@ public class EncryptStep implements BaseStep {
         // Read data which needs to be encrypted
         final byte[] requestDataBytes = model.getData();
         if (requestDataBytes == null) {
-            if (stepLogger != null) {
-                stepLogger.writeError("encrypt-error-data-file", "Encrypt Request Failed", "Request data for encryption was null.");
-                stepLogger.writeDoneFailed("encrypt-failed");
-            }
+            stepLogger.writeError("encrypt-error-data-file", "Encrypt Request Failed", "Request data for encryption was null.");
+            stepLogger.writeDoneFailed("encrypt-failed");
             return null;
         }
         // Prepare the encryptor
@@ -96,10 +92,8 @@ public class EncryptStep implements BaseStep {
         // Encrypt the request data
         final NonPersonalizedEncryptedMessage encryptedMessage = encryptor.encrypt(requestDataBytes);
         if (encryptedMessage == null) {
-            if (stepLogger != null) {
-                stepLogger.writeError("encrypt-error-missing-message", "Encryption failed", "Encrypted message is not available");
-                stepLogger.writeDoneFailed("encrypt-failed");
-            }
+            stepLogger.writeError("encrypt-error-missing-message", "Encryption failed", "Encrypted message is not available");
+            stepLogger.writeDoneFailed("encrypt-failed");
             return null;
         }
 
@@ -116,15 +110,13 @@ public class EncryptStep implements BaseStep {
         ObjectRequest<NonPersonalizedEncryptedPayloadModel> body = new ObjectRequest<>();
         body.setRequestObject(encryptedRequestObject);
 
-        if (stepLogger != null) {
-            stepLogger.writeItem(
-                    "encrypt-request-encrypt",
-                    "Encrypting request data",
-                    "Following data is sent to intermediate server",
-                    "OK",
-                    body
-            );
-        }
+        stepLogger.writeItem(
+                "encrypt-request-encrypt",
+                "Encrypting request data",
+                "Following data is sent to intermediate server",
+                "OK",
+                body
+        );
 
         try {
 
@@ -133,31 +125,26 @@ public class EncryptStep implements BaseStep {
             headers.put("Content-Type", "application/json");
             headers.putAll(model.getHeaders());
 
-            if (stepLogger != null) {
-                stepLogger.writeServerCall("encrypt-request-sent", uri, "POST", body, headers);
-            }
+            stepLogger.writeServerCall("encrypt-request-sent", uri, "POST", body, headers);
 
             ResponseEntity<ObjectResponse<NonPersonalizedEncryptedPayloadModel>> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();
             if (restClient == null) {
                 return null;
             }
-            ParameterizedTypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>> typeReference = new ParameterizedTypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>>() {};
+            ParameterizedTypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>> typeReference = new ParameterizedTypeReference<ObjectResponse<NonPersonalizedEncryptedPayloadModel>>() {
+            };
             try {
                 responseEntity = restClient.post(uri, body, null, MapUtil.toMultiValueMap(headers), typeReference);
             } catch (RestClientException ex) {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("encrypt-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
-                    stepLogger.writeDoneFailed("encrypt-failed");
-                }
+                stepLogger.writeServerCallError("encrypt-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
+                stepLogger.writeDoneFailed("encrypt-failed");
                 return null;
             }
 
             ObjectResponse<NonPersonalizedEncryptedPayloadModel> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
 
-            if (stepLogger != null) {
-                stepLogger.writeServerCallOK("encrypt-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
-            }
+            stepLogger.writeServerCallOK("encrypt-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
 
             // Decrypt the server response
             final NonPersonalizedEncryptedPayloadModel encryptedResponseObject = responseWrapper.getResponseObject();
@@ -172,32 +159,25 @@ public class EncryptStep implements BaseStep {
 
             byte[] decryptedMessageBytes = encryptor.decrypt(encryptedMessage);
             if (decryptedMessageBytes == null) {
-                if (stepLogger != null) {
-                    stepLogger.writeError("encrypt-error-decrypt", "Decryption failed", "Decrypted message is not available");
-                    stepLogger.writeDoneFailed("encrypt-failed");
-                }
+                stepLogger.writeError("encrypt-error-decrypt", "Decryption failed", "Decrypted message is not available");
+                stepLogger.writeDoneFailed("encrypt-failed");
                 return null;
             }
 
             String decryptedMessage = new String(decryptedMessageBytes, StandardCharsets.UTF_8);
             model.getResultStatusObject().setResponseData(decryptedMessage);
 
-            if (stepLogger != null) {
-                stepLogger.writeItem(
-                        "encrypt-response-decrypt",
-                        "Decrypted response",
-                        "Following data were decrypted",
-                        "OK",
-                        decryptedMessage
-                );
-                stepLogger.writeDoneOK("encrypt-success");
-            }
+            stepLogger.writeItem(
+                    "encrypt-response-decrypt",
+                    "Decrypted response",
+                    "Following data were decrypted",
+                    "OK",
+                    decryptedMessage
+            );
             return model.getResultStatusObject();
         } catch (Exception exception) {
-            if (stepLogger != null) {
-                stepLogger.writeError("encrypt-error-generic", exception);
-                stepLogger.writeDoneFailed("encrypt-failed");
-            }
+            stepLogger.writeError("encrypt-error-generic", exception);
+            stepLogger.writeDoneFailed("encrypt-failed");
             return null;
         }
     }
