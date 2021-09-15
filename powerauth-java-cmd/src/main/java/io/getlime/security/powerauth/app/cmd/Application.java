@@ -16,27 +16,27 @@
  */
 package io.getlime.security.powerauth.app.cmd;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.getlime.security.powerauth.app.cmd.exception.ExecutionException;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
-import io.getlime.security.powerauth.lib.cmd.logging.JsonStepLogger;
-import io.getlime.security.powerauth.lib.cmd.steps.VerifySignatureStep;
-import io.getlime.security.powerauth.lib.cmd.steps.VerifyTokenStep;
+import io.getlime.security.powerauth.lib.cmd.CmdLibApplication;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
+import io.getlime.security.powerauth.lib.cmd.exception.PowerAuthCmdException;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.service.StepExecutionService;
+import io.getlime.security.powerauth.lib.cmd.util.FileUtil;
 import io.getlime.security.powerauth.lib.cmd.steps.model.*;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
-import io.getlime.security.powerauth.lib.cmd.steps.v3.ActivationRecoveryStep;
-import io.getlime.security.powerauth.lib.cmd.steps.v3.CommitUpgradeStep;
-import io.getlime.security.powerauth.lib.cmd.steps.v3.ConfirmRecoveryCodeStep;
-import io.getlime.security.powerauth.lib.cmd.steps.v3.StartUpgradeStep;
 import io.getlime.security.powerauth.lib.cmd.util.ConfigurationUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientFactory;
 import org.apache.commons.cli.*;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONObject;
-import org.json.simple.JSONValue;
+import org.springframework.boot.WebApplicationType;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -51,8 +51,8 @@ import java.util.Set;
  * Command-line utility for testing PowerAuth implementation and for verification of
  * a correct system deployment.
  *
- * @author Petr Dvorak
- *
+ * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
+ * @author Petr Dvorak, petr@wultra.com
  */
 public class Application {
 
@@ -63,11 +63,14 @@ public class Application {
     @SuppressWarnings("unchecked")
     public static void main(String[] args) {
 
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonStepLogger stepLogger = new JsonStepLogger(System.out);
+        ConfigurableApplicationContext appContext = new SpringApplicationBuilder(CmdLibApplication.class)
+                .web(WebApplicationType.NONE)
+                .run(args);;
+
+        StepExecutionService stepExecutionService = appContext.getBeanFactory().getBean(StepExecutionService.class);
+        StepLogger stepLogger = appContext.getBeanFactory().getBean(StepLogger.class);
 
         try {
-
             JSONObject clientConfigObject;
 
             // Add Bouncy Castle Security Provider
@@ -87,7 +90,7 @@ public class Application {
             options.addOption("l", "signature-type", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a signature type, as specified in PowerAuth signature process.");
             options.addOption("d", "data-file", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a file with the input data to be signed and verified with the server, as specified in PowerAuth signature process.");
             options.addOption("y", "dry-run", false, "In case a specified method is 'sign' or 'validate-token' and this attribute is specified, the step is stopped right after signing the request body and preparing appropriate headers.");
-            options.addOption("p", "password", true, "Password used for a knowledge related key encryption. If not specified, an interactive input is required.");
+            options.addOption("p", "password", true, "Password used r a knowledge related key encryption. If not specified, an interactive input is required.");
             options.addOption("I", "identity-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with identity attributes.");
             options.addOption("C", "custom-attributes-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with custom attributes.");
             options.addOption("i", "invalidSsl", false, "Client may accept invalid SSL certificate in HTTPS communication.");
@@ -159,38 +162,13 @@ public class Application {
             String statusFileName = cmd.getOptionValue("s");
             String configFileName = cmd.getOptionValue("c");
             String reason = cmd.getOptionValue("r");
-            String version = cmd.getOptionValue("v");
-
-            // Default version
-            if (version == null) {
-                version = "3.1";
-            }
+            String versionValue = cmd.getOptionValue("v", PowerAuthVersion.DEFAULT.value());
+            PowerAuthVersion version = PowerAuthVersion.fromValue(versionValue);
 
             // Read config file
-            if (Files.isReadable(Paths.get(configFileName))) {
-                byte[] configFileBytes = Files.readAllBytes(Paths.get(configFileName));
-                try {
-                    clientConfigObject = (JSONObject) JSONValue.parse(new String(configFileBytes, StandardCharsets.UTF_8));
-                } catch (Exception e) {
-                    stepLogger.writeItem(
-                            "generic-error-config-file-invalid",
-                            "Invalid config file",
-                            "Config file must be in a correct JSON format?",
-                            "ERROR",
-                            e
-                    );
-                    throw new ExecutionException();
-                }
-            } else {
-                stepLogger.writeItem(
-                        "generic-error-config-file-invalid",
-                        "Invalid config file",
-                        "Unable to read client config file - did you specify the correct path?",
-                        "ERROR",
-                        null
-                );
-                throw new ExecutionException();
-            }
+            Map<String,String> configAttributes =
+                    FileUtil.readDataFromFile(stepLogger, configFileName, HashMap.class, "config", "config file");
+            clientConfigObject = new JSONObject(configAttributes);
 
             // Read master public key
             PublicKey masterPublicKey = ConfigurationUtil.getMasterKey(clientConfigObject, stepLogger);
@@ -204,9 +182,11 @@ public class Application {
                 resultStatusObject = new ResultStatusObject();
             }
 
+            PowerAuthStep powerAuthStep = PowerAuthStep.fromMethod(method);
+
             // Execute the code for given methods
-            switch (method) {
-                case "create-token": {
+            switch (powerAuthStep) {
+                case TOKEN_CREATE: {
 
                     CreateTokenStepModel model = new CreateTokenStepModel();
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
@@ -220,36 +200,10 @@ public class Application {
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
                     model.setVersion(version);
 
-                    ResultStatusObject result;
-                    switch (version) {
-                        case "3.0":
-                        case "3.1":
-                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.CreateTokenStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        case "2.0":
-                        case "2.1":
-                            result = new io.getlime.security.powerauth.lib.cmd.steps.v2.CreateTokenStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        default:
-                            stepLogger.writeItem(
-                                    "generic-error-version",
-                                    "Unsupported version",
-                                    "The version you specified is not supported",
-                                    "ERROR",
-                                    null
-                            );
-                            throw new ExecutionException();
-                    }
-
-                    if (result == null) {
-                        throw new ExecutionException();
-                    }
-
+                    stepExecutionService.execute(powerAuthStep, version, model);
                     break;
                 }
-                case "validate-token": {
+                case TOKEN_VALIDATE: {
 
                     VerifyTokenStepModel model = new VerifyTokenStepModel();
                     model.setTokenId(cmd.getOptionValue("T"));
@@ -263,17 +217,13 @@ public class Application {
 
                     // Read the file with request data
                     String dataFileName = cmd.getOptionValue("d");
-                    final byte[] dataFileBytes = readDataFile(dataFileName, stepLogger);
+                    final byte[] dataFileBytes = FileUtil.readFileBytes(stepLogger, dataFileName, "request-data", "Request data file");
                     model.setData(dataFileBytes);
 
-                    ResultStatusObject result = new VerifyTokenStep().execute(stepLogger, model.toMap());
-                    if (result == null) {
-                        throw new ExecutionException();
-                    }
-
+                    stepExecutionService.execute(powerAuthStep, version, model);
                     break;
                 }
-                case "remove-token": {
+                case TOKEN_REMOVE: {
                     RemoveTokenStepModel model = new RemoveTokenStepModel();
                     model.setTokenId(cmd.getOptionValue("T"));
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
@@ -287,39 +237,12 @@ public class Application {
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
                     model.setVersion(version);
 
-                    ResultStatusObject result;
-                    switch (version) {
-                        case "3.0":
-                        case "3.1":
-                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.RemoveTokenStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        case "2.0":
-                        case "2.1":
-                            result = new io.getlime.security.powerauth.lib.cmd.steps.v2.RemoveTokenStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        default:
-                            stepLogger.writeItem(
-                                    "generic-error-version",
-                                    "Unsupported version",
-                                    "The version you specified is not supported",
-                                    "ERROR",
-                                    null
-                            );
-                            throw new ExecutionException();
-                    }
-
-                    if (result == null) {
-                        throw new ExecutionException();
-                    }
-
+                    stepExecutionService.execute(powerAuthStep, version, model);
                     break;
                 }
-                case "create":
-                case "prepare": {
-
-                    if (method.equals("prepare")) {
+                case ACTIVATION_CREATE:
+                case ACTIVATION_PREPARE: {
+                    if (powerAuthStep.equals(PowerAuthStep.ACTIVATION_PREPARE)) {
                         stepLogger.writeItem(
                                 "generic-warning-deprecated",
                                 "Deprecated method",
@@ -327,6 +250,7 @@ public class Application {
                                 "WARNING",
                                 null
                         );
+                        powerAuthStep = PowerAuthStep.ACTIVATION_CREATE;
                     }
 
                     PrepareActivationStepModel model = new PrepareActivationStepModel();
@@ -345,35 +269,10 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    ResultStatusObject result;
-                    switch (version) {
-                        case "3.0":
-                        case "3.1":
-                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.PrepareActivationStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        case "2.0":
-                        case "2.1":
-                            result = new io.getlime.security.powerauth.lib.cmd.steps.v2.PrepareActivationStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        default:
-                            stepLogger.writeItem(
-                                    "generic-error-version",
-                                    "Unsupported version",
-                                    "The version you specified is not supported",
-                                    "ERROR",
-                                    null
-                            );
-                            throw new ExecutionException();
-                    }
-                    if (result == null) {
-                        throw new ExecutionException();
-                    }
-
+                    stepExecutionService.execute(powerAuthStep, version, model);
                     break;
                 }
-                case "status": {
+                case ACTIVATION_STATUS: {
 
                     GetStatusStepModel model = new GetStatusStepModel();
                     model.setHeaders(httpHeaders);
@@ -381,35 +280,10 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    ResultStatusObject result;
-                    switch (version) {
-                        case "3.0":
-                        case "3.1":
-                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.GetStatusStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        case "2.0":
-                        case "2.1":
-                            result = new io.getlime.security.powerauth.lib.cmd.steps.v2.GetStatusStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        default:
-                            stepLogger.writeItem(
-                                    "generic-error-version",
-                                    "Unsupported version",
-                                    "The version you specified is not supported",
-                                    "ERROR",
-                                    null
-                            );
-                            throw new ExecutionException();
-                    }
-                    if (result == null) {
-                        throw new ExecutionException();
-                    }
-
+                    stepExecutionService.execute(powerAuthStep, version, model);
                     break;
                 }
-                case "remove": {
+                case ACTIVATION_REMOVE: {
 
                     RemoveStepModel model = new RemoveStepModel();
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
@@ -421,35 +295,10 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    ResultStatusObject result;
-                    switch (version) {
-                        case "3.0":
-                        case "3.1":
-                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.RemoveStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        case "2.0":
-                        case "2.1":
-                            result = new io.getlime.security.powerauth.lib.cmd.steps.v2.RemoveStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        default:
-                            stepLogger.writeItem(
-                                    "generic-error-version",
-                                    "Unsupported version",
-                                    "The version you specified is not supported",
-                                    "ERROR",
-                                    null
-                            );
-                            throw new ExecutionException();
-                    }
-                    if (result == null) {
-                        throw new ExecutionException();
-                    }
-
+                    stepExecutionService.execute(powerAuthStep, version, model);
                     break;
                 }
-                case "sign": {
+                case SIGNATURE_VERIFY: {
 
                     VerifySignatureStepModel model = new VerifySignatureStepModel();
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
@@ -467,17 +316,13 @@ public class Application {
 
                     // Read the file with request data
                     String dataFileName = cmd.getOptionValue("d");
-                    final byte[] dataFileBytes = readDataFile(dataFileName, stepLogger);
+                    final byte[] dataFileBytes = FileUtil.readFileBytes(stepLogger, dataFileName, "request-data", "Request data file");
                     model.setData(dataFileBytes);
 
-                    ResultStatusObject result = new VerifySignatureStep().execute(stepLogger, model.toMap());
-                    if (result == null) {
-                        throw new ExecutionException();
-                    }
-
+                    stepExecutionService.execute(powerAuthStep, version, model);
                     break;
                 }
-                case "unlock": {
+                case VAULT_UNLOCK: {
 
                     VaultUnlockStepModel model = new VaultUnlockStepModel();
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
@@ -491,89 +336,18 @@ public class Application {
                     model.setReason(reason);
                     model.setVersion(version);
 
-                    ResultStatusObject result;
-                    switch (version) {
-                        case "3.0":
-                        case "3.1":
-                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.VaultUnlockStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        case "2.0":
-                        case "2.1":
-                            result = new io.getlime.security.powerauth.lib.cmd.steps.v2.VaultUnlockStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        default:
-                            stepLogger.writeItem(
-                                    "generic-error-version",
-                                    "Unsupported version",
-                                    "The version you specified is not supported",
-                                    "ERROR",
-                                    null
-                            );
-                            throw new ExecutionException();
-                    }
-                    if (result == null) {
-                        throw new ExecutionException();
-                    }
+                    stepExecutionService.execute(powerAuthStep, version, model);
                     break;
                 }
-                case "create-custom": {
+                case ACTIVATION_CREATE_CUSTOM: {
 
                     String identityAttributesFileName = cmd.getOptionValue("I");
+                    Map<String,String> identityAttributes =
+                            FileUtil.readDataFromFile(stepLogger, identityAttributesFileName, HashMap.class, "identity-attributes", "identity attributes");
+
                     String customAttributesFileName = cmd.getOptionValue("C");
-
-                    Map<String,String> identityAttributes;
-                    if (Files.isReadable(Paths.get(identityAttributesFileName))) {
-                        byte[] identityAttributesFileBytes = Files.readAllBytes(Paths.get(identityAttributesFileName));
-                        try {
-                            identityAttributes = RestClientConfiguration.defaultMapper().readValue(identityAttributesFileBytes, HashMap.class);
-                        } catch (Exception e) {
-                            stepLogger.writeItem(
-                                    "generic-error-identity-attributes",
-                                    "Invalid identity attributes file",
-                                    "Identity attribute file must be in a correct JSON format",
-                                    "ERROR",
-                                    e
-                            );
-                            throw new ExecutionException();
-                        }
-                    } else {
-                        stepLogger.writeItem(
-                                "generic-error-identity-attributes",
-                                "Invalid identity attributes file",
-                                "Unable to read identity attributes file - did you specify the correct path?",
-                                "ERROR",
-                                null
-                        );
-                        throw new ExecutionException();
-                    }
-
-                    Map<String,Object> customAttributes;
-                    if (Files.isReadable(Paths.get(customAttributesFileName))) {
-                        byte[] customAttributesFileBytes = Files.readAllBytes(Paths.get(customAttributesFileName));
-                        try {
-                            customAttributes = RestClientConfiguration.defaultMapper().readValue(customAttributesFileBytes, HashMap.class);
-                        } catch (Exception e) {
-                            stepLogger.writeItem(
-                                    "generic-error-custom-attributes",
-                                    "Invalid custom attributes file",
-                                    "Custom attribute file must be in a correct JSON format",
-                                    "ERROR",
-                                    e
-                            );
-                            throw new ExecutionException();
-                        }
-                    } else {
-                        stepLogger.writeItem(
-                                "generic-error-custom-attributes",
-                                "Invalid custom attributes file",
-                                "Unable to read custom attributes file - did you specify the correct path?",
-                                "ERROR",
-                                null
-                        );
-                        throw new ExecutionException();
-                    }
+                    Map<String,Object> customAttributes =
+                            FileUtil.readDataFromFile(stepLogger, customAttributesFileName, HashMap.class, "custom-attributes", "custom attributes");
 
                     CreateActivationStepModel model = new CreateActivationStepModel();
                     model.setActivationName(ConfigurationUtil.getApplicationName(clientConfigObject));
@@ -592,34 +366,10 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    ResultStatusObject result;
-                    switch (version) {
-                        case "3.0":
-                        case "3.1":
-                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.CreateActivationStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        case "2.0":
-                        case "2.1":
-                            result = new io.getlime.security.powerauth.lib.cmd.steps.v2.CreateActivationStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        default:
-                            stepLogger.writeItem(
-                                    "generic-error-version",
-                                    "Unsupported version",
-                                    "The version you specified is not supported",
-                                    "ERROR",
-                                    null
-                            );
-                            throw new ExecutionException();
-                    }
-                    if (result == null) {
-                        throw new ExecutionException();
-                    }
+                    stepExecutionService.execute(powerAuthStep, version, model);
                     break;
                 }
-                case "encrypt": {
+                case ENCRYPT: {
                     EncryptStepModel model = new EncryptStepModel();
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
@@ -632,37 +382,13 @@ public class Application {
 
                     // Read the file with request data
                     String dataFileName = cmd.getOptionValue("d");
-                    final byte[] dataFileBytes = readDataFile(dataFileName, stepLogger);
+                    final byte[] dataFileBytes = FileUtil.readFileBytes(stepLogger, dataFileName, "request-data", "Request data file");
                     model.setData(dataFileBytes);
 
-                    ResultStatusObject result;
-                    switch (version) {
-                        case "3.0":
-                        case "3.1":
-                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.EncryptStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        case "2.0":
-                        case "2.1":
-                            result = new io.getlime.security.powerauth.lib.cmd.steps.v2.EncryptStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        default:
-                            stepLogger.writeItem(
-                                    "generic-error-version",
-                                    "Unsupported version",
-                                    "The version you specified is not supported",
-                                    "ERROR",
-                                    null
-                            );
-                            throw new ExecutionException();
-                    }
-                    if (result == null) {
-                        throw new ExecutionException();
-                    }
+                    stepExecutionService.execute(powerAuthStep, version, model);
                     break;
                 }
-                case "sign-encrypt": {
+                case SIGN_ENCRYPT: {
                     VerifySignatureStepModel model = new VerifySignatureStepModel();
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
@@ -678,33 +404,13 @@ public class Application {
 
                     // Read the file with request data
                     String dataFileName = cmd.getOptionValue("d");
-                    final byte[] dataFileBytes = readDataFile(dataFileName, stepLogger);
+                    final byte[] dataFileBytes = FileUtil.readFileBytes(stepLogger, dataFileName, "request-data", "Request data file");
                     model.setData(dataFileBytes);
 
-                    ResultStatusObject result;
-                    switch (version) {
-                        // Sign and encrypt step is only supported since version 3.0
-                        case "3.0":
-                        case "3.1":
-                            result = new io.getlime.security.powerauth.lib.cmd.steps.v3.SignAndEncryptStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        default:
-                            stepLogger.writeItem(
-                                    "generic-error-version",
-                                    "Unsupported version",
-                                    "The version you specified is not supported",
-                                    "ERROR",
-                                    null
-                            );
-                            throw new ExecutionException();
-                    }
-                    if (result == null) {
-                        throw new ExecutionException();
-                    }
+                    stepExecutionService.execute(powerAuthStep, version, model);
                     break;
                 }
-                case "start-upgrade": {
+                case UPGRADE_START: {
                     StartUpgradeStepModel model = new StartUpgradeStepModel();
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
@@ -714,31 +420,11 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    ResultStatusObject result;
-                    switch (version) {
-                        // Only upgrade to version 3.0 or 3.1 is supported
-                        case "3.0":
-                        case "3.1":
-                            result = new StartUpgradeStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        default:
-                            stepLogger.writeItem(
-                                    "generic-error-version",
-                                    "Unsupported version",
-                                    "The version you specified is not supported",
-                                    "ERROR",
-                                    null
-                            );
-                            throw new ExecutionException();
-                    }
-                    if (result == null) {
-                        throw new ExecutionException();
-                    }
+                    stepExecutionService.execute(powerAuthStep, version, model);
                     break;
                 }
 
-                case "commit-upgrade": {
+                case UPGRADE_COMMIT: {
                     CommitUpgradeStepModel model = new CommitUpgradeStepModel();
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
@@ -748,98 +434,18 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    ResultStatusObject result;
-                    switch (version) {
-                        // Only upgrade to version 3.0 or 3.1 is supported
-                        case "3.0":
-                        case "3.1":
-                            result = new CommitUpgradeStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        default:
-                            stepLogger.writeItem(
-                                    "generic-error-version",
-                                    "Unsupported version",
-                                    "The version you specified is not supported",
-                                    "ERROR",
-                                    null
-                            );
-                            throw new ExecutionException();
-                    }
-                    if (result == null) {
-                        throw new ExecutionException();
-                    }
+                    stepExecutionService.execute(powerAuthStep, version, model);
                     break;
                 }
 
-                case "create-recovery": {
+                case ACTIVATION_RECOVERY: {
                     String identityAttributesFileName = cmd.getOptionValue("I");
+                    Map<String,String> identityAttributes =
+                            FileUtil.readDataFromFile(stepLogger, identityAttributesFileName, HashMap.class, "identity-attributes", "identity attributes");
+
                     String customAttributesFileName = cmd.getOptionValue("C");
-
-                    if (identityAttributesFileName == null) {
-                        stepLogger.writeItem(
-                                "generic-error-identity-attributes",
-                                "Missing identity attributes file",
-                                "Identity attribute file must be specified",
-                                "ERROR",
-                                null
-                        );
-                        throw new ExecutionException();
-                    }
-
-                    Map<String,String> identityAttributes;
-                    if (Files.isReadable(Paths.get(identityAttributesFileName))) {
-                        byte[] identityAttributesFileBytes = Files.readAllBytes(Paths.get(identityAttributesFileName));
-                        try {
-                            identityAttributes = RestClientConfiguration.defaultMapper().readValue(identityAttributesFileBytes, HashMap.class);
-                        } catch (Exception e) {
-                            stepLogger.writeItem(
-                                    "generic-error-identity-attributes",
-                                    "Invalid identity attributes file",
-                                    "Identity attribute file must be in a correct JSON format",
-                                    "ERROR",
-                                    e
-                            );
-                            throw new ExecutionException();
-                        }
-                    } else {
-                        stepLogger.writeItem(
-                                "generic-error-identity-attributes",
-                                "Invalid identity attributes file",
-                                "Unable to read identity attributes file - did you specify the correct path?",
-                                "ERROR",
-                                null
-                        );
-                        throw new ExecutionException();
-                    }
-
-                    Map<String, Object> customAttributes = null;
-                    if (customAttributesFileName != null) {
-                        if (Files.isReadable(Paths.get(customAttributesFileName))) {
-                            byte[] customAttributesFileBytes = Files.readAllBytes(Paths.get(customAttributesFileName));
-                            try {
-                                customAttributes = RestClientConfiguration.defaultMapper().readValue(customAttributesFileBytes, HashMap.class);
-                            } catch (Exception e) {
-                                stepLogger.writeItem(
-                                        "generic-error-custom-attributes",
-                                        "Invalid custom attributes file",
-                                        "Custom attribute file must be in a correct JSON format",
-                                        "ERROR",
-                                        e
-                                );
-                                throw new ExecutionException();
-                            }
-                        } else {
-                            stepLogger.writeItem(
-                                    "generic-error-custom-attributes",
-                                    "Invalid custom attributes file",
-                                    "Unable to read custom attributes file - did you specify the correct path?",
-                                    "ERROR",
-                                    null
-                            );
-                            throw new ExecutionException();
-                        }
-                    }
+                    Map<String,Object> customAttributes =
+                            FileUtil.readDataFromFile(stepLogger, customAttributesFileName, HashMap.class, "custom-attributes", "custom attributes");
 
                     ActivationRecoveryStepModel model = new ActivationRecoveryStepModel();
                     model.setActivationName(ConfigurationUtil.getApplicationName(clientConfigObject));
@@ -857,31 +463,12 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    ResultStatusObject result;
-                    switch (version) {
-                        // Activation recovery is supported since version 3.0
-                        case "3.0":
-                        case "3.1":
-                            result = new ActivationRecoveryStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        default:
-                            stepLogger.writeItem(
-                                    "generic-error-version",
-                                    "Unsupported version",
-                                    "The version you specified is not supported",
-                                    "ERROR",
-                                    null
-                            );
-                            throw new ExecutionException();
-                    }
-                    if (result == null) {
-                        throw new ExecutionException();
-                    }
+                    stepExecutionService.execute(powerAuthStep, version, model);
                     break;
                 }
 
-                case "confirm-recovery-code": {
+                case RECOVERY_CONFIRM: {
+
                     ConfirmRecoveryCodeStepModel model = new ConfirmRecoveryCodeStepModel();
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
@@ -893,28 +480,7 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
 
-                    ResultStatusObject result;
-                    switch (version) {
-                        // Recovery code confirmation is supported since version 3.0
-                        case "3.0":
-                        case "3.1":
-                            result = new ConfirmRecoveryCodeStep().execute(stepLogger, model.toMap());
-                            break;
-
-                        default:
-                            stepLogger.writeItem(
-                                    "generic-error-version",
-                                    "Unsupported version",
-                                    "The version you specified is not supported",
-                                    "ERROR",
-                                    null
-                            );
-                            throw new ExecutionException();
-                    }
-                    if (result == null) {
-                        throw new ExecutionException();
-                    }
-                    break;
+                    stepExecutionService.execute(powerAuthStep, version, model);
                 }
 
                 default:
@@ -924,7 +490,7 @@ public class Application {
                     break;
             }
 
-        } catch (ExecutionException e) {
+        } catch (ExecutionException | PowerAuthCmdException e) {
             // silent, just let drop to "finally" clause...
         } catch (Exception e) {
             stepLogger.writeItem(
@@ -938,42 +504,6 @@ public class Application {
             stepLogger.close();
         }
 
-    }
-
-    /**
-     * Read the contents of a provided data file.
-     * @param fileName File name.
-     * @param stepLogger Logger for error handling.
-     * @return Bytes with the contents of the file.
-     * @throws IOException In case reading the file failed.
-     * @throws ExecutionException In case the filename is null or a file does not exist.
-     */
-    private static byte[] readDataFile(String fileName, JsonStepLogger stepLogger) throws IOException, ExecutionException {
-        // check if the file was provided
-        if (fileName == null) { // filename was not provided, we are assuming empty data and log a warning
-            stepLogger.writeItem(
-                    "generic-warning-request-data-empty",
-                    "Empty request data file",
-                    "Request data file not provided, assuming empty data.",
-                    "WARNING",
-                    fileName
-            );
-            return new byte[0];
-        }
-
-        // Read data input file
-        if (Files.isReadable(Paths.get(fileName))) {
-            return Files.readAllBytes(Paths.get(fileName));
-        } else { // file name was provided but does not exist, log error and terminate
-            stepLogger.writeItem(
-                    "generic-error-request-data-filename",
-                    "Missing request data file",
-                    "Request data file name was null, or a file does not exist",
-                    "ERROR",
-                    fileName
-            );
-            throw new ExecutionException();
-        }
     }
 
 }

@@ -25,9 +25,13 @@ import java.security.PublicKey;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
+ * Activation status object
+ *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  */
-@Data @NoArgsConstructor @AllArgsConstructor
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ResultStatusObject {
 
     private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();

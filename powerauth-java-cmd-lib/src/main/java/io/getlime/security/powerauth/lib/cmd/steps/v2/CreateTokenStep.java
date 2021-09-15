@@ -27,19 +27,21 @@ import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureFormat;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
-import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
-import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.CreateTokenStepModel;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.entity.TokenResponsePayload;
 import io.getlime.security.powerauth.rest.api.model.request.v2.TokenCreateRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v2.TokenCreateResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
@@ -62,36 +64,36 @@ import java.util.Objects;
  *
  * @author Petr Dvorak, petr@wultra.com
  */
-public class CreateTokenStep implements BaseStep {
+@Component(value = "createTokenStepV2")
+public class CreateTokenStep extends AbstractBaseStepV2 {
 
-    private static final KeyConvertor keyConvertor = new KeyConvertor();
+    public static final ParameterizedTypeReference<ObjectResponse<TokenCreateResponse>> RESPONSE_TYPE_REFERENCE =
+            new ParameterizedTypeReference<ObjectResponse<TokenCreateResponse>>() {
+            };
+
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientSignature signature = new PowerAuthClientSignature();
     private static final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
 
+    @Autowired
+    public CreateTokenStep(StepLogger stepLogger) {
+        super(PowerAuthStep.TOKEN_CREATE, PowerAuthVersion.VERSION_2, stepLogger);
+    }
+
     /**
      * Execute this step with given context
+     *
      * @param context Provided context
      * @return Result status object, null in case of failure.
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
     @Override
-    public ResultStatusObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public ResultStatusObject execute(Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         CreateTokenStepModel model = new CreateTokenStepModel();
         model.fromMap(context);
-
-        if (stepLogger != null) {
-            stepLogger.writeItem(
-                    "token-create-start",
-                    "Token Create Started",
-                    null,
-                    "OK",
-                    null
-            );
-        }
 
         ResultStatusObject resultStatusObject = model.getResultStatusObject();
 
@@ -132,10 +134,10 @@ public class CreateTokenStep implements BaseStep {
         // Compute the current PowerAuth signature for possession
         // and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/token/create", nonceBytes, requestBytes) + "&" + model.getApplicationSecret();
-        byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
-        PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion());
+        byte[] ctrData = CounterUtil.getCtrData(model.getResultStatusObject(), stepLogger);
+        PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion().value());
         String signatureValue = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), Arrays.asList(signaturePossessionKey, signatureKnowledgeKey), ctrData, signatureFormat);
-        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion());
+        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion().value());
         String httpAuthorizationHeader = header.buildHttpHeader();
 
         // Increment the counter
@@ -156,30 +158,25 @@ public class CreateTokenStep implements BaseStep {
             headers.put(PowerAuthSignatureHttpHeader.HEADER_NAME, httpAuthorizationHeader);
             headers.putAll(model.getHeaders());
 
-            if (stepLogger != null) {
-                stepLogger.writeServerCall("token-create-request-sent", uri, "POST", request.getRequestObject(), headers);
-            }
+            stepLogger.writeServerCall("token-create-request-sent", uri, "POST", request.getRequestObject(), headers);
 
             ResponseEntity<ObjectResponse<TokenCreateResponse>> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();
             if (restClient == null) {
                 return null;
             }
-            ParameterizedTypeReference<ObjectResponse<TokenCreateResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<TokenCreateResponse>>() {};
+            ParameterizedTypeReference<ObjectResponse<TokenCreateResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<TokenCreateResponse>>() {
+            };
             try {
                 responseEntity = restClient.post(uri, requestBytes, null, MapUtil.toMultiValueMap(headers), typeReference);
             } catch (RestClientException ex) {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("token-create-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
-                    stepLogger.writeDoneFailed("token-create-failed");
-                }
+                stepLogger.writeServerCallError("token-create-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
+                stepLogger.writeDoneFailed("token-create-failed");
                 return null;
             }
             ObjectResponse<TokenCreateResponse> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
 
-            if (stepLogger != null) {
-                stepLogger.writeServerCallOK("token-create-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
-            }
+            stepLogger.writeServerCallOK("token-create-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
 
             final TokenCreateResponse responseObject = responseWrapper.getResponseObject();
 
@@ -195,24 +192,18 @@ public class CreateTokenStep implements BaseStep {
             objectMap.put("tokenId", tokenResponsePayload.getTokenId());
             objectMap.put("tokenSecret", tokenResponsePayload.getTokenSecret());
 
-            if (stepLogger != null) {
-                stepLogger.writeItem(
-                        "token-create-token-obtained",
-                        "Token successfully obtained",
-                        "Token was successfully generated and decrypted",
-                        "OK",
-                        objectMap
+            stepLogger.writeItem(
+                    "token-create-token-obtained",
+                    "Token successfully obtained",
+                    "Token was successfully generated and decrypted",
+                    "OK",
+                    objectMap
 
-                );
-                stepLogger.writeDoneOK("token-create-success");
-            }
-
+            );
             return model.getResultStatusObject();
         } catch (Exception exception) {
-            if (stepLogger != null) {
-                stepLogger.writeError("token-create-error-generic", exception);
-                stepLogger.writeDoneFailed("token-create-failed");
-            }
+            stepLogger.writeError("token-create-error-generic", exception);
+            stepLogger.writeDoneFailed("token-create-failed");
             return null;
         }
     }

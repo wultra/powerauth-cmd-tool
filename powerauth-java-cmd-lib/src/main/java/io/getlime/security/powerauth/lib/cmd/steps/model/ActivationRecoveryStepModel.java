@@ -15,6 +15,10 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.ActivationData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
+
 import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,7 +28,8 @@ import java.util.Map;
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class ActivationRecoveryStepModel extends BaseStepModel {
+public class ActivationRecoveryStepModel extends BaseStepModel
+        implements ActivationData, ResultStatusChangeable, EncryptionHeaderData {
 
     private Map<String, String> identityAttributes;
     private Map<String, Object> customAttributes;
@@ -46,6 +51,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
 
     /**
      * Get identity attributes.
+     *
      * @return Identity attributes.
      */
     public Map<String, String> getIdentityAttributes() {
@@ -54,6 +60,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
 
     /**
      * Set identity attributes.
+     *
      * @param identityAttributes Identity attributes.
      */
     public void setIdentityAttributes(Map<String, String> identityAttributes) {
@@ -62,6 +69,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
 
     /**
      * Get custom attributes.
+     *
      * @return Custom attributes.
      */
     public Map<String, Object> getCustomAttributes() {
@@ -70,6 +78,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
 
     /**
      * Set custom attributes.
+     *
      * @param customAttributes Custom attributes.
      */
     public void setCustomAttributes(Map<String, Object> customAttributes) {
@@ -78,6 +87,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
 
     /**
      * Get file name of the file with stored activation status.
+     *
      * @return Status file name.
      */
     public String getStatusFileName() {
@@ -86,6 +96,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
 
     /**
      * Set file name of the file with stored activation status.
+     *
      * @param statusFileName Status file name.
      */
     public void setStatusFileName(String statusFileName) {
@@ -94,6 +105,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
 
     /**
      * Get activation name.
+     *
      * @return Activation name.
      */
     public String getActivationName() {
@@ -102,6 +114,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
 
     /**
      * Set activation name.
+     *
      * @param activationName Activation name.
      */
     public void setActivationName(String activationName) {
@@ -110,6 +123,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
 
     /**
      * Get user device platform.
+     *
      * @return User device platform.
      */
     public String getPlatform() {
@@ -118,6 +132,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
 
     /**
      * Set user device platform.
+     *
      * @param platform User device platform.
      */
     public void setPlatform(String platform) {
@@ -126,6 +141,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
 
     /**
      * Get information about user device.
+     *
      * @return Information about user device.
      */
     public String getDeviceInfo() {
@@ -134,6 +150,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
 
     /**
      * Set information about user device.
+     *
      * @param deviceInfo Information about user device.
      */
     public void setDeviceInfo(String deviceInfo) {
@@ -142,6 +159,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
 
     /**
      * Get application key.
+     *
      * @return Application key.
      */
     public String getApplicationKey() {
@@ -150,6 +168,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
 
     /**
      * Set application key.
+     *
      * @param applicationKey Application key.
      */
     public void setApplicationKey(String applicationKey) {
@@ -158,6 +177,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
 
     /**
      * Get application secret.
+     *
      * @return Application secret.
      */
     public String getApplicationSecret() {
@@ -166,6 +186,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
 
     /**
      * Set application secret.
+     *
      * @param applicationSecret Application secret.
      */
     public void setApplicationSecret(String applicationSecret) {
@@ -174,6 +195,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
 
     /**
      * Get knowledge key password.
+     *
      * @return Knowledge key password.
      */
     public String getPassword() {
@@ -182,6 +204,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
 
     /**
      * Set knowledge key password.
+     *
      * @param password Knowledge key password.
      */
     public void setPassword(String password) {
@@ -190,6 +213,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
 
     /**
      * Get Base64 encoded master public key.
+     *
      * @return Base64 encoded master public key.
      */
     public PublicKey getMasterPublicKey() {
@@ -198,6 +222,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
 
     /**
      * Set Base64 encoded master public key.
+     *
      * @param masterPublicKey Base64 encoded master public key.
      */
     public void setMasterPublicKey(PublicKey masterPublicKey) {

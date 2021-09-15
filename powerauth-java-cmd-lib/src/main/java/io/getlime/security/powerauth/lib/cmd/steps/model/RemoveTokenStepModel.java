@@ -17,6 +17,8 @@
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 
 import java.security.PublicKey;
 import java.util.Map;
@@ -26,7 +28,8 @@ import java.util.Map;
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class RemoveTokenStepModel extends BaseStepModel {
+public class RemoveTokenStepModel extends BaseStepModel
+        implements ResultStatusChangeable, SignatureHeaderData {
 
     private String tokenId;
     private String statusFileName;
@@ -38,6 +41,7 @@ public class RemoveTokenStepModel extends BaseStepModel {
 
     /**
      * Get token ID.
+     *
      * @return Token ID.
      */
     public String getTokenId() {
@@ -46,6 +50,7 @@ public class RemoveTokenStepModel extends BaseStepModel {
 
     /**
      * Set token ID.
+     *
      * @param tokenId Token ID.
      */
     public void setTokenId(String tokenId) {
@@ -54,6 +59,7 @@ public class RemoveTokenStepModel extends BaseStepModel {
 
     /**
      * File name of the file with stored activation status.
+     *
      * @param statusFileName Status file name.
      */
     public void setStatusFileName(String statusFileName) {
@@ -62,6 +68,7 @@ public class RemoveTokenStepModel extends BaseStepModel {
 
     /**
      * Application key.
+     *
      * @param applicationKey APP_KEY.
      */
     public void setApplicationKey(String applicationKey) {
@@ -70,6 +77,7 @@ public class RemoveTokenStepModel extends BaseStepModel {
 
     /**
      * Application secret.
+     *
      * @param applicationSecret APP_SECRET.
      */
     public void setApplicationSecret(String applicationSecret) {
@@ -78,6 +86,7 @@ public class RemoveTokenStepModel extends BaseStepModel {
 
     /**
      * Password for the password related key encryption.
+     *
      * @param password Password.
      */
     public void setPassword(String password) {
@@ -86,6 +95,7 @@ public class RemoveTokenStepModel extends BaseStepModel {
 
     /**
      * PowerAuth signature type.
+     *
      * @param signatureType Signature type.
      */
     public void setSignatureType(PowerAuthSignatureTypes signatureType) {
@@ -94,6 +104,7 @@ public class RemoveTokenStepModel extends BaseStepModel {
 
     /**
      * Set master public key
+     *
      * @param masterPublicKey Master public key
      */
     public void setMasterPublicKey(PublicKey masterPublicKey) {

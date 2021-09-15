@@ -1,4 +1,5 @@
 /*
+ * PowerAuth Command-line utility
  * Copyright 2021 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,23 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.getlime.security.powerauth.lib.cmd.steps.pojo;
-
-import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
-import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
-import lombok.Builder;
-import lombok.Data;
+package io.getlime.security.powerauth.lib.cmd.steps.model.data;
 
 /**
+ * Data used for computing an encryption header value
+ *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  */
-@Data @Builder
-public class VerifySignatureContext {
+public interface EncryptionHeaderData extends BaseStepData {
 
-    private VerifySignatureStepModel model;
-
-    private ResultStatusObject resultStatusObject;
-
-    private StepLogger stepLogger;
+    /**
+     * @return Application key
+     */
+    String getApplicationKey();
 
 }

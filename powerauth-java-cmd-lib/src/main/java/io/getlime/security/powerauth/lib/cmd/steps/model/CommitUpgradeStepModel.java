@@ -15,6 +15,10 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
+import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
+
 import java.util.Map;
 
 /**
@@ -22,7 +26,8 @@ import java.util.Map;
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class CommitUpgradeStepModel extends BaseStepModel {
+public class CommitUpgradeStepModel extends BaseStepModel
+        implements ResultStatusChangeable, SignatureHeaderData {
 
     private String statusFileName;
     private String applicationKey;
@@ -30,6 +35,7 @@ public class CommitUpgradeStepModel extends BaseStepModel {
 
     /**
      * Set file name of the file with stored activation status.
+     *
      * @param statusFileName Status file name.
      */
     public void setStatusFileName(String statusFileName) {
@@ -38,6 +44,7 @@ public class CommitUpgradeStepModel extends BaseStepModel {
 
     /**
      * Set application key.
+     *
      * @param applicationKey Application key.
      */
     public void setApplicationKey(String applicationKey) {
@@ -46,6 +53,7 @@ public class CommitUpgradeStepModel extends BaseStepModel {
 
     /**
      * Set application secret.
+     *
      * @param applicationSecret Application secret.
      */
     public void setApplicationSecret(String applicationSecret) {
@@ -54,6 +62,7 @@ public class CommitUpgradeStepModel extends BaseStepModel {
 
     /**
      * Get status file name.
+     *
      * @return Status file name.
      */
     public String getStatusFileName() {
@@ -62,6 +71,7 @@ public class CommitUpgradeStepModel extends BaseStepModel {
 
     /**
      * Get application key.
+     *
      * @return Application key.
      */
     public String getApplicationKey() {
@@ -70,10 +80,22 @@ public class CommitUpgradeStepModel extends BaseStepModel {
 
     /**
      * Get application secret.
+     *
      * @return Application secret.
      */
     public String getApplicationSecret() {
         return applicationSecret;
+    }
+
+    @Override
+    public PowerAuthSignatureTypes getSignatureType() {
+        return PowerAuthSignatureTypes.POSSESSION;
+    }
+
+    @Override
+    public String getPassword() {
+        // TODO no value here?
+        return null;
     }
 
     @Override

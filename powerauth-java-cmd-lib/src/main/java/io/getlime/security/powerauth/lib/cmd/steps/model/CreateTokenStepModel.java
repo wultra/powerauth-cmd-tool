@@ -17,6 +17,8 @@
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 
 import java.security.PublicKey;
 import java.util.Map;
@@ -26,7 +28,8 @@ import java.util.Map;
  *
  * @author Petr Dvorak, petr@wultra.com
  */
-public class CreateTokenStepModel extends BaseStepModel {
+public class CreateTokenStepModel extends BaseStepModel
+        implements SignatureHeaderData, ResultStatusChangeable {
 
     private String statusFileName;
     private String applicationKey;
@@ -37,6 +40,7 @@ public class CreateTokenStepModel extends BaseStepModel {
 
     /**
      * File name of the file with stored activation status.
+     *
      * @param statusFileName Status file name.
      */
     public void setStatusFileName(String statusFileName) {
@@ -45,6 +49,7 @@ public class CreateTokenStepModel extends BaseStepModel {
 
     /**
      * Application key.
+     *
      * @param applicationKey APP_KEY.
      */
     public void setApplicationKey(String applicationKey) {
@@ -53,6 +58,7 @@ public class CreateTokenStepModel extends BaseStepModel {
 
     /**
      * Application secret.
+     *
      * @param applicationSecret APP_SECRET.
      */
     public void setApplicationSecret(String applicationSecret) {
@@ -61,6 +67,7 @@ public class CreateTokenStepModel extends BaseStepModel {
 
     /**
      * Password for the password related key encryption.
+     *
      * @param password Password.
      */
     public void setPassword(String password) {
@@ -69,6 +76,7 @@ public class CreateTokenStepModel extends BaseStepModel {
 
     /**
      * PowerAuth signature type.
+     *
      * @param signatureType Signature type.
      */
     public void setSignatureType(PowerAuthSignatureTypes signatureType) {
@@ -77,6 +85,7 @@ public class CreateTokenStepModel extends BaseStepModel {
 
     /**
      * Set master public key
+     *
      * @param masterPublicKey Master public key
      */
     public void setMasterPublicKey(PublicKey masterPublicKey) {

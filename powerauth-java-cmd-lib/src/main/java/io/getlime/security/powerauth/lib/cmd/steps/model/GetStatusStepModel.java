@@ -29,4 +29,5 @@ public class GetStatusStepModel extends BaseStepModel {
     public void fromMap(Map<String, Object> context) {
         super.fromMap(context);
     }
+
 }

@@ -69,7 +69,6 @@
     <modules>
         <module>powerauth-java-cmd</module>
         <module>powerauth-java-cmd-lib</module>
-        <module>powerauth-load-test</module>
     </modules>
 
     <properties>

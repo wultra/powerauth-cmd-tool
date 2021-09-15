@@ -119,7 +119,7 @@ _Note: If a `--password` option is not provided, this method requires interactiv
 
 ### Validate the Signature
 
-Use this method to send signer GET or POST requests to given URL with provided data.
+Use this method to send signed GET or POST requests to given URL with provided data.
 
 ```bash
 java -jar powerauth-java-cmd.jar \

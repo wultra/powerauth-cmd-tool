@@ -16,6 +16,9 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.TokenHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
+
 import java.util.Map;
 
 /**
@@ -23,7 +26,8 @@ import java.util.Map;
  *
  * @author Petr Dvorak, petr@wultra.com
  */
-public class VerifyTokenStepModel extends BaseStepModel {
+public class VerifyTokenStepModel extends BaseStepModel
+        implements DryRunCapable, TokenHeaderData {
 
     private String tokenId;
     private String tokenSecret;
@@ -33,6 +37,7 @@ public class VerifyTokenStepModel extends BaseStepModel {
 
     /**
      * Get token ID.
+     *
      * @return Token ID.
      */
     public String getTokenId() {
@@ -41,6 +46,7 @@ public class VerifyTokenStepModel extends BaseStepModel {
 
     /**
      * Set token ID.
+     *
      * @param tokenId Token ID.
      */
     public void setTokenId(String tokenId) {
@@ -49,6 +55,7 @@ public class VerifyTokenStepModel extends BaseStepModel {
 
     /**
      * Get token secret.
+     *
      * @return Token secret.
      */
     public String getTokenSecret() {
@@ -57,6 +64,7 @@ public class VerifyTokenStepModel extends BaseStepModel {
 
     /**
      * Set token secret.
+     *
      * @param tokenSecret Token secret.
      */
     public void setTokenSecret(String tokenSecret) {
@@ -65,6 +73,7 @@ public class VerifyTokenStepModel extends BaseStepModel {
 
     /**
      * Get HTTP method.
+     *
      * @return HTTP method.
      */
     public String getHttpMethod() {
@@ -73,6 +82,7 @@ public class VerifyTokenStepModel extends BaseStepModel {
 
     /**
      * Set HTTP method.
+     *
      * @param httpMethod HTTP method.
      */
     public void setHttpMethod(String httpMethod) {
@@ -81,6 +91,7 @@ public class VerifyTokenStepModel extends BaseStepModel {
 
     /**
      * Set HTTP request data.
+     *
      * @param data Request data.
      */
     public void setData(byte[] data) {
@@ -89,6 +100,7 @@ public class VerifyTokenStepModel extends BaseStepModel {
 
     /**
      * Get HTTP request data.
+     *
      * @return Request data.
      */
     public byte[] getData() {
@@ -97,6 +109,7 @@ public class VerifyTokenStepModel extends BaseStepModel {
 
     /**
      * Set flag indicating that this step should be terminated before the networking call.
+     *
      * @return Dry run indicator.
      */
     public boolean isDryRun() {

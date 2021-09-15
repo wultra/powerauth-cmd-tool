@@ -16,26 +16,20 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.google.common.io.BaseEncoding;
-import com.wultra.core.rest.client.base.RestClient;
-import com.wultra.core.rest.client.base.RestClientException;
-import io.getlime.security.powerauth.crypto.client.token.ClientTokenGenerator;
-import io.getlime.security.powerauth.http.PowerAuthTokenHttpHeader;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.service.PowerAuthHeaderService;
+import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
+import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
+import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifyTokenStepModel;
-import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
-import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.lib.cmd.util.MapUtil;
-import io.getlime.security.powerauth.lib.cmd.util.RestClientFactory;
-import org.json.simple.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Step for the token validation activity.
@@ -48,35 +42,49 @@ import java.util.Objects;
  *     <li>3.1</li>
  * </ul>
  *
+ * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  * @author Petr Dvorak, petr@wultra.com
  */
-public class VerifyTokenStep implements BaseStep {
+@Component
+public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<String, Object>> {
+
+    ParameterizedTypeReference<Map<String, Object>> RESPONSE_TYPE_REFERENCE =
+            new ParameterizedTypeReference<Map<String, Object>>() { };
+
+    private final PowerAuthHeaderService powerAuthHeaderService;
+
+    @Autowired
+    public VerifyTokenStep(
+            PowerAuthHeaderService powerAuthHeaderService,
+            ResultStatusService resultStatusService,
+            StepLogger stepLogger) {
+        super(PowerAuthStep.TOKEN_VALIDATE, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLogger);
+
+        this.powerAuthHeaderService = powerAuthHeaderService;
+    }
 
     @Override
-    public ResultStatusObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public ParameterizedTypeReference<Map<String, Object>> getResponseTypeReference() {
+        return RESPONSE_TYPE_REFERENCE;
+    }
 
-        // Read properties from "context"
+    @Override
+    public StepContext<VerifyTokenStepModel, Map<String, Object>> prepareStepContext(Map<String, Object> context) throws Exception {
         VerifyTokenStepModel model = new VerifyTokenStepModel();
         model.fromMap(context);
 
+        RequestContext requestContext = RequestContext.builder()
+                .httpMethod(model.getHttpMethod())
+                .uri(model.getUriString())
+                .build();
+
+        StepContext<VerifyTokenStepModel, Map<String, Object>> stepContext =
+                buildStepContext(model, requestContext);
+
         // Initiate the step sequence
-        logTokenVerificationStart(model.getTokenId(), model.getTokenSecret(), stepLogger);
+        logTokenVerificationStart(model.getTokenId(), model.getTokenSecret());
 
-        String tokenId = model.getTokenId();
-        byte[] tokenSecret = BaseEncoding.base64().decode(model.getTokenSecret());
-
-        ClientTokenGenerator tokenGenerator = new ClientTokenGenerator();
-        final byte[] tokenNonce = tokenGenerator.generateTokenNonce();
-        final byte[] tokenTimestamp = tokenGenerator.generateTokenTimestamp();
-        final byte[] tokenDigest = tokenGenerator.computeTokenDigest(tokenNonce, tokenTimestamp, tokenSecret);
-
-        String tokenHeader = new PowerAuthTokenHttpHeader(
-                tokenId,
-                BaseEncoding.base64().encode(tokenDigest),
-                BaseEncoding.base64().encode(tokenNonce),
-                new String(tokenTimestamp, StandardCharsets.UTF_8),
-                model.getVersion()
-        ).buildHttpHeader();
+        powerAuthHeaderService.addTokenHeader(requestContext, model);
 
         if (model.getHttpMethod() == null) {
             if (stepLogger != null) {
@@ -105,140 +113,54 @@ public class VerifyTokenStep implements BaseStep {
             }
         }
 
-        // Call the server with activation data
-        try {
-
-            Map<String, String> headers = new HashMap<>();
-            headers.put("Accept", "application/json");
-            headers.put("Content-Type", "application/json");
-            headers.put(PowerAuthTokenHttpHeader.HEADER_NAME, tokenHeader);
-            headers.putAll(model.getHeaders());
-
-            if (stepLogger != null) {
-                stepLogger.writeServerCall("token-validate-request-sent", model.getUriString(), model.getHttpMethod().toUpperCase(), requestDataBytes != null ? new String(requestDataBytes, StandardCharsets.UTF_8) : null, headers);
-            }
-
-            if (!model.isDryRun()) {
-                final boolean success = executeRequest(model.getHttpMethod().toUpperCase(), headers, model.getUriString(), requestDataBytes, stepLogger);
-                if (success) {
-                    return model.getResultStatusObject();
-                } else {
-                    return null;
-                }
-            } else {
-                logTokenValueComputed(stepLogger);
-                return model.getResultStatusObject();
-            }
-        } catch (Exception exception) {
-            logException("token-validate-generic", exception, stepLogger);
-            return null;
-        }
-
+        requestContext.setRequestObject(requestDataBytes);
+        return stepContext;
     }
 
     /**
      * Log the initiation of the token verification steps.
-     * @param tokenId Token ID.
+     *
+     * @param tokenId     Token ID.
      * @param tokenSecret Token secret.
-     * @param stepLogger Instance of logger.
      */
-    private void logTokenVerificationStart(String tokenId, String tokenSecret, StepLogger stepLogger) {
-        if (stepLogger != null) {
-            Map<String, String> map = new HashMap<>();
-            map.put("TOKEN_ID", tokenId);
-            map.put("TOKEN_SECRET", tokenSecret);
-            stepLogger.writeItem(
-                    "token-validate-start",
-                    "Token Digest Validation Started",
-                    null,
-                    "OK",
-                    map
-            );
-        }
-    }
-
-    /**
-     * Log exception.
-     * @param id ID to be used for the exception log.
-     * @param exception Exception to be logged.
-     * @param stepLogger Logger instance.
-     */
-    private void logException(String id, Exception exception, StepLogger stepLogger) {
-        if (stepLogger != null) {
-            stepLogger.writeError(id, exception);
-            stepLogger.writeDoneFailed("token-validate-failed");
-        }
+    private void logTokenVerificationStart(String tokenId, String tokenSecret) {
+        // TODO rely on default step start logging
+        Map<String, String> map = new HashMap<>();
+        map.put("TOKEN_ID", tokenId);
+        map.put("TOKEN_SECRET", tokenSecret);
+        stepLogger.writeItem(
+                "token-validate-start",
+                "Token Digest Validation Started",
+                null,
+                "OK",
+                map
+        );
     }
 
     /**
      * Log information about the token value successfully computed.
-     * @param stepLogger Instance of the logger.
      */
-    private void logTokenValueComputed(StepLogger stepLogger) {
-        if (stepLogger != null) {
+    @Override
+    public void logDryRun() {
+        stepLogger.writeItem(
+                getStep().id() + "-token-computed",
+                "Token value computed",
+                "Token value header was computed successfully",
+                "OK",
+                null
 
-            // Print the results
-            stepLogger.writeItem(
-                    "token-validate-token-computed",
-                    "Token value computed",
-                    "Token value header was computed successfully",
-                    "OK",
-                    null
-
-            );
-
-            stepLogger.writeDoneOK("token-validate-success");
-        }
+        );
     }
 
-    /**
-     * Execute request for the token validation result.
-     * @param method HTTP method.
-     * @param headers HTTP headers.
-     * @param uri Full URI for the token verification.
-     * @param data HTTP request body.
-     * @param stepLogger Logger instance.
-     * @return True in case the request is successful, false otherwise.
-     * @throws JsonProcessingException In case parsing the response to JSON format fails.
-     */
-    private boolean executeRequest(String method, Map<String, String> headers, String uri, byte[] data, StepLogger stepLogger) throws JsonProcessingException {
-        ResponseEntity<Map<String, Object>> responseEntity;
-        RestClient restClient = RestClientFactory.getRestClient();
-        if (restClient == null) {
-            return false;
-        }
-        ParameterizedTypeReference<Map<String, Object>> typeReference = new ParameterizedTypeReference<Map<String, Object>>() {};
-        try {
-            if ("GET".equals(method)) {
-                responseEntity = restClient.get(uri, null, MapUtil.toMultiValueMap(headers), typeReference);
-            } else {
-                responseEntity = restClient.post(uri, data, null, MapUtil.toMultiValueMap(headers), typeReference);
-            }
-        } catch (RestClientException ex) {
-            if (stepLogger != null) {
-                stepLogger.writeServerCallError("token-validate-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
-                stepLogger.writeDoneFailed("token-validate-failed");
-            }
-            return false;
-        }
-
-        Map<String, Object> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
-
-        if (stepLogger != null) {
-            stepLogger.writeServerCallOK("token-validate-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
-
-            // Print the results
-            stepLogger.writeItem(
-                    "token-validate-digest-verified",
-                    "Token digest verified",
-                    "Token based authentication was successful",
-                    "OK",
-                    null
-            );
-
-            stepLogger.writeDoneOK("token-validate-success");
-        }
-        return true;
+    @Override
+    public void processResponse(StepContext<VerifyTokenStepModel, Map<String, Object>> responseContext) throws Exception {
+        stepLogger.writeItem(
+                getStep().id() + "-digest-verified",
+                "Token digest verified",
+                "Token based authentication was successful",
+                "OK",
+                null
+        );
     }
 
 }

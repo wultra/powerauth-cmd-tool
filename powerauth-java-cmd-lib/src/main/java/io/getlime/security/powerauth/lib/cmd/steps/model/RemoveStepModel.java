@@ -16,6 +16,10 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
+import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
+
 import java.util.Map;
 
 /**
@@ -23,7 +27,8 @@ import java.util.Map;
  *
  * @author Petr Dvorak, petr@wultra.com
  */
-public class RemoveStepModel extends BaseStepModel {
+public class RemoveStepModel extends BaseStepModel
+        implements ResultStatusChangeable, SignatureHeaderData {
 
     private String statusFileName;
     private String applicationKey;
@@ -32,6 +37,7 @@ public class RemoveStepModel extends BaseStepModel {
 
     /**
      * File name of the file with stored activation status.
+     *
      * @param statusFileName Status file name.
      */
     public void setStatusFileName(String statusFileName) {
@@ -40,6 +46,7 @@ public class RemoveStepModel extends BaseStepModel {
 
     /**
      * Application key.
+     *
      * @param applicationKey APP_KEY.
      */
     public void setApplicationKey(String applicationKey) {
@@ -48,6 +55,7 @@ public class RemoveStepModel extends BaseStepModel {
 
     /**
      * Application secret.
+     *
      * @param applicationSecret APP_SECRET.
      */
     public void setApplicationSecret(String applicationSecret) {
@@ -56,6 +64,7 @@ public class RemoveStepModel extends BaseStepModel {
 
     /**
      * Password for the password related key encryption.
+     *
      * @param password Password.
      */
     public void setPassword(String password) {
@@ -76,6 +85,11 @@ public class RemoveStepModel extends BaseStepModel {
 
     public String getPassword() {
         return password;
+    }
+
+    @Override
+    public PowerAuthSignatureTypes getSignatureType() {
+        return PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE;
     }
 
     @Override
