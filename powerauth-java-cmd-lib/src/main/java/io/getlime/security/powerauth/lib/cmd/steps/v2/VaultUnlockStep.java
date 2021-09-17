@@ -240,6 +240,8 @@ public class VaultUnlockStep extends AbstractBaseStepV2 {
                     "OK",
                     objectMap
             );
+            stepLogger.writeDoneOK("vault-unlock-success");
+
             return model.getResultStatus();
         } catch (Exception exception) {
 

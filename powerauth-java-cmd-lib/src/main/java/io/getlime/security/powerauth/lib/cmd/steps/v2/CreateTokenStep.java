@@ -207,6 +207,8 @@ public class CreateTokenStep extends AbstractBaseStepV2 {
                     objectMap
 
             );
+            stepLogger.writeDoneOK("token-create-success");
+
             return model.getResultStatus();
         } catch (Exception exception) {
             stepLogger.writeError("token-create-error-generic", exception);

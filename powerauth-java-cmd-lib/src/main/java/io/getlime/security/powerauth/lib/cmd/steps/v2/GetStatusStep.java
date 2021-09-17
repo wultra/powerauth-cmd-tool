@@ -154,6 +154,8 @@ public class GetStatusStep extends AbstractBaseStepV2 {
                     "OK",
                     objectMap
             );
+            stepLogger.writeDoneOK("activation-status-success");
+
             return model.getResultStatus();
         } catch (Exception exception) {
             stepLogger.writeError("activation-status-error-generic", exception);

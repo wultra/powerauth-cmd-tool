@@ -37,6 +37,7 @@ import io.getlime.security.powerauth.lib.cmd.steps.model.data.TokenHeaderData;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
+import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -118,10 +119,7 @@ public class PowerAuthHeaderService {
         // Generate nonce
         byte[] nonceBytes = KEY_GENERATOR.generateRandomBytes(16);
 
-        byte[] requestBytes = null;
-        if (requestContext.getRequestObject() != null) {
-            requestBytes = RestClientConfiguration.defaultMapper().writeValueAsBytes(requestContext.getRequestObject());
-        }
+        byte[] requestBytes = HttpUtil.toRequestBytes(requestContext.getRequestObject());
 
         // Compute the current PowerAuth signature for possession and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString(requestContext.getSignatureHttpMethod(), requestContext.getSignatureRequestUri(), nonceBytes, requestBytes) + "&" + model.getApplicationSecret();

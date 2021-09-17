@@ -187,6 +187,8 @@ public class RemoveTokenStep extends AbstractBaseStepV2 {
                     responseWrapper.getResponseObject().getTokenId()
 
             );
+            stepLogger.writeDoneOK("token-remove-success");
+
             return model.getResultStatus();
         } catch (Exception exception) {
             stepLogger.writeError("token-remove-error-generic", exception);

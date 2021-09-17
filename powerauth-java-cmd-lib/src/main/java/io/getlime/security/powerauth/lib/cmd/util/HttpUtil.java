@@ -16,8 +16,10 @@
  */
 package io.getlime.security.powerauth.lib.cmd.util;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.http.HttpHeaders;
 
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +39,24 @@ public class HttpUtil {
             }
         }
         return result;
+    }
+
+    /**
+     * Serializes an object value for request sending as byte array representation
+     * @param objectValue Object value
+     * @return byte array representing the obect value
+     * @throws JsonProcessingException when an error during serialization to JSON occurred
+     */
+    public static byte[] toRequestBytes(@Nullable Object objectValue) throws JsonProcessingException {
+        byte[] requestBytes;
+        if (objectValue == null) {
+            requestBytes = null;
+        } else if (objectValue instanceof byte[]) {
+            requestBytes = (byte[]) objectValue;
+        } else {
+            requestBytes = RestClientConfiguration.defaultMapper().writeValueAsBytes(objectValue);
+        }
+        return requestBytes;
     }
 
 }

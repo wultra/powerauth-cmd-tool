@@ -341,6 +341,7 @@ public class CreateActivationStep extends AbstractBaseStepV2 {
                 objectMap.put("activationStatusFile", model.getStatusFileName());
                 objectMap.put("activationStatusFileContent", model.getResultStatus());
                 objectMap.put("deviceKeyFingerprint", activation.computeActivationFingerprint(deviceKeyPair.getPublic()));
+
                 stepLogger.writeItem(
                         "activation-create-custom-activation-done",
                         "Activation Done",
@@ -348,8 +349,9 @@ public class CreateActivationStep extends AbstractBaseStepV2 {
                         "OK",
                         objectMap
                 );
-                return model.getResultStatus();
+                stepLogger.writeDoneOK("activation-create-custom-success");
 
+                return model.getResultStatus();
             } else {
                 String message = "Activation data signature does not match. Either someone tried to spoof your connection, or your device master key is invalid.";
                 stepLogger.writeError("activation-create-custom-error-signature-data", message);

@@ -62,6 +62,7 @@ public class BaseStepModel implements BaseStepData {
         ResultStatusObject resultStatusObject;
         try {
             resultStatusObject = RestClientConfiguration.defaultMapper().readValue(jsonObject.toJSONString(), ResultStatusObject.class);
+            resultStatusObject.setJsonObject(jsonObject);
         } catch (Exception e) {
             System.err.println("Invalid json data specified for result status object");
             e.printStackTrace(System.err);
@@ -70,12 +71,12 @@ public class BaseStepModel implements BaseStepData {
         this.resultStatusObject = resultStatusObject;
     }
 
-    public ResultStatusObject getResultStatus() {
-        return resultStatusObject;
-    }
-
     public JSONObject getResultStatusObject() {
         return resultStatusObject != null ? resultStatusObject.toJsonObject() : null;
+    }
+
+    public ResultStatusObject getResultStatus() {
+        return resultStatusObject;
     }
 
     /**
@@ -112,7 +113,7 @@ public class BaseStepModel implements BaseStepData {
         Map<String, Object> context = new HashMap<>();
         context.put("HTTP_HEADERS", headers);
         context.put("URI_STRING", uriString);
-        context.put("STATUS_OBJECT", resultStatusObject);
+        context.put("STATUS_OBJECT", resultStatusObject.toJsonObject()); // TODO json object??
         context.put("VERSION", version);
         return context;
     }
@@ -126,8 +127,18 @@ public class BaseStepModel implements BaseStepData {
     public void fromMap(Map<String, Object> context) {
         setHeaders((Map<String, String>) context.get("HTTP_HEADERS"));
         setUriString((String) context.get("URI_STRING"));
-        setResultStatusObject((ResultStatusObject) context.get("STATUS_OBJECT"));
-        setVersion((PowerAuthVersion) context.get("VERSION"));
+        Object statusObject = context.get("STATUS_OBJECT");
+        if (statusObject instanceof JSONObject) {
+            setResultStatusObject((JSONObject) statusObject);
+        } else if (statusObject instanceof ResultStatusObject) {
+            setResultStatusObject((ResultStatusObject) statusObject);
+        }
+        Object version = context.get("VERSION");
+        if (version instanceof PowerAuthVersion) {
+            setVersion((PowerAuthVersion) version);
+        } else if (version instanceof String) {
+            setVersion(PowerAuthVersion.fromValue((String) version));
+        }
     }
 
 }

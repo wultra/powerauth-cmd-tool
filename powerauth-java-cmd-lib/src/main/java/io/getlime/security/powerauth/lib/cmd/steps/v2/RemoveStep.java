@@ -181,6 +181,8 @@ public class RemoveStep extends AbstractBaseStepV2 {
                     objectMap
 
             );
+            stepLogger.writeDoneOK("activation-remove-success");
+
             return model.getResultStatus();
         } catch (Exception exception) {
             stepLogger.writeError("activation-remove-error-generic", exception);

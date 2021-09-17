@@ -89,6 +89,8 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
         model.fromMap(context);
 
         RequestContext requestContext = RequestContext.builder()
+                .signatureHttpMethod(model.getHttpMethod())
+                .signatureRequestUri(model.getResourceId())
                 .uri(model.getUriString())
                 .build();
 
