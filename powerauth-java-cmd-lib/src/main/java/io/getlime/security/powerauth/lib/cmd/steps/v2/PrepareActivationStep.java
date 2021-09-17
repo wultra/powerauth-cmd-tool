@@ -266,6 +266,7 @@ public class PrepareActivationStep extends AbstractBaseStepV2 {
                 objectMap.put("activationStatusFile", model.getStatusFileName());
                 objectMap.put("activationStatusFileContent", model.getResultStatus());
                 objectMap.put("deviceKeyFingerprint", activation.computeActivationFingerprint(deviceKeyPair.getPublic()));
+
                 stepLogger.writeItem(
                         "activation-create-activation-done",
                         "Activation Done",
@@ -273,6 +274,8 @@ public class PrepareActivationStep extends AbstractBaseStepV2 {
                         "OK",
                         objectMap
                 );
+                stepLogger.writeDoneOK("activation-create-success");
+
                 return model.getResultStatus();
 
             } else {

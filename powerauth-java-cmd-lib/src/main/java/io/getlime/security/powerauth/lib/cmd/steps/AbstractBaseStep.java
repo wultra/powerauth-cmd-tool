@@ -290,15 +290,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
 
         ResponseEntity<R> responseEntity;
         try {
-            // Convert request object to bytes
-            byte[] requestBytes;
-            if (requestContext.getRequestObject() == null) {
-                requestBytes = null;
-            } else if (requestContext.getRequestObject() instanceof byte[]) {
-                requestBytes = (byte[]) requestContext.getRequestObject();
-            } else {
-                requestBytes = RestClientConfiguration.defaultMapper().writeValueAsBytes(requestContext.getRequestObject());
-            }
+            byte[] requestBytes = HttpUtil.toRequestBytes(requestContext.getRequestObject());
 
             // Call the right method with the REST client
             if ("GET".equals(requestContext.getHttpMethod())) {

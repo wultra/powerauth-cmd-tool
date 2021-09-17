@@ -181,6 +181,7 @@ public class EncryptStep extends AbstractBaseStepV2 {
                     "OK",
                     decryptedMessage
             );
+            stepLogger.writeDoneOK("encrypt-success");
             return model.getResultStatus();
         } catch (Exception exception) {
             stepLogger.writeError("encrypt-error-generic", exception);
