@@ -85,6 +85,8 @@ public class CommitUpgradeStep extends AbstractBaseStep<CommitUpgradeStepModel, 
         CommitUpgradeStepModel model = new CommitUpgradeStepModel();
         model.fromMap(context);
 
+        // TODO signatureType PowerAuthSignatureTypes.POSSESSION
+
         ResultStatusObject resultStatusObject = model.getResultStatus();
 
         RequestContext requestContext = RequestContext.builder()

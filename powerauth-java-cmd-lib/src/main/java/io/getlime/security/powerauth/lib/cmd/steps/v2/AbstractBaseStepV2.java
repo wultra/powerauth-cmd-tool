@@ -84,7 +84,7 @@ public abstract class AbstractBaseStepV2 implements BaseStep {
      * @throws Exception In case of a failure.
      */
     public final JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        this.stepLogger = stepLogger;
+        this.stepLogger = stepLogger != null ? stepLogger : new DisabledStepLogger();
         ResultStatusObject resultStatusObject = execute(context);
         return resultStatusObject != null ? resultStatusObject.toJsonObject() : null;
     }
