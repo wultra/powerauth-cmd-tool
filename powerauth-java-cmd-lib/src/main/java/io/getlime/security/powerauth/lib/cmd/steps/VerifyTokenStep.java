@@ -27,6 +27,7 @@ import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifyTokenStepModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -86,7 +87,7 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
         model.fromMap(context);
 
         RequestContext requestContext = RequestContext.builder()
-                .httpMethod(model.getHttpMethod())
+                .httpMethod(HttpMethod.valueOf(model.getHttpMethod()))
                 .uri(model.getUriString())
                 .build();
 
@@ -108,7 +109,7 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
 
         // Construct the signature base string data part based on HTTP method (GET requires different code).
         byte[] requestDataBytes = null;
-        if (!"GET".equals(model.getHttpMethod().toUpperCase())) {
+        if (!HttpMethod.GET.name().equals(model.getHttpMethod().toUpperCase())) {
             // Read data input file
             requestDataBytes = model.getData();
             if (requestDataBytes == null || requestDataBytes.length == 0) {

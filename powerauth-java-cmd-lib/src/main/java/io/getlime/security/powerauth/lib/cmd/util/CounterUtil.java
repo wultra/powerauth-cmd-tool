@@ -24,6 +24,7 @@ import io.getlime.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Helper class for counter.
@@ -63,7 +64,7 @@ public class CounterUtil {
                 ctrData = ByteBuffer.allocate(16).putLong(8, counter).array();
                 break;
             case 3:
-                String ctrDataBase64 = resultStatusObject.getCtrDataBase();
+                String ctrDataBase64 = resultStatusObject.getCtrData();
                 if (!ctrDataBase64.isEmpty()) {
                     ctrData = BaseEncoding.base64().decode(ctrDataBase64);
                 }
@@ -93,16 +94,18 @@ public class CounterUtil {
         // Increment the numeric counter
         ResultStatusObject resultStatusObject = model.getResultStatus();
 
-        resultStatusObject.getCounter().incrementAndGet();
+        AtomicLong counter = resultStatusObject.getCounter();
+        counter.incrementAndGet();
+        resultStatusObject.setCounter(counter);
 
         // Increment the hash based counter in case activation version is 3.
         int version = resultStatusObject.getVersion().intValue();
         if (version == 3) {
-            String ctrDataBase64 = resultStatusObject.getCtrDataBase();
+            String ctrDataBase64 = resultStatusObject.getCtrData();
             if (!ctrDataBase64.isEmpty()) {
                 byte[] ctrData = BaseEncoding.base64().decode(ctrDataBase64);
                 ctrData = new HashBasedCounter().next(ctrData);
-                resultStatusObject.setCtrDataBase(BaseEncoding.base64().encode(ctrData));
+                resultStatusObject.setCtrData(BaseEncoding.base64().encode(ctrData));
             }
         }
     }

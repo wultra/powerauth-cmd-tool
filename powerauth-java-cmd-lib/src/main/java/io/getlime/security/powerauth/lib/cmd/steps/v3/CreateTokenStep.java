@@ -95,7 +95,7 @@ public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, Ecie
 
         addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.CREATE_TOKEN, PowerAuthConst.EMPTY_JSON_BYTES);
 
-        powerAuthHeaderService.addSignatureHeader(stepContext, false);
+        powerAuthHeaderService.addSignatureHeader(stepContext);
 
         incrementCounter(model);
 

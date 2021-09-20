@@ -19,6 +19,10 @@ package io.getlime.security.powerauth.lib.cmd.steps.context;
 import lombok.Builder;
 import lombok.Data;
 import lombok.ToString;
+import org.springframework.http.HttpMethod;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Request context
@@ -38,7 +42,14 @@ public class RequestContext {
     /**
      * HTTP request method
      */
-    private String httpMethod = "POST";
+    @Builder.Default
+    private HttpMethod httpMethod = HttpMethod.POST;
+
+    /**
+     * HTTP headers related to the request context
+     */
+    @Builder.Default
+    private Map<String, String> httpHeaders = new HashMap<>();
 
     /**
      * Raw request object

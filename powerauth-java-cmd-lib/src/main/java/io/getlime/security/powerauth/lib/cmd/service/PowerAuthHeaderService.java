@@ -44,10 +44,7 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.io.Console;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Service for adding PowerAuth headers to requests
@@ -83,18 +80,19 @@ public class PowerAuthHeaderService {
     public <T extends EncryptionHeaderData> void addEncryptionHeader(RequestContext requestContext, T model) {
         String activationId = model.getResultStatus().getActivationId();
         PowerAuthEncryptionHttpHeader header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), activationId, model.getVersion().value());
-        requestContext.setAuthorizationHeader(header.buildHttpHeader());
+        String headerValue = header.buildHttpHeader();
+        requestContext.setAuthorizationHeader(headerValue);
+        requestContext.getHttpHeaders().put(PowerAuthEncryptionHttpHeader.HEADER_NAME, headerValue);
     }
 
     /**
      * Adds a signature header to the request context
-     * @param stepContext Step context
-     * @param signatureBiometric Is the signature biometric // TODO does it correspond with POSSESSION_BIOMETRY?
      * @param <M> Model type
      * @param <R> Response type
+     * @param stepContext Step context
      * @throws Exception when an error during adding of a signature header occurred
      */
-    public <M extends SignatureHeaderData, R> void addSignatureHeader(StepContext<M, R> stepContext, boolean signatureBiometric) throws Exception {
+    public <M extends SignatureHeaderData, R> void addSignatureHeader(StepContext<M, R> stepContext) throws Exception {
         M model = stepContext.getModel();
         RequestContext requestContext = stepContext.getRequestContext();
         ResultStatusObject resultStatusObject = model.getResultStatus();
@@ -113,16 +111,17 @@ public class PowerAuthHeaderService {
         byte[] ctrData = CounterUtil.getCtrData(resultStatusObject, stepLogger);
         PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion().value());
 
-        String signatureValue;
-        if (signatureBiometric) {
+        List<SecretKey> signatureSecretKeys;
+        if (PowerAuthSignatureTypes.POSSESSION.equals(model.getSignatureType())) {
+            signatureSecretKeys = Collections.singletonList(signaturePossessionKey);
+        } else if (PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE.equals(model.getSignatureType())) {
             SecretKey signatureKnowledgeKey = getSignatureKnowledgeKey(model);
-            signatureValue = SIGNATURE.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), KEY_FACTORY.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), ctrData, signatureFormat);
-        } else if (PowerAuthSignatureTypes.POSSESSION.equals(model.getSignatureType())) {
-            signatureValue = SIGNATURE.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), Collections.singletonList(signaturePossessionKey), ctrData, signatureFormat);
+            signatureSecretKeys = Arrays.asList(signaturePossessionKey, signatureKnowledgeKey);
         } else {
             SecretKey signatureKnowledgeKey = getSignatureKnowledgeKey(model);
-            signatureValue = SIGNATURE.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), Arrays.asList(signaturePossessionKey, signatureKnowledgeKey), ctrData, signatureFormat);
+            signatureSecretKeys = KEY_FACTORY.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey);
         }
+        String signatureValue = SIGNATURE.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), signatureSecretKeys, ctrData, signatureFormat);
 
         PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(resultStatusObject.getActivationId(), model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion().value());
 
@@ -152,7 +151,9 @@ public class PowerAuthHeaderService {
                 lowLevelData
         );
 
-        requestContext.setAuthorizationHeader(header.buildHttpHeader());
+        String headerValue = header.buildHttpHeader();
+        requestContext.setAuthorizationHeader(headerValue);
+        requestContext.getHttpHeaders().put(PowerAuthSignatureHttpHeader.HEADER_NAME, headerValue);
     }
 
     /**
@@ -177,7 +178,9 @@ public class PowerAuthHeaderService {
                 model.getVersion().value()
         );
 
-        requestContext.setAuthorizationHeader(header.buildHttpHeader());
+        String headerValue = header.buildHttpHeader();
+        requestContext.setAuthorizationHeader(headerValue);
+        requestContext.getHttpHeaders().put(PowerAuthTokenHttpHeader.HEADER_NAME, headerValue);
     }
 
     private <M extends SignatureHeaderData> SecretKey getSignatureKnowledgeKey(M model) throws Exception {

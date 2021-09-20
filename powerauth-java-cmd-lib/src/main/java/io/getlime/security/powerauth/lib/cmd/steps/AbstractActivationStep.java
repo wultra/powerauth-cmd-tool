@@ -202,7 +202,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
 
         resultStatusObject.setActivationId(activationId);
         resultStatusObject.getCounter().set(0L);
-        resultStatusObject.setCtrDataBase(ctrDataBase64);
+        resultStatusObject.setCtrData(ctrDataBase64);
         resultStatusObject.setEncryptedDevicePrivateKeyBytes(encryptedDevicePrivateKey);
         resultStatusObject.setServerPublicKeyObject(serverPublicKey);
         resultStatusObject.setSignatureBiometryKeyObject(signatureBiometrySecretKey);

@@ -163,6 +163,13 @@ public enum PowerAuthStep {
     String id;
 
     /**
+     * @return Alis of the step
+     */
+    public String alias() {
+        return alias;
+    }
+
+    /**
      * @return Description of the step
      */
     public String description() {

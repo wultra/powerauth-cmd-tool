@@ -105,7 +105,7 @@ public class RemoveTokenStep extends AbstractBaseStep<RemoveTokenStepModel, Obje
         ObjectRequest<TokenRemoveRequest> objectRequest = new ObjectRequest<>(request);
 
         requestContext.setRequestObject(objectRequest);
-        powerAuthHeaderService.addSignatureHeader(stepContext, true);
+        powerAuthHeaderService.addSignatureHeader(stepContext);
 
         return stepContext;
     }
