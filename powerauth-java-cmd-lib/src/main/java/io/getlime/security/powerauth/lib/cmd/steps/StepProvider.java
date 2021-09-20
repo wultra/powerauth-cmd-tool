@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Provider of PowerAuth step process components
@@ -39,7 +40,7 @@ public class StepProvider {
     private final StepLogger stepLogger;
 
     /**
-     * Mapping of a PowerAuth step enumeration to a corresponding process component
+     * Mapping of a PowerAuthStep enumeration to a corresponding version of process component
      */
     private Map<PowerAuthStep, Map<PowerAuthVersion, BaseStep>> mappingStepVersion = Collections.emptyMap();
 
@@ -64,9 +65,11 @@ public class StepProvider {
         steps.forEach(step -> {
             Map<PowerAuthVersion, BaseStep> mappingVersion =
                     mappingStepVersion.computeIfAbsent(step.getStep(), value -> new HashMap<>());
+
             step.getSupportedVersions().forEach(supportedVersion -> {
                 mappingVersion.put(supportedVersion, step);
             });
+
         });
 
         this.mappingStepVersion = mappingStepVersion;
@@ -102,6 +105,35 @@ public class StepProvider {
             );
             return new PowerAuthCmdException();
         });
+    }
+
+    /**
+     * Provides available PowerAuth steps for the specified PowerAuthVersion
+     * @param version PowerAuthVersion value
+     * @return Supported versions
+     */
+    public Set<PowerAuthStep> getAvailableSteps(PowerAuthVersion version) {
+        Set<PowerAuthStep> steps = new HashSet<>();
+        for (PowerAuthStep step : mappingStepVersion.keySet()) {
+            if (mappingStepVersion.get(step).containsKey(version)) {
+                steps.add(step);
+            }
+        }
+        return steps;
+    }
+
+    /**
+     * Provides supported versions for the specified PowerAuth step
+     * @param step PowerAuth step identification
+     * @return Supported versions
+     */
+    public Set<PowerAuthVersion> getSupportedVersions(PowerAuthStep step) {
+        return Optional.ofNullable(mappingStepVersion.get(step))
+                .orElse(Collections.emptyMap())
+                .keySet()
+                .stream()
+                .sorted()
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
 }

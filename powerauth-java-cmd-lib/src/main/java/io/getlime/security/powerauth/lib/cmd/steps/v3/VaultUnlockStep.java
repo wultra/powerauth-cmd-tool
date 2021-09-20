@@ -117,7 +117,7 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Ecie
 
         addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.VAULT_UNLOCK, requestBytesPayload);
 
-        powerAuthHeaderService.addSignatureHeader(stepContext, true);
+        powerAuthHeaderService.addSignatureHeader(stepContext);
 
         incrementCounter(model);
 

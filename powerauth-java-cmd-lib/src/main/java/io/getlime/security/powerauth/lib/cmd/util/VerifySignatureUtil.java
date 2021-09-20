@@ -20,6 +20,7 @@ import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.http.PowerAuthRequestCanonizationUtils;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
+import org.springframework.http.HttpMethod;
 
 import java.io.IOException;
 import java.net.URI;
@@ -39,7 +40,7 @@ public class VerifySignatureUtil {
      */
     public static byte[] extractRequestDataBytes(VerifySignatureStepModel model, StepLogger stepLogger) throws URISyntaxException, IOException {
         byte[] requestDataBytes;
-        if ("GET".equals(model.getHttpMethod().toUpperCase())) {
+        if (HttpMethod.GET.name().equals(model.getHttpMethod().toUpperCase())) {
             String query = new URI(model.getUriString()).getRawQuery();
             String canonizedQuery = PowerAuthRequestCanonizationUtils.canonizeGetParameters(query);
             if (canonizedQuery != null) {

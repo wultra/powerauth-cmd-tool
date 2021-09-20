@@ -102,7 +102,7 @@ public class CommitUpgradeStep extends AbstractBaseStep<CommitUpgradeStepModel, 
         resultStatusObject.setVersion(3L);
 
         requestContext.setRequestObject(PowerAuthConst.EMPTY_JSON_BYTES);
-        powerAuthHeaderService.addSignatureHeader(stepContext, false);
+        powerAuthHeaderService.addSignatureHeader(stepContext);
 
         return stepContext;
     }

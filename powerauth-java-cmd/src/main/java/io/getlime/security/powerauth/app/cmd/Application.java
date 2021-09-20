@@ -24,10 +24,11 @@ import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.exception.PowerAuthCmdException;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.service.StepExecutionService;
-import io.getlime.security.powerauth.lib.cmd.util.FileUtil;
+import io.getlime.security.powerauth.lib.cmd.steps.StepProvider;
 import io.getlime.security.powerauth.lib.cmd.steps.model.*;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.ConfigurationUtil;
+import io.getlime.security.powerauth.lib.cmd.util.FileUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientFactory;
 import org.apache.commons.cli.*;
@@ -42,10 +43,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.PublicKey;
 import java.security.Security;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Command-line utility for testing PowerAuth implementation and for verification of
@@ -68,6 +67,7 @@ public class Application {
                 .run(args);;
 
         StepExecutionService stepExecutionService = appContext.getBeanFactory().getBean(StepExecutionService.class);
+        StepProvider stepProvider = appContext.getBeanFactory().getBean(StepProvider.class);
         StepLogger stepLogger = appContext.getBeanFactory().getBean(StepLogger.class);
 
         try {
@@ -79,6 +79,8 @@ public class Application {
             // Options definition
             Options options = new Options();
             options.addOption("h", "help", false, "Print this help manual.");
+            options.addOption("hs", "help-steps", false, "PowerAuth supported steps and versions.");
+            options.addOption("hv", "help-versions", false, "PowerAuth supported versions and steps.");
             options.addOption("u", "url", true, "Base URL of the PowerAuth Standard RESTful API.");
             options.addOption("m", "method", true, "What API method to call, available names are 'create', 'status', 'remove', 'sign', 'unlock', 'create-custom', 'create-token', 'validate-token', 'remove-token', 'encrypt', 'sign-encrypt', 'start-upgrade', 'commit-upgrade', 'create-recovery' and 'confirm-recovery-code'.");
             options.addOption("c", "config-file", true, "Specifies a path to the config file with Base64 encoded server master public key, application ID and application secret.");
@@ -116,6 +118,36 @@ public class Application {
             // Options parsing
             CommandLineParser parser = new DefaultParser();
             CommandLine cmd = parser.parse(options, args);
+
+            if (cmd.hasOption("hs")) {
+                System.out.println("Supported PowerAuth steps and corresponding versions.\n");
+                List<PowerAuthStep> steps = Arrays.stream(PowerAuthStep.values())
+                        .sorted(Comparator.comparing(PowerAuthStep::alias))
+                        .collect(Collectors.toList());
+                System.out.printf("%-30s%s%n", "PowerAuth step", "Supported versions");
+                for (PowerAuthStep step : steps) {
+                    List<String> versions = stepProvider.getSupportedVersions(step)
+                            .stream()
+                            .map(PowerAuthVersion::value)
+                            .collect(Collectors.toList());
+                    System.out.printf("%-30s%s%n", step.alias(), versions);
+                }
+                return;
+            }
+
+            if (cmd.hasOption("hv")) {
+                System.out.println("Supported PowerAuth versions and available steps.\n");
+                System.out.printf("%-20s%s%n", "PowerAuth version", "Available steps");
+                for (PowerAuthVersion version : PowerAuthVersion.values()) {
+                    List<String> steps = stepProvider.getAvailableSteps(version)
+                            .stream()
+                            .map(PowerAuthStep::alias)
+                            .sorted()
+                            .collect(Collectors.toList());
+                    System.out.printf("%-20s%s%n", version.value(), steps);
+                }
+                return;
+            }
 
             // Check if help was invoked
             if (cmd.hasOption("h") || !cmd.hasOption("m")) {

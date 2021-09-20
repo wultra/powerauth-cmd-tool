@@ -48,7 +48,7 @@ public class ResultStatusObject {
 
     private AtomicLong counter = new AtomicLong(0);
 
-    private String ctrDataBase;
+    private String ctrData;
 
     @JsonIgnore
     private byte[] encryptedDevicePrivateKeyBytes;
@@ -103,12 +103,12 @@ public class ResultStatusObject {
 
     public void setCounter(AtomicLong counter) {
         this.counter = counter;
-        jsonObject.put("counter", counter);
+        jsonObject.put("counter", counter.longValue());
     }
 
-    public void setCtrDataBase(String ctrDataBase) {
-        this.ctrDataBase = ctrDataBase;
-        jsonObject.put("ctrDataBase", ctrDataBase);
+    public void setCtrData(String ctrData) {
+        this.ctrData = ctrData;
+        jsonObject.put("ctrData", ctrData);
     }
 
     public void setEncryptedDevicePrivateKeyBytes(byte[] encryptedDevicePrivateKeyBytes) {

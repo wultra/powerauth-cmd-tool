@@ -113,7 +113,7 @@ public class BaseStepModel implements BaseStepData {
         Map<String, Object> context = new HashMap<>();
         context.put("HTTP_HEADERS", headers);
         context.put("URI_STRING", uriString);
-        context.put("STATUS_OBJECT", resultStatusObject.toJsonObject()); // TODO json object??
+        context.put("STATUS_OBJECT", resultStatusObject);
         context.put("VERSION", version);
         return context;
     }

@@ -243,7 +243,7 @@ public class PrepareActivationStep extends AbstractBaseStepV2 {
 
                 resultStatusObject.setActivationId(activationId);
                 resultStatusObject.getCounter().set(0L);
-                resultStatusObject.setCtrDataBase(null);
+                resultStatusObject.setCtrData(null);
                 resultStatusObject.setEncryptedDevicePrivateKeyBytes(encryptedDevicePrivateKey);
                 resultStatusObject.setServerPublicKeyObject(serverPublicKey);
                 resultStatusObject.setSignatureBiometryKeyObject(signatureBiometrySecretKey);

@@ -29,6 +29,7 @@ import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepMode
 import io.getlime.security.powerauth.lib.cmd.util.VerifySignatureUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -89,7 +90,7 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
         byte[] dataFileBytes = VerifySignatureUtil.extractRequestDataBytes(model, stepLogger);
 
         RequestContext requestContext = RequestContext.builder()
-                .httpMethod(model.getHttpMethod())
+                .httpMethod(HttpMethod.valueOf(model.getHttpMethod()))
                 .requestObject(dataFileBytes)
                 .signatureHttpMethod(model.getHttpMethod())
                 .signatureRequestUri(model.getResourceId())
@@ -99,7 +100,7 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
         StepContext<VerifySignatureStepModel, ObjectResponse<Map<String, Object>>> stepContext =
                 buildStepContext(model, requestContext);
 
-        powerAuthHeaderService.addSignatureHeader(stepContext, true);
+        powerAuthHeaderService.addSignatureHeader(stepContext);
 
         incrementCounter(model);
 

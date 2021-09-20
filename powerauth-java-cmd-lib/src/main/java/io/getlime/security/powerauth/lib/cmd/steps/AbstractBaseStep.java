@@ -6,9 +6,6 @@ import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
-import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
-import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
-import io.getlime.security.powerauth.http.PowerAuthTokenHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.DisabledStepLogger;
@@ -18,9 +15,6 @@ import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.ResponseContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
-import io.getlime.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
-import io.getlime.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
-import io.getlime.security.powerauth.lib.cmd.steps.model.data.TokenHeaderData;
 import io.getlime.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
 import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
@@ -31,6 +25,7 @@ import lombok.Getter;
 import org.json.simple.JSONObject;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
@@ -123,13 +118,6 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
 
         StepContext<M, R> stepContext = prepareStepContext(context);
 
-        // TODO is this necessary?
-        M model = stepContext.getModel();
-        if (model instanceof ResultStatusChangeable) {
-            // Store the activation status (typically with updated counter)
-            resultStatusService.save((ResultStatusChangeable) model);
-        }
-
         ResponseContext<R> response;
         try {
             response = callServer(stepContext);
@@ -143,7 +131,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             stepLogger.writeDoneFailed(getStep().id() + "-failed");
             return null;
         }
-        return model.getResultStatus();
+        return stepContext.getModel().getResultStatus();
     }
 
     /**
@@ -176,8 +164,11 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
         M model = stepContext.getModel();
         ResultStatusObject resultStatusObject = model.getResultStatus();
 
-        EciesEncryptor encryptor = SecurityUtil.createEncryptor(applicationSecret, resultStatusObject, eciesSharedInfo);
-        stepContext.setEncryptor(encryptor);
+        EciesEncryptor encryptor = stepContext.getEncryptor();
+        if (encryptor == null) {
+            encryptor = SecurityUtil.createEncryptor(applicationSecret, resultStatusObject, eciesSharedInfo);
+            stepContext.setEncryptor(encryptor);
+        }
 
         final boolean useIv = model.getVersion().useIv();
 
@@ -262,20 +253,13 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
         Map<String, String> headers = new HashMap<>();
         headers.put(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
         headers.put(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-
-        if (model instanceof EncryptionHeaderData) {
-            headers.put(PowerAuthEncryptionHttpHeader.HEADER_NAME, requestContext.getAuthorizationHeader());
-        } else if (model instanceof SignatureHeaderData) {
-            headers.put(PowerAuthSignatureHttpHeader.HEADER_NAME, requestContext.getAuthorizationHeader());
-        } else if (model instanceof TokenHeaderData) {
-            headers.put(PowerAuthTokenHttpHeader.HEADER_NAME, requestContext.getAuthorizationHeader());
-        }
-
+        // put all headers from request context (includes e.g. authorization header)
+        headers.putAll(requestContext.getHttpHeaders());
         if (model.getHeaders() != null && !model.getHeaders().isEmpty()) {
             headers.putAll(model.getHeaders());
         }
 
-        stepLogger.writeServerCall(step.id() + "-request-sent", requestContext.getUri(), "POST", requestContext.getRequestObject(), headers);
+        stepLogger.writeServerCall(step.id() + "-request-sent", requestContext.getUri(), requestContext.getHttpMethod().name(), requestContext.getRequestObject(), headers);
 
         // In the case of a dry run the execution ends here
         if (model instanceof DryRunCapable && ((DryRunCapable) model).isDryRun()) {
@@ -294,7 +278,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             byte[] requestBytes = HttpUtil.toRequestBytes(requestContext.getRequestObject());
 
             // Call the right method with the REST client
-            if ("GET".equals(requestContext.getHttpMethod())) {
+            if (HttpMethod.GET.equals(requestContext.getHttpMethod())) {
                 responseEntity = restClient.get(requestContext.getUri(), null, MapUtil.toMultiValueMap(headers), getResponseTypeReference());
             } else {
                 responseEntity = restClient.post(requestContext.getUri(), requestBytes, null, MapUtil.toMultiValueMap(headers), getResponseTypeReference());

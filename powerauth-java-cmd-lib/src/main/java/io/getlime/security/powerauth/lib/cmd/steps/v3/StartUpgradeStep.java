@@ -107,7 +107,7 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, Ec
                 decryptResponse(encryptor, response, UpgradeResponsePayload.class);
 
         // Store the activation status (updated counter)
-        model.getResultStatus().setCtrDataBase(responsePayload.getCtrData());
+        model.getResultStatus().setCtrData(responsePayload.getCtrData());
         resultStatusService.save(model);
 
         stepLogger.writeItem(

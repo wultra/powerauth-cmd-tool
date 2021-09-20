@@ -90,7 +90,7 @@ public class RemoveStep extends AbstractBaseStep<RemoveStepModel, EciesEncrypted
         StepContext<RemoveStepModel, EciesEncryptedResponse> stepContext =
                 buildStepContext(model, requestContext);
 
-        powerAuthHeaderService.addSignatureHeader(stepContext, false);
+        powerAuthHeaderService.addSignatureHeader(stepContext);
 
         incrementCounter(model);
 

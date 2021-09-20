@@ -35,6 +35,7 @@ import io.getlime.security.powerauth.lib.cmd.util.VerifySignatureUtil;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -105,7 +106,7 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
         }
 
         // Verify HTTP method, only POST is supported
-        if (!"POST".equals(model.getHttpMethod().toUpperCase())) {
+        if (!HttpMethod.POST.name().equals(model.getHttpMethod().toUpperCase())) {
             stepLogger.writeError("sign-encrypt-error-http-method-invalid", "Sign and Encrypt Request Failed", "Unsupported HTTP method: " + model.getHttpMethod().toUpperCase());
             stepLogger.writeDoneFailed("sign-encrypt-failed");
             return null;
@@ -130,7 +131,7 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
         // Construct the signature base string data
         byte[] dataFileBytes = VerifySignatureUtil.extractRequestDataBytes(model, stepLogger);
         requestContext.setRequestObject(dataFileBytes);
-        powerAuthHeaderService.addSignatureHeader(stepContext, true);
+        powerAuthHeaderService.addSignatureHeader(stepContext);
 
         // Encrypt the request
         addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.ACTIVATION_SCOPE_GENERIC, requestDataBytes);

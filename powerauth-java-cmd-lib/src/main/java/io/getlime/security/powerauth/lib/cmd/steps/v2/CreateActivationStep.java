@@ -16,7 +16,6 @@ import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.http.PowerAuthRequestCanonizationUtils;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
-import io.getlime.security.powerauth.lib.cmd.logging.DisabledStepLogger;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.CreateActivationStepModel;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
@@ -318,7 +317,7 @@ public class CreateActivationStep extends AbstractBaseStepV2 {
 
                 resultStatusObject.setActivationId(activationId);
                 resultStatusObject.getCounter().set(0L);
-                resultStatusObject.setCtrDataBase(null);
+                resultStatusObject.setCtrData(null);
                 resultStatusObject.setEncryptedDevicePrivateKeyBytes(encryptedDevicePrivateKey);
                 resultStatusObject.setServerPublicKeyObject(serverPublicKey);
                 resultStatusObject.setSignatureBiometryKeyObject(signatureBiometrySecretKey);

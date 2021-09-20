@@ -22,7 +22,7 @@ import io.getlime.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import lombok.Data;
 
 import java.security.KeyPair;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -36,7 +36,7 @@ public class StepContext<M extends BaseStepData, R> {
     /**
      * Additional context attributes
      */
-    private Map<String, Object> attributes = Collections.emptyMap();
+    private Map<String, Object> attributes = new HashMap<>();
 
     /**
      * Data model

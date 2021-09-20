@@ -105,7 +105,7 @@ public class ConfirmRecoveryCodeStep extends AbstractBaseStep<ConfirmRecoveryCod
 
         addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.CONFIRM_RECOVERY_CODE, requestBytesPayload);
 
-        powerAuthHeaderService.addSignatureHeader(stepContext, false);
+        powerAuthHeaderService.addSignatureHeader(stepContext);
 
         incrementCounter(model);
 
