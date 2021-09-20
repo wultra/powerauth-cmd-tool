@@ -16,6 +16,7 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps;
 
+import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
@@ -47,10 +48,10 @@ import java.util.Map;
  * @author Petr Dvorak
  */
 @Component
-public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepModel, Map<String, Object>> {
+public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepModel, ObjectResponse<Map<String, Object>>> {
 
-    ParameterizedTypeReference<Map<String, Object>> RESPONSE_TYPE_REFERENCE =
-            new ParameterizedTypeReference<Map<String, Object>>() { };
+    ParameterizedTypeReference<ObjectResponse<Map<String, Object>>> RESPONSE_TYPE_REFERENCE =
+            new ParameterizedTypeReference<ObjectResponse<Map<String, Object>>>() { };
 
     private final PowerAuthHeaderService powerAuthHeaderService;
 
@@ -76,12 +77,12 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
     }
 
     @Override
-    public ParameterizedTypeReference<Map<String, Object>> getResponseTypeReference() {
+    public ParameterizedTypeReference<ObjectResponse<Map<String, Object>>> getResponseTypeReference() {
         return RESPONSE_TYPE_REFERENCE;
     }
 
     @Override
-    public StepContext<VerifySignatureStepModel, Map<String, Object>> prepareStepContext(Map<String, Object> context) throws Exception {
+    public StepContext<VerifySignatureStepModel, ObjectResponse<Map<String, Object>>> prepareStepContext(Map<String, Object> context) throws Exception {
         VerifySignatureStepModel model = new VerifySignatureStepModel();
         model.fromMap(context);
 
@@ -95,7 +96,7 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
                 .uri(model.getUriString())
                 .build();
 
-        StepContext<VerifySignatureStepModel, Map<String, Object>> stepContext =
+        StepContext<VerifySignatureStepModel, ObjectResponse<Map<String, Object>>> stepContext =
                 buildStepContext(model, requestContext);
 
         powerAuthHeaderService.addSignatureHeader(stepContext, true);
@@ -120,7 +121,7 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
     }
 
     @Override
-    public void processResponse(StepContext<VerifySignatureStepModel, Map<String, Object>> stepContext) throws Exception {
+    public void processResponse(StepContext<VerifySignatureStepModel, ObjectResponse<Map<String, Object>>> stepContext) throws Exception {
         stepLogger.writeItem(
                 getStep().id() + "-signature-verified",
                 "Signature verified",

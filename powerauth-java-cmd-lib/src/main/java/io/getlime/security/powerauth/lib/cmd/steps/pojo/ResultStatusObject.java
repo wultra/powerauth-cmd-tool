@@ -41,11 +41,12 @@ public class ResultStatusObject {
     /**
      * Backward compatibility, sync all modifications to the JSON object
      */
+    @JsonIgnore
     private JSONObject jsonObject = new JSONObject();
 
     private String activationId;
 
-    private AtomicLong counter = new AtomicLong();
+    private AtomicLong counter = new AtomicLong(0);
 
     private String ctrDataBase;
 
@@ -205,6 +206,9 @@ public class ResultStatusObject {
     }
 
     public JSONObject toJsonObject() {
+        if (!jsonObject.containsKey("counter")) {
+            jsonObject.put("counter", counter.longValue());
+        }
         return jsonObject;
     }
 

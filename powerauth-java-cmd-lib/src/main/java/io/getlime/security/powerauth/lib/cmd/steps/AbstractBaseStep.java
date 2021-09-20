@@ -11,6 +11,7 @@ import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.http.PowerAuthTokenHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
+import io.getlime.security.powerauth.lib.cmd.logging.DisabledStepLogger;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
@@ -156,7 +157,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @throws Exception In case of a failure.
      */
     public final JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        this.stepLogger = stepLogger;
+        this.stepLogger = stepLogger != null ? stepLogger : new DisabledStepLogger();
         ResultStatusObject resultStatusObject = execute(context);
         return resultStatusObject != null ? resultStatusObject.toJsonObject() : null;
     }

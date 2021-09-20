@@ -29,11 +29,9 @@ import io.getlime.security.powerauth.lib.cmd.logging.model.ExtendedActivationSta
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
-import io.getlime.security.powerauth.lib.cmd.steps.context.ResponseContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.GetStatusStepModel;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
-import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
 import io.getlime.security.powerauth.rest.api.model.request.v3.ActivationStatusRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.ActivationStatusResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +40,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Helper class with step for getting activation status.
@@ -127,17 +124,12 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, ObjectRe
 
     @Override
     public void processResponse(StepContext<GetStatusStepModel, ObjectResponse<ActivationStatusResponse>> stepContext) throws Exception {
-        ResponseContext<ObjectResponse<ActivationStatusResponse>> responseContext = stepContext.getResponseContext();
-        ObjectResponse<ActivationStatusResponse> responseWrapper = Objects.requireNonNull(responseContext.getResponseBodyObject());
-
         ResultStatusObject resultStatusObject = stepContext.getModel().getResultStatus();
 
         final boolean useChallenge = !stepContext.getModel().getVersion().equals(PowerAuthVersion.V3_0);
 
-        stepLogger.writeServerCallOK("activation-status-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseContext.getResponseEntity().getHeaders()));
-
         // Process the server response
-        final ActivationStatusResponse responseObject = responseWrapper.getResponseObject();
+        final ActivationStatusResponse responseObject = stepContext.getResponseContext().getResponseBodyObject().getResponseObject();
         final byte[] cStatusBlob = BaseEncoding.base64().decode(responseObject.getEncryptedStatusBlob());
         final byte[] cStatusBlobNonce = useChallenge ? BaseEncoding.base64().decode(responseObject.getNonce()) : null;
 

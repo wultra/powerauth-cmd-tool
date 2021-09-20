@@ -34,6 +34,7 @@ import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
+import io.getlime.security.powerauth.lib.cmd.util.SecurityUtil;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
@@ -126,12 +127,8 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
                 ResultStatusObject resultStatusObject = model.getResultStatus();
 
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/activation
-                final byte[] transportMasterKeyBytes = resultStatusObject.getTransportMasterKeyObject().getEncoded();
-                final byte[] serverPublicKeyBytes = resultStatusObject.getServerPublicKeyObject().getEncoded();
-                final ECPublicKey serverPublicKey = (ECPublicKey) KEY_CONVERTOR.convertBytesToPublicKey(serverPublicKeyBytes);
+                encryptor = SecurityUtil.createEncryptor(model.getApplicationSecret(), resultStatusObject, EciesSharedInfo1.ACTIVATION_SCOPE_GENERIC);
                 final String activationId = resultStatusObject.getActivationId();
-                encryptor = ECIES_FACTORY.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
-                        transportMasterKeyBytes, EciesSharedInfo1.ACTIVATION_SCOPE_GENERIC);
                 header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), activationId, model.getVersion().value());
                 break;
 

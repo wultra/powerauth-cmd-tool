@@ -38,7 +38,6 @@ import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -99,21 +98,9 @@ public class PowerAuthHeaderService {
         M model = stepContext.getModel();
         RequestContext requestContext = stepContext.getRequestContext();
         ResultStatusObject resultStatusObject = model.getResultStatus();
-        byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySaltBytes();
-        byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncryptedBytes();
-
-        // Ask for the password to unlock knowledge factor key
-        char[] password;
-        if (model.getPassword() == null) {
-            Console console = System.console();
-            password = console.readPassword("Enter your password to unlock the knowledge related key: ");
-        } else {
-            password = model.getPassword().toCharArray();
-        }
 
         // Get the signature keys
         SecretKey signaturePossessionKey = resultStatusObject.getSignaturePossessionKeyObject();
-        SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(password, signatureKnowledgeKeyEncryptedBytes, signatureKnowledgeKeySalt, KEY_GENERATOR);
         SecretKey signatureBiometryKey = resultStatusObject.getSignatureBiometryKeyObject();
 
         // Generate nonce
@@ -128,10 +115,12 @@ public class PowerAuthHeaderService {
 
         String signatureValue;
         if (signatureBiometric) {
+            SecretKey signatureKnowledgeKey = getSignatureKnowledgeKey(model);
             signatureValue = SIGNATURE.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), KEY_FACTORY.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), ctrData, signatureFormat);
         } else if (PowerAuthSignatureTypes.POSSESSION.equals(model.getSignatureType())) {
             signatureValue = SIGNATURE.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), Collections.singletonList(signaturePossessionKey), ctrData, signatureFormat);
         } else {
+            SecretKey signatureKnowledgeKey = getSignatureKnowledgeKey(model);
             signatureValue = SIGNATURE.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), Arrays.asList(signaturePossessionKey, signatureKnowledgeKey), ctrData, signatureFormat);
         }
 
@@ -189,6 +178,22 @@ public class PowerAuthHeaderService {
         );
 
         requestContext.setAuthorizationHeader(header.buildHttpHeader());
+    }
+
+    private <M extends SignatureHeaderData> SecretKey getSignatureKnowledgeKey(M model) throws Exception {
+        byte[] signatureKnowledgeKeySalt = model.getResultStatus().getSignatureKnowledgeKeySaltBytes();
+        byte[] signatureKnowledgeKeyEncryptedBytes = model.getResultStatus().getSignatureKnowledgeKeyEncryptedBytes();
+
+        // Ask for the password to unlock knowledge factor key
+        char[] password;
+        if (model.getPassword() == null) {
+            Console console = System.console();
+            password = console.readPassword("Enter your password to unlock the knowledge related key: ");
+        } else {
+            password = model.getPassword().toCharArray();
+        }
+
+        return EncryptedStorageUtil.getSignatureKnowledgeKey(password, signatureKnowledgeKeyEncryptedBytes, signatureKnowledgeKeySalt, KEY_GENERATOR);
     }
 
 }

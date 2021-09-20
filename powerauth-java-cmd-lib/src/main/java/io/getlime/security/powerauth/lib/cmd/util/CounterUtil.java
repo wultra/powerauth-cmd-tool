@@ -56,7 +56,7 @@ public class CounterUtil {
      */
     public static byte[] getCtrData(ResultStatusObject resultStatusObject, StepLogger stepLogger) {
         byte[] ctrData = new byte[16];
-        long counter = resultStatusObject.getCounter().incrementAndGet();
+        long counter = resultStatusObject.getCounter().get();
         int version = resultStatusObject.getVersion().intValue();
         switch (version) {
             case 2:
