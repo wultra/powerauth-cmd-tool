@@ -23,6 +23,7 @@ import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCrypt
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
+import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
@@ -142,7 +143,10 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
 
         stepContext.setEncryptor(encryptor);
         addEncryptedRequest(stepContext, model.getApplicationSecret(), eciesSharedInfo1, requestDataBytes);
-        requestContext.setAuthorizationHeader(header.buildHttpHeader());
+
+        String headerValue = header.buildHttpHeader();
+        requestContext.setAuthorizationHeader(headerValue);
+        requestContext.getHttpHeaders().put(PowerAuthSignatureHttpHeader.HEADER_NAME, headerValue);
 
         stepLogger.writeItem(
                 getStep().id() + "-request-encrypt",
