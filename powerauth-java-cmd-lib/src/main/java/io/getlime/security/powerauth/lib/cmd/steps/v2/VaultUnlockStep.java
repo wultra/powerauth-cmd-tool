@@ -113,9 +113,9 @@ public class VaultUnlockStep extends AbstractBaseStepV2 {
         String activationId = resultStatusObject.getActivationId();
         byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySaltBytes();
         byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncryptedBytes();
-        byte[] transportMasterKeyBytes = resultStatusObject.getTransportMasterKeyObject().getEncoded();
+        byte[] transportMasterKeyBytes = BaseEncoding.base64().decode(resultStatusObject.getTransportMasterKey());
         byte[] encryptedDevicePrivateKeyBytes = resultStatusObject.getEncryptedDevicePrivateKeyBytes();
-        byte[] serverPublicKeyBytes = resultStatusObject.getServerPublicKeyObject().getEncoded();
+        byte[] serverPublicKeyBytes = BaseEncoding.base64().decode(resultStatusObject.getServerPublicKey());
 
         // Ask for the password to unlock knowledge factor key
         char[] password;
