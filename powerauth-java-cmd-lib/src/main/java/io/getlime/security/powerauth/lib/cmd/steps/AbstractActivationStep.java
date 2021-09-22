@@ -33,6 +33,7 @@ import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
+import io.getlime.security.powerauth.lib.cmd.steps.model.PrepareActivationStepModel;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.ActivationData;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
@@ -284,6 +285,9 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         // Create activation layer 2 request which is decryptable only on PowerAuth server
         ActivationLayer2Request requestL2 = new ActivationLayer2Request();
         requestL2.setActivationName(model.getActivationName());
+        if (model instanceof PrepareActivationStepModel) {
+            requestL2.setActivationOtp(((PrepareActivationStepModel) model).getAdditionalActivationOtp());
+        }
         requestL2.setDevicePublicKey(devicePublicKeyBase64);
         requestL2.setPlatform(model.getPlatform());
         requestL2.setDeviceInfo(model.getDeviceInfo());
