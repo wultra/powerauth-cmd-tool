@@ -70,7 +70,7 @@ public class SecurityUtil {
             throws CryptoProviderException, GenericCryptoException, InvalidKeySpecException {
         byte[] applicationSecret = applicationSecretValue.getBytes(StandardCharsets.UTF_8);
         byte[] serverPublicKeyBytes = BaseEncoding.base64().decode(resultStatusObject.getServerPublicKey());
-        byte[] transportMasterKeyBytes = resultStatusObject.getTransportMasterKeyObject().getEncoded();
+        byte[] transportMasterKeyBytes = BaseEncoding.base64().decode(resultStatusObject.getTransportMasterKey());
         final ECPublicKey serverPublicKey = (ECPublicKey) KEY_CONVERTOR.convertBytesToPublicKey(serverPublicKeyBytes);
         return ECIES_FACTORY.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
                 transportMasterKeyBytes, sharedInfo);
