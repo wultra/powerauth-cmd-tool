@@ -128,7 +128,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      */
     public final JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         if (stepLogger == null) {
-            stepLogger = new DisabledStepLogger();
+            stepLogger = DisabledStepLogger.INSTANCE;
         }
         stepLogger.writeItem(
                 getStep().id() + "-start",
@@ -140,11 +140,11 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
 
         StepContext<M, R> stepContext = prepareStepContext(stepLogger, context);
 
-        ResponseContext<R> response;
+        ResponseContext<R> responseContext;
         try {
-            response = callServer(stepContext);
-            if (response != null) {
-                stepContext.setResponseContext(response);
+            responseContext = callServer(stepContext);
+            if (responseContext != null) {
+                stepContext.setResponseContext(responseContext);
                 processResponse(stepContext);
                 stepLogger.writeDoneOK(getStep().id() + "-success");
             }
@@ -216,8 +216,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @param stepContext Step context
      * @throws Exception when an error during response processing occurred
      */
-    public void processResponse(StepContext<M, R> stepContext) throws Exception {
-    }
+    public void processResponse(StepContext<M, R> stepContext) throws Exception { }
 
     /**
      * Builds a step context instance from a model and a request context
@@ -258,8 +257,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     /**
      * Calls the server and prepares response context with the response data
      */
-    private @Nullable
-    ResponseContext<R> callServer(StepContext<M, R> stepContext) throws Exception {
+    private @Nullable ResponseContext<R> callServer(StepContext<M, R> stepContext) throws Exception {
         M model = stepContext.getModel();
         RequestContext requestContext = stepContext.getRequestContext();
 

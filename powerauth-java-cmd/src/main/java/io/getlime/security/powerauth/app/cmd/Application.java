@@ -213,7 +213,7 @@ public class Application {
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
                     model.setPassword(cmd.getOptionValue("p"));
-                    model.setResultStatusObject(resultStatusObject);
+                    model.setResultStatus(resultStatusObject);
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
@@ -228,7 +228,7 @@ public class Application {
                     model.setTokenId(cmd.getOptionValue("T"));
                     model.setTokenSecret(cmd.getOptionValue("S"));
                     model.setHeaders(httpHeaders);
-                    model.setResultStatusObject(resultStatusObject);
+                    model.setResultStatus(resultStatusObject);
                     model.setUriString(uriString);
                     model.setHttpMethod(cmd.getOptionValue("t"));
                     model.setVersion(version);
@@ -250,7 +250,7 @@ public class Application {
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
                     model.setPassword(cmd.getOptionValue("p"));
-                    model.setResultStatusObject(resultStatusObject);
+                    model.setResultStatus(resultStatusObject);
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
@@ -283,7 +283,7 @@ public class Application {
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
                     model.setPassword(cmd.getOptionValue("p"));
-                    model.setResultStatusObject(resultStatusObject);
+                    model.setResultStatus(resultStatusObject);
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
                     model.setVersion(version);
@@ -295,7 +295,7 @@ public class Application {
 
                     GetStatusStepModel model = new GetStatusStepModel();
                     model.setHeaders(httpHeaders);
-                    model.setResultStatusObject(resultStatusObject);
+                    model.setResultStatus(resultStatusObject);
                     model.setUriString(uriString);
                     model.setVersion(version);
 
@@ -309,7 +309,7 @@ public class Application {
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
                     model.setHeaders(httpHeaders);
                     model.setPassword(cmd.getOptionValue("p"));
-                    model.setResultStatusObject(resultStatusObject);
+                    model.setResultStatus(resultStatusObject);
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
                     model.setVersion(version);
@@ -326,7 +326,7 @@ public class Application {
                     model.setHttpMethod(cmd.getOptionValue("t"));
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResourceId(cmd.getOptionValue("e"));
-                    model.setResultStatusObject(resultStatusObject);
+                    model.setResultStatus(resultStatusObject);
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
@@ -348,7 +348,7 @@ public class Application {
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
                     model.setHeaders(httpHeaders);
                     model.setPassword(cmd.getOptionValue("p"));
-                    model.setResultStatusObject(resultStatusObject);
+                    model.setResultStatus(resultStatusObject);
                     model.setStatusFileName(statusFileName);
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
                     model.setUriString(uriString);
@@ -381,7 +381,7 @@ public class Application {
                     model.setMasterPublicKey(masterPublicKey);
                     model.setStatusFileName(statusFileName);
                     model.setPassword(cmd.getOptionValue("p"));
-                    model.setResultStatusObject(resultStatusObject);
+                    model.setResultStatus(resultStatusObject);
                     model.setUriString(uriString);
                     model.setVersion(version);
 
@@ -394,7 +394,7 @@ public class Application {
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
-                    model.setResultStatusObject(resultStatusObject);
+                    model.setResultStatus(resultStatusObject);
                     model.setScope(cmd.getOptionValue("o"));
                     model.setUriString(uriString);
                     model.setVersion(version);
@@ -415,7 +415,7 @@ public class Application {
                     model.setHttpMethod(cmd.getOptionValue("t"));
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResourceId(cmd.getOptionValue("e"));
-                    model.setResultStatusObject(resultStatusObject);
+                    model.setResultStatus(resultStatusObject);
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
@@ -435,7 +435,7 @@ public class Application {
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
                     model.setHeaders(httpHeaders);
                     model.setStatusFileName(statusFileName);
-                    model.setResultStatusObject(resultStatusObject);
+                    model.setResultStatus(resultStatusObject);
                     model.setUriString(uriString);
                     model.setVersion(version);
 
@@ -449,7 +449,7 @@ public class Application {
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
                     model.setHeaders(httpHeaders);
                     model.setStatusFileName(statusFileName);
-                    model.setResultStatusObject(resultStatusObject);
+                    model.setResultStatus(resultStatusObject);
                     model.setUriString(uriString);
                     model.setVersion(version);
 
@@ -478,7 +478,7 @@ public class Application {
                     model.setMasterPublicKey(masterPublicKey);
                     model.setStatusFileName(statusFileName);
                     model.setPassword(cmd.getOptionValue("p"));
-                    model.setResultStatusObject(resultStatusObject);
+                    model.setResultStatus(resultStatusObject);
                     model.setUriString(uriString);
                     model.setVersion(version);
 
@@ -495,7 +495,7 @@ public class Application {
                     model.setMasterPublicKey(masterPublicKey);
                     model.setStatusFileName(statusFileName);
                     model.setRecoveryCode(cmd.getOptionValue("R"));
-                    model.setResultStatusObject(resultStatusObject);
+                    model.setResultStatus(resultStatusObject);
                     model.setUriString(uriString);
                     model.setVersion(version);
 

@@ -25,6 +25,12 @@ import java.util.Map;
  */
 public class DisabledStepLogger implements StepLogger {
 
+    public static final StepLogger INSTANCE = new DisabledStepLogger();
+
+    private DisabledStepLogger() {
+
+    }
+
     @Override
     public void start() { }
 

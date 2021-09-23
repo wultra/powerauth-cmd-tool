@@ -40,7 +40,9 @@ public interface SignatureHeaderData extends BaseStepData {
      */
     String getPassword();
 
-    // TODO
+    /**
+     * @return Signature type
+     */
     PowerAuthSignatureTypes getSignatureType();
 
 }

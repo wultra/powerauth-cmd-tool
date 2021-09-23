@@ -94,8 +94,7 @@ public class CommitUpgradeStepModel extends BaseStepModel
 
     @Override
     public String getPassword() {
-        // TODO no value here?
-        return null;
+        throw new IllegalStateException("Not supported password value for possession signature type");
     }
 
     @Override
