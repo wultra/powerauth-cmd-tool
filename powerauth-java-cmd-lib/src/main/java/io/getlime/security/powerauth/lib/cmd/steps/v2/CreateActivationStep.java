@@ -327,7 +327,7 @@ public class CreateActivationStep extends AbstractBaseStepV2 {
                 resultStatusObject.setTransportMasterKeyObject(transportMasterKey);
                 resultStatusObject.setVersion(2L);
 
-                model.setResultStatusObject(resultStatusObject);
+                model.setResultStatus(resultStatusObject);
 
                 // Store the resulting status
                 String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatus());

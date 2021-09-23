@@ -53,16 +53,16 @@ public class BaseStepModel implements BaseStepData {
      */
     private PowerAuthVersion version;
 
+    public JSONObject getResultStatusObject() {
+        return resultStatusObject != null ? resultStatusObject.toJsonObject() : null;
+    }
+
     /**
      * Sets activation status object from JSON object
      * @param jsonObject Activation status object as JSON
      */
     public void setResultStatusObject(JSONObject jsonObject) {
         this.resultStatusObject = ResultStatusObject.fromJsonObject(jsonObject);
-    }
-
-    public JSONObject getResultStatusObject() {
-        return resultStatusObject != null ? resultStatusObject.toJsonObject() : null;
     }
 
     public ResultStatusObject getResultStatus() {
@@ -73,7 +73,7 @@ public class BaseStepModel implements BaseStepData {
      * Sets activation status object
      * @param resultStatusObject Activation status object
      */
-    public void setResultStatusObject(ResultStatusObject resultStatusObject) {
+    public void setResultStatus(ResultStatusObject resultStatusObject) {
         this.resultStatusObject = resultStatusObject;
     }
 
@@ -119,9 +119,9 @@ public class BaseStepModel implements BaseStepData {
         setUriString((String) context.get("URI_STRING"));
         Object statusObject = context.get("STATUS_OBJECT");
         if (statusObject instanceof JSONObject) {
-            setResultStatusObject((JSONObject) statusObject);
+            setResultStatus(ResultStatusObject.fromJsonObject((JSONObject) statusObject));
         } else if (statusObject instanceof ResultStatusObject) {
-            setResultStatusObject((ResultStatusObject) statusObject);
+            setResultStatus((ResultStatusObject) statusObject);
         }
         Object version = context.get("VERSION");
         if (version instanceof PowerAuthVersion) {

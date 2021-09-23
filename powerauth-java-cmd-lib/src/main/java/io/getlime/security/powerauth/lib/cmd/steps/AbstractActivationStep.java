@@ -105,7 +105,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         M model = stepContext.getModel();
 
         ResultStatusObject resultStatusObject = processResponse(encryptedResponseL1, stepContext);
-        model.setResultStatusObject(resultStatusObject);
+        model.setResultStatus(resultStatusObject);
 
         resultStatusService.save(model);
 

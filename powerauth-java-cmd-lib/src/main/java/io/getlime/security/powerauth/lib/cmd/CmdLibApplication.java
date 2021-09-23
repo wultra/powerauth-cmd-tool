@@ -41,7 +41,7 @@ public class CmdLibApplication {
     public StepLogger stepLogger(StepLoggerConfig config) {
         switch (config.getType()) {
             case DISABLED:
-                return new DisabledStepLogger();
+                return DisabledStepLogger.INSTANCE;
             case JSON:
                 return new JsonStepLogger(System.out);
             case OBJECT:

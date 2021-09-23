@@ -39,7 +39,7 @@ public abstract class AbstractBaseStepV2 implements BaseStep {
     /**
      * Default step logger
      */
-    protected static final StepLogger DEFAULT_STEP_LOGGER = new DisabledStepLogger();
+    protected static final StepLogger DEFAULT_STEP_LOGGER = DisabledStepLogger.INSTANCE;
 
     /**
      * Corresponding PowerAuth step
@@ -84,7 +84,7 @@ public abstract class AbstractBaseStepV2 implements BaseStep {
      * @throws Exception In case of a failure.
      */
     public final JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        this.stepLogger = stepLogger != null ? stepLogger : new DisabledStepLogger();
+        this.stepLogger = stepLogger != null ? stepLogger : DisabledStepLogger.INSTANCE;
         ResultStatusObject resultStatusObject = execute(context);
         return resultStatusObject != null ? resultStatusObject.toJsonObject() : null;
     }

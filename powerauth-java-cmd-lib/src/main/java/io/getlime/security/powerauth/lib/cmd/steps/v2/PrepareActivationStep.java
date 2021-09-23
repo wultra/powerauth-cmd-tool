@@ -239,21 +239,19 @@ public class PrepareActivationStep extends AbstractBaseStepV2 {
                 byte[] cSignatureKnowledgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, signatureKnowledgeSecretKey, salt, keyGenerator);
 
                 // Prepare the status object to be stored
-                ResultStatusObject resultStatusObject = model.getResultStatus();
+                ResultStatusObject resultStatus = model.getResultStatus();
 
-                resultStatusObject.setActivationId(activationId);
-                resultStatusObject.getCounter().set(0L);
-                resultStatusObject.setCtrData(null);
-                resultStatusObject.setEncryptedDevicePrivateKeyBytes(encryptedDevicePrivateKey);
-                resultStatusObject.setServerPublicKeyObject(serverPublicKey);
-                resultStatusObject.setSignatureBiometryKeyObject(signatureBiometrySecretKey);
-                resultStatusObject.setSignatureKnowledgeKeyEncryptedBytes(cSignatureKnowledgeSecretKey);
-                resultStatusObject.setSignatureKnowledgeKeySaltBytes(salt);
-                resultStatusObject.setSignaturePossessionKeyObject(signaturePossessionSecretKey);
-                resultStatusObject.setTransportMasterKeyObject(transportMasterKey);
-                resultStatusObject.setVersion(2L);
-
-                model.setResultStatusObject(resultStatusObject);
+                resultStatus.setActivationId(activationId);
+                resultStatus.getCounter().set(0L);
+                resultStatus.setCtrData(null);
+                resultStatus.setEncryptedDevicePrivateKeyBytes(encryptedDevicePrivateKey);
+                resultStatus.setServerPublicKeyObject(serverPublicKey);
+                resultStatus.setSignatureBiometryKeyObject(signatureBiometrySecretKey);
+                resultStatus.setSignatureKnowledgeKeyEncryptedBytes(cSignatureKnowledgeSecretKey);
+                resultStatus.setSignatureKnowledgeKeySaltBytes(salt);
+                resultStatus.setSignaturePossessionKeyObject(signaturePossessionSecretKey);
+                resultStatus.setTransportMasterKeyObject(transportMasterKey);
+                resultStatus.setVersion(2L);
 
                 // Store the resulting status
                 String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatus());

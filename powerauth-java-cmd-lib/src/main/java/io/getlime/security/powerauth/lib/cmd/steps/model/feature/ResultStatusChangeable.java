@@ -36,7 +36,7 @@ public interface ResultStatusChangeable extends BaseStepData {
      *
      * @param resultStatusObject Activation status object
      */
-    void setResultStatusObject(ResultStatusObject resultStatusObject);
+    void setResultStatus(ResultStatusObject resultStatusObject);
 
     /**
      * @return Activation status file name

@@ -38,12 +38,12 @@ public class StepLoggerFactory {
 
     public StepLogger createStepLogger() {
         if (config == null || config.getType() == null) {
-            return new DisabledStepLogger();
+            return DisabledStepLogger.INSTANCE;
         }
 
         switch (config.getType()) {
             case DISABLED:
-                return new DisabledStepLogger();
+                return DisabledStepLogger.INSTANCE;
             case JSON:
                 return new JsonStepLogger(System.out);
             case OBJECT:
