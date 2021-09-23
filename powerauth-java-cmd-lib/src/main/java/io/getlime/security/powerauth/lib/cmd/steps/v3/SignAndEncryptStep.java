@@ -23,6 +23,7 @@ import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import io.getlime.security.powerauth.lib.cmd.service.PowerAuthHeaderService;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
@@ -62,8 +63,8 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
     public SignAndEncryptStep(
             PowerAuthHeaderService powerAuthHeaderService,
             ResultStatusService resultStatusService,
-            StepLogger stepLogger) {
-        super(PowerAuthStep.SIGN_ENCRYPT, PowerAuthVersion.VERSION_3, resultStatusService, stepLogger);
+            StepLoggerFactory stepLoggerFactory) {
+        super(PowerAuthStep.SIGN_ENCRYPT, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderService = powerAuthHeaderService;
     }
@@ -75,7 +76,7 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
         this(
                 BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
-                BackwardCompatibilityConst.STEP_LOGGER
+                BackwardCompatibilityConst.STEP_LOGGER_FACTORY
         );
     }
 
@@ -85,7 +86,7 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
     }
 
     @Override
-    public StepContext<VerifySignatureStepModel, EciesEncryptedResponse> prepareStepContext(Map<String, Object> context) throws Exception {
+    public StepContext<VerifySignatureStepModel, EciesEncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         VerifySignatureStepModel model = new VerifySignatureStepModel();
         model.fromMap(context);
 
@@ -96,7 +97,7 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
                 .build();
 
         StepContext<VerifySignatureStepModel, EciesEncryptedResponse> stepContext =
-                buildStepContext(model, requestContext);
+                buildStepContext(stepLogger, model, requestContext);
 
         // Verify that HTTP method is set
         if (model.getHttpMethod() == null) {
@@ -150,7 +151,7 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
         String decryptedMessage = new String(decryptedBytes, StandardCharsets.UTF_8);
         stepContext.getModel().getResultStatus().setResponseData(decryptedMessage);
 
-        stepLogger.writeItem(
+        stepContext.getStepLogger().writeItem(
                 getStep().id() + "-response-decrypted",
                 "Decrypted Response",
                 "Following data were decrypted",

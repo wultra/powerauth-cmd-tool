@@ -20,6 +20,7 @@ import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import io.getlime.security.powerauth.lib.cmd.service.PowerAuthHeaderService;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractActivationStep;
@@ -59,8 +60,8 @@ public class PrepareActivationStep extends AbstractActivationStep<PrepareActivat
     public PrepareActivationStep(
             PowerAuthHeaderService powerAuthHeaderService,
             ResultStatusService resultStatusService,
-            StepLogger stepLogger) {
-        super(PowerAuthStep.ACTIVATION_CREATE, PowerAuthVersion.VERSION_3, resultStatusService, stepLogger);
+            StepLoggerFactory stepLoggerFactory) {
+        super(PowerAuthStep.ACTIVATION_CREATE, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderService = powerAuthHeaderService;
     }
@@ -72,12 +73,12 @@ public class PrepareActivationStep extends AbstractActivationStep<PrepareActivat
         this(
                 BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
-                BackwardCompatibilityConst.STEP_LOGGER
+                BackwardCompatibilityConst.STEP_LOGGER_FACTORY
         );
     }
 
     @Override
-    public StepContext<PrepareActivationStepModel, EciesEncryptedResponse> prepareStepContext(Map<String, Object> context) throws Exception {
+    public StepContext<PrepareActivationStepModel, EciesEncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         PrepareActivationStepModel model = new PrepareActivationStepModel();
         model.fromMap(context);
 
@@ -106,7 +107,7 @@ public class PrepareActivationStep extends AbstractActivationStep<PrepareActivat
                 .build();
 
         StepContext<PrepareActivationStepModel, EciesEncryptedResponse> stepContext =
-                buildStepContext(model, requestContext);
+                buildStepContext(stepLogger, model, requestContext);
 
         powerAuthHeaderService.addEncryptionHeader(requestContext, model);
         addEncryptedRequest(stepContext);

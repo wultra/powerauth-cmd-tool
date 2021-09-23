@@ -18,6 +18,7 @@ package io.getlime.security.powerauth.lib.cmd.steps.pojo;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
+import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import lombok.*;
 import org.json.simple.JSONObject;
 
@@ -210,6 +211,19 @@ public class ResultStatusObject {
             jsonObject.put("counter", counter.longValue());
         }
         return jsonObject;
+    }
+
+    public static ResultStatusObject fromJsonObject(JSONObject jsonObject) {
+        ResultStatusObject resultStatusObject;
+        try {
+            resultStatusObject = RestClientConfiguration.defaultMapper().readValue(jsonObject.toJSONString(), ResultStatusObject.class);
+            resultStatusObject.setJsonObject(jsonObject);
+        } catch (Exception e) {
+            System.err.println("Invalid json data specified for result status object");
+            e.printStackTrace(System.err);
+            resultStatusObject = new ResultStatusObject();
+        }
+        return resultStatusObject;
     }
 
 }

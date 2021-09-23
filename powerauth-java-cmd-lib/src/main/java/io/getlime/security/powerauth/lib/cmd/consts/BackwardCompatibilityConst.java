@@ -16,8 +16,7 @@
  */
 package io.getlime.security.powerauth.lib.cmd.consts;
 
-import io.getlime.security.powerauth.lib.cmd.logging.DisabledStepLogger;
-import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import io.getlime.security.powerauth.lib.cmd.service.PowerAuthHeaderService;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusFileService;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
@@ -37,11 +36,15 @@ public class BackwardCompatibilityConst {
     /**
      * Constant step logger
      */
-    public static final StepLogger STEP_LOGGER = new DisabledStepLogger();
+    public static final StepLoggerFactory STEP_LOGGER_FACTORY;
 
     /**
      * Constant bean of PowerAuth header service
      */
-    public static final PowerAuthHeaderService POWER_AUTH_HEADER_SERVICE = new PowerAuthHeaderService(STEP_LOGGER);
+    public static final PowerAuthHeaderService POWER_AUTH_HEADER_SERVICE = new PowerAuthHeaderService();
+
+    static {
+        STEP_LOGGER_FACTORY = new StepLoggerFactory(StepLoggerType.DISABLED);
+    }
 
 }

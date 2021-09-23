@@ -18,6 +18,7 @@ package io.getlime.security.powerauth.lib.cmd.steps.context;
 
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import lombok.Data;
 
@@ -57,6 +58,11 @@ public class StepContext<M extends BaseStepData, R> {
      * Current step identification
      */
     private PowerAuthStep step;
+
+    /**
+     * Step logger
+     */
+    private StepLogger stepLogger;
 
     // TODO consider separation to two security contexts
     private EciesEncryptor encryptor;

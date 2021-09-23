@@ -16,13 +16,13 @@
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.google.common.collect.ImmutableMap;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import io.getlime.security.powerauth.lib.cmd.service.PowerAuthHeaderService;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
@@ -57,8 +57,8 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, Ec
     @Autowired
     public StartUpgradeStep(PowerAuthHeaderService powerAuthHeaderService,
                             ResultStatusService resultStatusService,
-                            StepLogger stepLogger) {
-        super(PowerAuthStep.UPGRADE_START, PowerAuthVersion.VERSION_3, resultStatusService, stepLogger);
+                            StepLoggerFactory stepLoggerFactory) {
+        super(PowerAuthStep.UPGRADE_START, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderService = powerAuthHeaderService;
     }
@@ -70,7 +70,7 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, Ec
         this(
                 BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
-                BackwardCompatibilityConst.STEP_LOGGER
+                BackwardCompatibilityConst.STEP_LOGGER_FACTORY
         );
     }
 
@@ -80,7 +80,7 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, Ec
     }
 
     @Override
-    public StepContext<StartUpgradeStepModel, EciesEncryptedResponse> prepareStepContext(Map<String, Object> context) throws Exception {
+    public StepContext<StartUpgradeStepModel, EciesEncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         StartUpgradeStepModel model = new StartUpgradeStepModel();
         model.fromMap(context);
 
@@ -89,7 +89,7 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, Ec
                 .build();
 
         StepContext<StartUpgradeStepModel, EciesEncryptedResponse> stepContext =
-                buildStepContext(model, requestContext);
+                buildStepContext(stepLogger, model, requestContext);
 
         addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.UPGRADE, PowerAuthConst.EMPTY_JSON_BYTES);
 
@@ -101,16 +101,13 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, Ec
     @Override
     public void processResponse(StepContext<StartUpgradeStepModel, EciesEncryptedResponse> stepContext) throws Exception {
         StartUpgradeStepModel model = stepContext.getModel();
-        EciesEncryptor encryptor = stepContext.getEncryptor();
-        EciesEncryptedResponse response = stepContext.getResponseContext().getResponseBodyObject();
-        final UpgradeResponsePayload responsePayload =
-                decryptResponse(encryptor, response, UpgradeResponsePayload.class);
+        final UpgradeResponsePayload responsePayload = decryptResponse(stepContext, UpgradeResponsePayload.class);
 
         // Store the activation status (updated counter)
         model.getResultStatus().setCtrData(responsePayload.getCtrData());
         resultStatusService.save(model);
 
-        stepLogger.writeItem(
+        stepContext.getStepLogger().writeItem(
                 getStep().id() + "-completed",
                 "Upgrade start step successfully completed",
                 "Upgrade start step was successfully completed",

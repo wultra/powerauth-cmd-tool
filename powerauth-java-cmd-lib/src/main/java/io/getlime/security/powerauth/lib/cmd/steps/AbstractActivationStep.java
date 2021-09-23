@@ -30,7 +30,7 @@ import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
-import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.PrepareActivationStepModel;
@@ -84,13 +84,13 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
      * @param step                Corresponding PowerAuth step
      * @param supportedVersions   Supported versions of PowerAuth
      * @param resultStatusService Result status service
-     * @param stepLogger          Step logger
+     * @param stepLoggerFactory   Step logger factory
      */
     public AbstractActivationStep(PowerAuthStep step,
                                   List<PowerAuthVersion> supportedVersions,
                                   ResultStatusService resultStatusService,
-                                  StepLogger stepLogger) {
-        super(step, supportedVersions, resultStatusService, stepLogger);
+                                  StepLoggerFactory stepLoggerFactory) {
+        super(step, supportedVersions, resultStatusService, stepLoggerFactory);
     }
 
     /**
@@ -114,7 +114,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         objectMap.put("activationStatusFile", model.getStatusFileName());
         objectMap.put("activationStatusFileContent", model.getResultStatus());
         objectMap.put("deviceKeyFingerprint", ACTIVATION.computeActivationFingerprint(stepContext.getDeviceKeyPair().getPublic(), resultStatusObject.getServerPublicKeyObject(), resultStatusObject.getActivationId()));
-        stepLogger.writeItem(
+        stepContext.getStepLogger().writeItem(
                 getStep().id() + "-custom-activation-done",
                 "Activation Done",
                 "Public key exchange was successfully completed, commit the activation on server if required",
@@ -144,7 +144,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         // Read activation layer 1 response from data
         ActivationLayer1Response responseL1 = MAPPER.readValue(decryptedDataL1, ActivationLayer1Response.class);
 
-        stepLogger.writeItem(
+        context.getStepLogger().writeItem(
                 getStep().id() + "-response-decrypt",
                 "Decrypted Layer 1 Response",
                 "Following layer 1 activation data were decrypted",
@@ -161,7 +161,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         // Convert activation layer 2 response from JSON to object and extract activation parameters
         ActivationLayer2Response responseL2 = MAPPER.readValue(decryptedDataL2, ActivationLayer2Response.class);
 
-        stepLogger.writeItem(
+        context.getStepLogger().writeItem(
                 getStep().id() + "-response-decrypt-inner",
                 "Decrypted Layer 2 Response",
                 "Following layer 2 activation data were decrypted",
@@ -258,7 +258,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         // Read the identity attributes and custom attributes
         Map<String, String> identityAttributes = model.getIdentityAttributes();
         if (identityAttributes != null && !identityAttributes.isEmpty()) {
-            stepLogger.writeItem(
+            stepContext.getStepLogger().writeItem(
                     getStep().id() + "-identity-attributes",
                     "Identity Attributes",
                     "Following attributes are used to authenticate user",
@@ -269,7 +269,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
 
         Map<String, Object> customAttributes = model.getCustomAttributes();
         if (customAttributes != null && !customAttributes.isEmpty()) {
-            stepLogger.writeItem(
+            stepContext.getStepLogger().writeItem(
                     getStep().id() + "-custom-attributes",
                     "Custom Attributes",
                     "Following attributes are used as custom attributes for the request",
@@ -303,7 +303,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         // Prepare activation layer 1 request which is decryptable on intermediate server
         ActivationLayer1Request requestL1 = prepareLayer1Request(stepContext, encryptedRequestL2);
 
-        stepLogger.writeItem(
+        stepContext.getStepLogger().writeItem(
                 getStep().id() + "-request-encrypt",
                 "Building activation request object",
                 "Following activation attributes will be encrypted and sent to the server",

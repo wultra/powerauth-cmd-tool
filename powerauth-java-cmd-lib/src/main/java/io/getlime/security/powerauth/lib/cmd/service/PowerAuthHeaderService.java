@@ -27,7 +27,6 @@ import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
 import io.getlime.security.powerauth.http.PowerAuthTokenHttpHeader;
-import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
@@ -38,7 +37,6 @@ import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -59,18 +57,6 @@ public class PowerAuthHeaderService {
     private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
 
     private static final PowerAuthClientSignature SIGNATURE = new PowerAuthClientSignature();
-
-    private final StepLogger stepLogger;
-
-    /**
-     * Constructor
-     *
-     * @param stepLogger Step logger
-     */
-    @Autowired
-    public PowerAuthHeaderService(StepLogger stepLogger) {
-        this.stepLogger = stepLogger;
-    }
 
     /**
      * Adds an encryption header to the request context
@@ -108,7 +94,7 @@ public class PowerAuthHeaderService {
 
         // Compute the current PowerAuth signature for possession and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString(requestContext.getSignatureHttpMethod(), requestContext.getSignatureRequestUri(), nonceBytes, requestBytes) + "&" + model.getApplicationSecret();
-        byte[] ctrData = CounterUtil.getCtrData(resultStatusObject, stepLogger);
+        byte[] ctrData = CounterUtil.getCtrData(resultStatusObject, stepContext.getStepLogger());
         PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion().value());
 
         List<SecretKey> signatureSecretKeys;
@@ -143,7 +129,7 @@ public class PowerAuthHeaderService {
             lowLevelData.put("transportKey", resultStatusObject.getTransportMasterKey());
         }
 
-        stepLogger.writeItem(
+        stepContext.getStepLogger().writeItem(
                 stepContext.getStep().id() + "-prepare-request",
                 "Signature Calculation Parameters",
                 "Low level cryptographic inputs required to compute signature - mainly a signature base string and a counter value.",

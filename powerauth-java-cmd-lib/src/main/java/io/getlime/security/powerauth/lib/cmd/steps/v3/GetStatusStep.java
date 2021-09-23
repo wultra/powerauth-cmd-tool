@@ -25,6 +25,7 @@ import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import io.getlime.security.powerauth.lib.cmd.logging.model.ExtendedActivationStatusBlobInfo;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
@@ -69,8 +70,8 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, ObjectRe
     @Autowired
     public GetStatusStep(
             ResultStatusService resultStatusService,
-            StepLogger stepLogger) {
-        super(PowerAuthStep.ACTIVATION_STATUS, PowerAuthVersion.VERSION_3, resultStatusService, stepLogger);
+            StepLoggerFactory stepLoggerFactory) {
+        super(PowerAuthStep.ACTIVATION_STATUS, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
     }
 
     /**
@@ -79,7 +80,7 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, ObjectRe
     public GetStatusStep() {
         this(
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
-                BackwardCompatibilityConst.STEP_LOGGER
+                BackwardCompatibilityConst.STEP_LOGGER_FACTORY
         );
     }
 
@@ -89,7 +90,7 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, ObjectRe
     }
 
     @Override
-    public StepContext<GetStatusStepModel, ObjectResponse<ActivationStatusResponse>> prepareStepContext(Map<String, Object> context) throws Exception {
+    public StepContext<GetStatusStepModel, ObjectResponse<ActivationStatusResponse>> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         final GetStatusStepModel model = new GetStatusStepModel();
         model.fromMap(context);
 
@@ -107,7 +108,7 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, ObjectRe
                 .build();
 
         StepContext<GetStatusStepModel, ObjectResponse<ActivationStatusResponse>> stepContext =
-                buildStepContext(model, requestContext);
+                buildStepContext(stepLogger, model, requestContext);
         stepContext.setAttributes(attributes);
 
         // Send the activation status request to the server
@@ -142,7 +143,7 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, ObjectRe
         objectMap.put("activationId", resultStatusObject.getActivationId());
         objectMap.put("statusBlob", statusBlob);
 
-        stepLogger.writeItem(
+        stepContext.getStepLogger().writeItem(
                 getStep().id() + "-obtained",
                 "Activation Status",
                 "Activation status successfully obtained",

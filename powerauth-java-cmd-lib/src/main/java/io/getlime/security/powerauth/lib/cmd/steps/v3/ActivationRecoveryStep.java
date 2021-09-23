@@ -19,6 +19,7 @@ import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import io.getlime.security.powerauth.lib.cmd.service.PowerAuthHeaderService;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractActivationStep;
@@ -32,7 +33,6 @@ import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedRe
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -56,8 +56,8 @@ public class ActivationRecoveryStep extends AbstractActivationStep<ActivationRec
     public ActivationRecoveryStep(
             PowerAuthHeaderService powerAuthHeaderService,
             ResultStatusService resultStatusService,
-            StepLogger stepLogger) {
-        super(PowerAuthStep.ACTIVATION_RECOVERY, PowerAuthVersion.VERSION_3, resultStatusService, stepLogger);
+            StepLoggerFactory stepLoggerFactory) {
+        super(PowerAuthStep.ACTIVATION_RECOVERY, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderService = powerAuthHeaderService;
     }
@@ -69,12 +69,12 @@ public class ActivationRecoveryStep extends AbstractActivationStep<ActivationRec
         this(
                 BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
-                BackwardCompatibilityConst.STEP_LOGGER
+                BackwardCompatibilityConst.STEP_LOGGER_FACTORY
         );
     }
 
     @Override
-    public StepContext<ActivationRecoveryStepModel, EciesEncryptedResponse> prepareStepContext(Map<String, Object> context) throws Exception {
+    public StepContext<ActivationRecoveryStepModel, EciesEncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         ActivationRecoveryStepModel model = new ActivationRecoveryStepModel();
         model.fromMap(context);
 
@@ -82,7 +82,7 @@ public class ActivationRecoveryStep extends AbstractActivationStep<ActivationRec
                 .uri(model.getUriString() + "/pa/v3/activation/create")
                 .build();
 
-        StepContext<ActivationRecoveryStepModel, EciesEncryptedResponse> stepContext = buildStepContext(model, requestContext);
+        StepContext<ActivationRecoveryStepModel, EciesEncryptedResponse> stepContext = buildStepContext(stepLogger, model, requestContext);
 
         powerAuthHeaderService.addEncryptionHeader(requestContext, model);
         addEncryptedRequest(stepContext);

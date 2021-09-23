@@ -22,6 +22,7 @@ import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import io.getlime.security.powerauth.lib.cmd.service.PowerAuthHeaderService;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
@@ -61,8 +62,8 @@ public class RemoveTokenStep extends AbstractBaseStep<RemoveTokenStepModel, Obje
     public RemoveTokenStep(
             PowerAuthHeaderService powerAuthHeaderService,
             ResultStatusService resultStatusService,
-            StepLogger stepLogger) {
-        super(PowerAuthStep.TOKEN_REMOVE, PowerAuthVersion.VERSION_3, resultStatusService, stepLogger);
+            StepLoggerFactory stepLoggerFactory) {
+        super(PowerAuthStep.TOKEN_REMOVE, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderService = powerAuthHeaderService;
     }
@@ -74,7 +75,7 @@ public class RemoveTokenStep extends AbstractBaseStep<RemoveTokenStepModel, Obje
         this(
                 BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
-                BackwardCompatibilityConst.STEP_LOGGER
+                BackwardCompatibilityConst.STEP_LOGGER_FACTORY
         );
     }
 
@@ -84,7 +85,7 @@ public class RemoveTokenStep extends AbstractBaseStep<RemoveTokenStepModel, Obje
     }
 
     @Override
-    public StepContext<RemoveTokenStepModel, ObjectResponse<TokenRemoveResponse>> prepareStepContext(Map<String, Object> context) throws Exception {
+    public StepContext<RemoveTokenStepModel, ObjectResponse<TokenRemoveResponse>> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         RemoveTokenStepModel model = new RemoveTokenStepModel();
         model.fromMap(context);
 
@@ -95,7 +96,7 @@ public class RemoveTokenStep extends AbstractBaseStep<RemoveTokenStepModel, Obje
                 .build();
 
         StepContext<RemoveTokenStepModel, ObjectResponse<TokenRemoveResponse>> stepContext =
-                buildStepContext(model, requestContext);
+                buildStepContext(stepLogger, model, requestContext);
 
         incrementCounter(model);
 
@@ -115,7 +116,7 @@ public class RemoveTokenStep extends AbstractBaseStep<RemoveTokenStepModel, Obje
         ObjectResponse<TokenRemoveResponse> responseWrapper =
                 Objects.requireNonNull(stepContext.getResponseContext().getResponseBodyObject());
 
-        stepLogger.writeItem(
+        stepContext.getStepLogger().writeItem(
                 getStep().id() + "-token-removed",
                 "Token successfully removed",
                 "Token was successfully removed",
