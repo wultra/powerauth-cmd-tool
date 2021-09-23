@@ -17,13 +17,13 @@
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.google.common.collect.ImmutableMap;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import io.getlime.security.powerauth.lib.cmd.service.PowerAuthHeaderService;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
@@ -58,8 +58,8 @@ public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, Ecie
     @Autowired
     public CreateTokenStep(PowerAuthHeaderService powerAuthHeaderService,
                            ResultStatusService resultStatusService,
-                           StepLogger stepLogger) {
-        super(PowerAuthStep.TOKEN_CREATE, PowerAuthVersion.VERSION_3, resultStatusService, stepLogger);
+                           StepLoggerFactory stepLoggerFactory) {
+        super(PowerAuthStep.TOKEN_CREATE, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderService = powerAuthHeaderService;
     }
@@ -71,7 +71,7 @@ public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, Ecie
         this(
                 BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
-                BackwardCompatibilityConst.STEP_LOGGER
+                BackwardCompatibilityConst.STEP_LOGGER_FACTORY
         );
     }
 
@@ -81,7 +81,7 @@ public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, Ecie
     }
 
     @Override
-    public StepContext<CreateTokenStepModel, EciesEncryptedResponse> prepareStepContext(Map<String, Object> context) throws Exception {
+    public StepContext<CreateTokenStepModel, EciesEncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         CreateTokenStepModel model = new CreateTokenStepModel();
         model.fromMap(context);
 
@@ -91,7 +91,7 @@ public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, Ecie
                 .uri(model.getUriString() + "/pa/v3/token/create")
                 .build();
 
-        StepContext<CreateTokenStepModel, EciesEncryptedResponse> stepContext = buildStepContext(model, requestContext);
+        StepContext<CreateTokenStepModel, EciesEncryptedResponse> stepContext = buildStepContext(stepLogger, model, requestContext);
 
         addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.CREATE_TOKEN, PowerAuthConst.EMPTY_JSON_BYTES);
 
@@ -104,11 +104,9 @@ public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, Ecie
 
     @Override
     public void processResponse(StepContext<CreateTokenStepModel, EciesEncryptedResponse> stepContext) throws Exception {
-        EciesEncryptor encryptor = stepContext.getEncryptor();
-        final TokenResponsePayload tokenResponsePayload =
-                decryptResponse(encryptor, stepContext.getResponseContext().getResponseBodyObject(), TokenResponsePayload.class);
+        final TokenResponsePayload tokenResponsePayload = decryptResponse(stepContext, TokenResponsePayload.class);
 
-        stepLogger.writeItem(
+        stepContext.getStepLogger().writeItem(
                 getStep().id() + "-token-obtained",
                 "Token successfully obtained",
                 "Token was successfully generated and decrypted",

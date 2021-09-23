@@ -20,6 +20,7 @@ import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import io.getlime.security.powerauth.lib.cmd.service.PowerAuthHeaderService;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
@@ -59,8 +60,8 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
     public VerifyTokenStep(
             PowerAuthHeaderService powerAuthHeaderService,
             ResultStatusService resultStatusService,
-            StepLogger stepLogger) {
-        super(PowerAuthStep.TOKEN_VALIDATE, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLogger);
+            StepLoggerFactory stepLoggerFactory) {
+        super(PowerAuthStep.TOKEN_VALIDATE, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderService = powerAuthHeaderService;
     }
@@ -72,7 +73,7 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
         this(
                 BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
-                BackwardCompatibilityConst.STEP_LOGGER
+                BackwardCompatibilityConst.STEP_LOGGER_FACTORY
         );
     }
 
@@ -82,7 +83,7 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
     }
 
     @Override
-    public StepContext<VerifyTokenStepModel, Map<String, Object>> prepareStepContext(Map<String, Object> context) throws Exception {
+    public StepContext<VerifyTokenStepModel, Map<String, Object>> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         VerifyTokenStepModel model = new VerifyTokenStepModel();
         model.fromMap(context);
 
@@ -92,18 +93,24 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
                 .build();
 
         StepContext<VerifyTokenStepModel, Map<String, Object>> stepContext =
-                buildStepContext(model, requestContext);
+                buildStepContext(stepLogger, model, requestContext);
 
-        // Initiate the step sequence
-        logTokenVerificationStart(model.getTokenId(), model.getTokenSecret());
+        Map<String, String> map = new HashMap<>();
+        map.put("TOKEN_ID", model.getTokenId());
+        map.put("TOKEN_SECRET", model.getTokenSecret());
+        stepLogger.writeItem(
+                "token-validate-start",
+                "Token Digest Validation Started",
+                null,
+                "OK",
+                map
+        );
 
         powerAuthHeaderService.addTokenHeader(requestContext, model);
 
         if (model.getHttpMethod() == null) {
-            if (stepLogger != null) {
-                stepLogger.writeError("token-validate-error-http-method", "HTTP method not specified", "Specify HTTP method to use for sending request");
-                stepLogger.writeDoneFailed("token-validate-failed");
-            }
+            stepLogger.writeError("token-validate-error-http-method", "HTTP method not specified", "Specify HTTP method to use for sending request");
+            stepLogger.writeDoneFailed("token-validate-failed");
             return null;
         }
 
@@ -114,15 +121,13 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
             requestDataBytes = model.getData();
             if (requestDataBytes == null || requestDataBytes.length == 0) {
                 requestDataBytes = new byte[0];
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "token-validate-warning-empty-data",
-                            "Empty data",
-                            "Data file was not found, signature will contain no data",
-                            "WARNING",
-                            null
-                    );
-                }
+                stepLogger.writeItem(
+                        "token-validate-warning-empty-data",
+                        "Empty data",
+                        "Data file was not found, signature will contain no data",
+                        "WARNING",
+                        null
+                );
             }
         }
 
@@ -131,33 +136,13 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
     }
 
     /**
-     * Log the initiation of the token verification steps.
-     *
-     * @param tokenId     Token ID.
-     * @param tokenSecret Token secret.
-     */
-    private void logTokenVerificationStart(String tokenId, String tokenSecret) {
-        // TODO rely on default step start logging
-        Map<String, String> map = new HashMap<>();
-        map.put("TOKEN_ID", tokenId);
-        map.put("TOKEN_SECRET", tokenSecret);
-        stepLogger.writeItem(
-                "token-validate-start",
-                "Token Digest Validation Started",
-                null,
-                "OK",
-                map
-        );
-    }
-
-    /**
      * Log information about the token value successfully computed.
      */
     @Override
-    public void logDryRun() {
+    public void logDryRun(StepLogger stepLogger) {
         stepLogger.writeItem(
                 getStep().id() + "-token-computed",
-                "Token value computed",
+                "Token value computed (dry run)",
                 "Token value header was computed successfully",
                 "OK",
                 null
@@ -166,8 +151,8 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
     }
 
     @Override
-    public void processResponse(StepContext<VerifyTokenStepModel, Map<String, Object>> responseContext) throws Exception {
-        stepLogger.writeItem(
+    public void processResponse(StepContext<VerifyTokenStepModel, Map<String, Object>> stepContext) throws Exception {
+        stepContext.getStepLogger().writeItem(
                 getStep().id() + "-digest-verified",
                 "Token digest verified",
                 "Token based authentication was successful",

@@ -10,6 +10,7 @@ import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.DisabledStepLogger;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.ResponseContext;
@@ -64,7 +65,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     /**
      * Step logger
      */
-    protected StepLogger stepLogger;
+    protected StepLoggerFactory stepLoggerFactory;
 
     /**
      * Constructor
@@ -72,27 +73,29 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @param step                Corresponding PowerAuth step
      * @param supportedVersions   Supported versions of PowerAuth
      * @param resultStatusService Result status service
-     * @param stepLogger          Step logger
+     * @param stepLoggerFactory   Step logger factory
      */
     public AbstractBaseStep(PowerAuthStep step,
                             List<PowerAuthVersion> supportedVersions,
                             ResultStatusService resultStatusService,
-                            StepLogger stepLogger) {
+                            StepLoggerFactory stepLoggerFactory) {
         this.step = step;
         this.supportedVersions = ImmutableList.copyOf(supportedVersions);
 
         this.resultStatusService = resultStatusService;
-        this.stepLogger = stepLogger;
+        this.stepLoggerFactory = stepLoggerFactory;
     }
 
     /**
      * Prepares a context for this step execution
      *
+     *
+     * @param stepLogger Step logger
      * @param context Context data
      * @return Step context
      * @throws Exception when an error during context preparation occurred.
      */
-    public abstract StepContext<M, R> prepareStepContext(Map<String, Object> context) throws Exception;
+    public abstract StepContext<M, R> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception;
 
     /**
      * @return Type reference of the response object
@@ -108,6 +111,25 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      */
     @Override
     public ResultStatusObject execute(Map<String, Object> context) throws Exception {
+        StepLogger stepLogger = stepLoggerFactory.createStepLogger();
+        JSONObject jsonObject = execute(stepLogger, context);
+        return ResultStatusObject.fromJsonObject(jsonObject);
+    }
+
+    /**
+     * Execute this step with given logger and context objects.
+     *
+     * <p>Keeps backward compatibility with former approaches of step instantiation and execution</p>
+     *
+     * @param stepLogger Step logger.
+     * @param context Context objects.
+     * @return Result status object (with current activation status), null in case of failure.
+     * @throws Exception In case of a failure.
+     */
+    public final JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+        if (stepLogger == null) {
+            stepLogger = new DisabledStepLogger();
+        }
         stepLogger.writeItem(
                 getStep().id() + "-start",
                 getStep().description() + " Started",
@@ -116,7 +138,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
                 null
         );
 
-        StepContext<M, R> stepContext = prepareStepContext(context);
+        StepContext<M, R> stepContext = prepareStepContext(stepLogger, context);
 
         ResponseContext<R> response;
         try {
@@ -131,23 +153,8 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             stepLogger.writeDoneFailed(getStep().id() + "-failed");
             return null;
         }
-        return stepContext.getModel().getResultStatus();
-    }
 
-    /**
-     * Execute this step with given logger and context objects.
-     *
-     * <p>Keeps backward compatibility with former approaches of step instantiation and execution</p>
-     *
-     * @param stepLogger Step logger.
-     * @param context Context objects.
-     * @return Result status object (with current activation status), null in case of failure.
-     * @throws Exception In case of a failure.
-     */
-    public final JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        this.stepLogger = stepLogger != null ? stepLogger : new DisabledStepLogger();
-        ResultStatusObject resultStatusObject = execute(context);
-        return resultStatusObject != null ? resultStatusObject.toJsonObject() : null;
+        return stepContext.getModel().getResultStatusObject();
     }
 
     /**
@@ -181,17 +188,18 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     /**
      * Decrypts an object from a response
      *
-     * @param encryptor         Encryptor instance
-     * @param encryptedResponse Encrypted response
+     * @param stepContext       Step context
      * @param cls               Class of the decrypted object
      * @return Decrypted object from the provided response
      * @throws Exception when an error during object decryption occurred
      */
-    public <T> T decryptResponse(EciesEncryptor encryptor, EciesEncryptedResponse encryptedResponse, Class<T> cls) throws Exception {
+    public <T> T decryptResponse(StepContext<?, EciesEncryptedResponse> stepContext, Class<T> cls) throws Exception {
+        EciesEncryptor encryptor = stepContext.getEncryptor();
+        EciesEncryptedResponse encryptedResponse = stepContext.getResponseContext().getResponseBodyObject();
         byte[] decryptedBytes = SecurityUtil.decryptBytesFromResponse(encryptor, encryptedResponse);
         final T responsePayload = RestClientConfiguration.defaultMapper().readValue(decryptedBytes, cls);
 
-        stepLogger.writeItem(
+        stepContext.getStepLogger().writeItem(
                 getStep().id() + "-response-decrypt",
                 "Decrypted Response",
                 "Following data were decrypted",
@@ -214,15 +222,18 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     /**
      * Builds a step context instance from a model and a request context
      *
+     *
+     * @param stepLogger
      * @param model          Data model
      * @param requestContext Request context
      * @return Step context instance
      */
-    protected final StepContext<M, R> buildStepContext(M model, RequestContext requestContext) {
+    protected final StepContext<M, R> buildStepContext(StepLogger stepLogger, M model, RequestContext requestContext) {
         StepContext<M, R> context = new StepContext<>();
         context.setModel(model);
         context.setRequestContext(requestContext);
         context.setStep(getStep());
+        context.setStepLogger(stepLogger);
         return context;
     }
 
@@ -239,8 +250,10 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
 
     /**
      * Optional way to log special messages when in a dry run (no real service call)
+     *
+     * @param stepLogger Step logger
      */
-    protected void logDryRun() { }
+    protected void logDryRun(StepLogger stepLogger) { }
 
     /**
      * Calls the server and prepares response context with the response data
@@ -259,12 +272,12 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             headers.putAll(model.getHeaders());
         }
 
-        stepLogger.writeServerCall(step.id() + "-request-sent", requestContext.getUri(), requestContext.getHttpMethod().name(), requestContext.getRequestObject(), headers);
+        stepContext.getStepLogger().writeServerCall(step.id() + "-request-sent", requestContext.getUri(), requestContext.getHttpMethod().name(), requestContext.getRequestObject(), headers);
 
         // In the case of a dry run the execution ends here
         if (model instanceof DryRunCapable && ((DryRunCapable) model).isDryRun()) {
-            logDryRun();
-            stepLogger.writeDoneOK(getStep().id() + "-success");
+            logDryRun(stepContext.getStepLogger());
+            stepContext.getStepLogger().writeDoneOK(getStep().id() + "-success");
             return null;
         }
 
@@ -284,13 +297,13 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
                 responseEntity = restClient.post(requestContext.getUri(), requestBytes, null, MapUtil.toMultiValueMap(headers), getResponseTypeReference());
             }
         } catch (RestClientException ex) {
-            stepLogger.writeServerCallError(step.id() + "-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
-            stepLogger.writeDoneFailed(step.id() + "-failed");
+            stepContext.getStepLogger().writeServerCallError(step.id() + "-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
+            stepContext.getStepLogger().writeDoneFailed(step.id() + "-failed");
             return null;
         }
 
         R responseBodyObject = Objects.requireNonNull(responseEntity.getBody());
-        stepLogger.writeServerCallOK(step.id() + "-response-received", responseBodyObject, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
+        stepContext.getStepLogger().writeServerCallOK(step.id() + "-response-received", responseBodyObject, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
 
         return ResponseContext.<R>builder()
                 .responseBodyObject(responseBodyObject)

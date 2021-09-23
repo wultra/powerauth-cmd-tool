@@ -20,6 +20,7 @@ import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import io.getlime.security.powerauth.lib.cmd.service.PowerAuthHeaderService;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
@@ -54,8 +55,8 @@ public class RemoveStep extends AbstractBaseStep<RemoveStepModel, EciesEncrypted
     @Autowired
     public RemoveStep(PowerAuthHeaderService powerAuthHeaderService,
                       ResultStatusService resultStatusService,
-                      StepLogger stepLogger) {
-        super(PowerAuthStep.ACTIVATION_REMOVE, PowerAuthVersion.VERSION_3, resultStatusService, stepLogger);
+                      StepLoggerFactory stepLoggerFactory) {
+        super(PowerAuthStep.ACTIVATION_REMOVE, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderService = powerAuthHeaderService;
     }
@@ -67,7 +68,7 @@ public class RemoveStep extends AbstractBaseStep<RemoveStepModel, EciesEncrypted
         this(
                 BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
-                BackwardCompatibilityConst.STEP_LOGGER
+                BackwardCompatibilityConst.STEP_LOGGER_FACTORY
         );
     }
 
@@ -77,7 +78,7 @@ public class RemoveStep extends AbstractBaseStep<RemoveStepModel, EciesEncrypted
     }
 
     @Override
-    public StepContext<RemoveStepModel, EciesEncryptedResponse> prepareStepContext(Map<String, Object> context) throws Exception {
+    public StepContext<RemoveStepModel, EciesEncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         RemoveStepModel model = new RemoveStepModel();
         model.fromMap(context);
 
@@ -88,7 +89,7 @@ public class RemoveStep extends AbstractBaseStep<RemoveStepModel, EciesEncrypted
                 .build();
 
         StepContext<RemoveStepModel, EciesEncryptedResponse> stepContext =
-                buildStepContext(model, requestContext);
+                buildStepContext(stepLogger, model, requestContext);
 
         powerAuthHeaderService.addSignatureHeader(stepContext);
 
@@ -103,7 +104,7 @@ public class RemoveStep extends AbstractBaseStep<RemoveStepModel, EciesEncrypted
         Map<String, Object> objectMap = new HashMap<>();
         objectMap.put("activationId", activationId);
 
-        stepLogger.writeItem(
+        stepContext.getStepLogger().writeItem(
                 getStep().id() + "-removal-done",
                 "Activation Removed",
                 "Activation was successfully removed from the server",

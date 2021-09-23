@@ -19,7 +19,6 @@ package io.getlime.security.powerauth.lib.cmd.steps.model;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
-import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import lombok.Data;
 import org.json.simple.JSONObject;
 
@@ -59,16 +58,7 @@ public class BaseStepModel implements BaseStepData {
      * @param jsonObject Activation status object as JSON
      */
     public void setResultStatusObject(JSONObject jsonObject) {
-        ResultStatusObject resultStatusObject;
-        try {
-            resultStatusObject = RestClientConfiguration.defaultMapper().readValue(jsonObject.toJSONString(), ResultStatusObject.class);
-            resultStatusObject.setJsonObject(jsonObject);
-        } catch (Exception e) {
-            System.err.println("Invalid json data specified for result status object");
-            e.printStackTrace(System.err);
-            resultStatusObject = new ResultStatusObject();
-        }
-        this.resultStatusObject = resultStatusObject;
+        this.resultStatusObject = ResultStatusObject.fromJsonObject(jsonObject);
     }
 
     public JSONObject getResultStatusObject() {

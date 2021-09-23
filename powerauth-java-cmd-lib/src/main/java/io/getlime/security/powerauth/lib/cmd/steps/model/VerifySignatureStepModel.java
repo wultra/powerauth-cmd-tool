@@ -18,8 +18,8 @@ package io.getlime.security.powerauth.lib.cmd.steps.model;
 
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
-import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import io.getlime.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 
 import java.util.Map;
 

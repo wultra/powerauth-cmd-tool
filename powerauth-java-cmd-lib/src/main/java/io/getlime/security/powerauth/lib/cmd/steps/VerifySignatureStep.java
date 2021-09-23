@@ -21,6 +21,7 @@ import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import io.getlime.security.powerauth.lib.cmd.service.PowerAuthHeaderService;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
@@ -60,8 +61,8 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
     public VerifySignatureStep(
             PowerAuthHeaderService powerAuthHeaderService,
             ResultStatusService resultStatusService,
-            StepLogger stepLogger) {
-        super(PowerAuthStep.SIGNATURE_VERIFY, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLogger);
+            StepLoggerFactory stepLoggerFactory) {
+        super(PowerAuthStep.SIGNATURE_VERIFY, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderService = powerAuthHeaderService;
     }
@@ -73,7 +74,7 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
         this(
                 BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
-                BackwardCompatibilityConst.STEP_LOGGER
+                BackwardCompatibilityConst.STEP_LOGGER_FACTORY
         );
     }
 
@@ -83,7 +84,7 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
     }
 
     @Override
-    public StepContext<VerifySignatureStepModel, ObjectResponse<Map<String, Object>>> prepareStepContext(Map<String, Object> context) throws Exception {
+    public StepContext<VerifySignatureStepModel, ObjectResponse<Map<String, Object>>> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         VerifySignatureStepModel model = new VerifySignatureStepModel();
         model.fromMap(context);
 
@@ -98,7 +99,7 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
                 .build();
 
         StepContext<VerifySignatureStepModel, ObjectResponse<Map<String, Object>>> stepContext =
-                buildStepContext(model, requestContext);
+                buildStepContext(stepLogger, model, requestContext);
 
         powerAuthHeaderService.addSignatureHeader(stepContext);
 
@@ -110,7 +111,8 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
     /**
      * Log that the signature was successfully completed.
      */
-    public void logDryRun() {
+    @Override
+    public void logDryRun(StepLogger stepLogger) {
         stepLogger.writeItem(
                 getStep().id() + "-signature-computed",
                 "Signature computed",
@@ -123,7 +125,7 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
 
     @Override
     public void processResponse(StepContext<VerifySignatureStepModel, ObjectResponse<Map<String, Object>>> stepContext) throws Exception {
-        stepLogger.writeItem(
+        stepContext.getStepLogger().writeItem(
                 getStep().id() + "-signature-verified",
                 "Signature verified",
                 "Activation signature was verified successfully",
