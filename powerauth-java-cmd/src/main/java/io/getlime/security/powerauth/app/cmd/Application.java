@@ -120,32 +120,12 @@ public class Application {
             CommandLine cmd = parser.parse(options, args);
 
             if (cmd.hasOption("hs")) {
-                System.out.println("Supported PowerAuth steps and corresponding versions.\n");
-                List<PowerAuthStep> steps = Arrays.stream(PowerAuthStep.values())
-                        .sorted(Comparator.comparing(PowerAuthStep::alias))
-                        .collect(Collectors.toList());
-                System.out.printf("%-30s%s%n", "PowerAuth step", "Supported versions");
-                for (PowerAuthStep step : steps) {
-                    List<String> versions = stepProvider.getSupportedVersions(step)
-                            .stream()
-                            .map(PowerAuthVersion::value)
-                            .collect(Collectors.toList());
-                    System.out.printf("%-30s%s%n", step.alias(), versions);
-                }
+                printPowerAuthStepsHelp(stepProvider);
                 return;
             }
 
             if (cmd.hasOption("hv")) {
-                System.out.println("Supported PowerAuth versions and available steps.\n");
-                System.out.printf("%-20s%s%n", "PowerAuth version", "Available steps");
-                for (PowerAuthVersion version : PowerAuthVersion.values()) {
-                    List<String> steps = stepProvider.getAvailableSteps(version)
-                            .stream()
-                            .map(PowerAuthStep::alias)
-                            .sorted()
-                            .collect(Collectors.toList());
-                    System.out.printf("%-20s%s%n", version.value(), steps);
-                }
+                printPowerAuthVersionsHelp(stepProvider);
                 return;
             }
 
@@ -214,7 +194,14 @@ public class Application {
                 resultStatusObject = new ResultStatusObject();
             }
 
-            PowerAuthStep powerAuthStep = PowerAuthStep.fromMethod(method);
+            PowerAuthStep powerAuthStep;
+            try {
+                powerAuthStep = PowerAuthStep.fromMethod(method);
+            } catch (IllegalStateException e) {
+                System.err.println("Not recognized PowerAuth step/method: " + method);
+                printPowerAuthStepsHelp(stepProvider);
+                return;
+            }
 
             // Execute the code for given methods
             switch (powerAuthStep) {
@@ -516,9 +503,8 @@ public class Application {
                 }
 
                 default:
-                    HelpFormatter formatter = new HelpFormatter();
-                    formatter.setWidth(100);
-                    formatter.printHelp("java -jar powerauth-java-cmd.jar", options);
+                    System.err.println("Not recognized PowerAuth step: " + powerAuthStep);
+                    printPowerAuthStepsHelp(stepProvider);
                     break;
             }
 
@@ -536,6 +522,32 @@ public class Application {
             stepLogger.close();
         }
 
+    }
+
+    private static void printPowerAuthStepsHelp(StepProvider stepProvider) {
+        System.out.println("Supported PowerAuth versions and available steps.\n");
+        System.out.printf("%-20s%s%n", "PowerAuth version", "Available steps");
+        for (PowerAuthVersion version : PowerAuthVersion.values()) {
+            List<String> steps = stepProvider.getAvailableSteps(version)
+                    .stream()
+                    .map(PowerAuthStep::alias)
+                    .sorted()
+                    .collect(Collectors.toList());
+            System.out.printf("%-20s%s%n", version.value(), steps);
+        }
+    }
+
+    private static void printPowerAuthVersionsHelp(StepProvider stepProvider) {
+        System.out.println("Supported PowerAuth versions and available steps.\n");
+        System.out.printf("%-20s%s%n", "PowerAuth version", "Available steps");
+        for (PowerAuthVersion version : PowerAuthVersion.values()) {
+            List<String> steps = stepProvider.getAvailableSteps(version)
+                    .stream()
+                    .map(PowerAuthStep::alias)
+                    .sorted()
+                    .collect(Collectors.toList());
+            System.out.printf("%-20s%s%n", version.value(), steps);
+        }
     }
 
 }
