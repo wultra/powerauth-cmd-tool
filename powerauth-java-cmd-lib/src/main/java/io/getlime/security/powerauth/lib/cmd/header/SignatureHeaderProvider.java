@@ -14,30 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.getlime.security.powerauth.lib.cmd.service;
+package io.getlime.security.powerauth.lib.cmd.header;
 
 import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
-import io.getlime.security.powerauth.crypto.client.token.ClientTokenGenerator;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureFormat;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
-import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
-import io.getlime.security.powerauth.http.PowerAuthTokenHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
-import io.getlime.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
-import io.getlime.security.powerauth.lib.cmd.steps.model.data.TokenHeaderData;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
@@ -45,12 +39,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
- * Service for adding PowerAuth headers to requests
+ * Signature header provider
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  */
-@Service
-public class PowerAuthHeaderService {
+public class SignatureHeaderProvider implements PowerAuthHeaderProvider<SignatureHeaderData> {
 
     private static final PowerAuthClientKeyFactory KEY_FACTORY = new PowerAuthClientKeyFactory();
 
@@ -59,27 +52,13 @@ public class PowerAuthHeaderService {
     private static final PowerAuthClientSignature SIGNATURE = new PowerAuthClientSignature();
 
     /**
-     * Adds an encryption header to the request context
-     * @param requestContext Request context
-     * @param <T> Generic model type
-     */
-    public <T extends EncryptionHeaderData> void addEncryptionHeader(RequestContext requestContext, T model) {
-        String activationId = model.getResultStatus().getActivationId();
-        PowerAuthEncryptionHttpHeader header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), activationId, model.getVersion().value());
-        String headerValue = header.buildHttpHeader();
-        requestContext.setAuthorizationHeader(headerValue);
-        requestContext.getHttpHeaders().put(PowerAuthEncryptionHttpHeader.HEADER_NAME, headerValue);
-    }
-
-    /**
      * Adds a signature header to the request context
-     * @param <M> Model type
-     * @param <R> Response type
      * @param stepContext Step context
      * @throws Exception when an error during adding of a signature header occurred
      */
-    public <M extends SignatureHeaderData, R> void addSignatureHeader(StepContext<M, R> stepContext) throws Exception {
-        M model = stepContext.getModel();
+    @Override
+    public void addHeader(StepContext<? extends SignatureHeaderData, ?> stepContext) throws Exception {
+        SignatureHeaderData model = stepContext.getModel();
         RequestContext requestContext = stepContext.getRequestContext();
         ResultStatusObject resultStatusObject = model.getResultStatus();
 
@@ -140,33 +119,6 @@ public class PowerAuthHeaderService {
         String headerValue = header.buildHttpHeader();
         requestContext.setAuthorizationHeader(headerValue);
         requestContext.getHttpHeaders().put(PowerAuthSignatureHttpHeader.HEADER_NAME, headerValue);
-    }
-
-    /**
-     * Adds a token header to the request context
-     * @param requestContext Request context
-     * @param <T> Generic model type
-     */
-    public <T extends TokenHeaderData> void addTokenHeader(RequestContext requestContext, T model) throws Exception {
-        String tokenId = model.getTokenId();
-        byte[] tokenSecret = BaseEncoding.base64().decode(model.getTokenSecret());
-
-        ClientTokenGenerator tokenGenerator = new ClientTokenGenerator();
-        final byte[] tokenNonce = tokenGenerator.generateTokenNonce();
-        final byte[] tokenTimestamp = tokenGenerator.generateTokenTimestamp();
-        final byte[] tokenDigest = tokenGenerator.computeTokenDigest(tokenNonce, tokenTimestamp, tokenSecret);
-
-        PowerAuthTokenHttpHeader header = new PowerAuthTokenHttpHeader(
-                tokenId,
-                BaseEncoding.base64().encode(tokenDigest),
-                BaseEncoding.base64().encode(tokenNonce),
-                new String(tokenTimestamp, StandardCharsets.UTF_8),
-                model.getVersion().value()
-        );
-
-        String headerValue = header.buildHttpHeader();
-        requestContext.setAuthorizationHeader(headerValue);
-        requestContext.getHttpHeaders().put(PowerAuthTokenHttpHeader.HEADER_NAME, headerValue);
     }
 
     private <M extends SignatureHeaderData> SecretKey getSignatureKnowledgeKey(M model) throws Exception {

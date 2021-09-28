@@ -21,7 +21,7 @@ import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
-import io.getlime.security.powerauth.lib.cmd.service.PowerAuthHeaderService;
+import io.getlime.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
@@ -50,15 +50,15 @@ import java.util.Map;
 @Component(value = "removeStepV3")
 public class RemoveStep extends AbstractBaseStep<RemoveStepModel, EciesEncryptedResponse> {
 
-    private final PowerAuthHeaderService powerAuthHeaderService;
+    private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
     @Autowired
-    public RemoveStep(PowerAuthHeaderService powerAuthHeaderService,
+    public RemoveStep(PowerAuthHeaderFactory powerAuthHeaderFactory,
                       ResultStatusService resultStatusService,
                       StepLoggerFactory stepLoggerFactory) {
         super(PowerAuthStep.ACTIVATION_REMOVE, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
 
-        this.powerAuthHeaderService = powerAuthHeaderService;
+        this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
 
     /**
@@ -66,7 +66,7 @@ public class RemoveStep extends AbstractBaseStep<RemoveStepModel, EciesEncrypted
      */
     public RemoveStep() {
         this(
-                BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
+                BackwardCompatibilityConst.POWER_AUTH_HEADER_FACTORY,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
                 BackwardCompatibilityConst.STEP_LOGGER_FACTORY
         );
@@ -91,7 +91,7 @@ public class RemoveStep extends AbstractBaseStep<RemoveStepModel, EciesEncrypted
         StepContext<RemoveStepModel, EciesEncryptedResponse> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
-        powerAuthHeaderService.addSignatureHeader(stepContext);
+        powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
         incrementCounter(model);
 

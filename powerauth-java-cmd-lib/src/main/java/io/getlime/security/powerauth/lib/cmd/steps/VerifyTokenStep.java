@@ -21,7 +21,7 @@ import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
-import io.getlime.security.powerauth.lib.cmd.service.PowerAuthHeaderService;
+import io.getlime.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
@@ -54,16 +54,16 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
     ParameterizedTypeReference<Map<String, Object>> RESPONSE_TYPE_REFERENCE =
             new ParameterizedTypeReference<Map<String, Object>>() { };
 
-    private final PowerAuthHeaderService powerAuthHeaderService;
+    private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
     @Autowired
     public VerifyTokenStep(
-            PowerAuthHeaderService powerAuthHeaderService,
+            PowerAuthHeaderFactory powerAuthHeaderFactory,
             ResultStatusService resultStatusService,
             StepLoggerFactory stepLoggerFactory) {
         super(PowerAuthStep.TOKEN_VALIDATE, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLoggerFactory);
 
-        this.powerAuthHeaderService = powerAuthHeaderService;
+        this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
 
     /**
@@ -71,7 +71,7 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
      */
     public VerifyTokenStep() {
         this(
-                BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
+                BackwardCompatibilityConst.POWER_AUTH_HEADER_FACTORY,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
                 BackwardCompatibilityConst.STEP_LOGGER_FACTORY
         );
@@ -106,7 +106,7 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
                 map
         );
 
-        powerAuthHeaderService.addTokenHeader(requestContext, model);
+        powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
         if (model.getHttpMethod() == null) {
             stepLogger.writeError("token-validate-error-http-method", "HTTP method not specified", "Specify HTTP method to use for sending request");
