@@ -113,7 +113,11 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     public ResultStatusObject execute(Map<String, Object> context) throws Exception {
         StepLogger stepLogger = stepLoggerFactory.createStepLogger();
         JSONObject jsonObject = execute(stepLogger, context);
-        return ResultStatusObject.fromJsonObject(jsonObject);
+        if (jsonObject == null) {
+            return null;
+        } else {
+            return ResultStatusObject.fromJsonObject(jsonObject);
+        }
     }
 
     /**

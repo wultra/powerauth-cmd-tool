@@ -20,7 +20,7 @@ import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
-import io.getlime.security.powerauth.lib.cmd.service.PowerAuthHeaderService;
+import io.getlime.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractActivationStep;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
@@ -50,16 +50,16 @@ import java.util.Map;
 @Component
 public class ActivationRecoveryStep extends AbstractActivationStep<ActivationRecoveryStepModel> {
 
-    private final PowerAuthHeaderService powerAuthHeaderService;
+    private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
     @Autowired
     public ActivationRecoveryStep(
-            PowerAuthHeaderService powerAuthHeaderService,
+            PowerAuthHeaderFactory powerAuthHeaderFactory,
             ResultStatusService resultStatusService,
             StepLoggerFactory stepLoggerFactory) {
         super(PowerAuthStep.ACTIVATION_RECOVERY, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
 
-        this.powerAuthHeaderService = powerAuthHeaderService;
+        this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
 
     /**
@@ -67,7 +67,7 @@ public class ActivationRecoveryStep extends AbstractActivationStep<ActivationRec
      */
     public ActivationRecoveryStep() {
         this(
-                BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
+                BackwardCompatibilityConst.POWER_AUTH_HEADER_FACTORY,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
                 BackwardCompatibilityConst.STEP_LOGGER_FACTORY
         );
@@ -84,7 +84,7 @@ public class ActivationRecoveryStep extends AbstractActivationStep<ActivationRec
 
         StepContext<ActivationRecoveryStepModel, EciesEncryptedResponse> stepContext = buildStepContext(stepLogger, model, requestContext);
 
-        powerAuthHeaderService.addEncryptionHeader(requestContext, model);
+        powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
         addEncryptedRequest(stepContext);
 
         return stepContext;

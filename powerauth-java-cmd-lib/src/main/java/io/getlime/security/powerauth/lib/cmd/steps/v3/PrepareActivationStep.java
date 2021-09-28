@@ -21,7 +21,7 @@ import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
-import io.getlime.security.powerauth.lib.cmd.service.PowerAuthHeaderService;
+import io.getlime.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractActivationStep;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
@@ -54,16 +54,16 @@ import java.util.regex.Pattern;
 @Component(value = "prepareActivationStepV3")
 public class PrepareActivationStep extends AbstractActivationStep<PrepareActivationStepModel> {
 
-    private final PowerAuthHeaderService powerAuthHeaderService;
+    private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
     @Autowired
     public PrepareActivationStep(
-            PowerAuthHeaderService powerAuthHeaderService,
+            PowerAuthHeaderFactory powerAuthHeaderFactory,
             ResultStatusService resultStatusService,
             StepLoggerFactory stepLoggerFactory) {
         super(PowerAuthStep.ACTIVATION_CREATE, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
 
-        this.powerAuthHeaderService = powerAuthHeaderService;
+        this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
 
     /**
@@ -71,7 +71,7 @@ public class PrepareActivationStep extends AbstractActivationStep<PrepareActivat
      */
     public PrepareActivationStep() {
         this(
-                BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
+                BackwardCompatibilityConst.POWER_AUTH_HEADER_FACTORY,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
                 BackwardCompatibilityConst.STEP_LOGGER_FACTORY
         );
@@ -109,7 +109,7 @@ public class PrepareActivationStep extends AbstractActivationStep<PrepareActivat
         StepContext<PrepareActivationStepModel, EciesEncryptedResponse> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
-        powerAuthHeaderService.addEncryptionHeader(requestContext, model);
+        powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
         addEncryptedRequest(stepContext);
 
         return stepContext;

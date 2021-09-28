@@ -22,7 +22,7 @@ import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
-import io.getlime.security.powerauth.lib.cmd.service.PowerAuthHeaderService;
+import io.getlime.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
@@ -55,16 +55,16 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
     ParameterizedTypeReference<ObjectResponse<Map<String, Object>>> RESPONSE_TYPE_REFERENCE =
             new ParameterizedTypeReference<ObjectResponse<Map<String, Object>>>() { };
 
-    private final PowerAuthHeaderService powerAuthHeaderService;
+    private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
     @Autowired
     public VerifySignatureStep(
-            PowerAuthHeaderService powerAuthHeaderService,
+            PowerAuthHeaderFactory powerAuthHeaderFactory,
             ResultStatusService resultStatusService,
             StepLoggerFactory stepLoggerFactory) {
         super(PowerAuthStep.SIGNATURE_VERIFY, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLoggerFactory);
 
-        this.powerAuthHeaderService = powerAuthHeaderService;
+        this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
 
     /**
@@ -72,7 +72,7 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
      */
     public VerifySignatureStep() {
         this(
-                BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
+                BackwardCompatibilityConst.POWER_AUTH_HEADER_FACTORY,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
                 BackwardCompatibilityConst.STEP_LOGGER_FACTORY
         );
@@ -101,7 +101,7 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
         StepContext<VerifySignatureStepModel, ObjectResponse<Map<String, Object>>> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
-        powerAuthHeaderService.addSignatureHeader(stepContext);
+        powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
         incrementCounter(model);
 

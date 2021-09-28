@@ -26,7 +26,7 @@ import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
-import io.getlime.security.powerauth.lib.cmd.service.PowerAuthHeaderService;
+import io.getlime.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
@@ -62,7 +62,7 @@ import java.util.Map;
 @Component(value = "vaultUnlockStepV3")
 public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, EciesEncryptedResponse> {
 
-    private final PowerAuthHeaderService powerAuthHeaderService;
+    private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
     private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
 
@@ -70,12 +70,12 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Ecie
 
     @Autowired
     public VaultUnlockStep(
-            PowerAuthHeaderService powerAuthHeaderService,
+            PowerAuthHeaderFactory powerAuthHeaderFactory,
             ResultStatusService resultStatusService,
             StepLoggerFactory stepLoggerFactory) {
         super(PowerAuthStep.VAULT_UNLOCK, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
 
-        this.powerAuthHeaderService = powerAuthHeaderService;
+        this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
 
     /**
@@ -83,7 +83,7 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Ecie
      */
     public VaultUnlockStep() {
         this(
-                BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
+                BackwardCompatibilityConst.POWER_AUTH_HEADER_FACTORY,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
                 BackwardCompatibilityConst.STEP_LOGGER_FACTORY
         );
@@ -116,7 +116,7 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Ecie
 
         addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.VAULT_UNLOCK, requestBytesPayload);
 
-        powerAuthHeaderService.addSignatureHeader(stepContext);
+        powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
         incrementCounter(model);
 

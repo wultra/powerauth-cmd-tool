@@ -22,7 +22,7 @@ import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
-import io.getlime.security.powerauth.lib.cmd.service.PowerAuthHeaderService;
+import io.getlime.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
@@ -53,16 +53,16 @@ public class CommitUpgradeStep extends AbstractBaseStep<CommitUpgradeStepModel, 
     public static final ParameterizedTypeReference<Response> RESPONSE_TYPE_REFERENCE =
             new ParameterizedTypeReference<Response>() { };
 
-    private final PowerAuthHeaderService powerAuthHeaderService;
+    private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
     @Autowired
     public CommitUpgradeStep(
-            PowerAuthHeaderService powerAuthHeaderService,
+            PowerAuthHeaderFactory powerAuthHeaderFactory,
             ResultStatusService resultStatusService,
             StepLoggerFactory stepLoggerFactory) {
         super(PowerAuthStep.UPGRADE_COMMIT, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
 
-        this.powerAuthHeaderService = powerAuthHeaderService;
+        this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
 
     /**
@@ -70,7 +70,7 @@ public class CommitUpgradeStep extends AbstractBaseStep<CommitUpgradeStepModel, 
      */
     public CommitUpgradeStep() {
         this(
-                BackwardCompatibilityConst.POWER_AUTH_HEADER_SERVICE,
+                BackwardCompatibilityConst.POWER_AUTH_HEADER_FACTORY,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
                 BackwardCompatibilityConst.STEP_LOGGER_FACTORY
         );
@@ -101,7 +101,7 @@ public class CommitUpgradeStep extends AbstractBaseStep<CommitUpgradeStepModel, 
         resultStatusObject.setVersion(3L);
 
         requestContext.setRequestObject(PowerAuthConst.EMPTY_JSON_BYTES);
-        powerAuthHeaderService.addSignatureHeader(stepContext);
+        powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
         return stepContext;
     }
