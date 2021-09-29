@@ -242,7 +242,7 @@ public class PrepareActivationStep extends AbstractBaseStepV2 {
                 ResultStatusObject resultStatus = model.getResultStatus();
 
                 resultStatus.setActivationId(activationId);
-                resultStatus.getCounter().set(0L);
+                resultStatus.setCounter(0L);
                 resultStatus.setCtrData(null);
                 resultStatus.setEncryptedDevicePrivateKeyBytes(encryptedDevicePrivateKey);
                 resultStatus.setServerPublicKeyObject(serverPublicKey);

@@ -18,13 +18,13 @@ package io.getlime.security.powerauth.lib.cmd.steps.pojo;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
-import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.json.simple.JSONObject;
 
 import javax.crypto.SecretKey;
 import java.security.PublicKey;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Activation status object
@@ -45,178 +45,193 @@ public class ResultStatusObject {
     @JsonIgnore
     private JSONObject jsonObject = new JSONObject();
 
-    private String activationId;
-
-    private AtomicLong counter = new AtomicLong(0);
-
-    private String ctrData;
-
-    @JsonIgnore
-    private byte[] encryptedDevicePrivateKeyBytes;
-
-    @Setter(AccessLevel.NONE)
-    private String encryptedDevicePrivateKey;
-
-    @JsonIgnore
-    private PublicKey serverPublicKeyObject;
-
-    @Setter(AccessLevel.NONE)
-    private String serverPublicKey;
-
-    @JsonIgnore
-    private SecretKey signatureBiometryKeyObject;
-
-    @Setter(AccessLevel.NONE)
-    private String signatureBiometryKey;
-
-    @JsonIgnore
-    private byte[] signatureKnowledgeKeyEncryptedBytes;
-
-    @Setter(AccessLevel.NONE)
-    private String signatureKnowledgeKeyEncrypted;
-
-    @JsonIgnore
-    private byte[] signatureKnowledgeKeySaltBytes;
-
-    @Setter(AccessLevel.NONE)
-    private String signatureKnowledgeKeySalt;
-
-    @JsonIgnore
-    private SecretKey signaturePossessionKeyObject;
-
-    @Setter(AccessLevel.NONE)
-    private String signaturePossessionKey;
-
-    private String responseData;
-
-    @JsonIgnore
-    private SecretKey transportMasterKeyObject;
-
-    @Setter(AccessLevel.NONE)
-    private String transportMasterKey;
-
-    private Long version;
+    public String getActivationId() {
+        return (String) jsonObject.get("activationId");
+    }
 
     public void setActivationId(String activationId) {
-        this.activationId = activationId;
         jsonObject.put("activationId", activationId);
     }
 
-    public void setCounter(AtomicLong counter) {
-        this.counter = counter;
-        jsonObject.put("counter", counter.longValue());
+    public Long getCounter() {
+        return (Long) jsonObject.get("counter");
+    }
+
+    public void setCounter(Long counter) {
+        jsonObject.put("counter", counter);
+    }
+
+    public String getCtrData() {
+        return (String) jsonObject.get("ctrData");
     }
 
     public void setCtrData(String ctrData) {
-        this.ctrData = ctrData;
         jsonObject.put("ctrData", ctrData);
     }
 
+    @JsonIgnore
+    public byte[] getEncryptedDevicePrivateKeyBytes() {
+        String encryptedDevicePrivateKey = (String) jsonObject.get("encryptedDevicePrivateKey");
+        return BaseEncoding.base64().decode(encryptedDevicePrivateKey);
+    }
+
+    @JsonIgnore
     public void setEncryptedDevicePrivateKeyBytes(byte[] encryptedDevicePrivateKeyBytes) {
-        this.encryptedDevicePrivateKeyBytes = encryptedDevicePrivateKeyBytes;
-        this.encryptedDevicePrivateKey = BaseEncoding.base64().encode(encryptedDevicePrivateKeyBytes);
+        String encryptedDevicePrivateKey = BaseEncoding.base64().encode(encryptedDevicePrivateKeyBytes);
         jsonObject.put("encryptedDevicePrivateKey", encryptedDevicePrivateKey);
+    }
+
+    public String getEncryptedDevicePrivateKey() {
+        return (String) jsonObject.get("encryptedDevicePrivateKey");
     }
 
     public void setEncryptedDevicePrivateKey(String encryptedDevicePrivateKey) {
-        this.encryptedDevicePrivateKey = encryptedDevicePrivateKey;
-        this.encryptedDevicePrivateKeyBytes = BaseEncoding.base64().decode(encryptedDevicePrivateKey);
         jsonObject.put("encryptedDevicePrivateKey", encryptedDevicePrivateKey);
     }
 
+    public String getResponseData() {
+        return (String) jsonObject.get("responseData");
+    }
+
     public void setResponseData(String responseData) {
-        this.responseData = responseData;
         jsonObject.put("responseData", responseData);
     }
 
+    @JsonIgnore
+    public PublicKey getServerPublicKeyObject() throws Exception {
+        String serverPublicKey = (String) jsonObject.get("serverPublicKey");
+        return KEY_CONVERTOR.convertBytesToPublicKey(BaseEncoding.base64().decode(serverPublicKey));
+    }
+
+    @JsonIgnore
     public void setServerPublicKeyObject(PublicKey serverPublicKeyObject) throws Exception {
-        this.serverPublicKeyObject = serverPublicKeyObject;
-        this.serverPublicKey = BaseEncoding.base64().encode(KEY_CONVERTOR.convertPublicKeyToBytes(serverPublicKeyObject));
+        String serverPublicKey = BaseEncoding.base64().encode(KEY_CONVERTOR.convertPublicKeyToBytes(serverPublicKeyObject));
         jsonObject.put("serverPublicKey", serverPublicKey);
+    }
+
+    public String getServerPublicKey() {
+        return (String) jsonObject.get("serverPublicKey");
     }
 
     public void setServerPublicKey(String serverPublicKey) throws Exception {
-        this.serverPublicKey = serverPublicKey;
-        this.serverPublicKeyObject = KEY_CONVERTOR.convertBytesToPublicKey(BaseEncoding.base64().decode(serverPublicKey));
         jsonObject.put("serverPublicKey", serverPublicKey);
     }
 
+    @JsonIgnore
+    public SecretKey getSignatureBiometryKeyObject() {
+        String signatureBiometryKey = (String) jsonObject.get("signatureBiometryKey");
+        return KEY_CONVERTOR.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(signatureBiometryKey));
+    }
+
+    @JsonIgnore
     public void setSignatureBiometryKeyObject(SecretKey signatureBiometryKeyObject) {
-        this.signatureBiometryKeyObject = signatureBiometryKeyObject;
-        this.signatureBiometryKey = BaseEncoding.base64().encode(KEY_CONVERTOR.convertSharedSecretKeyToBytes(signatureBiometryKeyObject));
+        String signatureBiometryKey = BaseEncoding.base64().encode(KEY_CONVERTOR.convertSharedSecretKeyToBytes(signatureBiometryKeyObject));
         jsonObject.put("signatureBiometryKey", signatureBiometryKey);
+    }
+
+    public String getSignatureBiometryKey() {
+        return (String) jsonObject.get("signatureBiometryKey");
     }
 
     public void setSignatureBiometryKey(String signatureBiometryKey) {
-        this.signatureBiometryKey = signatureBiometryKey;
-        this.signatureBiometryKeyObject = KEY_CONVERTOR.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(signatureBiometryKey));
         jsonObject.put("signatureBiometryKey", signatureBiometryKey);
     }
 
+    @JsonIgnore
+    public byte[] getSignatureKnowledgeKeyEncryptedBytes() {
+        String signatureKnowledgeKeyEncrypted = (String) jsonObject.get("signatureKnowledgeKeyEncrypted");
+        return BaseEncoding.base64().decode(signatureKnowledgeKeyEncrypted);
+    }
+
+    @JsonIgnore
     public void setSignatureKnowledgeKeyEncryptedBytes(byte[] signatureKnowledgeKeyEncryptedBytes) {
-        this.signatureKnowledgeKeyEncryptedBytes = signatureKnowledgeKeyEncryptedBytes;
-        this.signatureKnowledgeKeyEncrypted = BaseEncoding.base64().encode(signatureKnowledgeKeyEncryptedBytes);
+        String signatureKnowledgeKeyEncrypted = BaseEncoding.base64().encode(signatureKnowledgeKeyEncryptedBytes);
         jsonObject.put("signatureKnowledgeKeyEncrypted", signatureKnowledgeKeyEncrypted);
+    }
+
+    public String getSignatureKnowledgeKeyEncrypted() {
+        return (String) jsonObject.get("signatureKnowledgeKeyEncrypted");
     }
 
     public void setSignatureKnowledgeKeyEncrypted(String signatureKnowledgeKeyEncrypted) {
-        this.signatureKnowledgeKeyEncrypted = signatureKnowledgeKeyEncrypted;
-        this.signatureKnowledgeKeyEncryptedBytes = BaseEncoding.base64().decode(signatureKnowledgeKeyEncrypted);
+        //this.signatureKnowledgeKeyEncryptedBytes = BaseEncoding.base64().decode(signatureKnowledgeKeyEncrypted);
         jsonObject.put("signatureKnowledgeKeyEncrypted", signatureKnowledgeKeyEncrypted);
     }
 
+    @JsonIgnore
+    public byte[] getSignatureKnowledgeKeySaltBytes() {
+        String signatureKnowledgeKeySalt = (String) jsonObject.get("signatureKnowledgeKeySalt");
+        return BaseEncoding.base64().decode(signatureKnowledgeKeySalt);
+    }
+
+    @JsonIgnore
     public void setSignatureKnowledgeKeySaltBytes(byte[] signatureKnowledgeKeySaltBytes) {
-        this.signatureKnowledgeKeySaltBytes = signatureKnowledgeKeySaltBytes;
-        this.signatureKnowledgeKeySalt = BaseEncoding.base64().encode(signatureKnowledgeKeySaltBytes);
+        String signatureKnowledgeKeySalt = BaseEncoding.base64().encode(signatureKnowledgeKeySaltBytes);
         jsonObject.put("signatureKnowledgeKeySalt", signatureKnowledgeKeySalt);
+    }
+
+    public String getSignatureKnowledgeKeySalt() {
+        return (String) jsonObject.get("signatureKnowledgeKeySalt");
     }
 
     public void setSignatureKnowledgeKeySalt(String signatureKnowledgeKeySalt) {
-        this.signatureKnowledgeKeySalt = signatureKnowledgeKeySalt;
-        this.signatureKnowledgeKeySaltBytes = BaseEncoding.base64().decode(signatureKnowledgeKeySalt);
+        //this.signatureKnowledgeKeySaltBytes = BaseEncoding.base64().decode(signatureKnowledgeKeySalt);
         jsonObject.put("signatureKnowledgeKeySalt", signatureKnowledgeKeySalt);
     }
 
+    @JsonIgnore
+    public SecretKey getSignaturePossessionKeyObject() {
+        String signaturePossessionKey = (String) jsonObject.get("signaturePossessionKey");
+        return KEY_CONVERTOR.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(signaturePossessionKey));
+    }
+
+    @JsonIgnore
     public void setSignaturePossessionKeyObject(SecretKey signaturePossessionKeyObject) {
-        this.signaturePossessionKeyObject = signaturePossessionKeyObject;
-        this.signaturePossessionKey = BaseEncoding.base64().encode(KEY_CONVERTOR.convertSharedSecretKeyToBytes(signaturePossessionKeyObject));
+        String signaturePossessionKey = BaseEncoding.base64().encode(KEY_CONVERTOR.convertSharedSecretKeyToBytes(signaturePossessionKeyObject));
         jsonObject.put("signaturePossessionKey", signaturePossessionKey);
+    }
+
+    public String getSignaturePossessionKey(String signaturePossessionKey) {
+        return (String) jsonObject.get("signaturePossessionKey");
     }
 
     public void setSignaturePossessionKey(String signaturePossessionKey) {
-        this.signaturePossessionKey = signaturePossessionKey;
-        this.signaturePossessionKeyObject = KEY_CONVERTOR.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(signaturePossessionKey));
         jsonObject.put("signaturePossessionKey", signaturePossessionKey);
     }
 
+    @JsonIgnore
+    public SecretKey getTransportMasterKeyObject() {
+        String transportMasterKey = (String) jsonObject.get("transportMasterKey");
+        return KEY_CONVERTOR.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKey));
+    }
+
+    @JsonIgnore
     public void setTransportMasterKeyObject(SecretKey transportMasterKeyObject) {
-        this.transportMasterKeyObject = transportMasterKeyObject;
-        this.transportMasterKey = BaseEncoding.base64().encode(KEY_CONVERTOR.convertSharedSecretKeyToBytes(transportMasterKeyObject));
+        String transportMasterKey = BaseEncoding.base64().encode(KEY_CONVERTOR.convertSharedSecretKeyToBytes(transportMasterKeyObject));
         jsonObject.put("transportMasterKey", transportMasterKey);
+    }
+
+    public String getTransportMasterKey() {
+        return (String) jsonObject.get("transportMasterKey");
     }
 
     public void setTransportMasterKey(String transportMasterKey) {
-        this.transportMasterKey = transportMasterKey;
-        this.transportMasterKeyObject = KEY_CONVERTOR.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKey));
+        //this.transportMasterKeyObject = KEY_CONVERTOR.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKey));
         jsonObject.put("transportMasterKey", transportMasterKey);
     }
 
-    public void setVersion(Long version) {
-        this.version = version;
-        jsonObject.put("version", version);
+    public Long getVersion() {
+        return (Long) jsonObject.get("version");
     }
 
-    public JSONObject toJsonObject() {
-        if (!jsonObject.containsKey("counter")) {
-            jsonObject.put("counter", counter.longValue());
-        }
-        return jsonObject;
+    public void setVersion(Long version) {
+        jsonObject.put("version", version);
     }
 
     public static ResultStatusObject fromJsonObject(JSONObject jsonObject) {
         ResultStatusObject resultStatusObject;
         try {
-            resultStatusObject = RestClientConfiguration.defaultMapper().readValue(jsonObject.toJSONString(), ResultStatusObject.class);
+            resultStatusObject = new ResultStatusObject();
             resultStatusObject.setJsonObject(jsonObject);
         } catch (Exception e) {
             System.err.println("Invalid json data specified for result status object");

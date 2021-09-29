@@ -316,7 +316,7 @@ public class CreateActivationStep extends AbstractBaseStepV2 {
                 ResultStatusObject resultStatusObject = model.getResultStatus();
 
                 resultStatusObject.setActivationId(activationId);
-                resultStatusObject.getCounter().set(0L);
+                resultStatusObject.setCounter(0L);
                 resultStatusObject.setCtrData(null);
                 resultStatusObject.setEncryptedDevicePrivateKeyBytes(encryptedDevicePrivateKey);
                 resultStatusObject.setServerPublicKeyObject(serverPublicKey);

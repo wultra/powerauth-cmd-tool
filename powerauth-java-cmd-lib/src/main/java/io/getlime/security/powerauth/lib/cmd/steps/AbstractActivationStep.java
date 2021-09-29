@@ -202,7 +202,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         ResultStatusObject resultStatusObject = model.getResultStatus();
 
         resultStatusObject.setActivationId(activationId);
-        resultStatusObject.getCounter().set(0L);
+        resultStatusObject.setCounter(0L);
         resultStatusObject.setCtrData(ctrDataBase64);
         resultStatusObject.setEncryptedDevicePrivateKeyBytes(encryptedDevicePrivateKey);
         resultStatusObject.setServerPublicKeyObject(serverPublicKey);

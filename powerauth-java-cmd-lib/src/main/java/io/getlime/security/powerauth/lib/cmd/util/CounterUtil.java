@@ -24,7 +24,6 @@ import io.getlime.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Helper class for counter.
@@ -57,7 +56,7 @@ public class CounterUtil {
      */
     public static byte[] getCtrData(ResultStatusObject resultStatusObject, StepLogger stepLogger) {
         byte[] ctrData = new byte[16];
-        long counter = resultStatusObject.getCounter().get();
+        long counter = resultStatusObject.getCounter();
         int version = resultStatusObject.getVersion().intValue();
         switch (version) {
             case 2:
@@ -94,8 +93,8 @@ public class CounterUtil {
         // Increment the numeric counter
         ResultStatusObject resultStatusObject = model.getResultStatus();
 
-        AtomicLong counter = resultStatusObject.getCounter();
-        counter.incrementAndGet();
+        Long counter = resultStatusObject.getCounter();
+        counter += 1;
         resultStatusObject.setCounter(counter);
 
         // Increment the hash based counter in case activation version is 3.
