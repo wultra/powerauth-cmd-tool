@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.http.HttpHeaders;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +45,7 @@ public class HttpUtil {
     /**
      * Serializes an object value for request sending as byte array representation
      * @param objectValue Object value
-     * @return byte array representing the obect value
+     * @return byte array representing the object value
      * @throws JsonProcessingException when an error during serialization to JSON occurred
      */
     public static byte[] toRequestBytes(@Nullable Object objectValue) throws JsonProcessingException {
@@ -57,6 +58,17 @@ public class HttpUtil {
             requestBytes = RestClientConfiguration.defaultMapper().writeValueAsBytes(objectValue);
         }
         return requestBytes;
+    }
+
+    /**
+     * Deserializes an object entity from byte array representation
+     * @param data Byte array representation of json
+     * @param cls Class
+     * @return Object entity
+     * @throws IOException when an error during deserialization from JSON occurred
+     */
+    public static <T> T fromRequestBytes(byte[] data, Class<T> cls) throws IOException {
+        return RestClientConfiguration.defaultMapper().readValue(data, cls);
     }
 
 }
