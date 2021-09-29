@@ -18,6 +18,8 @@ package io.getlime.security.powerauth.lib.cmd.steps.model;
 
 
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.security.PublicKey;
 import java.util.Map;
@@ -27,114 +29,40 @@ import java.util.Map;
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
+@Data
+@EqualsAndHashCode(callSuper = true)
 public class EncryptStepModel extends BaseStepModel
         implements EncryptionHeaderData {
 
+    /**
+     * Request data.
+     */
     private byte[] data;
+
+    /**
+     * Application key.
+     */
     private String applicationKey;
+
+    /**
+     * Application secret.
+     */
     private String applicationSecret;
+
+    /**
+     * Master Server Public Key, a value specific for given application.
+     */
     private PublicKey masterPublicKey;
+
+    /**
+     * ECIES encryption scope.
+     *
+     * <p><b>PowerAuth protocol versions:</b>
+     * <ul>
+     *     <li>3.0</li>
+     * </ul>
+     */
     private String scope;
-
-    /**
-     * Get the request data.
-     *
-     * @return Request data.
-     */
-    public byte[] getData() {
-        return data;
-    }
-
-    /**
-     * Set the request data.
-     *
-     * @param data Request data.
-     */
-    public void setData(byte[] data) {
-        this.data = data;
-    }
-
-    /**
-     * Get application key.
-     *
-     * @return Application key.
-     */
-    public String getApplicationKey() {
-        return applicationKey;
-    }
-
-    /**
-     * Set application key.
-     *
-     * @param applicationKey Application key.
-     */
-    public void setApplicationKey(String applicationKey) {
-        this.applicationKey = applicationKey;
-    }
-
-    /**
-     * Get application secret.
-     *
-     * @return Application secret.
-     */
-    public String getApplicationSecret() {
-        return applicationSecret;
-    }
-
-    /**
-     * Set application secret.
-     *
-     * @param applicationSecret Application secret.
-     */
-    public void setApplicationSecret(String applicationSecret) {
-        this.applicationSecret = applicationSecret;
-    }
-
-    /**
-     * Get master public key.
-     *
-     * @return Master public key.
-     */
-    public PublicKey getMasterPublicKey() {
-        return masterPublicKey;
-    }
-
-    /**
-     * Set master public key.
-     *
-     * @param masterPublicKey Master public key.
-     */
-    public void setMasterPublicKey(PublicKey masterPublicKey) {
-        this.masterPublicKey = masterPublicKey;
-    }
-
-    /**
-     * Get ECIES encryption scope.
-     *
-     * <p><b>PowerAuth protocol versions:</b>
-     * <ul>
-     *     <li>3.0</li>
-     * </ul>
-     *
-     * @return ECIES encryption scope.
-     */
-    public String getScope() {
-        return scope;
-    }
-
-    /**
-     * Set ECIES encryption scope.
-     *
-     * <p><b>PowerAuth protocol versions:</b>
-     * <ul>
-     *     <li>3.0</li>
-     * </ul>
-     *
-     * @param scope ECIES encryption scope.
-     */
-    public void setScope(String scope) {
-        this.scope = scope;
-    }
 
     @Override
     public Map<String, Object> toMap() {
@@ -156,4 +84,5 @@ public class EncryptStepModel extends BaseStepModel
         setMasterPublicKey((PublicKey) context.get("MASTER_PUBLIC_KEY"));
         setScope((String) context.get("SCOPE"));
     }
+
 }
