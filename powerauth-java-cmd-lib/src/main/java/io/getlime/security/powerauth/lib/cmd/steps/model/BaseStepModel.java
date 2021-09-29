@@ -53,6 +53,9 @@ public class BaseStepModel implements BaseStepData {
      */
     private PowerAuthVersion version;
 
+    /**
+     * @return Activation status as JSON object.
+     */
     public JSONObject getResultStatusObject() {
         return resultStatusObject != null ? resultStatusObject.getJsonObject() : null;
     }
@@ -65,6 +68,9 @@ public class BaseStepModel implements BaseStepData {
         this.resultStatusObject = ResultStatusObject.fromJsonObject(jsonObject);
     }
 
+    /**
+     * @return Activation status
+     */
     public ResultStatusObject getResultStatus() {
         return resultStatusObject;
     }

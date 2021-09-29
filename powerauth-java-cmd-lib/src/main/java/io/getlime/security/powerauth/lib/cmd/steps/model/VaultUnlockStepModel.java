@@ -19,6 +19,8 @@ package io.getlime.security.powerauth.lib.cmd.steps.model;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
 import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.util.Map;
 
@@ -27,98 +29,40 @@ import java.util.Map;
  *
  * @author Petr Dvorak, petr@wultra.com
  */
+@Data
+@EqualsAndHashCode(callSuper = true)
 public class VaultUnlockStepModel extends BaseStepModel
         implements ResultStatusChangeable, SignatureHeaderData {
 
-    private String applicationKey;
-    private String applicationSecret;
-    private String statusFileName;
-    private PowerAuthSignatureTypes signatureType;
-    private String password;
-    private String reason;
-
     /**
      * Application key.
-     *
-     * @param applicationKey APP_KEY.
      */
-    public void setApplicationKey(String applicationKey) {
-        this.applicationKey = applicationKey;
-    }
+    private String applicationKey;
 
     /**
      * Application secret.
-     *
-     * @param applicationSecret APP_SECRET.
      */
-    public void setApplicationSecret(String applicationSecret) {
-        this.applicationSecret = applicationSecret;
-    }
+    private String applicationSecret;
 
     /**
      * File name of the file with stored activation status.
-     *
-     * @param statusFileName Status file name.
      */
-    public void setStatusFileName(String statusFileName) {
-        this.statusFileName = statusFileName;
-    }
+    private String statusFileName;
 
     /**
-     * PowerAuth signature type.
-     *
-     * @param signatureType Signature type.
+     * PowerAuth signature type
      */
-    public void setSignatureType(PowerAuthSignatureTypes signatureType) {
-        this.signatureType = signatureType;
-    }
+    private PowerAuthSignatureTypes signatureType;
 
     /**
      * Password for the password related key encryption.
-     *
-     * @param password Password.
      */
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getApplicationKey() {
-        return applicationKey;
-    }
-
-    public String getApplicationSecret() {
-        return applicationSecret;
-    }
-
-    public String getStatusFileName() {
-        return statusFileName;
-    }
-
-    public PowerAuthSignatureTypes getSignatureType() {
-        return signatureType;
-    }
-
-    public String getPassword() {
-        return password;
-    }
+    private String password;
 
     /**
-     * Get reason why vault is being unlocked.
-     *
-     * @return Reason why vault is being unlocked.
+     * Reason why vault is being unlocked.
      */
-    public String getReason() {
-        return reason;
-    }
-
-    /**
-     * Set reason why vault is being unlocked.
-     *
-     * @param reason Reason why vault is being unlocked.
-     */
-    public void setReason(String reason) {
-        this.reason = reason;
-    }
+    private String reason;
 
     @Override
     public Map<String, Object> toMap() {
@@ -142,4 +86,5 @@ public class VaultUnlockStepModel extends BaseStepModel
         setPassword((String) context.get("PASSWORD"));
         setReason((String) context.get("REASON"));
     }
+
 }

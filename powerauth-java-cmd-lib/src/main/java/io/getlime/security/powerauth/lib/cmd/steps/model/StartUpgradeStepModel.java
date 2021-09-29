@@ -17,6 +17,8 @@ package io.getlime.security.powerauth.lib.cmd.steps.model;
 
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
 import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.util.Map;
 
@@ -25,66 +27,25 @@ import java.util.Map;
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
+@Data
+@EqualsAndHashCode(callSuper = true)
 public class StartUpgradeStepModel extends BaseStepModel
         implements ResultStatusChangeable, EncryptionHeaderData {
 
+    /**
+     * File name of the file with stored activation status.
+     */
     private String statusFileName;
+
+    /**
+     * Application key.
+     */
     private String applicationKey;
+
+    /**
+     * Application secret.
+     */
     private String applicationSecret;
-
-    /**
-     * Set file name of the file with stored activation status.
-     *
-     * @param statusFileName Status file name.
-     */
-    public void setStatusFileName(String statusFileName) {
-        this.statusFileName = statusFileName;
-    }
-
-    /**
-     * Set application key.
-     *
-     * @param applicationKey Application key.
-     */
-    public void setApplicationKey(String applicationKey) {
-        this.applicationKey = applicationKey;
-    }
-
-    /**
-     * Set application secret.
-     *
-     * @param applicationSecret Application secret.
-     */
-    public void setApplicationSecret(String applicationSecret) {
-        this.applicationSecret = applicationSecret;
-    }
-
-    /**
-     * Get status file name.
-     *
-     * @return Status file name.
-     */
-    public String getStatusFileName() {
-        return statusFileName;
-    }
-
-    /**
-     * Get application key.
-     *
-     * @return Application key.
-     */
-    public String getApplicationKey() {
-        return applicationKey;
-    }
-
-    /**
-     * Get application secret.
-     *
-     * @return Application secret.
-     */
-    public String getApplicationSecret() {
-        return applicationSecret;
-    }
 
     @Override
     public Map<String, Object> toMap() {
