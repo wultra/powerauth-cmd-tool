@@ -31,10 +31,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Abstract step with common execution patterns and methods
@@ -223,10 +220,23 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     public void processResponse(StepContext<M, R> stepContext) throws Exception { }
 
     /**
+     * Processing of the response data bytes
+     *
+     * @param stepContext Step context
+     * @param responseBody Response body bytes
+     * @throws Exception when an error during response processing occurred
+     */
+    public final void processResponse(StepContext<M, R> stepContext, byte[] responseBody, Class<R> responseObjectClass) throws Exception {
+        R responseBodyObject = HttpUtil.fromRequestBytes(responseBody, responseObjectClass);
+        ResponseEntity<R> responseEntity = ResponseEntity.of(Optional.of(responseBodyObject));
+        addResponseContext(stepContext, responseEntity);
+        processResponse(stepContext);
+    }
+
+    /**
      * Builds a step context instance from a model and a request context
      *
-     *
-     * @param stepLogger
+     * @param stepLogger     Step logger
      * @param model          Data model
      * @param requestContext Request context
      * @return Step context instance
@@ -294,9 +304,9 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
 
             // Call the right method with the REST client
             if (HttpMethod.GET.equals(requestContext.getHttpMethod())) {
-                responseEntity = restClient.get(requestContext.getUri(), null, MapUtil.toMultiValueMap(headers), getResponseTypeReference());
+                responseEntity = restClient.get(requestContext.getUri(), null, MapUtil.toMultiValueMap(headers), ParameterizedTypeReference.forType(getResponseTypeReference().getType()));
             } else {
-                responseEntity = restClient.post(requestContext.getUri(), requestBytes, null, MapUtil.toMultiValueMap(headers), getResponseTypeReference());
+                responseEntity = restClient.post(requestContext.getUri(), requestBytes, null, MapUtil.toMultiValueMap(headers), ParameterizedTypeReference.forType(getResponseTypeReference().getType()));
             }
         } catch (RestClientException ex) {
             stepContext.getStepLogger().writeServerCallError(step.id() + "-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
@@ -304,13 +314,20 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             return null;
         }
 
+        return addResponseContext(stepContext, responseEntity);
+    }
+
+    private ResponseContext<R> addResponseContext(StepContext<M,R> stepContext, ResponseEntity<R> responseEntity) {
         R responseBodyObject = Objects.requireNonNull(responseEntity.getBody());
         stepContext.getStepLogger().writeServerCallOK(step.id() + "-response-received", responseBodyObject, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
 
-        return ResponseContext.<R>builder()
+        ResponseContext<R> responseContext = ResponseContext.<R>builder()
                 .responseBodyObject(responseBodyObject)
                 .responseEntity(responseEntity)
                 .build();
+
+        stepContext.setResponseContext(responseContext);
+        return responseContext;
     }
 
 }
