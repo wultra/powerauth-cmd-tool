@@ -59,6 +59,7 @@ public class TokenHeaderProvider implements PowerAuthHeaderProvider<TokenHeaderD
 
         String headerValue = header.buildHttpHeader();
         requestContext.setAuthorizationHeader(headerValue);
+        requestContext.setAuthorizationHeaderName(PowerAuthTokenHttpHeader.HEADER_NAME);
         requestContext.getHttpHeaders().put(PowerAuthTokenHttpHeader.HEADER_NAME, headerValue);
     }
 
