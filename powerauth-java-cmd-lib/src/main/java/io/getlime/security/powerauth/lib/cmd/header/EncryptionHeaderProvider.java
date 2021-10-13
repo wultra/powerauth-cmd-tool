@@ -42,6 +42,7 @@ public class EncryptionHeaderProvider implements PowerAuthHeaderProvider<Encrypt
         String headerValue = header.buildHttpHeader();
 
         requestContext.setAuthorizationHeader(headerValue);
+        requestContext.setAuthorizationHeaderName(PowerAuthEncryptionHttpHeader.HEADER_NAME);
         requestContext.getHttpHeaders().put(PowerAuthEncryptionHttpHeader.HEADER_NAME, headerValue);
     }
 

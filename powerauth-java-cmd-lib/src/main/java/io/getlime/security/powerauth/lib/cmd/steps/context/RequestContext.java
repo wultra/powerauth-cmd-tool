@@ -40,6 +40,11 @@ public class RequestContext {
     private String authorizationHeader;
 
     /**
+     * Authorization header name
+     */
+    private String authorizationHeaderName;
+
+    /**
      * HTTP request method
      */
     @Builder.Default

@@ -118,6 +118,7 @@ public class SignatureHeaderProvider implements PowerAuthHeaderProvider<Signatur
 
         String headerValue = header.buildHttpHeader();
         requestContext.setAuthorizationHeader(headerValue);
+        requestContext.setAuthorizationHeaderName(PowerAuthSignatureHttpHeader.HEADER_NAME);
         requestContext.getHttpHeaders().put(PowerAuthSignatureHttpHeader.HEADER_NAME, headerValue);
     }
 
