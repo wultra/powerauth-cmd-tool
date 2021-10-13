@@ -525,15 +525,15 @@ public class Application {
     }
 
     private static void printPowerAuthStepsHelp(StepProvider stepProvider) {
-        System.out.println("Supported PowerAuth versions and available steps.\n");
-        System.out.printf("%-20s%s%n", "PowerAuth version", "Available steps");
-        for (PowerAuthVersion version : PowerAuthVersion.values()) {
-            List<String> steps = stepProvider.getAvailableSteps(version)
+        System.out.println("Available PowerAuth steps and supported versions.\n");
+        System.out.printf("%-22s%s%n", "PowerAuth step", "Supported versions");
+        for (PowerAuthStep step : PowerAuthStep.values()) {
+            List<String> versions = stepProvider.getSupportedVersions(step)
                     .stream()
-                    .map(PowerAuthStep::alias)
+                    .map(PowerAuthVersion::value)
                     .sorted()
                     .collect(Collectors.toList());
-            System.out.printf("%-20s%s%n", version.value(), steps);
+            System.out.printf("%-22s%s%n", step.alias(), versions.isEmpty() ? "deprecated support" : versions);
         }
     }
 
