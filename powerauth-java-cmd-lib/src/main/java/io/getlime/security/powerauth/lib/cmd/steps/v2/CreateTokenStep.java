@@ -165,7 +165,7 @@ public class CreateTokenStep extends AbstractBaseStepV2 {
             headers.put(PowerAuthSignatureHttpHeader.HEADER_NAME, httpAuthorizationHeader);
             headers.putAll(model.getHeaders());
 
-            stepLogger.writeServerCall("token-create-request-sent", uri, "POST", request.getRequestObject(), headers);
+            stepLogger.writeServerCall("token-create-request-sent", uri, "POST", request.getRequestObject(), null, headers);
 
             ResponseEntity<ObjectResponse<TokenCreateResponse>> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();

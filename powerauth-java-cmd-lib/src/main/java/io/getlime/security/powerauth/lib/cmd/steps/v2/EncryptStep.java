@@ -132,7 +132,7 @@ public class EncryptStep extends AbstractBaseStepV2 {
             headers.put("Content-Type", "application/json");
             headers.putAll(model.getHeaders());
 
-            stepLogger.writeServerCall("encrypt-request-sent", uri, "POST", body, headers);
+            stepLogger.writeServerCall("encrypt-request-sent", uri, "POST", body, null, headers);
 
             ResponseEntity<ObjectResponse<NonPersonalizedEncryptedPayloadModel>> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();

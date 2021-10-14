@@ -38,7 +38,7 @@ public class DisabledStepLogger implements StepLogger {
     public void writeItem(String id, String name, String description, String status, Object object) { }
 
     @Override
-    public void writeServerCall(String id, String uri, String method, Object requestObject, Map<String, ?> headers) { }
+    public void writeServerCall(String id, String uri, String method, Object requestObject, byte[] requestBytes, Map<String, ?> headers) { }
 
     @Override
     public void writeServerCallOK(String id, Object responseObject, Map<String, ?> headers) { }

@@ -175,7 +175,7 @@ public class PrepareActivationStep extends AbstractBaseStepV2 {
             headers.put("Content-Type", "application/json");
             headers.putAll(model.getHeaders());
 
-            stepLogger.writeServerCall("activation-create-request-sent", uri, "POST", requestObject, headers);
+            stepLogger.writeServerCall("activation-create-request-sent", uri, "POST", requestObject, null, headers);
 
             ResponseEntity<ObjectResponse<ActivationCreateResponse>> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();
