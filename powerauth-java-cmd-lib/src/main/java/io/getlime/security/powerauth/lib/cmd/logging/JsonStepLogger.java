@@ -22,6 +22,7 @@ import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import io.getlime.core.rest.model.base.request.ObjectRequest;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -126,7 +127,11 @@ public class JsonStepLogger implements StepLogger {
         map.put("url", uri);
         map.put("method", method);
         map.put("requestBytes", requestBytes);
-        map.put("requestObject", requestObject);
+        if (requestObject instanceof ObjectRequest) {
+            map.put("requestObject", ((ObjectRequest<?>) requestObject).getRequestObject());
+        } else {
+            map.put("requestObject", requestObject);
+        }
         map.put("requestHeaders", headers);
         String name = "Sending Request";
         String desc = "Calling PowerAuth Standard RESTful API endpoint";

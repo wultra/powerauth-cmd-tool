@@ -103,7 +103,7 @@ public class ObjectStepLogger implements StepLogger {
         map.put("url", uri);
         map.put("method", method);
         map.put("requestBytes", requestBytes);
-        map.put("requestObject", requestObject);
+        map.put("requestObject", request.getRequestObject());
         map.put("requestHeaders", headers);
         String name = "Sending Request";
         String desc = "Calling PowerAuth Standard RESTful API endpoint";
