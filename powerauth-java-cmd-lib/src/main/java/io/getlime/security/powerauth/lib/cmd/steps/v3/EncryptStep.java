@@ -32,6 +32,7 @@ import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
+import io.getlime.security.powerauth.lib.cmd.steps.context.security.SimpleSecurityContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.SecurityUtil;
@@ -138,7 +139,11 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
                 return null;
         }
 
-        stepContext.setEncryptor(encryptor);
+        stepContext.setSecurityContext(
+                SimpleSecurityContext.builder()
+                        .encryptor(encryptor)
+                        .build()
+        );
         addEncryptedRequest(stepContext, model.getApplicationSecret(), eciesSharedInfo1, requestDataBytes);
 
         String headerValue = header.buildHttpHeader();
@@ -159,7 +164,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
     @Override
     public void processResponse(StepContext<EncryptStepModel, EciesEncryptedResponse> stepContext) throws Exception {
         EncryptStepModel model = stepContext.getModel();
-        EciesEncryptor encryptor = stepContext.getEncryptor();
+        EciesEncryptor encryptor = ((SimpleSecurityContext) stepContext.getSecurityContext()).getEncryptor();
 
         EciesEncryptedResponse encryptedResponse = stepContext.getResponseContext().getResponseBodyObject();
 

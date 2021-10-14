@@ -15,6 +15,7 @@ import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.ResponseContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
+import io.getlime.security.powerauth.lib.cmd.steps.context.security.SimpleSecurityContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import io.getlime.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
 import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
@@ -171,12 +172,19 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      */
     public void addEncryptedRequest(StepContext<M, R> stepContext, String applicationSecret, EciesSharedInfo1 eciesSharedInfo, byte[] data) throws Exception {
         M model = stepContext.getModel();
+        SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
         ResultStatusObject resultStatusObject = model.getResultStatus();
 
-        EciesEncryptor encryptor = stepContext.getEncryptor();
-        if (encryptor == null) {
+        EciesEncryptor encryptor;
+        if (securityContext == null) {
             encryptor = SecurityUtil.createEncryptor(applicationSecret, resultStatusObject, eciesSharedInfo);
-            stepContext.setEncryptor(encryptor);
+            stepContext.setSecurityContext(
+                    SimpleSecurityContext.builder()
+                            .encryptor(encryptor)
+                            .build()
+            );
+        } else {
+            encryptor = securityContext.getEncryptor();
         }
 
         final boolean useIv = model.getVersion().useIv();
@@ -196,7 +204,8 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @throws Exception when an error during object decryption occurred
      */
     public <T> T decryptResponse(StepContext<?, EciesEncryptedResponse> stepContext, Class<T> cls) throws Exception {
-        EciesEncryptor encryptor = stepContext.getEncryptor();
+        SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
+        EciesEncryptor encryptor = securityContext.getEncryptor();
         EciesEncryptedResponse encryptedResponse = stepContext.getResponseContext().getResponseBodyObject();
         byte[] decryptedBytes = SecurityUtil.decryptBytesFromResponse(encryptor, encryptedResponse);
         final T responsePayload = RestClientConfiguration.defaultMapper().readValue(decryptedBytes, cls);
