@@ -18,6 +18,7 @@ package io.getlime.security.powerauth.lib.cmd.steps.model;
 
 
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -32,7 +33,7 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class EncryptStepModel extends BaseStepModel
-        implements EncryptionHeaderData {
+        implements EncryptionHeaderData, DryRunCapable {
 
     /**
      * Request data.
@@ -48,6 +49,11 @@ public class EncryptStepModel extends BaseStepModel
      * Application secret.
      */
     private String applicationSecret;
+
+    /**
+     * Flag indicating that this step should be terminated before the networking call.
+     */
+    private boolean dryRun;
 
     /**
      * Master Server Public Key, a value specific for given application.
@@ -70,6 +76,7 @@ public class EncryptStepModel extends BaseStepModel
         context.put("DATA", data);
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
+        context.put("DRY_RUN", dryRun);
         context.put("MASTER_PUBLIC_KEY", masterPublicKey);
         context.put("SCOPE", scope);
         return context;
@@ -81,6 +88,7 @@ public class EncryptStepModel extends BaseStepModel
         setData((byte[]) context.get("DATA"));
         setApplicationKey((String) context.get("APPLICATION_KEY"));
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
+        setDryRun((boolean) context.get("DRY_RUN"));
         setMasterPublicKey((PublicKey) context.get("MASTER_PUBLIC_KEY"));
         setScope((String) context.get("SCOPE"));
     }
