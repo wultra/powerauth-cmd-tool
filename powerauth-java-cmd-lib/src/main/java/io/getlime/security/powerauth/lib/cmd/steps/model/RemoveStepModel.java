@@ -16,6 +16,12 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
+import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
 import java.util.Map;
 
 /**
@@ -23,59 +29,34 @@ import java.util.Map;
  *
  * @author Petr Dvorak, petr@wultra.com
  */
-public class RemoveStepModel extends BaseStepModel {
-
-    private String statusFileName;
-    private String applicationKey;
-    private String applicationSecret;
-    private String password;
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class RemoveStepModel extends BaseStepModel
+        implements ResultStatusChangeable, SignatureHeaderData {
 
     /**
      * File name of the file with stored activation status.
-     * @param statusFileName Status file name.
      */
-    public void setStatusFileName(String statusFileName) {
-        this.statusFileName = statusFileName;
-    }
+    private String statusFileName;
 
     /**
      * Application key.
-     * @param applicationKey APP_KEY.
      */
-    public void setApplicationKey(String applicationKey) {
-        this.applicationKey = applicationKey;
-    }
+    private String applicationKey;
 
     /**
      * Application secret.
-     * @param applicationSecret APP_SECRET.
      */
-    public void setApplicationSecret(String applicationSecret) {
-        this.applicationSecret = applicationSecret;
-    }
+    private String applicationSecret;
 
     /**
      * Password for the password related key encryption.
-     * @param password Password.
      */
-    public void setPassword(String password) {
-        this.password = password;
-    }
+    private String password;
 
-    public String getStatusFileName() {
-        return statusFileName;
-    }
-
-    public String getApplicationKey() {
-        return applicationKey;
-    }
-
-    public String getApplicationSecret() {
-        return applicationSecret;
-    }
-
-    public String getPassword() {
-        return password;
+    @Override
+    public PowerAuthSignatureTypes getSignatureType() {
+        return PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE;
     }
 
     @Override
@@ -96,4 +77,5 @@ public class RemoveStepModel extends BaseStepModel {
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
         setPassword((String) context.get("PASSWORD"));
     }
+
 }

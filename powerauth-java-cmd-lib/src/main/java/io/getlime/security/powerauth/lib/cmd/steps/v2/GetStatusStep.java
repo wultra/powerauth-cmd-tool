@@ -24,19 +24,21 @@ import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
 import io.getlime.security.powerauth.crypto.lib.model.ActivationStatusBlobInfo;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.logging.model.ExtendedActivationStatusBlobInfo;
-import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.GetStatusStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.lib.cmd.util.JsonUtil;
 import io.getlime.security.powerauth.lib.cmd.util.MapUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientFactory;
 import io.getlime.security.powerauth.rest.api.model.request.v2.ActivationStatusRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v2.ActivationStatusResponse;
-import org.json.simple.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.HashMap;
@@ -53,12 +55,28 @@ import java.util.Objects;
  * </ul>
  *
  * @author Petr Dvorak
- *
  */
-public class GetStatusStep implements BaseStep {
+@Component(value = "getStatusStepV2")
+public class GetStatusStep extends AbstractBaseStepV2 {
+
+    public static final ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>> RESPONSE_TYPE_REFERENCE =
+            new ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>>() {
+            };
 
     private static final PowerAuthClientActivation activation = new PowerAuthClientActivation();
     private static final KeyConvertor keyConvertor = new KeyConvertor();
+
+    @Autowired
+    public GetStatusStep(StepLogger stepLogger) {
+        super(PowerAuthStep.ACTIVATION_STATUS, PowerAuthVersion.VERSION_2, stepLogger);
+    }
+
+    /**
+     * Constructor for backward compatibility
+     */
+    public GetStatusStep() {
+        this(DEFAULT_STEP_LOGGER);
+    }
 
     /**
      * Execute this step with given context
@@ -67,28 +85,21 @@ public class GetStatusStep implements BaseStep {
      * @return Result status object, null in case of failure.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) {
+    @Override
+    public ResultStatusObject execute(Map<String, Object> context) {
 
         // Read properties from "context"
         final GetStatusStepModel model = new GetStatusStepModel();
         model.fromMap(context);
 
-        if (stepLogger != null) {
-            stepLogger.writeItem(
-                    "activation-status-start",
-                    "Activation Status Check Started",
-                    null,
-                    "OK",
-                    null
-            );
-        }
-
         // Prepare the activation URI
         final String uri = model.getUriString() + "/pa/activation/status";
 
+        ResultStatusObject resultStatusObject = model.getResultStatus();
+
         // Get data from status
-        final String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
-        final String transportMasterKeyBase64 = JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey");
+        final String activationId = resultStatusObject.getActivationId();
+        final String transportMasterKeyBase64 = resultStatusObject.getTransportMasterKey();
         final SecretKey transportMasterKey = keyConvertor.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKeyBase64));
 
         // Send the activation status request to the server
@@ -104,31 +115,26 @@ public class GetStatusStep implements BaseStep {
             headers.put("Content-Type", "application/json");
             headers.putAll(model.getHeaders());
 
-            if (stepLogger != null) {
-                stepLogger.writeServerCall("activation-status-request-sent", uri, "POST", requestObject, headers);
-            }
+            stepLogger.writeServerCall("activation-status-request-sent", uri, "POST", requestObject, headers);
 
             ResponseEntity<ObjectResponse<ActivationStatusResponse>> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();
             if (restClient == null) {
                 return null;
             }
-            ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>>() {};
+            ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>>() {
+            };
             try {
                 responseEntity = restClient.post(uri, body, null, MapUtil.toMultiValueMap(headers), typeReference);
             } catch (RestClientException ex) {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("activation-status-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
-                    stepLogger.writeDoneFailed("activation-status-failed");
-                }
+                stepLogger.writeServerCallError("activation-status-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
+                stepLogger.writeDoneFailed("activation-status-failed");
                 return null;
             }
 
             ObjectResponse<ActivationStatusResponse> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
 
-            if (stepLogger != null) {
-                stepLogger.writeServerCallOK("activation-status-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
-            }
+            stepLogger.writeServerCallOK("activation-status-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
 
             // Process the server response
             final ActivationStatusResponse responseObject = responseWrapper.getResponseObject();
@@ -141,23 +147,19 @@ public class GetStatusStep implements BaseStep {
             final Map<String, Object> objectMap = new HashMap<>();
             objectMap.put("activationId", activationId);
             objectMap.put("statusBlob", statusBlob);
-            if (stepLogger != null) {
-                stepLogger.writeItem(
-                        "activation-status-obtained",
-                        "Activation Status",
-                        "Activation status successfully obtained",
-                        "OK",
-                        objectMap
-                );
+            stepLogger.writeItem(
+                    "activation-status-obtained",
+                    "Activation Status",
+                    "Activation status successfully obtained",
+                    "OK",
+                    objectMap
+            );
+            stepLogger.writeDoneOK("activation-status-success");
 
-                stepLogger.writeDoneOK("activation-status-success");
-            }
-            return model.getResultStatusObject();
+            return model.getResultStatus();
         } catch (Exception exception) {
-            if (stepLogger != null) {
-                stepLogger.writeError("activation-status-error-generic", exception);
-                stepLogger.writeDoneFailed("activation-status-failed");
-            }
+            stepLogger.writeError("activation-status-error-generic", exception);
+            stepLogger.writeDoneFailed("activation-status-failed");
             return null;
         }
     }

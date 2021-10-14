@@ -17,6 +17,11 @@
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.util.Map;
 
@@ -25,125 +30,55 @@ import java.util.Map;
  *
  * @author Petr Dvorak, petr@wultra.com
  */
-public class VerifySignatureStepModel extends BaseStepModel {
-
-    private String statusFileName;
-    private String applicationKey;
-    private String applicationSecret;
-    private String httpMethod;
-    private String resourceId;
-    private PowerAuthSignatureTypes signatureType;
-    private byte[] data;
-    private String password;
-    private boolean dryRun;
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class VerifySignatureStepModel extends BaseStepModel
+        implements ResultStatusChangeable, DryRunCapable, SignatureHeaderData {
 
     /**
      * File name of the file with stored activation status.
-     * @param statusFileName Status file name.
      */
-    public void setStatusFileName(String statusFileName) {
-        this.statusFileName = statusFileName;
-    }
+    private String statusFileName;
 
     /**
      * Application key.
-     * @param applicationKey APP_KEY.
      */
-    public void setApplicationKey(String applicationKey) {
-        this.applicationKey = applicationKey;
-    }
+    private String applicationKey;
 
     /**
      * Application secret.
-     * @param applicationSecret APP_SECRET.
      */
-    public void setApplicationSecret(String applicationSecret) {
-        this.applicationSecret = applicationSecret;
-    }
+    private String applicationSecret;
 
     /**
      * HTTP method used for the request call.
-     * @param httpMethod HTTP method for the call.
      */
-    public void setHttpMethod(String httpMethod) {
-        this.httpMethod = httpMethod;
-    }
+    private String httpMethod;
 
     /**
      * Resource identifier for a given call.
-     * @param resourceId Resource identifier.
      */
-    public void setResourceId(String resourceId) {
-        this.resourceId = resourceId;
-    }
+    private String resourceId;
 
     /**
      * PowerAuth signature type.
-     * @param signatureType Signature type.
      */
-    public void setSignatureType(PowerAuthSignatureTypes signatureType) {
-        this.signatureType = signatureType;
-    }
+    private PowerAuthSignatureTypes signatureType;
 
     /**
      * The request data, used for POST, PUT and DELETE methods.
-     * @param data Request data.
      */
-    public void setData(byte[] data) {
-        this.data = data;
-    }
+    private byte[] data;
 
     /**
      * Password for the password related key encryption.
-     * @param password Password.
      */
-    public void setPassword(String password) {
-        this.password = password;
-    }
+    private String password;
 
     /**
-     * Set flag indicating that this step should be terminated before the networking call.
-     * @return Dry run indicator.
+     * flag indicating that this step should be terminated before the networking call.
      */
-    public boolean isDryRun() {
-        return dryRun;
-    }
-
-    public String getStatusFileName() {
-        return statusFileName;
-    }
-
-    public String getApplicationKey() {
-        return applicationKey;
-    }
-
-    public String getApplicationSecret() {
-        return applicationSecret;
-    }
-
-    public String getHttpMethod() {
-        return httpMethod;
-    }
-
-    public String getResourceId() {
-        return resourceId;
-    }
-
-    public PowerAuthSignatureTypes getSignatureType() {
-        return signatureType;
-    }
-
-    public byte[] getData() {
-        return data;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setDryRun(boolean dryRun) {
-        this.dryRun = dryRun;
-    }
+    private boolean dryRun;
 
     @Override
     public Map<String, Object> toMap() {
@@ -173,4 +108,5 @@ public class VerifySignatureStepModel extends BaseStepModel {
         setPassword((String) context.get("PASSWORD"));
         setDryRun((boolean) context.get("DRY_RUN"));
     }
+
 }

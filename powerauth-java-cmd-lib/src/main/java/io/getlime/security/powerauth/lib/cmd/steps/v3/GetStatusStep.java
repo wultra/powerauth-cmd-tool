@@ -16,32 +16,31 @@
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.google.common.io.BaseEncoding;
-import com.wultra.core.rest.client.base.RestClient;
-import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.crypto.lib.model.ActivationStatusBlobInfo;
-import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
+import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import io.getlime.security.powerauth.lib.cmd.logging.model.ExtendedActivationStatusBlobInfo;
-import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
+import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
+import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
+import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
+import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.GetStatusStepModel;
-import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
-import io.getlime.security.powerauth.lib.cmd.util.JsonUtil;
-import io.getlime.security.powerauth.lib.cmd.util.MapUtil;
-import io.getlime.security.powerauth.lib.cmd.util.RestClientFactory;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.rest.api.model.request.v3.ActivationStatusRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v3.ActivationStatusResponse;
-import org.json.simple.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 
-import javax.crypto.SecretKey;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Helper class with step for getting activation status.
@@ -52,119 +51,105 @@ import java.util.Objects;
  *      <li>3.1</li>
  * </ul>
  *
+ * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  * @author Roman Strobl, roman.strobl@wultra.com
- *
  */
-public class GetStatusStep implements BaseStep {
+@Component(value = "getStatusStepV3")
+public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, ObjectResponse<ActivationStatusResponse>> {
 
-    private static final PowerAuthClientActivation activation = new PowerAuthClientActivation();
-    private static final KeyConvertor keyConvertor = new KeyConvertor();
-    private static final KeyGenerator keyGenerator = new KeyGenerator();
+    public static final String ATTRIBUTE_CHALLENGE = "challenge";
+
+    public static final ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>> RESPONSE_TYPE_REFERENCE =
+            new ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>>() {
+            };
+
+    private static final PowerAuthClientActivation ACTIVATION = new PowerAuthClientActivation();
+
+    private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
+
+    @Autowired
+    public GetStatusStep(
+            ResultStatusService resultStatusService,
+            StepLoggerFactory stepLoggerFactory) {
+        super(PowerAuthStep.ACTIVATION_STATUS, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
+    }
 
     /**
-     * Execute this step with given context
-     * @param context Provided context
-     * @return Result status object, null in case of failure.
+     * Constructor for backward compatibility
      */
-    @SuppressWarnings("unchecked")
-    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) {
+    public GetStatusStep() {
+        this(
+                BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
+                BackwardCompatibilityConst.STEP_LOGGER_FACTORY
+        );
+    }
 
-        // Read properties from "context"
+    @Override
+    protected ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>> getResponseTypeReference() {
+        return RESPONSE_TYPE_REFERENCE;
+    }
+
+    @Override
+    public StepContext<GetStatusStepModel, ObjectResponse<ActivationStatusResponse>> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         final GetStatusStepModel model = new GetStatusStepModel();
         model.fromMap(context);
 
-        if (stepLogger != null) {
-            stepLogger.writeItem(
-                    "activation-status-start",
-                    "Activation Status Check Started",
-                    null,
-                    "OK",
-                    null
-            );
-        }
-
-        // Prepare the activation URI
-        final String uri = model.getUriString() + "/pa/v3/activation/status";
         // Decide whether "challenge" must be used in the request.
-        final boolean useChallenge = !model.getVersion().equals("3.0");
+        final boolean useChallenge = !model.getVersion().equals(PowerAuthVersion.V3_0);
 
-        try {
-            // Get data from status
-            final String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
-            final String transportMasterKeyBase64 = JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey");
-            final SecretKey transportMasterKey = keyConvertor.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKeyBase64));
-            final byte[] challenge = useChallenge ? keyGenerator.generateRandomBytes(16) : null;
-
-            // Send the activation status request to the server
-            final ActivationStatusRequest requestObject = new ActivationStatusRequest();
-            requestObject.setActivationId(activationId);
-            requestObject.setChallenge(useChallenge ? BaseEncoding.base64().encode(challenge) : null);
-            final ObjectRequest<ActivationStatusRequest> body = new ObjectRequest<>();
-            body.setRequestObject(requestObject);
-
-            final Map<String, String> headers = new HashMap<>();
-            headers.put("Accept", "application/json");
-            headers.put("Content-Type", "application/json");
-            headers.putAll(model.getHeaders());
-
-            if (stepLogger != null) {
-                stepLogger.writeServerCall("activation-status-request-sent", uri, "POST", requestObject, headers);
-            }
-
-            ResponseEntity<ObjectResponse<ActivationStatusResponse>> responseEntity;
-            RestClient restClient = RestClientFactory.getRestClient();
-            if (restClient == null) {
-                return null;
-            }
-            ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>>() {};
-            try {
-                responseEntity = restClient.post(uri, body, null, MapUtil.toMultiValueMap(headers), typeReference);
-            } catch (RestClientException ex) {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("activation-status-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
-                    stepLogger.writeDoneFailed("activation-status-failed");
-                }
-                return null;
-            }
-
-            ObjectResponse<ActivationStatusResponse> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
-
-            if (stepLogger != null) {
-                stepLogger.writeServerCallOK("activation-status-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
-            }
-
-            // Process the server response
-            final ActivationStatusResponse responseObject = responseWrapper.getResponseObject();
-            final byte[] cStatusBlob = BaseEncoding.base64().decode(responseObject.getEncryptedStatusBlob());
-            final byte[] cStatusBlobNonce = useChallenge ? BaseEncoding.base64().decode(responseObject.getNonce()) : null;
-
-            // Print the results
-            final ActivationStatusBlobInfo statusBlobRaw = activation.getStatusFromEncryptedBlob(cStatusBlob, challenge, cStatusBlobNonce, transportMasterKey);
-            final ExtendedActivationStatusBlobInfo statusBlob = ExtendedActivationStatusBlobInfo.copy(statusBlobRaw);
-
-            final Map<String, Object> objectMap = new HashMap<>();
-            objectMap.put("activationId", activationId);
-            objectMap.put("statusBlob", statusBlob);
-
-            if (stepLogger != null) {
-                stepLogger.writeItem(
-                        "activation-status-obtained",
-                        "Activation Status",
-                        "Activation status successfully obtained",
-                        "OK",
-                        objectMap
-                );
-
-                stepLogger.writeDoneOK("activation-status-success");
-            }
-            return model.getResultStatusObject();
-        } catch (Exception exception) {
-            if (stepLogger != null) {
-                stepLogger.writeError("activation-status-error-generic", exception);
-                stepLogger.writeDoneFailed("activation-status-failed");
-            }
-            return null;
+        final byte[] challenge = useChallenge ? KEY_GENERATOR.generateRandomBytes(16) : null;
+        Map<String, Object> attributes = new HashMap<>();
+        if (challenge != null) {
+            attributes.put(ATTRIBUTE_CHALLENGE, challenge);
         }
+
+        RequestContext requestContext = RequestContext.builder()
+                .uri(model.getUriString() + "/pa/v3/activation/status")
+                .build();
+
+        StepContext<GetStatusStepModel, ObjectResponse<ActivationStatusResponse>> stepContext =
+                buildStepContext(stepLogger, model, requestContext);
+        stepContext.setAttributes(attributes);
+
+        // Send the activation status request to the server
+        final ActivationStatusRequest requestObject = new ActivationStatusRequest();
+        requestObject.setActivationId(model.getResultStatus().getActivationId());
+        requestObject.setChallenge(challenge != null ? BaseEncoding.base64().encode(challenge) : null);
+        final ObjectRequest<ActivationStatusRequest> body = new ObjectRequest<>();
+        body.setRequestObject(requestObject);
+
+        requestContext.setRequestObject(body);
+
+        return stepContext;
+    }
+
+    @Override
+    public void processResponse(StepContext<GetStatusStepModel, ObjectResponse<ActivationStatusResponse>> stepContext) throws Exception {
+        ResultStatusObject resultStatusObject = stepContext.getModel().getResultStatus();
+
+        final boolean useChallenge = !stepContext.getModel().getVersion().equals(PowerAuthVersion.V3_0);
+
+        // Process the server response
+        final ActivationStatusResponse responseObject = stepContext.getResponseContext().getResponseBodyObject().getResponseObject();
+        final byte[] cStatusBlob = BaseEncoding.base64().decode(responseObject.getEncryptedStatusBlob());
+        final byte[] cStatusBlobNonce = useChallenge ? BaseEncoding.base64().decode(responseObject.getNonce()) : null;
+
+        byte[] challenge = (byte[]) stepContext.getAttributes().get(ATTRIBUTE_CHALLENGE);
+
+        final ActivationStatusBlobInfo statusBlobRaw = ACTIVATION.getStatusFromEncryptedBlob(cStatusBlob, challenge, cStatusBlobNonce, resultStatusObject.getTransportMasterKeyObject());
+        final ExtendedActivationStatusBlobInfo statusBlob = ExtendedActivationStatusBlobInfo.copy(statusBlobRaw);
+
+        final Map<String, Object> objectMap = new HashMap<>();
+        objectMap.put("activationId", resultStatusObject.getActivationId());
+        objectMap.put("statusBlob", statusBlob);
+
+        stepContext.getStepLogger().writeItem(
+                getStep().id() + "-obtained",
+                "Activation Status",
+                "Activation status successfully obtained",
+                "OK",
+                objectMap
+        );
     }
 
 }

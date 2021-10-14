@@ -16,25 +16,38 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps;
 
-import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
-import org.json.simple.JSONObject;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 
+import java.util.List;
 import java.util.Map;
 
 /**
  * Interface for objects implementing execution steps.
  *
+ * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  * @author Petr Dvorak, petr@wultra.com
  */
 public interface BaseStep {
 
     /**
-     * Execute this step with given logger and context objects.
-     * @param logger Step logger.
+     * Execute this step with given context objects.
+     *
      * @param context Context objects.
      * @return Result status object (with current activation status), null in case of failure.
      * @throws Exception In case of a failure.
      */
-    JSONObject execute(StepLogger logger, Map<String, Object> context) throws Exception;
+    ResultStatusObject execute(Map<String, Object> context) throws Exception;
+
+    /**
+     * @return Corresponding PowerAuth step
+     */
+    PowerAuthStep getStep();
+
+    /**
+     * @return Supported versions of PowerAuth
+     */
+    List<PowerAuthVersion> getSupportedVersions();
 
 }

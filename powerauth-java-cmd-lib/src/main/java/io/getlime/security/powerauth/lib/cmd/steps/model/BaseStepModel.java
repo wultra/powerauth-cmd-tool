@@ -16,6 +16,10 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
+import lombok.Data;
 import org.json.simple.JSONObject;
 
 import java.util.HashMap;
@@ -26,63 +30,79 @@ import java.util.Map;
  *
  * @author Petr Dvorak, petr@wultra.com
  */
-public class BaseStepModel {
-
-    private Map<String, String> headers;
-    private String uriString;
-    private JSONObject resultStatusObject;
-    private String version;
+@Data
+public class BaseStepModel implements BaseStepData {
 
     /**
-     * Set base URI string of the PowerAuth Standard RESTful API.
-     * @param uriString Base URI of PA2.0 Standard RESTful API.
+     * HTTP headers
      */
-    public void setUriString(String uriString) {
-        this.uriString = uriString;
+    private Map<String, String> headers;
+
+    /**
+     * Base URI of PowerAuth Standard RESTful API
+     */
+    private String uriString;
+
+    /**
+     * Activation status object
+     */
+    private ResultStatusObject resultStatusObject;
+
+    /**
+     * PowerAuth protocol version
+     */
+    private PowerAuthVersion version;
+
+    /**
+     * @return Activation status as JSON object.
+     */
+    public JSONObject getResultStatusObject() {
+        return resultStatusObject != null ? resultStatusObject.getJsonObject() : null;
     }
 
     /**
-     * Set the object representing activation status.
-     * @param resultStatusObject Activation status object.
+     * Sets activation status object from JSON object
+     * @param jsonObject Activation status object as JSON
      */
-    public void setResultStatusObject(JSONObject resultStatusObject) {
+    public void setResultStatusObject(JSONObject jsonObject) {
+        this.resultStatusObject = ResultStatusObject.fromJsonObject(jsonObject);
+    }
+
+    /**
+     * @return Activation status
+     */
+    public ResultStatusObject getResultStatus() {
+        return resultStatusObject;
+    }
+
+    /**
+     * Sets activation status object
+     * @param resultStatusObject Activation status object
+     */
+    public void setResultStatus(ResultStatusObject resultStatusObject) {
         this.resultStatusObject = resultStatusObject;
     }
 
     /**
-     * Set PowerAuth protocol version.
-     * @param version PowerAuth protocol version.
+     * Sets the version value
+     * <p>the PowerAuth version is detected from the provided value</p>
+     * @param versionValue string version value, must correspond with any of {@link PowerAuthVersion}
      */
-    public void setVersion(String version) {
+    public void setVersion(String versionValue) {
+        this.version = PowerAuthVersion.fromValue(versionValue);
+    }
+
+    /**
+     * Sets the version value
+     * @param version PowerAuth version value
+     */
+    public void setVersion(PowerAuthVersion version) {
         this.version = version;
     }
 
     /**
-     * Set HTTP headers used for requests.
-     * @param headers HTTP headers.
-     */
-    public void setHeaders(Map<String, String> headers) {
-        this.headers = headers;
-    }
-
-    public Map<String, String> getHeaders() {
-        return headers;
-    }
-
-    public String getUriString() {
-        return uriString;
-    }
-
-    public JSONObject getResultStatusObject() {
-        return resultStatusObject;
-    }
-
-    public String getVersion() {
-        return version;
-    }
-
-    /**
      * Convert this object to map.
+     *
      * @return Map representing this object.
      */
     public Map<String, Object> toMap() {
@@ -96,14 +116,25 @@ public class BaseStepModel {
 
     /**
      * Initialize object with given attribute map.
+     *
      * @param context Context with attributes.
      */
     @SuppressWarnings("unchecked")
     public void fromMap(Map<String, Object> context) {
         setHeaders((Map<String, String>) context.get("HTTP_HEADERS"));
         setUriString((String) context.get("URI_STRING"));
-        setResultStatusObject((JSONObject) context.get("STATUS_OBJECT"));
-        setVersion((String) context.get("VERSION"));
+        Object statusObject = context.get("STATUS_OBJECT");
+        if (statusObject instanceof JSONObject) {
+            setResultStatus(ResultStatusObject.fromJsonObject((JSONObject) statusObject));
+        } else if (statusObject instanceof ResultStatusObject) {
+            setResultStatus((ResultStatusObject) statusObject);
+        }
+        Object version = context.get("VERSION");
+        if (version instanceof PowerAuthVersion) {
+            setVersion((PowerAuthVersion) version);
+        } else if (version instanceof String) {
+            setVersion(PowerAuthVersion.fromValue((String) version));
+        }
     }
 
 }

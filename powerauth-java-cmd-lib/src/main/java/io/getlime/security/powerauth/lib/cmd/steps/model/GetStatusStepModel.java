@@ -16,6 +16,9 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
 import java.util.Map;
 
 /**
@@ -23,10 +26,13 @@ import java.util.Map;
  *
  * @author Petr Dvorak, petr@wultra.com
  */
+@Data
+@EqualsAndHashCode(callSuper = true)
 public class GetStatusStepModel extends BaseStepModel {
 
     @Override
     public void fromMap(Map<String, Object> context) {
         super.fromMap(context);
     }
+
 }

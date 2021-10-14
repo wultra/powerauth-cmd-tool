@@ -15,6 +15,12 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.ActivationData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
 import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,111 +30,69 @@ import java.util.Map;
  *
  * @author Petr Dvorak, petr@wultra.com
  */
-public class CreateActivationStepModel extends BaseStepModel {
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class CreateActivationStepModel extends BaseStepModel
+        implements ActivationData, ResultStatusChangeable, EncryptionHeaderData {
 
+    /**
+     * Identity attributes.
+     */
     private Map<String, String> identityAttributes;
+
+    /**
+     * Custom attributes.
+     */
     private Map<String, Object> customAttributes;
+
+    /**
+     * File name of the file with stored activation status.
+     */
     private String statusFileName;
+
+    /**
+     * Activation OTP.
+     */
     private String activationOtp;
+
+    /**
+     * Activation name.
+     */
     private String activationName;
+
+    /**
+     * User device platform
+     */
     private String platform;
+
+    /**
+     * Information about user device.
+     */
     private String deviceInfo;
+
+    /**
+     * Application key.
+     */
     private String applicationKey;
+
+    /**
+     * Application secret.
+     */
     private String applicationSecret;
+
+    /**
+     * Password for the password related key encryption.
+     */
     private String password;
+
+    /**
+     * Master Server Public Key, a value specific for given application.
+     */
     private PublicKey masterPublicKey;
 
     public CreateActivationStepModel() {
         identityAttributes = new HashMap<>();
         customAttributes = new HashMap<>();
-    }
-
-    public Map<String, String> getIdentityAttributes() {
-        return identityAttributes;
-    }
-
-    public void setIdentityAttributes(Map<String, String> identityAttributes) {
-        this.identityAttributes = identityAttributes;
-    }
-
-    public Map<String, Object> getCustomAttributes() {
-        return customAttributes;
-    }
-
-    public void setCustomAttributes(Map<String, Object> customAttributes) {
-        this.customAttributes = customAttributes;
-    }
-
-    public String getStatusFileName() {
-        return statusFileName;
-    }
-
-    public void setStatusFileName(String statusFileName) {
-        this.statusFileName = statusFileName;
-    }
-
-    public String getActivationOtp() {
-        return activationOtp;
-    }
-
-    public void setActivationOtp(String activationOtp) {
-        this.activationOtp = activationOtp;
-    }
-
-    public String getActivationName() {
-        return activationName;
-    }
-
-    public void setActivationName(String activationName) {
-        this.activationName = activationName;
-    }
-
-    public String getPlatform() {
-        return platform;
-    }
-
-    public void setPlatform(String platform) {
-        this.platform = platform;
-    }
-
-    public String getDeviceInfo() {
-        return deviceInfo;
-    }
-
-    public void setDeviceInfo(String deviceInfo) {
-        this.deviceInfo = deviceInfo;
-    }
-
-    public String getApplicationKey() {
-        return applicationKey;
-    }
-
-    public void setApplicationKey(String applicationKey) {
-        this.applicationKey = applicationKey;
-    }
-
-    public String getApplicationSecret() {
-        return applicationSecret;
-    }
-
-    public void setApplicationSecret(String applicationSecret) {
-        this.applicationSecret = applicationSecret;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public PublicKey getMasterPublicKey() {
-        return masterPublicKey;
-    }
-
-    public void setMasterPublicKey(PublicKey masterPublicKey) {
-        this.masterPublicKey = masterPublicKey;
     }
 
     @Override
