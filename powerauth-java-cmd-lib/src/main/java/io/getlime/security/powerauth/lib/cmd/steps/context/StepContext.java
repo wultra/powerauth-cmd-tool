@@ -16,13 +16,12 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.context;
 
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.steps.context.security.SecurityContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import lombok.Data;
 
-import java.security.KeyPair;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -55,6 +54,11 @@ public class StepContext<M extends BaseStepData, R> {
     private ResponseContext<R> responseContext;
 
     /**
+     * Security context
+     */
+    private SecurityContext securityContext;
+
+    /**
      * Current step identification
      */
     private PowerAuthStep step;
@@ -63,14 +67,5 @@ public class StepContext<M extends BaseStepData, R> {
      * Step logger
      */
     private StepLogger stepLogger;
-
-    // TODO consider separation to two security contexts
-    private EciesEncryptor encryptor;
-
-    private EciesEncryptor eciesEncryptorL1;
-
-    private EciesEncryptor eciesEncryptorL2;
-
-    private KeyPair deviceKeyPair;
 
 }

@@ -22,14 +22,15 @@ import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
+import io.getlime.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
-import io.getlime.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.ResponseContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
+import io.getlime.security.powerauth.lib.cmd.steps.context.security.SimpleSecurityContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.SecurityUtil;
 import io.getlime.security.powerauth.lib.cmd.util.VerifySignatureUtil;
@@ -145,7 +146,7 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
     @Override
     public void processResponse(StepContext<VerifySignatureStepModel, EciesEncryptedResponse> stepContext) throws Exception {
         ResponseContext<EciesEncryptedResponse> responseContext = stepContext.getResponseContext();
-        EciesEncryptor encryptor = stepContext.getEncryptor();
+        EciesEncryptor encryptor = ((SimpleSecurityContext) stepContext.getSecurityContext()).getEncryptor();
         final byte[] decryptedBytes = SecurityUtil.decryptBytesFromResponse(encryptor, responseContext.getResponseBodyObject());
 
         String decryptedMessage = new String(decryptedBytes, StandardCharsets.UTF_8);
