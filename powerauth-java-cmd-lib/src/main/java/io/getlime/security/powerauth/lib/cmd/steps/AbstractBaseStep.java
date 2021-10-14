@@ -266,7 +266,15 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      *
      * @param stepLogger Step logger
      */
-    protected void logDryRun(StepLogger stepLogger) { }
+    protected void logDryRun(StepLogger stepLogger) {
+        stepLogger.writeItem(
+                getStep().id() + "-dry-run",
+                "Dry run",
+                "The request was just dry-run, no external service call",
+                "OK",
+                null
+        );
+    }
 
     /**
      * Calls the server and prepares response context with the response data

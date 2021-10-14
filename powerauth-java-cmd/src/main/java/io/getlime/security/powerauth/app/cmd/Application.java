@@ -392,6 +392,7 @@ public class Application {
                     EncryptStepModel model = new EncryptStepModel();
                     model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
                     model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setDryRun(cmd.hasOption("dry-run"));
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
                     model.setResultStatus(resultStatusObject);
