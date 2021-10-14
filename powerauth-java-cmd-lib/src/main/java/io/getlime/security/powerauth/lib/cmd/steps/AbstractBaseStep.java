@@ -141,13 +141,14 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
 
         StepContext<M, R> stepContext = prepareStepContext(stepLogger, context);
 
-        ResponseContext<R> responseContext;
         try {
-            responseContext = callServer(stepContext);
+            ResponseContext<R> responseContext = callServer(stepContext);
             if (responseContext != null) {
                 stepContext.setResponseContext(responseContext);
                 processResponse(stepContext);
                 stepLogger.writeDoneOK(getStep().id() + "-success");
+            } else if (!isDryRun(stepContext.getModel())) {
+                stepContext.getStepLogger().writeDoneFailed(getStep().id() + "-failed");
             }
         } catch (Exception exception) {
             stepLogger.writeError(getStep().id() + "-error-generic", exception);
@@ -287,7 +288,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
         stepContext.getStepLogger().writeServerCall(step.id() + "-request-sent", requestContext.getUri(), requestContext.getHttpMethod().name(), requestContext.getRequestObject(), headers);
 
         // In the case of a dry run the execution ends here
-        if (model instanceof DryRunCapable && ((DryRunCapable) model).isDryRun()) {
+        if (isDryRun(model)) {
             logDryRun(stepContext.getStepLogger());
             stepContext.getStepLogger().writeDoneOK(getStep().id() + "-success");
             return null;
@@ -295,6 +296,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
 
         RestClient restClient = RestClientFactory.getRestClient();
         if (restClient == null) {
+            stepContext.getStepLogger().writeError(step.id() + "-error-rest-client", "Unable to prepare a REST client");
             return null;
         }
 
@@ -310,7 +312,6 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             }
         } catch (RestClientException ex) {
             stepContext.getStepLogger().writeServerCallError(step.id() + "-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
-            stepContext.getStepLogger().writeDoneFailed(step.id() + "-failed");
             return null;
         }
 
@@ -328,6 +329,10 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
 
         stepContext.setResponseContext(responseContext);
         return responseContext;
+    }
+
+    private boolean isDryRun(M model) {
+        return model instanceof DryRunCapable && ((DryRunCapable) model).isDryRun();
     }
 
 }
