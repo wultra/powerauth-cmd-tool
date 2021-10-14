@@ -149,7 +149,7 @@ public class RemoveStep extends AbstractBaseStepV2 {
             headers.put(PowerAuthSignatureHttpHeader.HEADER_NAME, httpAuthorizationHeader);
             headers.putAll(model.getHeaders());
 
-            stepLogger.writeServerCall("activation-remove-request-sent", uri, "POST", null, headers);
+            stepLogger.writeServerCall("activation-remove-request-sent", uri, "POST", null, null, headers);
 
             ResponseEntity<ObjectResponse<ActivationRemoveResponse>> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();

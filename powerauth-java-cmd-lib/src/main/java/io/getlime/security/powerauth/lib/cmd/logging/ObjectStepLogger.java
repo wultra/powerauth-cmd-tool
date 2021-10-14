@@ -89,11 +89,12 @@ public class ObjectStepLogger implements StepLogger {
      * @param id Step ID.
      * @param uri URI that will be called.
      * @param method HTTP method of the call.
+     * @param requestBytes Request bytes, in case of the POST, PUT, DELETE method.
      * @param requestObject Request object, in case of the POST, PUT, DELETE method.
      * @param headers HTTP request headers.
      */
     @Override
-    public void writeServerCall(String id, String uri, String method, Object requestObject, Map<String, ?> headers) {
+    public void writeServerCall(String id, String uri, String method, Object requestObject, byte[] requestBytes, Map<String, ?> headers) {
         if (request != null) {
             throw new IllegalStateException("Only one request per step is supported");
         }
@@ -101,6 +102,7 @@ public class ObjectStepLogger implements StepLogger {
         Map<String, Object> map = new HashMap<>();
         map.put("url", uri);
         map.put("method", method);
+        map.put("requestBytes", requestBytes);
         map.put("requestObject", requestObject);
         map.put("requestHeaders", headers);
         String name = "Sending Request";

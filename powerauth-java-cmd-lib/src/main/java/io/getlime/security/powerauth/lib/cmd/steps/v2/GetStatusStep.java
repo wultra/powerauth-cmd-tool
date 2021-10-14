@@ -115,7 +115,7 @@ public class GetStatusStep extends AbstractBaseStepV2 {
             headers.put("Content-Type", "application/json");
             headers.putAll(model.getHeaders());
 
-            stepLogger.writeServerCall("activation-status-request-sent", uri, "POST", requestObject, headers);
+            stepLogger.writeServerCall("activation-status-request-sent", uri, "POST", requestObject, null, headers);
 
             ResponseEntity<ObjectResponse<ActivationStatusResponse>> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();

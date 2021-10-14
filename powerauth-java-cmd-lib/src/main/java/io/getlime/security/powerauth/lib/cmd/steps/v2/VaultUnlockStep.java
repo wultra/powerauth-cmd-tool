@@ -172,7 +172,7 @@ public class VaultUnlockStep extends AbstractBaseStepV2 {
             headers.put(PowerAuthSignatureHttpHeader.HEADER_NAME, httpAuthorizationHeader);
             headers.putAll(model.getHeaders());
 
-            stepLogger.writeServerCall("vault-unlock-request-sent", uri, "POST", request.getRequestObject(), headers);
+            stepLogger.writeServerCall("vault-unlock-request-sent", uri, "POST", request.getRequestObject(), null, headers);
 
             ResponseEntity<ObjectResponse<VaultUnlockResponse>> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();
