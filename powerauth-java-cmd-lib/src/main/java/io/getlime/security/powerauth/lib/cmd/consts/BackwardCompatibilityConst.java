@@ -16,8 +16,8 @@
  */
 package io.getlime.security.powerauth.lib.cmd.consts;
 
-import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import io.getlime.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusFileService;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 
@@ -29,6 +29,11 @@ import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 public class BackwardCompatibilityConst {
 
     /**
+     * Constant bean of PowerAuth header factory
+     */
+    public static final PowerAuthHeaderFactory POWER_AUTH_HEADER_FACTORY = new PowerAuthHeaderFactory();
+
+    /**
      * Constant bean of result status service
      */
     public static final ResultStatusService RESULT_STATUS_SERVICE = new ResultStatusFileService();
@@ -36,15 +41,6 @@ public class BackwardCompatibilityConst {
     /**
      * Constant step logger
      */
-    public static final StepLoggerFactory STEP_LOGGER_FACTORY;
-
-    /**
-     * Constant bean of PowerAuth header service
-     */
-    public static final PowerAuthHeaderFactory POWER_AUTH_HEADER_FACTORY = new PowerAuthHeaderFactory();
-
-    static {
-        STEP_LOGGER_FACTORY = new StepLoggerFactory(StepLoggerType.DISABLED);
-    }
+    public static final StepLoggerFactory STEP_LOGGER_FACTORY = new StepLoggerFactory(StepLoggerType.OBJECT);
 
 }
