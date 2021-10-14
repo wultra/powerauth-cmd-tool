@@ -22,6 +22,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.json.simple.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.SecretKey;
 import java.security.PublicKey;
@@ -36,6 +38,8 @@ import java.security.PublicKey;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ResultStatusObject {
+
+    private static final Logger logger = LoggerFactory.getLogger(ResultStatusObject.class);
 
     private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
 
@@ -234,8 +238,7 @@ public class ResultStatusObject {
             resultStatusObject = new ResultStatusObject();
             resultStatusObject.setJsonObject(jsonObject);
         } catch (Exception e) {
-            System.err.println("Invalid json data specified for result status object");
-            e.printStackTrace(System.err);
+            logger.error("Invalid json data specified for result status object", e);
             resultStatusObject = new ResultStatusObject();
         }
         return resultStatusObject;
