@@ -302,7 +302,9 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             headers.putAll(model.getHeaders());
         }
 
-        stepContext.getStepLogger().writeServerCall(step.id() + "-request-sent", requestContext.getUri(), requestContext.getHttpMethod().name(), requestContext.getRequestObject(), headers);
+        byte[] requestBytes = HttpUtil.toRequestBytes(requestContext.getRequestObject());
+
+        stepContext.getStepLogger().writeServerCall(step.id() + "-request-sent", requestContext.getUri(), requestContext.getHttpMethod().name(), requestContext.getRequestObject(), requestBytes, headers);
 
         // In the case of a dry run the execution ends here
         if (isDryRun(model)) {
@@ -319,8 +321,6 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
 
         ResponseEntity<R> responseEntity;
         try {
-            byte[] requestBytes = HttpUtil.toRequestBytes(requestContext.getRequestObject());
-
             // Call the right method with the REST client
             if (HttpMethod.GET.equals(requestContext.getHttpMethod())) {
                 responseEntity = restClient.get(requestContext.getUri(), null, MapUtil.toMultiValueMap(headers), ParameterizedTypeReference.forType(getResponseTypeReference().getType()));

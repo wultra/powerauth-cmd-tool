@@ -159,7 +159,7 @@ public class RemoveTokenStep extends AbstractBaseStepV2 {
             headers.put(PowerAuthSignatureHttpHeader.HEADER_NAME, httpAuthorizationHeader);
             headers.putAll(model.getHeaders());
 
-            stepLogger.writeServerCall("token-remove-request-sent", uri, "POST", request, headers);
+            stepLogger.writeServerCall("token-remove-request-sent", uri, "POST", request, requestBytes, headers);
 
             ResponseEntity<ObjectResponse<TokenRemoveResponse>> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();

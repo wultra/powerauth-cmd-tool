@@ -43,10 +43,11 @@ public interface StepLogger {
      * @param id Step ID.
      * @param uri URI that will be called.
      * @param method HTTP method of the call.
+     * @param requestBytes Request bytes, in case of the POST, PUT, DELETE method.
      * @param requestObject Request object, in case of the POST, PUT, DELETE method.
      * @param headers HTTP request headers.
      */
-    void writeServerCall(String id, String uri, String method, Object requestObject, Map<String, ?> headers);
+    void writeServerCall(String id, String uri, String method, Object requestObject, byte[] requestBytes,  Map<String, ?> headers);
 
     /**
      * Write information about the successful server request. Uses "writeItem" method under the hood.
