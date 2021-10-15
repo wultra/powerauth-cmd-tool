@@ -84,7 +84,7 @@ public class JsonStepLogger implements StepLogger {
             generator.writeStartObject();
             generator.writeFieldName("steps");
             generator.writeStartArray();
-            flush();
+            // don't flush now, lazily wait for a logged item
         } catch (IOException e) {
             //
         }

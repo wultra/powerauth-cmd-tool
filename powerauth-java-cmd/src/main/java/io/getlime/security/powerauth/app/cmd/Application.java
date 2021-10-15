@@ -262,13 +262,7 @@ public class Application {
                 case ACTIVATION_CREATE:
                 case ACTIVATION_PREPARE: {
                     if (powerAuthStep.equals(PowerAuthStep.ACTIVATION_PREPARE)) {
-                        stepLogger.writeItem(
-                                "generic-warning-deprecated",
-                                "Deprecated method",
-                                "Use 'create' method instead of deprecated 'prepare'",
-                                "WARNING",
-                                null
-                        );
+                        System.err.println("The 'prepare' step name is deprecated, use the 'create' step name instead");
                         powerAuthStep = PowerAuthStep.ACTIVATION_CREATE;
                     }
 
