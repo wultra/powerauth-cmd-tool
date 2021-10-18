@@ -88,7 +88,8 @@ public class Application {
             options.addOption("a", "activation-code", true, "In case a specified method is 'create', this field contains the activation key (a concatenation of a short activation ID and activation OTP).");
             options.addOption("A", "activation-otp", true, "In case a specified method is 'create', this field contains additional activation OTP (PA server 0.24+)");
             options.addOption("t", "http-method", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a HTTP method, as specified in PowerAuth signature process.");
-            options.addOption("e", "endpoint", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a URI identifier, as specified in PowerAuth signature process.");
+            options.addOption("e", "endpoint", true, "Deprecated option, use the resource-id option instead.");
+            options.addOption("E", "resource-id", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a URI identifier, as specified in PowerAuth signature process.");
             options.addOption("l", "signature-type", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a signature type, as specified in PowerAuth signature process.");
             options.addOption("d", "data-file", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a file with the input data to be signed and verified with the server, as specified in PowerAuth signature process.");
             options.addOption("y", "dry-run", false, "In case a specified method is 'sign' or 'validate-token' and this attribute is specified, the step is stopped right after signing the request body and preparing appropriate headers.");
@@ -135,6 +136,10 @@ public class Application {
                 formatter.setWidth(100);
                 formatter.printHelp("java -jar powerauth-java-cmd.jar", options);
                 return;
+            }
+
+            if (cmd.hasOption("e")) {
+                System.err.println("The 'e' (endpoint) option is deprecated, use the 'E' (resource-id) option instead");
             }
 
             // Read HTTP headers
@@ -319,7 +324,7 @@ public class Application {
                     model.setHeaders(httpHeaders);
                     model.setHttpMethod(cmd.getOptionValue("t"));
                     model.setPassword(cmd.getOptionValue("p"));
-                    model.setResourceId(cmd.getOptionValue("e"));
+                    model.setResourceId(cmd.getOptionValue("E", cmd.getOptionValue("e")));
                     model.setResultStatus(resultStatusObject);
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
                     model.setStatusFileName(statusFileName);
@@ -409,7 +414,7 @@ public class Application {
                     model.setHeaders(httpHeaders);
                     model.setHttpMethod(cmd.getOptionValue("t"));
                     model.setPassword(cmd.getOptionValue("p"));
-                    model.setResourceId(cmd.getOptionValue("e"));
+                    model.setResourceId(cmd.getOptionValue("E", cmd.getOptionValue("e")));
                     model.setResultStatus(resultStatusObject);
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
                     model.setStatusFileName(statusFileName);

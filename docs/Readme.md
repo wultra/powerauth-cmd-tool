@@ -128,7 +128,7 @@ java -jar powerauth-java-cmd.jar \
     --config-file "/tmp/pamk.json" \
     --method "sign" \
     --http-method "POST" \
-    --endpoint "/pa/signature/validate" \
+    --resource-id "/pa/signature/validate" \
     --signature-type "possession_knowledge" \
     --data-file "/tmp/request.json" \
     --password "1234"
@@ -150,7 +150,7 @@ java -jar powerauth-java-cmd.jar \
     --method "sign" \
     --http-method "POST" \
     --http-header Cookie="JSESSIONID=D0A047F9E8A9928386A5B34AB6343C30"
-    --endpoint "/pa/signature/validate" \
+    --resource-id "/pa/signature/validate" \
     --signature-type "possession_knowledge" \
     --data-file "/tmp/request.json" \
     --password "1234"
@@ -291,7 +291,7 @@ java -jar powerauth-java-cmd.jar \
     --config-file "config.json" \
     --method "sign-encrypt" \
     --http-method "POST" \
-    --endpoint "/exchange/v3/signed" \
+    --resource-id "/exchange/v3/signed" \
     --signature-type "possession_knowledge" \
     --data-file "request.json" \
     --password "1234"
@@ -347,8 +347,10 @@ usage: java -jar powerauth-java-cmd.jar
                                      file with the input data to be signed and verified with the
                                      server, as specified in PowerAuth signature process.
  -D,--device-info <arg>              Information about user device.
- -e,--endpoint <arg>                 In case a specified method is 'sign', this field specifies a
-                                     URI identifier, as specified in PowerAuth signature process.
+ -e,--endpoint <arg>                 Deprecated option, use the resource-id option instead.
+ -E,--resource-id <arg>              In case a specified method is 'sign' or 'sign-encrypt', this
+                                     field specifies a URI identifier, as specified in PowerAuth
+                                     signature process.
  -h,--help                           Print this help manual.
  -H,--http-header <key=value>        Use provided HTTP header for communication
  -I,--identity-file <arg>            In case a specified method is 'create-custom', this field

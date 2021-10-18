@@ -22,6 +22,8 @@ import io.getlime.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
 import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
@@ -34,6 +36,8 @@ import java.util.Map;
 @EqualsAndHashCode(callSuper = true)
 public class VerifySignatureStepModel extends BaseStepModel
         implements ResultStatusChangeable, DryRunCapable, SignatureHeaderData {
+
+    private static final Logger logger = LoggerFactory.getLogger(VerifySignatureStepModel.class);
 
     /**
      * File name of the file with stored activation status.
@@ -87,7 +91,7 @@ public class VerifySignatureStepModel extends BaseStepModel
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
         context.put("HTTP_METHOD", httpMethod);
-        context.put("ENDPOINT", resourceId);
+        context.put("RESOURCE_ID", resourceId);
         context.put("SIGNATURE_TYPE", signatureType.toString());
         context.put("DATA", data);
         context.put("PASSWORD", password);
@@ -102,7 +106,12 @@ public class VerifySignatureStepModel extends BaseStepModel
         setApplicationKey((String) context.get("APPLICATION_KEY"));
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
         setHttpMethod((String) context.get("HTTP_METHOD"));
-        setResourceId((String) context.get("ENDPOINT"));
+        if ((context.containsKey("ENDPOINT") && context.get("ENDPOINT") != null) &&
+            (!context.containsKey("RESOURCE_ID") || context.get("RESOURCE_ID") == null)) {
+            logger.warn("Usage of deprecated 'ENDPOINT' key in the context map of VerifySignatureStepModel, use the 'RESOURCE_ID' key instead.");
+            context.put("RESOURCE_ID", context.get("ENDPOINT"));
+        }
+        setResourceId((String) context.get("RESOURCE_ID"));
         setSignatureType(PowerAuthSignatureTypes.getEnumFromString((String) context.get("SIGNATURE_TYPE")));
         setData((byte[]) context.get("DATA"));
         setPassword((String) context.get("PASSWORD"));
