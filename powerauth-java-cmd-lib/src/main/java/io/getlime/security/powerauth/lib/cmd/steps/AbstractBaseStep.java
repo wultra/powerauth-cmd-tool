@@ -201,7 +201,8 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * Decrypts an object from a response
      *
      * @param stepContext       Step context
-     * @param cls               Class of the decrypted object
+     * @param cls               Class type of the decrypted object
+     * @param <T>               Class of the decrypted object
      * @return Decrypted object from the provided response
      * @throws Exception when an error during object decryption occurred
      */
@@ -236,10 +237,11 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      *
      * @param stepContext Step context
      * @param responseBody Response body bytes
+     * @param responseObjectClass Response object class
      * @throws Exception when an error during response processing occurred
      */
     public final void processResponse(StepContext<M, R> stepContext, byte[] responseBody, Class<R> responseObjectClass) throws Exception {
-        R responseBodyObject = HttpUtil.fromRequestBytes(responseBody, responseObjectClass);
+        R responseBodyObject = HttpUtil.fromBytes(responseBody, responseObjectClass);
         ResponseEntity<R> responseEntity = ResponseEntity.of(Optional.of(responseBodyObject));
         addResponseContext(stepContext, responseEntity);
         processResponse(stepContext);

@@ -57,9 +57,12 @@ import java.util.Map;
 @Component(value = "getStatusStepV3")
 public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, ObjectResponse<ActivationStatusResponse>> {
 
+    /**
+     * Attribute challenge
+     */
     public static final String ATTRIBUTE_CHALLENGE = "challenge";
 
-    public static final ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>> RESPONSE_TYPE_REFERENCE =
+    private static final ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>> RESPONSE_TYPE_REFERENCE =
             new ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>>() {
             };
 
@@ -67,6 +70,11 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, ObjectRe
 
     private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
 
+    /**
+     * Constructor
+     * @param resultStatusService Result status service
+     * @param stepLoggerFactory Step logger factory
+     */
     @Autowired
     public GetStatusStep(
             ResultStatusService resultStatusService,

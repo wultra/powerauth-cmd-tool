@@ -67,14 +67,14 @@ import java.util.Objects;
 @Component(value = "createTokenStepV2")
 public class CreateTokenStep extends AbstractBaseStepV2 {
 
-    public static final ParameterizedTypeReference<ObjectResponse<TokenCreateResponse>> RESPONSE_TYPE_REFERENCE =
-            new ParameterizedTypeReference<ObjectResponse<TokenCreateResponse>>() {
-            };
-
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientSignature signature = new PowerAuthClientSignature();
     private static final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
 
+    /**
+     * Constructor
+     * @param stepLogger Step logger
+     */
     @Autowired
     public CreateTokenStep(StepLogger stepLogger) {
         super(PowerAuthStep.TOKEN_CREATE, PowerAuthVersion.VERSION_2, stepLogger);

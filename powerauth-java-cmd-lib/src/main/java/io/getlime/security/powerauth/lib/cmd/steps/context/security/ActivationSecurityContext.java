@@ -16,10 +16,7 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.context.security;
 
-import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
-import io.getlime.security.powerauth.crypto.lib.model.exception.CryptoProviderException;
-import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import lombok.Builder;
 import lombok.Data;
 
@@ -34,17 +31,19 @@ import java.security.KeyPair;
 @Builder
 public class ActivationSecurityContext implements SecurityContext {
 
-    private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
-
+    /**
+     * Encryptor used on layer 1
+     */
     private EciesEncryptor encryptorL1;
 
+    /**
+     * Encryptor used on layer 2
+     */
     private EciesEncryptor encryptorL2;
 
+    /**
+     * Device key pair
+     */
     private KeyPair deviceKeyPair;
-
-    public String getDevicePublicKeyBase64() throws CryptoProviderException {
-        byte[] devicePublicKeyBytes = KEY_CONVERTOR.convertPublicKeyToBytes(deviceKeyPair.getPublic());
-        return BaseEncoding.base64().encode(devicePublicKeyBytes);
-    }
 
 }

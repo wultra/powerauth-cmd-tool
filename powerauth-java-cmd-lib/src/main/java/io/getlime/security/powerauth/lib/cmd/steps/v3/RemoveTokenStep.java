@@ -53,11 +53,17 @@ import java.util.Objects;
 @Component(value = "removeTokenStepV3")
 public class RemoveTokenStep extends AbstractBaseStep<RemoveTokenStepModel, ObjectResponse<TokenRemoveResponse>> {
 
-    public static final ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>> RESPONSE_TYPE_REFERENCE =
+    private static final ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>> RESPONSE_TYPE_REFERENCE =
             new ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>>() { };
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
+    /**
+     * Constructor
+     * @param powerAuthHeaderFactory PowerAuth header factory
+     * @param resultStatusService Result status service
+     * @param stepLoggerFactory Step logger factory
+     */
     @Autowired
     public RemoveTokenStep(
             PowerAuthHeaderFactory powerAuthHeaderFactory,

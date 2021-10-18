@@ -25,6 +25,9 @@ import java.util.Map;
  */
 public class DisabledStepLogger implements StepLogger {
 
+    /**
+     * Singleton instance of a disabled step logger
+     */
     public static final StepLogger INSTANCE = new DisabledStepLogger();
 
     private DisabledStepLogger() {

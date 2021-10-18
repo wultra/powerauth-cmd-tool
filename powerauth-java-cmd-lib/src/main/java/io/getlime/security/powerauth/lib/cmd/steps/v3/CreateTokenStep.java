@@ -55,6 +55,12 @@ public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, Ecie
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
+    /**
+     * Constructor
+     * @param powerAuthHeaderFactory PowerAuth header factory
+     * @param resultStatusService Result status service
+     * @param stepLoggerFactory Step logger factory
+     */
     @Autowired
     public CreateTokenStep(PowerAuthHeaderFactory powerAuthHeaderFactory,
                            ResultStatusService resultStatusService,

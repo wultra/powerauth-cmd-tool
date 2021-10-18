@@ -56,6 +56,12 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
+    /**
+     * Constructor
+     * @param powerAuthHeaderFactory PowerAuth header factory
+     * @param resultStatusService Result status service
+     * @param stepLoggerFactory Step logger factory
+     */
     @Autowired
     public VerifyTokenStep(
             PowerAuthHeaderFactory powerAuthHeaderFactory,

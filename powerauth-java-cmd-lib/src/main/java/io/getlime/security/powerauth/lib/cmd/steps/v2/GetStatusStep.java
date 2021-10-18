@@ -59,13 +59,13 @@ import java.util.Objects;
 @Component(value = "getStatusStepV2")
 public class GetStatusStep extends AbstractBaseStepV2 {
 
-    public static final ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>> RESPONSE_TYPE_REFERENCE =
-            new ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>>() {
-            };
-
     private static final PowerAuthClientActivation activation = new PowerAuthClientActivation();
     private static final KeyConvertor keyConvertor = new KeyConvertor();
 
+    /**
+     * Constructor
+     * @param stepLogger Step logger
+     */
     @Autowired
     public GetStatusStep(StepLogger stepLogger) {
         super(PowerAuthStep.ACTIVATION_STATUS, PowerAuthVersion.VERSION_2, stepLogger);

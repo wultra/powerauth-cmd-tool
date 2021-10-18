@@ -53,6 +53,10 @@ import java.util.Objects;
 @Component(value = "createActivationStepV2")
 public class CreateActivationStep extends AbstractBaseStepV2 {
 
+    /**
+     * Constructor
+     * @param stepLogger Step logger
+     */
     @Autowired
     public CreateActivationStep(StepLogger stepLogger) {
         super(PowerAuthStep.ACTIVATION_CREATE_CUSTOM, PowerAuthVersion.VERSION_2, stepLogger);

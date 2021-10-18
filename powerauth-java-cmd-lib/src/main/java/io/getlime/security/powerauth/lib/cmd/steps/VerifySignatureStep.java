@@ -57,6 +57,12 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
+    /**
+     * Constructor
+     * @param powerAuthHeaderFactory PowerAuth header factory
+     * @param resultStatusService Result status service
+     * @param stepLoggerFactory Step logger factory
+     */
     @Autowired
     public VerifySignatureStep(
             PowerAuthHeaderFactory powerAuthHeaderFactory,

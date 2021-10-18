@@ -35,6 +35,10 @@ public class ResultStatusMemoryService implements ResultStatusService {
 
     private final ResultStatusMemoryHolder resultStatusMemoryHolder;
 
+    /**
+     * Constructor
+     * @param resultStatusMemoryHolder Result status holder
+     */
     @Autowired
     public ResultStatusMemoryService(ResultStatusMemoryHolder resultStatusMemoryHolder) {
         this.resultStatusMemoryHolder = resultStatusMemoryHolder;

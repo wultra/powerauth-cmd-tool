@@ -54,6 +54,12 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, Ec
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
+    /**
+     * Constructor
+     * @param powerAuthHeaderFactory PowerAuth header factory
+     * @param resultStatusService Result status service
+     * @param stepLoggerFactory Step logger factory
+     */
     @Autowired
     public StartUpgradeStep(PowerAuthHeaderFactory powerAuthHeaderFactory,
                             ResultStatusService resultStatusService,

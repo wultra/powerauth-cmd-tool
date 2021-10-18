@@ -29,14 +29,32 @@ import org.springframework.stereotype.Component;
 @Component
 public class PowerAuthHeaderFactory {
 
+    /**
+     * Creates an encryption header provider instance
+     * @param model Step model
+     * @param <M> Model class based on {@link EncryptionHeaderData}
+     * @return New encryption header provider instance
+     */
     public <M extends EncryptionHeaderData> EncryptionHeaderProvider getHeaderProvider(M model) {
         return new EncryptionHeaderProvider();
     }
 
+    /**
+     * Creates a signature header provider instance
+     * @param model Step model
+     * @param <M> Model class based on {@link SignatureHeaderData}
+     * @return New signature header provider instance
+     */
     public <M extends SignatureHeaderData> SignatureHeaderProvider getHeaderProvider(M model) {
         return new SignatureHeaderProvider();
     }
 
+    /**
+     * Creates a token header provider instance
+     * @param model Step model
+     * @param <M> Model class based on {@link TokenHeaderData}
+     * @return New token header provider instance
+     */
     public <M extends TokenHeaderData> TokenHeaderProvider getHeaderProvider(M model) {
         return new TokenHeaderProvider();
     }

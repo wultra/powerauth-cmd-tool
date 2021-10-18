@@ -57,6 +57,12 @@ public class ConfirmRecoveryCodeStep extends AbstractBaseStep<ConfirmRecoveryCod
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
+    /**
+     * Constructor
+     * @param powerAuthHeaderFactory PowerAuth header factory
+     * @param resultStatusService Result status service
+     * @param stepLoggerFactory Step logger factory
+     */
     @Autowired
     public ConfirmRecoveryCodeStep(PowerAuthHeaderFactory powerAuthHeaderFactory,
                                    ResultStatusService resultStatusService,

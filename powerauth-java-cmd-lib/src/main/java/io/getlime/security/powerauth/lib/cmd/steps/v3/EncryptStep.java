@@ -62,6 +62,11 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
 
     private static final EciesFactory ECIES_FACTORY = new EciesFactory();
 
+    /**
+     * Constructor
+     * @param resultStatusService Result status service
+     * @param stepLoggerFactory Step logger factory
+     */
     @Autowired
     public EncryptStep(ResultStatusService resultStatusService, StepLoggerFactory stepLoggerFactory) {
         super(PowerAuthStep.ENCRYPT, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);

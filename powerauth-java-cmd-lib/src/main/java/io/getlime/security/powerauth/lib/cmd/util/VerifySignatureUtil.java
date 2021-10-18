@@ -27,6 +27,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Help class with utils for signature verification.
+ *
+ * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
+ */
 public class VerifySignatureUtil {
 
     /**
