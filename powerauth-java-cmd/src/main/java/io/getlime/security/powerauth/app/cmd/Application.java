@@ -138,7 +138,7 @@ public class Application {
                 return;
             }
 
-            if (cmd.hasOption("e")) {
+            if (cmd.hasOption("e") || cmd.hasOption("endpoint")) {
                 System.err.println("The 'e' (endpoint) option is deprecated, use the 'E' (resource-id) option instead");
             }
 
