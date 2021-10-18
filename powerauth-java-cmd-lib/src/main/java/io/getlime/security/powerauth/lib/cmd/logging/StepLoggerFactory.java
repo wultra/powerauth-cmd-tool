@@ -21,21 +21,38 @@ import io.getlime.security.powerauth.lib.cmd.logging.config.StepLoggerConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+/**
+ * Step logger factory which allows to create a new {@link StepLogger} instance
+ *
+ * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
+ */
 @Component
 public class StepLoggerFactory {
 
     private final StepLoggerConfig config;
 
+    /**
+     * Constructor
+     * @param stepLoggerType Type of used step logger
+     */
     public StepLoggerFactory(StepLoggerType stepLoggerType) {
         this.config = new StepLoggerConfig();
         this.config.setType(stepLoggerType);
     }
 
+    /**
+     * Constructor
+     * @param config Configuration of step logger
+     */
     @Autowired
     public StepLoggerFactory(StepLoggerConfig config) {
         this.config = config;
     }
 
+    /**
+     * Creates new instance of {@link StepLogger}
+     * @return new instance of step logger
+     */
     public StepLogger createStepLogger() {
         if (config == null || config.getType() == null) {
             return DisabledStepLogger.INSTANCE;

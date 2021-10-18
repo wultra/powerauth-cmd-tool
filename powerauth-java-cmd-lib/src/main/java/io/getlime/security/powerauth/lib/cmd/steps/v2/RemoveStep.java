@@ -62,14 +62,14 @@ import java.util.Objects;
 @Component(value = "removeStepV2")
 public class RemoveStep extends AbstractBaseStepV2 {
 
-    public static final ParameterizedTypeReference<ObjectResponse<ActivationRemoveResponse>> RESPONSE_TYPE_REFERENCE =
-            new ParameterizedTypeReference<ObjectResponse<ActivationRemoveResponse>>() {
-            };
-
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientSignature signature = new PowerAuthClientSignature();
     private static final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
 
+    /**
+     * Constructor
+     * @param stepLogger Step logger
+     */
     @Autowired
     public RemoveStep(StepLogger stepLogger) {
         super(PowerAuthStep.ACTIVATION_REMOVE, PowerAuthVersion.VERSION_2, stepLogger);

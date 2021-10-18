@@ -68,6 +68,12 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Ecie
 
     private static final PowerAuthClientKeyFactory KEY_FACTORY = new PowerAuthClientKeyFactory();
 
+    /**
+     * Constructor
+     * @param powerAuthHeaderFactory PowerAuth header factory
+     * @param resultStatusService Result status service
+     * @param stepLoggerFactory Step logger factory
+     */
     @Autowired
     public VaultUnlockStep(
             PowerAuthHeaderFactory powerAuthHeaderFactory,

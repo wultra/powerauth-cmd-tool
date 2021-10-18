@@ -65,10 +65,6 @@ import java.util.regex.Pattern;
 @Component(value = "prepareActivationStepV2")
 public class PrepareActivationStep extends AbstractBaseStepV2 {
 
-    public static final ParameterizedTypeReference<ObjectResponse<ActivationCreateResponse>> RESPONSE_TYPE_REFERENCE =
-            new ParameterizedTypeReference<ObjectResponse<ActivationCreateResponse>>() {
-            };
-
     private static final PowerAuthClientActivation activation = new PowerAuthClientActivation();
     private static final KeyConvertor keyConversion = new KeyConvertor();
     private static final PowerAuthClientKeyFactory keyFactory = new PowerAuthClientKeyFactory();
@@ -76,6 +72,10 @@ public class PrepareActivationStep extends AbstractBaseStepV2 {
     private static final PowerAuthClientVault vault = new PowerAuthClientVault();
     private static final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
 
+    /**
+     * Constructor
+     * @param stepLogger Step logger
+     */
     @Autowired
     public PrepareActivationStep(StepLogger stepLogger) {
         super(PowerAuthStep.ACTIVATION_CREATE, PowerAuthVersion.VERSION_2, stepLogger);

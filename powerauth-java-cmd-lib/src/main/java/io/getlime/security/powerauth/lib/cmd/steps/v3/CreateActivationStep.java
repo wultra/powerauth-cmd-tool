@@ -52,6 +52,12 @@ public class CreateActivationStep extends AbstractActivationStep<CreateActivatio
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
+    /**
+     * Constructor
+     * @param powerAuthHeaderFactory PowerAuth header factory
+     * @param resultStatusService Result status service
+     * @param stepLoggerFactory Step logger factory
+     */
     @Autowired
     public CreateActivationStep(
             PowerAuthHeaderFactory powerAuthHeaderFactory,

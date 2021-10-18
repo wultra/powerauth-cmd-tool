@@ -63,10 +63,10 @@ import java.util.Objects;
 @Component(value = "removeTokenStepV2")
 public class RemoveTokenStep extends AbstractBaseStepV2 {
 
-    public static final ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>> RESPONSE_TYPE_REFERENCE =
-            new ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>>() {
-            };
-
+    /**
+     * Constructor
+     * @param stepLogger Step logger
+     */
     @Autowired
     public RemoveTokenStep(StepLogger stepLogger) {
         super(PowerAuthStep.TOKEN_REMOVE, PowerAuthVersion.VERSION_2, stepLogger);

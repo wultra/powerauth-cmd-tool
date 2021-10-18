@@ -67,10 +67,10 @@ import java.util.Objects;
 @Component(value = "vaultUnlockStepV2")
 public class VaultUnlockStep extends AbstractBaseStepV2 {
 
-    public static final ParameterizedTypeReference<ObjectResponse<VaultUnlockResponse>> RESPONSE_TYPE_REFERENCE =
-            new ParameterizedTypeReference<ObjectResponse<VaultUnlockResponse>>() {
-            };
-
+    /**
+     * Constructor
+     * @param stepLogger Step logger
+     */
     @Autowired
     public VaultUnlockStep(StepLogger stepLogger) {
         super(PowerAuthStep.VAULT_UNLOCK, PowerAuthVersion.VERSION_2, stepLogger);

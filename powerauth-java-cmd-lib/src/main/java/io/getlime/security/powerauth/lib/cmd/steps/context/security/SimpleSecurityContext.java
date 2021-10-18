@@ -29,6 +29,9 @@ import lombok.Data;
 @Builder
 public class SimpleSecurityContext implements SecurityContext {
 
+    /**
+     * Encryptor
+     */
     private EciesEncryptor encryptor;
 
 }

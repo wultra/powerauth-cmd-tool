@@ -19,6 +19,7 @@ package io.getlime.security.powerauth.lib.cmd.status;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,10 +33,20 @@ public class ResultStatusMemoryHolder {
 
     private final Map<String, ResultStatusObject> resultStatusByActivationId = new HashMap<>();
 
-    public ResultStatusObject getByActivationId(String activationId) {
+    /**
+     * Provides an activation status by activationId
+     * @param activationId Activation ID
+     * @return Activation status belonging to the specified activation ID
+     */
+    public @Nullable ResultStatusObject getByActivationId(String activationId) {
         return resultStatusByActivationId.get(activationId);
     }
 
+    /**
+     * Stores an activation status for the specified activation ID
+     * @param activationId Activation ID
+     * @param status Activation status data
+     */
     public void put(String activationId, ResultStatusObject status) {
         resultStatusByActivationId.put(activationId, status);
     }

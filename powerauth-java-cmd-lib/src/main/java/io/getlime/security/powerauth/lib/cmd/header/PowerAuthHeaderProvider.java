@@ -26,6 +26,11 @@ import io.getlime.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
  */
 public interface PowerAuthHeaderProvider<M extends BaseStepData> {
 
+    /**
+     * Adds PowerAuth header to the step context
+     * @param stepContext Step context
+     * @throws Exception When an error during adding of the PowerAuth header occurred
+     */
     void addHeader(StepContext<? extends M, ?> stepContext) throws Exception;
 
 }

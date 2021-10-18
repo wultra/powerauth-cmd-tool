@@ -56,6 +56,10 @@ import java.util.Objects;
 @Component(value = "encryptStepV2")
 public class EncryptStep extends AbstractBaseStepV2 {
 
+    /**
+     * Constructor
+     * @param stepLogger Step logger
+     */
     @Autowired
     public EncryptStep(StepLogger stepLogger) {
         super(PowerAuthStep.ENCRYPT, PowerAuthVersion.VERSION_2, stepLogger);

@@ -90,6 +90,9 @@ public class CreateActivationStepModel extends BaseStepModel
      */
     private PublicKey masterPublicKey;
 
+    /**
+     * Constructor
+     */
     public CreateActivationStepModel() {
         identityAttributes = new HashMap<>();
         customAttributes = new HashMap<>();

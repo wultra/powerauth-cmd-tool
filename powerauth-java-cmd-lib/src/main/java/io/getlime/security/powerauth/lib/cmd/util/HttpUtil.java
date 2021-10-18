@@ -32,6 +32,11 @@ import java.util.Map;
  */
 public class HttpUtil {
 
+    /**
+     * Flattens headers to a simple map of header names to first header value for a given name
+     * @param headers HTTP headers
+     * @return Headers as a map of header names to first header value for a given name
+     */
     public static Map<String, String> flattenHttpHeaders(HttpHeaders headers) {
         Map<String, String> result = new HashMap<>();
         if (headers != null) {
@@ -61,13 +66,14 @@ public class HttpUtil {
     }
 
     /**
-     * Deserializes an object entity from byte array representation
+     * Deserializes an object entity from byte array representation of a json
      * @param data Byte array representation of json
      * @param cls Class
+     * @param <T> Type of the deserialized object
      * @return Object entity
      * @throws IOException when an error during deserialization from JSON occurred
      */
-    public static <T> T fromRequestBytes(byte[] data, Class<T> cls) throws IOException {
+    public static <T> T fromBytes(byte[] data, Class<T> cls) throws IOException {
         return RestClientConfiguration.defaultMapper().readValue(data, cls);
     }
 
