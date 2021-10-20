@@ -141,7 +141,7 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, ObjectRe
         final ActivationStatusResponse responseObject = stepContext.getResponseContext().getResponseBodyObject().getResponseObject();
         final byte[] cStatusBlob = BaseEncoding.base64().decode(responseObject.getEncryptedStatusBlob());
         final byte[] cStatusBlobNonce = useChallenge ? BaseEncoding.base64().decode(responseObject.getNonce()) : null;
-
+        final Map<String, Object> customObject = responseObject.getCustomObject();
         byte[] challenge = (byte[]) stepContext.getAttributes().get(ATTRIBUTE_CHALLENGE);
 
         final ActivationStatusBlobInfo statusBlobRaw = ACTIVATION.getStatusFromEncryptedBlob(cStatusBlob, challenge, cStatusBlobNonce, resultStatusObject.getTransportMasterKeyObject());
@@ -150,6 +150,7 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, ObjectRe
         final Map<String, Object> objectMap = new HashMap<>();
         objectMap.put("activationId", resultStatusObject.getActivationId());
         objectMap.put("statusBlob", statusBlob);
+        objectMap.put("customObject", customObject);
 
         stepContext.getStepLogger().writeItem(
                 getStep().id() + "-obtained",
