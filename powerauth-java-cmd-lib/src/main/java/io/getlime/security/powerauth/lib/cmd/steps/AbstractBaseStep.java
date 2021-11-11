@@ -212,6 +212,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
         EciesEncryptedResponse encryptedResponse = stepContext.getResponseContext().getResponseBodyObject();
         byte[] decryptedBytes = SecurityUtil.decryptBytesFromResponse(encryptor, encryptedResponse);
         final T responsePayload = RestClientConfiguration.defaultMapper().readValue(decryptedBytes, cls);
+        stepContext.getResponseContext().setResponsePayloadDecrypted(responsePayload);
 
         stepContext.getStepLogger().writeItem(
                 getStep().id() + "-response-decrypt",
