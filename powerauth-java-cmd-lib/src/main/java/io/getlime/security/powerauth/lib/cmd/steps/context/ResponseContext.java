@@ -23,4 +23,9 @@ public class ResponseContext<R> {
      */
     private ResponseEntity<R> responseEntity;
 
+    /**
+     * HTTP response payload (decrypted from the response entity)
+     */
+    private Object responsePayloadDecrypted;
+
 }
