@@ -17,29 +17,33 @@
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.google.common.io.BaseEncoding;
-import com.wultra.core.rest.client.base.RestClient;
-import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
-import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
+import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
-import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
+import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
+import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
+import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
+import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
+import io.getlime.security.powerauth.lib.cmd.steps.context.security.SimpleSecurityContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
-import io.getlime.security.powerauth.lib.cmd.util.*;
-import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
+import io.getlime.security.powerauth.lib.cmd.util.SecurityUtil;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
-import org.json.simple.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.ECPublicKey;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Encrypt step encrypts request data using ECIES encryption in application or activation scope.
@@ -50,179 +54,141 @@ import java.util.Objects;
  *     <li>3.1</li>
  * </ul>
  *
+ * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  * @author Roman Strobl, roman.strobl@wultra.com
- *
  */
-public class EncryptStep implements BaseStep {
+@Component(value = "encryptStepV3")
+public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncryptedResponse> {
 
-    private static final KeyConvertor keyConvertor = new KeyConvertor();
-    private static final EciesFactory eciesFactory = new EciesFactory();
+    private static final EciesFactory ECIES_FACTORY = new EciesFactory();
 
     /**
-     * Execute this step with given context.
-     * @param stepLogger Step logger.
-     * @param context Provided context.
-     * @return Result status object, null in case of failure.
-     * @throws Exception In case of any error.
+     * Constructor
+     * @param resultStatusService Result status service
+     * @param stepLoggerFactory Step logger factory
      */
-    @SuppressWarnings("unchecked")
-    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    @Autowired
+    public EncryptStep(ResultStatusService resultStatusService, StepLoggerFactory stepLoggerFactory) {
+        super(PowerAuthStep.ENCRYPT, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
+    }
 
-        // Read properties from "context"
+    /**
+     * Constructor for backward compatibility
+     */
+    public EncryptStep() {
+        this(
+                BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
+                BackwardCompatibilityConst.STEP_LOGGER_FACTORY
+        );
+    }
+
+    @Override
+    protected ParameterizedTypeReference<EciesEncryptedResponse> getResponseTypeReference() {
+        return PowerAuthConst.RESPONSE_TYPE_REFERENCE_V3;
+    }
+
+    @Override
+    public StepContext<EncryptStepModel, EciesEncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         EncryptStepModel model = new EncryptStepModel();
         model.fromMap(context);
 
-        if (stepLogger != null) {
-            stepLogger.writeItem(
-                    "encrypt-started",
-                    "Encrypt Request Started",
-                    null,
-                    "OK",
-                    null
-            );
-        }
+        RequestContext requestContext = RequestContext.<EncryptStepModel>builder()
+                .uri(model.getUriString())
+                .build();
 
-        // Prepare the encryption URI
-        String uri = model.getUriString();
+        StepContext<EncryptStepModel, EciesEncryptedResponse> stepContext = buildStepContext(stepLogger, model, requestContext);
 
         // Read data which needs to be encrypted
         final byte[] requestDataBytes = model.getData();
         if (requestDataBytes == null) {
-            if (stepLogger != null) {
-                stepLogger.writeError("encrypt-error-file", "Encrypt Request Failed", "Request data for encryption was null.");
-                stepLogger.writeDoneFailed("encrypt-failed");
-            }
+            stepLogger.writeError("encrypt-error-file", "Encrypt Request Failed", "Request data for encryption was null.");
+            stepLogger.writeDoneFailed("encrypt-failed");
             return null;
         }
 
-        if (stepLogger != null) {
-            stepLogger.writeItem(
-                    "encrypt-request-encrypt",
-                    "Preparing Request Data",
-                    "Following data will be encrypted",
-                    "OK",
-                    requestDataBytes
-            );
-        }
+        stepLogger.writeItem(
+                getStep().id() + "-request-encrypt",
+                "Preparing Request Data",
+                "Following data will be encrypted",
+                "OK",
+                requestDataBytes
+        );
 
         final byte[] applicationSecret = model.getApplicationSecret().getBytes(StandardCharsets.UTF_8);
         final EciesEncryptor encryptor;
+
         // Prepare the encryption header
+        final EciesSharedInfo1 eciesSharedInfo1;
         final PowerAuthEncryptionHttpHeader header;
         switch (model.getScope()) {
             case "application":
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/application
-                encryptor = eciesFactory.getEciesEncryptorForApplication((ECPublicKey) model.getMasterPublicKey(),
-                        applicationSecret, EciesSharedInfo1.APPLICATION_SCOPE_GENERIC);
-                header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), model.getVersion());
+                eciesSharedInfo1 = EciesSharedInfo1.APPLICATION_SCOPE_GENERIC;
+                encryptor = ECIES_FACTORY.getEciesEncryptorForApplication((ECPublicKey) model.getMasterPublicKey(),
+                        applicationSecret, eciesSharedInfo1);
+                header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), model.getVersion().value());
                 break;
 
             case "activation":
+                ResultStatusObject resultStatusObject = model.getResultStatus();
+                eciesSharedInfo1 = EciesSharedInfo1.ACTIVATION_SCOPE_GENERIC;
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/activation
-                final byte[] transportMasterKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey"));
-                final byte[] serverPublicKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "serverPublicKey"));
-                final ECPublicKey serverPublicKey = (ECPublicKey) keyConvertor.convertBytesToPublicKey(serverPublicKeyBytes);
-                final String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
-                encryptor = eciesFactory.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
-                        transportMasterKeyBytes, EciesSharedInfo1.ACTIVATION_SCOPE_GENERIC);
-                header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), activationId, model.getVersion());
+                encryptor = SecurityUtil.createEncryptor(model.getApplicationSecret(), resultStatusObject, EciesSharedInfo1.ACTIVATION_SCOPE_GENERIC);
+                final String activationId = resultStatusObject.getActivationId();
+                header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), activationId, model.getVersion().value());
                 break;
 
             default:
-                if (stepLogger != null) {
-                    stepLogger.writeError("encrypt-error-scope", "Encrypt Request Failed", "Unsupported encryption scope: " + model.getScope());
-                    stepLogger.writeDoneFailed("encrypt-failed");
-                }
-                return null;
-        }
-        String httpEncryptionHeader = header.buildHttpHeader();
-
-        // Prepare encrypted request
-        final boolean useIv = !"3.0".equals(model.getVersion());
-        final EciesCryptogram eciesCryptogram = encryptor.encryptRequest(requestDataBytes, useIv);
-        final EciesEncryptedRequest request = new EciesEncryptedRequest();
-        final String ephemeralPublicKeyBase64 = BaseEncoding.base64().encode(eciesCryptogram.getEphemeralPublicKey());
-        final String encryptedData = BaseEncoding.base64().encode(eciesCryptogram.getEncryptedData());
-        final String mac = BaseEncoding.base64().encode(eciesCryptogram.getMac());
-        final String nonce = useIv ? BaseEncoding.base64().encode(eciesCryptogram.getNonce()) : null;
-        request.setEphemeralPublicKey(ephemeralPublicKeyBase64);
-        request.setEncryptedData(encryptedData);
-        request.setMac(mac);
-        request.setNonce(nonce);
-
-        final byte[] requestBytes = RestClientConfiguration.defaultMapper().writeValueAsBytes(request);
-
-        if (stepLogger != null) {
-            stepLogger.writeItem(
-                    "encrypt-request-encrypt",
-                    "Encrypting Request Data",
-                    "Following data is sent to intermediate server",
-                    "OK",
-                    request
-            );
-        }
-
-        try {
-
-            Map<String, String> headers = new HashMap<>();
-            headers.put("Accept", "application/json");
-            headers.put("Content-Type", "application/json");
-            headers.put(PowerAuthEncryptionHttpHeader.HEADER_NAME, httpEncryptionHeader);
-            headers.putAll(model.getHeaders());
-
-            if (stepLogger != null) {
-                stepLogger.writeServerCall("encrypt-request-sent", uri, "POST", request, headers);
-            }
-
-            ResponseEntity<EciesEncryptedResponse> responseEntity;
-            RestClient restClient = RestClientFactory.getRestClient();
-            if (restClient == null) {
-                return null;
-            }
-            ParameterizedTypeReference<EciesEncryptedResponse> typeReference = new ParameterizedTypeReference<EciesEncryptedResponse>() {};
-            try {
-                responseEntity = restClient.post(uri, requestBytes, null, MapUtil.toMultiValueMap(headers), typeReference);
-            } catch (RestClientException ex) {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("encrypt-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
-                    stepLogger.writeDoneFailed("encrypt-failed");
-                }
-                return null;
-            }
-
-            EciesEncryptedResponse encryptedResponse = Objects.requireNonNull(responseEntity.getBody());
-
-            if (stepLogger != null) {
-                stepLogger.writeServerCallOK("encrypt-response-received", encryptedResponse, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
-            }
-
-            byte[] macResponse = BaseEncoding.base64().decode(encryptedResponse.getMac());
-            byte[] encryptedDataResponse = BaseEncoding.base64().decode(encryptedResponse.getEncryptedData());
-            EciesCryptogram eciesCryptogramResponse = new EciesCryptogram(macResponse, encryptedDataResponse);
-
-            final byte[] decryptedBytes = encryptor.decryptResponse(eciesCryptogramResponse);
-
-            String decryptedMessage = new String(decryptedBytes, StandardCharsets.UTF_8);
-            model.getResultStatusObject().put("responseData", decryptedMessage);
-
-            if (stepLogger != null) {
-                stepLogger.writeItem(
-                        "encrypt-response-decrypt",
-                        "Decrypted Response",
-                        "Following data were decrypted",
-                        "OK",
-                        decryptedMessage
-                );
-                stepLogger.writeDoneOK("encrypt-success");
-            }
-            return model.getResultStatusObject();
-        } catch (Exception exception) {
-            if (stepLogger != null) {
-                stepLogger.writeError("encrypt-error-generic", exception);
+                stepLogger.writeError("encrypt-error-scope", "Encrypt Request Failed", "Unsupported encryption scope: " + model.getScope());
                 stepLogger.writeDoneFailed("encrypt-failed");
-            }
-            return null;
+                return null;
         }
+
+        stepContext.setSecurityContext(
+                SimpleSecurityContext.builder()
+                        .encryptor(encryptor)
+                        .build()
+        );
+        addEncryptedRequest(stepContext, model.getApplicationSecret(), eciesSharedInfo1, requestDataBytes);
+
+        String headerValue = header.buildHttpHeader();
+        requestContext.setAuthorizationHeader(headerValue);
+        requestContext.getHttpHeaders().put(PowerAuthEncryptionHttpHeader.HEADER_NAME, headerValue);
+
+        stepLogger.writeItem(
+                getStep().id() + "-request-encrypt",
+                "Encrypting Request Data",
+                "Following data is sent to intermediate server",
+                "OK",
+                requestContext.getRequestObject()
+        );
+
+        return stepContext;
+    }
+
+    @Override
+    public void processResponse(StepContext<EncryptStepModel, EciesEncryptedResponse> stepContext) throws Exception {
+        EncryptStepModel model = stepContext.getModel();
+        EciesEncryptor encryptor = ((SimpleSecurityContext) stepContext.getSecurityContext()).getEncryptor();
+
+        EciesEncryptedResponse encryptedResponse = stepContext.getResponseContext().getResponseBodyObject();
+
+        byte[] macResponse = BaseEncoding.base64().decode(encryptedResponse.getMac());
+        byte[] encryptedDataResponse = BaseEncoding.base64().decode(encryptedResponse.getEncryptedData());
+        EciesCryptogram eciesCryptogramResponse = new EciesCryptogram(macResponse, encryptedDataResponse);
+
+        final byte[] decryptedBytes = encryptor.decryptResponse(eciesCryptogramResponse);
+
+        String decryptedMessage = new String(decryptedBytes, StandardCharsets.UTF_8);
+        model.getResultStatus().setResponseData(decryptedMessage);
+
+        stepContext.getStepLogger().writeItem(
+                getStep().id() + "-response-decrypt",
+                "Decrypted Response",
+                "Following data were decrypted",
+                "OK",
+                decryptedMessage
+        );
     }
 
 }

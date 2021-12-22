@@ -15,6 +15,12 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.ActivationData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
 import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,17 +30,59 @@ import java.util.Map;
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class ActivationRecoveryStepModel extends BaseStepModel {
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class ActivationRecoveryStepModel extends BaseStepModel
+        implements ActivationData, ResultStatusChangeable, EncryptionHeaderData {
 
+    /**
+     * Identity attributes.
+     */
     private Map<String, String> identityAttributes;
+
+    /**
+     * Custom attributes.
+     */
     private Map<String, Object> customAttributes;
+
+    /**
+     * File name of the file with stored activation status.
+     */
     private String statusFileName;
+
+    /**
+     * Activation name.
+     */
     private String activationName;
+
+    /**
+     * User device platform
+     */
     private String platform;
+
+    /**
+     * Information about user device.
+     */
     private String deviceInfo;
+
+    /**
+     * Application key.
+     */
     private String applicationKey;
+
+    /**
+     * Application secret.
+     */
     private String applicationSecret;
+
+    /**
+     * Password for the password related key encryption.
+     */
     private String password;
+
+    /**
+     * Master Server Public Key, a value specific for given application.
+     */
     private PublicKey masterPublicKey;
 
     /**
@@ -42,166 +90,6 @@ public class ActivationRecoveryStepModel extends BaseStepModel {
      */
     public ActivationRecoveryStepModel() {
         customAttributes = new HashMap<>();
-    }
-
-    /**
-     * Get identity attributes.
-     * @return Identity attributes.
-     */
-    public Map<String, String> getIdentityAttributes() {
-        return identityAttributes;
-    }
-
-    /**
-     * Set identity attributes.
-     * @param identityAttributes Identity attributes.
-     */
-    public void setIdentityAttributes(Map<String, String> identityAttributes) {
-        this.identityAttributes = identityAttributes;
-    }
-
-    /**
-     * Get custom attributes.
-     * @return Custom attributes.
-     */
-    public Map<String, Object> getCustomAttributes() {
-        return customAttributes;
-    }
-
-    /**
-     * Set custom attributes.
-     * @param customAttributes Custom attributes.
-     */
-    public void setCustomAttributes(Map<String, Object> customAttributes) {
-        this.customAttributes = customAttributes;
-    }
-
-    /**
-     * Get file name of the file with stored activation status.
-     * @return Status file name.
-     */
-    public String getStatusFileName() {
-        return statusFileName;
-    }
-
-    /**
-     * Set file name of the file with stored activation status.
-     * @param statusFileName Status file name.
-     */
-    public void setStatusFileName(String statusFileName) {
-        this.statusFileName = statusFileName;
-    }
-
-    /**
-     * Get activation name.
-     * @return Activation name.
-     */
-    public String getActivationName() {
-        return activationName;
-    }
-
-    /**
-     * Set activation name.
-     * @param activationName Activation name.
-     */
-    public void setActivationName(String activationName) {
-        this.activationName = activationName;
-    }
-
-    /**
-     * Get user device platform.
-     * @return User device platform.
-     */
-    public String getPlatform() {
-        return platform;
-    }
-
-    /**
-     * Set user device platform.
-     * @param platform User device platform.
-     */
-    public void setPlatform(String platform) {
-        this.platform = platform;
-    }
-
-    /**
-     * Get information about user device.
-     * @return Information about user device.
-     */
-    public String getDeviceInfo() {
-        return deviceInfo;
-    }
-
-    /**
-     * Set information about user device.
-     * @param deviceInfo Information about user device.
-     */
-    public void setDeviceInfo(String deviceInfo) {
-        this.deviceInfo = deviceInfo;
-    }
-
-    /**
-     * Get application key.
-     * @return Application key.
-     */
-    public String getApplicationKey() {
-        return applicationKey;
-    }
-
-    /**
-     * Set application key.
-     * @param applicationKey Application key.
-     */
-    public void setApplicationKey(String applicationKey) {
-        this.applicationKey = applicationKey;
-    }
-
-    /**
-     * Get application secret.
-     * @return Application secret.
-     */
-    public String getApplicationSecret() {
-        return applicationSecret;
-    }
-
-    /**
-     * Set application secret.
-     * @param applicationSecret Application secret.
-     */
-    public void setApplicationSecret(String applicationSecret) {
-        this.applicationSecret = applicationSecret;
-    }
-
-    /**
-     * Get knowledge key password.
-     * @return Knowledge key password.
-     */
-    public String getPassword() {
-        return password;
-    }
-
-    /**
-     * Set knowledge key password.
-     * @param password Knowledge key password.
-     */
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    /**
-     * Get Base64 encoded master public key.
-     * @return Base64 encoded master public key.
-     */
-    public PublicKey getMasterPublicKey() {
-        return masterPublicKey;
-    }
-
-    /**
-     * Set Base64 encoded master public key.
-     * @param masterPublicKey Base64 encoded master public key.
-     */
-    public void setMasterPublicKey(PublicKey masterPublicKey) {
-        this.masterPublicKey = masterPublicKey;
     }
 
     @Override

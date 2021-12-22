@@ -20,6 +20,8 @@ import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.lib.generator.HashBasedCounter;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.BaseStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 
 import java.nio.ByteBuffer;
 
@@ -34,20 +36,34 @@ public class CounterUtil {
     /**
      * Get counter data. In activation version 2, numeric counter is converted to counter data. In version 3 the
      * counter data is available in model.
+     *
+     * <p>Keeps backward compatibility with former approaches</p>
+     *
      * @param model Step model.
      * @param stepLogger Step logger.
      * @return Counter data.
      */
     public static byte[] getCtrData(BaseStepModel model, StepLogger stepLogger) {
+        return getCtrData(model.getResultStatus(), stepLogger);
+    }
+
+    /**
+     * Get counter data. In activation version 2, numeric counter is converted to counter data. In version 3 the
+     * counter data is available in model.
+     * @param resultStatusObject Activation status object.
+     * @param stepLogger Step logger.
+     * @return Counter data.
+     */
+    public static byte[] getCtrData(ResultStatusObject resultStatusObject, StepLogger stepLogger) {
         byte[] ctrData = new byte[16];
-        long counter = JsonUtil.longValue(model.getResultStatusObject(), "counter");
-        int version = JsonUtil.intValue(model.getResultStatusObject(), "version");
+        long counter = resultStatusObject.getCounter();
+        int version = resultStatusObject.getVersion().intValue();
         switch (version) {
             case 2:
                 ctrData = ByteBuffer.allocate(16).putLong(8, counter).array();
                 break;
             case 3:
-                String ctrDataBase64 = JsonUtil.stringValue(model.getResultStatusObject(), "ctrData");
+                String ctrDataBase64 = resultStatusObject.getCtrData();
                 if (!ctrDataBase64.isEmpty()) {
                     ctrData = BaseEncoding.base64().decode(ctrDataBase64);
                 }
@@ -73,20 +89,22 @@ public class CounterUtil {
      * @param model Step model.
      */
     @SuppressWarnings("unchecked")
-    public static void incrementCounter(BaseStepModel model) {
+    public static void incrementCounter(BaseStepData model) {
         // Increment the numeric counter
-        long counter = JsonUtil.longValue(model.getResultStatusObject(), "counter");
+        ResultStatusObject resultStatusObject = model.getResultStatus();
+
+        Long counter = resultStatusObject.getCounter();
         counter += 1;
-        model.getResultStatusObject().put("counter", counter);
+        resultStatusObject.setCounter(counter);
 
         // Increment the hash based counter in case activation version is 3.
-        int version = JsonUtil.intValue(model.getResultStatusObject(), "version");
+        int version = resultStatusObject.getVersion().intValue();
         if (version == 3) {
-            String ctrDataBase64 = JsonUtil.stringValue(model.getResultStatusObject(), "ctrData");
+            String ctrDataBase64 = resultStatusObject.getCtrData();
             if (!ctrDataBase64.isEmpty()) {
                 byte[] ctrData = BaseEncoding.base64().decode(ctrDataBase64);
                 ctrData = new HashBasedCounter().next(ctrData);
-                model.getResultStatusObject().put("ctrData", BaseEncoding.base64().encode(ctrData));
+                resultStatusObject.setCtrData(BaseEncoding.base64().encode(ctrData));
             }
         }
     }

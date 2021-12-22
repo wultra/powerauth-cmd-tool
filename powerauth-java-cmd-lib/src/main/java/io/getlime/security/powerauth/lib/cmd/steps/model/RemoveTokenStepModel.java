@@ -17,6 +17,10 @@
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.security.PublicKey;
 import java.util.Map;
@@ -26,103 +30,45 @@ import java.util.Map;
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class RemoveTokenStepModel extends BaseStepModel {
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class RemoveTokenStepModel extends BaseStepModel
+        implements ResultStatusChangeable, SignatureHeaderData {
 
+    /**
+     * Token ID.
+     */
     private String tokenId;
-    private String statusFileName;
-    private String applicationKey;
-    private String applicationSecret;
-    private String password;
-    private PowerAuthSignatureTypes signatureType;
-    private PublicKey masterPublicKey;
-
-    /**
-     * Get token ID.
-     * @return Token ID.
-     */
-    public String getTokenId() {
-        return tokenId;
-    }
-
-    /**
-     * Set token ID.
-     * @param tokenId Token ID.
-     */
-    public void setTokenId(String tokenId) {
-        this.tokenId = tokenId;
-    }
 
     /**
      * File name of the file with stored activation status.
-     * @param statusFileName Status file name.
      */
-    public void setStatusFileName(String statusFileName) {
-        this.statusFileName = statusFileName;
-    }
+    private String statusFileName;
 
     /**
      * Application key.
-     * @param applicationKey APP_KEY.
      */
-    public void setApplicationKey(String applicationKey) {
-        this.applicationKey = applicationKey;
-    }
+    private String applicationKey;
 
     /**
      * Application secret.
-     * @param applicationSecret APP_SECRET.
      */
-    public void setApplicationSecret(String applicationSecret) {
-        this.applicationSecret = applicationSecret;
-    }
+    private String applicationSecret;
 
     /**
      * Password for the password related key encryption.
-     * @param password Password.
      */
-    public void setPassword(String password) {
-        this.password = password;
-    }
+    private String password;
 
     /**
-     * PowerAuth signature type.
-     * @param signatureType Signature type.
+     * PowerAuth signature type
      */
-    public void setSignatureType(PowerAuthSignatureTypes signatureType) {
-        this.signatureType = signatureType;
-    }
+    private PowerAuthSignatureTypes signatureType;
 
     /**
-     * Set master public key
-     * @param masterPublicKey Master public key
+     * Master public key
      */
-    public void setMasterPublicKey(PublicKey masterPublicKey) {
-        this.masterPublicKey = masterPublicKey;
-    }
-
-    public String getStatusFileName() {
-        return statusFileName;
-    }
-
-    public String getApplicationKey() {
-        return applicationKey;
-    }
-
-    public String getApplicationSecret() {
-        return applicationSecret;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public PowerAuthSignatureTypes getSignatureType() {
-        return signatureType;
-    }
-
-    public PublicKey getMasterPublicKey() {
-        return masterPublicKey;
-    }
+    private PublicKey masterPublicKey;
 
     @Override
     public Map<String, Object> toMap() {

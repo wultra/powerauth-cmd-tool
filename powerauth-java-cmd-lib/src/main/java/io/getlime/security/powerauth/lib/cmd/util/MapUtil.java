@@ -29,6 +29,14 @@ import java.util.Map;
  */
 public class MapUtil {
 
+    /**
+     * Maps a standard map data to a multi-value map where is a key mapped to a collection of values.
+     *
+     * @param map Map to be converted to a multi-value map
+     * @param <K> Type of the map key
+     * @param <V> Type of the map value
+     * @return Multi-value map created from a standard map data
+     */
     public static <K, V> MultiValueMap<K, V> toMultiValueMap(Map<K, V> map) {
         MultiValueMap<K, V> resultMap = new LinkedMultiValueMap<>();
         for (Map.Entry<K, V> entry: map.entrySet()) {
@@ -36,4 +44,5 @@ public class MapUtil {
         }
         return resultMap;
     }
+
 }

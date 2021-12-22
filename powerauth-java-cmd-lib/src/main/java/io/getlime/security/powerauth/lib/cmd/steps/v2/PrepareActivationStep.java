@@ -27,15 +27,18 @@ import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKey
 import io.getlime.security.powerauth.crypto.client.vault.PowerAuthClientVault;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
-import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.PrepareActivationStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.request.v2.ActivationCreateRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v2.ActivationCreateResponse;
-import org.json.simple.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
@@ -58,9 +61,9 @@ import java.util.regex.Pattern;
  * </ul>
  *
  * @author Petr Dvorak, petr@wultra.com
- *
  */
-public class PrepareActivationStep implements BaseStep {
+@Component(value = "prepareActivationStepV2")
+public class PrepareActivationStep extends AbstractBaseStepV2 {
 
     private static final PowerAuthClientActivation activation = new PowerAuthClientActivation();
     private static final KeyConvertor keyConversion = new KeyConvertor();
@@ -70,27 +73,35 @@ public class PrepareActivationStep implements BaseStep {
     private static final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
 
     /**
+     * Constructor
+     * @param stepLogger Step logger
+     */
+    @Autowired
+    public PrepareActivationStep(StepLogger stepLogger) {
+        super(PowerAuthStep.ACTIVATION_CREATE, PowerAuthVersion.VERSION_2, stepLogger);
+    }
+
+    /**
+     * Constructor for backward compatibility
+     */
+    public PrepareActivationStep() {
+        this(DEFAULT_STEP_LOGGER);
+    }
+
+    /**
      * Execute this step with given context
+     *
      * @param context Provided context
      * @return Result status object, null in case of failure.
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    @Override
+    public ResultStatusObject execute(Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         PrepareActivationStepModel model = new PrepareActivationStepModel();
         model.fromMap(context);
-
-        if (stepLogger != null) {
-            stepLogger.writeItem(
-                    "activation-create-start",
-                    "Activation Started",
-                    null,
-                    "OK",
-                    null
-            );
-        }
 
         // Prepare the activation URI
         String uri = model.getUriString() + "/pa/activation/create";
@@ -113,15 +124,13 @@ public class PrepareActivationStep implements BaseStep {
         objectMap.put("activationCode", model.getActivationCode());
         objectMap.put("activationIdShort", activationIdShort);
         objectMap.put("activationOtp", activationOTP);
-        if (stepLogger != null) {
-            stepLogger.writeItem(
-                    "activation-create-activation-code-parsed",
-                    "Activation code",
-                    "Parsing activation code to short activation ID and activation OTP",
-                    "OK",
-                    objectMap
-            );
-        }
+        stepLogger.writeItem(
+                "activation-create-activation-code-parsed",
+                "Activation code",
+                "Parsing activation code to short activation ID and activation OTP",
+                "OK",
+                objectMap
+        );
 
         // Generate device key pair and encrypt the device public key
         KeyPair clientEphemeralKeyPair = keyGenerator.generateKeyPair();
@@ -166,31 +175,26 @@ public class PrepareActivationStep implements BaseStep {
             headers.put("Content-Type", "application/json");
             headers.putAll(model.getHeaders());
 
-            if (stepLogger != null) {
-                stepLogger.writeServerCall("activation-create-request-sent", uri, "POST", requestObject, headers);
-            }
+            stepLogger.writeServerCall("activation-create-request-sent", uri, "POST", requestObject, null, headers);
 
             ResponseEntity<ObjectResponse<ActivationCreateResponse>> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();
             if (restClient == null) {
                 return null;
             }
-            ParameterizedTypeReference<ObjectResponse<ActivationCreateResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<ActivationCreateResponse>>() {};
+            ParameterizedTypeReference<ObjectResponse<ActivationCreateResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<ActivationCreateResponse>>() {
+            };
             try {
                 responseEntity = restClient.post(uri, body, null, MapUtil.toMultiValueMap(headers), typeReference);
             } catch (RestClientException ex) {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("activation-create-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
-                    stepLogger.writeDoneFailed("activation-create-failed");
-                }
+                stepLogger.writeServerCallError("activation-create-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
+                stepLogger.writeDoneFailed("activation-create-failed");
                 return null;
             }
 
             ObjectResponse<ActivationCreateResponse> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
 
-            if (stepLogger != null) {
-                stepLogger.writeServerCallOK("activation-create-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
-            }
+            stepLogger.writeServerCallOK("activation-create-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
 
             // Process the server response
             ActivationCreateResponse responseObject = responseWrapper.getResponseObject();
@@ -235,20 +239,22 @@ public class PrepareActivationStep implements BaseStep {
                 byte[] cSignatureKnowledgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, signatureKnowledgeSecretKey, salt, keyGenerator);
 
                 // Prepare the status object to be stored
-                model.getResultStatusObject().put("activationId", activationId);
-                model.getResultStatusObject().put("serverPublicKey", BaseEncoding.base64().encode(keyConversion.convertPublicKeyToBytes(serverPublicKey)));
-                model.getResultStatusObject().put("encryptedDevicePrivateKey", BaseEncoding.base64().encode(encryptedDevicePrivateKey));
-                model.getResultStatusObject().put("signaturePossessionKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signaturePossessionSecretKey)));
-                model.getResultStatusObject().put("signatureKnowledgeKeyEncrypted", BaseEncoding.base64().encode(cSignatureKnowledgeSecretKey));
-                model.getResultStatusObject().put("signatureKnowledgeKeySalt", BaseEncoding.base64().encode(salt));
-                model.getResultStatusObject().put("signatureBiometryKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(signatureBiometrySecretKey)));
-                model.getResultStatusObject().put("transportMasterKey", BaseEncoding.base64().encode(keyConversion.convertSharedSecretKeyToBytes(transportMasterKey)));
-                model.getResultStatusObject().put("counter", 0L);
-                model.getResultStatusObject().put("ctrData", null);
-                model.getResultStatusObject().put("version", 2L);
+                ResultStatusObject resultStatus = model.getResultStatus();
+
+                resultStatus.setActivationId(activationId);
+                resultStatus.setCounter(0L);
+                resultStatus.setCtrData(null);
+                resultStatus.setEncryptedDevicePrivateKeyBytes(encryptedDevicePrivateKey);
+                resultStatus.setServerPublicKeyObject(serverPublicKey);
+                resultStatus.setSignatureBiometryKeyObject(signatureBiometrySecretKey);
+                resultStatus.setSignatureKnowledgeKeyEncryptedBytes(cSignatureKnowledgeSecretKey);
+                resultStatus.setSignatureKnowledgeKeySaltBytes(salt);
+                resultStatus.setSignaturePossessionKeyObject(signaturePossessionSecretKey);
+                resultStatus.setTransportMasterKeyObject(transportMasterKey);
+                resultStatus.setVersion(2L);
 
                 // Store the resulting status
-                String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+                String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatus());
                 try (FileWriter file = new FileWriter(model.getStatusFileName())) {
                     file.write(formatted);
                 }
@@ -256,34 +262,29 @@ public class PrepareActivationStep implements BaseStep {
                 objectMap = new HashMap<>();
                 objectMap.put("activationId", activationId);
                 objectMap.put("activationStatusFile", model.getStatusFileName());
-                objectMap.put("activationStatusFileContent", model.getResultStatusObject());
+                objectMap.put("activationStatusFileContent", model.getResultStatus());
                 objectMap.put("deviceKeyFingerprint", activation.computeActivationFingerprint(deviceKeyPair.getPublic()));
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "activation-create-activation-done",
-                            "Activation Done",
-                            "Public key exchange was successfully completed, commit the activation on server",
-                            "OK",
-                            objectMap
-                    );
-                    stepLogger.writeDoneOK("activation-create-success");
-                }
 
-                return model.getResultStatusObject();
+                stepLogger.writeItem(
+                        "activation-create-activation-done",
+                        "Activation Done",
+                        "Public key exchange was successfully completed, commit the activation on server",
+                        "OK",
+                        objectMap
+                );
+                stepLogger.writeDoneOK("activation-create-success");
+
+                return model.getResultStatus();
 
             } else {
-                if (stepLogger != null) {
-                    String message = "Activation data signature does not match. Either someone tried to spoof your connection, or your device master key is invalid.";
-                    stepLogger.writeError("activation-create-activation-signature-mismatch", message);
-                    stepLogger.writeDoneFailed("activation-create-failed");
-                }
+                String message = "Activation data signature does not match. Either someone tried to spoof your connection, or your device master key is invalid.";
+                stepLogger.writeError("activation-create-activation-signature-mismatch", message);
+                stepLogger.writeDoneFailed("activation-create-failed");
                 return null;
             }
         } catch (Exception exception) {
-            if (stepLogger != null) {
-                stepLogger.writeError("activation-create-error-generic", exception);
-                stepLogger.writeDoneFailed("activation-create-failed");
-            }
+            stepLogger.writeError("activation-create-error-generic", exception);
+            stepLogger.writeDoneFailed("activation-create-failed");
             return null;
         }
     }

@@ -25,17 +25,19 @@ import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSign
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureFormat;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
-import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
-import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.RemoveStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.response.v2.ActivationRemoveResponse;
-import org.json.simple.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
@@ -57,44 +59,52 @@ import java.util.Objects;
  *
  * @author Petr Dvorak
  */
-public class RemoveStep implements BaseStep {
+@Component(value = "removeStepV2")
+public class RemoveStep extends AbstractBaseStepV2 {
 
-    private static final KeyConvertor keyConvertor = new KeyConvertor();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
     private static final PowerAuthClientSignature signature = new PowerAuthClientSignature();
     private static final ObjectMapper mapper = RestClientConfiguration.defaultMapper();
 
     /**
+     * Constructor
+     * @param stepLogger Step logger
+     */
+    @Autowired
+    public RemoveStep(StepLogger stepLogger) {
+        super(PowerAuthStep.ACTIVATION_REMOVE, PowerAuthVersion.VERSION_2, stepLogger);
+    }
+
+    /**
+     * Constructor for backward compatibility
+     */
+    public RemoveStep() {
+        this(DEFAULT_STEP_LOGGER);
+    }
+
+    /**
      * Execute this step with given context
+     *
      * @param context Provided context
      * @return Result status object, null in case of failure.
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    @Override
+    public ResultStatusObject execute(Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         RemoveStepModel model = new RemoveStepModel();
         model.fromMap(context);
 
-        if (stepLogger != null) {
-            stepLogger.writeItem(
-                    "activation-remove-start",
-                    "Activation Removal Started",
-                    null,
-                    "OK",
-                    null
-            );
-        }
-
         // Prepare the activation URI
         String uri = model.getUriString() + "/pa/activation/remove";
 
         // Get data from status
-        String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
-        byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signaturePossessionKey"));
-        byte[] signatureKnowledgeKeySalt = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signatureKnowledgeKeySalt"));
-        byte[] signatureKnowledgeKeyEncryptedBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signatureKnowledgeKeyEncrypted"));
+        ResultStatusObject resultStatusObject = model.getResultStatus();
+        String activationId = resultStatusObject.getActivationId();
+        byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySaltBytes();
+        byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncryptedBytes();
 
         // Ask for the password to unlock knowledge factor key
         char[] password;
@@ -106,7 +116,7 @@ public class RemoveStep implements BaseStep {
         }
 
         // Get the signature keys
-        SecretKey signaturePossessionKey = keyConvertor.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
+        SecretKey signaturePossessionKey = resultStatusObject.getSignaturePossessionKeyObject();
         SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(password, signatureKnowledgeKeyEncryptedBytes, signatureKnowledgeKeySalt, keyGenerator);
 
         // Generate nonce
@@ -115,17 +125,17 @@ public class RemoveStep implements BaseStep {
         // Compute the current PowerAuth signature for possession
         // and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/activation/remove", nonceBytes, null) + "&" + model.getApplicationSecret();
-        byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
-        PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion());
+        byte[] ctrData = CounterUtil.getCtrData(model.getResultStatus(), stepLogger);
+        PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion().value());
         String signatureValue = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), Arrays.asList(signaturePossessionKey, signatureKnowledgeKey), ctrData, signatureFormat);
-        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE.toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion());
+        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE.toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion().value());
         String httpAuthorizationHeader = header.buildHttpHeader();
 
         // Increment the counter
         CounterUtil.incrementCounter(model);
 
         // Store the activation status (updated counter)
-        String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+        String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatus());
         try (FileWriter file = new FileWriter(model.getStatusFileName())) {
             file.write(formatted);
         }
@@ -139,53 +149,44 @@ public class RemoveStep implements BaseStep {
             headers.put(PowerAuthSignatureHttpHeader.HEADER_NAME, httpAuthorizationHeader);
             headers.putAll(model.getHeaders());
 
-            if (stepLogger != null) {
-                stepLogger.writeServerCall("activation-remove-request-sent", uri, "POST", null, headers);
-            }
+            stepLogger.writeServerCall("activation-remove-request-sent", uri, "POST", null, null, headers);
 
             ResponseEntity<ObjectResponse<ActivationRemoveResponse>> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();
             if (restClient == null) {
                 return null;
             }
-            ParameterizedTypeReference<ObjectResponse<ActivationRemoveResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<ActivationRemoveResponse>>() {};
+            ParameterizedTypeReference<ObjectResponse<ActivationRemoveResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<ActivationRemoveResponse>>() {
+            };
             try {
                 responseEntity = restClient.post(uri, null, null, MapUtil.toMultiValueMap(headers), typeReference);
             } catch (RestClientException ex) {
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("activation-remove-error-server-callactivation-remove-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
-                    stepLogger.writeDoneFailed("activation-remove-failed");
-                }
+                stepLogger.writeServerCallError("activation-remove-error-server-callactivation-remove-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
+                stepLogger.writeDoneFailed("activation-remove-failed");
                 return null;
             }
 
             ObjectResponse<ActivationRemoveResponse> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
 
-            if (stepLogger != null) {
-                stepLogger.writeServerCallOK("activation-remove-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
-            }
+            stepLogger.writeServerCallOK("activation-remove-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
 
             Map<String, Object> objectMap = new HashMap<>();
             objectMap.put("activationId", activationId);
 
-            if (stepLogger != null) {
-                stepLogger.writeItem(
-                        "activation-remove-finished",
-                        "Activation Removed",
-                        "Activation was successfully removed from the server",
-                        "OK",
-                        objectMap
+            stepLogger.writeItem(
+                    "activation-remove-finished",
+                    "Activation Removed",
+                    "Activation was successfully removed from the server",
+                    "OK",
+                    objectMap
 
-                );
-                stepLogger.writeDoneOK("activation-remove-success");
-            }
+            );
+            stepLogger.writeDoneOK("activation-remove-success");
 
-            return model.getResultStatusObject();
+            return model.getResultStatus();
         } catch (Exception exception) {
-            if (stepLogger != null) {
-                stepLogger.writeError("activation-remove-error-generic", exception);
-                stepLogger.writeDoneFailed("activation-remove-failed");
-            }
+            stepLogger.writeError("activation-remove-error-generic", exception);
+            stepLogger.writeDoneFailed("activation-remove-failed");
             return null;
         }
     }

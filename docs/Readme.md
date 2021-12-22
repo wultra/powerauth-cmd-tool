@@ -119,7 +119,7 @@ _Note: If a `--password` option is not provided, this method requires interactiv
 
 ### Validate the Signature
 
-Use this method to send signer GET or POST requests to given URL with provided data.
+Use this method to send signed GET or POST requests to given URL with provided data.
 
 ```bash
 java -jar powerauth-java-cmd.jar \
@@ -128,7 +128,7 @@ java -jar powerauth-java-cmd.jar \
     --config-file "/tmp/pamk.json" \
     --method "sign" \
     --http-method "POST" \
-    --endpoint "/pa/signature/validate" \
+    --resource-id "/pa/signature/validate" \
     --signature-type "possession_knowledge" \
     --data-file "/tmp/request.json" \
     --password "1234"
@@ -150,7 +150,7 @@ java -jar powerauth-java-cmd.jar \
     --method "sign" \
     --http-method "POST" \
     --http-header Cookie="JSESSIONID=D0A047F9E8A9928386A5B34AB6343C30"
-    --endpoint "/pa/signature/validate" \
+    --resource-id "/pa/signature/validate" \
     --signature-type "possession_knowledge" \
     --data-file "/tmp/request.json" \
     --password "1234"
@@ -286,12 +286,12 @@ Use this method to send signed and encrypted data to the server.
 
 ```bash
 java -jar powerauth-java-cmd.jar \
-    --url "http://localhost:8080/powerauth-restful-server-spring/exchange/signed" \
+    --url "http://localhost:8080/powerauth-restful-server-spring/exchange/v3/signed" \
     --status-file "pa_status.json" \
     --config-file "config.json" \
     --method "sign-encrypt" \
     --http-method "POST" \
-    --endpoint "/exchange/signed" \
+    --resource-id "/exchange/v3/signed" \
     --signature-type "possession_knowledge" \
     --data-file "request.json" \
     --password "1234"
@@ -347,8 +347,10 @@ usage: java -jar powerauth-java-cmd.jar
                                      file with the input data to be signed and verified with the
                                      server, as specified in PowerAuth signature process.
  -D,--device-info <arg>              Information about user device.
- -e,--endpoint <arg>                 In case a specified method is 'sign', this field specifies a
-                                     URI identifier, as specified in PowerAuth signature process.
+ -e,--endpoint <arg>                 Deprecated option, use the resource-id option instead.
+ -E,--resource-id <arg>              In case a specified method is 'sign' or 'sign-encrypt', this
+                                     field specifies a URI identifier, as specified in PowerAuth
+                                     signature process.
  -h,--help                           Print this help manual.
  -H,--http-header <key=value>        Use provided HTTP header for communication
  -I,--identity-file <arg>            In case a specified method is 'create-custom', this field

@@ -16,6 +16,12 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
+import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
 import java.security.PublicKey;
 import java.util.Map;
 
@@ -24,109 +30,44 @@ import java.util.Map;
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class ConfirmRecoveryCodeStepModel extends BaseStepModel {
-
-    private String statusFileName;
-    private String applicationKey;
-    private String applicationSecret;
-    private String password;
-    private String recoveryCode;
-    private PublicKey masterPublicKey;
-
-    /**
-     * Get file name of the file with stored activation status.
-     * @return Status file name.
-     */
-    public String getStatusFileName() {
-        return statusFileName;
-    }
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class ConfirmRecoveryCodeStepModel extends BaseStepModel
+        implements ResultStatusChangeable, SignatureHeaderData {
 
     /**
      * File name of the file with stored activation status.
-     * @param statusFileName Status file name.
      */
-    public void setStatusFileName(String statusFileName) {
-        this.statusFileName = statusFileName;
-    }
-
-    /**
-     * Get application key.
-     * @return Application key.
-     */
-    public String getApplicationKey() {
-        return applicationKey;
-    }
+    private String statusFileName;
 
     /**
      * Application key.
-     * @param applicationKey Application key.
      */
-    public void setApplicationKey(String applicationKey) {
-        this.applicationKey = applicationKey;
-    }
-
-    /**
-     * Get application secret.
-     * @return Application secret.
-     */
-    public String getApplicationSecret() {
-        return applicationSecret;
-    }
+    private String applicationKey;
 
     /**
      * Application secret.
-     * @param applicationSecret Application secret.
      */
-    public void setApplicationSecret(String applicationSecret) {
-        this.applicationSecret = applicationSecret;
-    }
+    private String applicationSecret;
 
     /**
-     * Get knowledge key password.
-     * @return Knowledge key password.
+     * Password for the password related key encryption.
      */
-    public String getPassword() {
-        return password;
-    }
+    private String password;
 
     /**
-     * Set knowledge key password.
-     * @param password Knowledge key password.
+     * Recovery code.
      */
-    public void setPassword(String password) {
-        this.password = password;
-    }
+    private String recoveryCode;
 
     /**
-     * Get recovery code.
-     * @return Recovery code.
+     * Master Server Public Key, a value specific for given application.
      */
-    public String getRecoveryCode() {
-        return recoveryCode;
-    }
+    private PublicKey masterPublicKey;
 
-    /**
-     * Set recovery code.
-     * @param recoveryCode Recovery code.
-     */
-    public void setRecoveryCode(String recoveryCode) {
-        this.recoveryCode = recoveryCode;
-    }
-
-    /**
-     * Get Base64 encoded master public key.
-     * @return Base64 encoded master public key.
-     */
-    public PublicKey getMasterPublicKey() {
-        return masterPublicKey;
-    }
-
-    /**
-     * Set master public key
-     * @param masterPublicKey Master public key
-     */
-    public void setMasterPublicKey(PublicKey masterPublicKey) {
-        this.masterPublicKey = masterPublicKey;
+    @Override
+    public PowerAuthSignatureTypes getSignatureType() {
+        return PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE;
     }
 
     @Override

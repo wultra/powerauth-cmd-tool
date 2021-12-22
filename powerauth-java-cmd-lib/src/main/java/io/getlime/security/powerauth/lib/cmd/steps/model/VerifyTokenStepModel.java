@@ -16,6 +16,11 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.TokenHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
 import java.util.Map;
 
 /**
@@ -23,89 +28,35 @@ import java.util.Map;
  *
  * @author Petr Dvorak, petr@wultra.com
  */
-public class VerifyTokenStepModel extends BaseStepModel {
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class VerifyTokenStepModel extends BaseStepModel
+        implements DryRunCapable, TokenHeaderData {
 
+    /**
+     * Token ID.
+     */
     private String tokenId;
+
+    /**
+     * Token secret.
+     */
     private String tokenSecret;
+
+    /**
+     * HTTP method.
+     */
     private String httpMethod;
+
+    /**
+     * HTTP request data.
+     */
     private byte[] data;
+
+    /**
+     * Flag indicating that this step should be terminated before the networking call.
+     */
     private boolean dryRun;
-
-    /**
-     * Get token ID.
-     * @return Token ID.
-     */
-    public String getTokenId() {
-        return tokenId;
-    }
-
-    /**
-     * Set token ID.
-     * @param tokenId Token ID.
-     */
-    public void setTokenId(String tokenId) {
-        this.tokenId = tokenId;
-    }
-
-    /**
-     * Get token secret.
-     * @return Token secret.
-     */
-    public String getTokenSecret() {
-        return tokenSecret;
-    }
-
-    /**
-     * Set token secret.
-     * @param tokenSecret Token secret.
-     */
-    public void setTokenSecret(String tokenSecret) {
-        this.tokenSecret = tokenSecret;
-    }
-
-    /**
-     * Get HTTP method.
-     * @return HTTP method.
-     */
-    public String getHttpMethod() {
-        return httpMethod;
-    }
-
-    /**
-     * Set HTTP method.
-     * @param httpMethod HTTP method.
-     */
-    public void setHttpMethod(String httpMethod) {
-        this.httpMethod = httpMethod;
-    }
-
-    /**
-     * Set HTTP request data.
-     * @param data Request data.
-     */
-    public void setData(byte[] data) {
-        this.data = data;
-    }
-
-    /**
-     * Get HTTP request data.
-     * @return Request data.
-     */
-    public byte[] getData() {
-        return data;
-    }
-
-    /**
-     * Set flag indicating that this step should be terminated before the networking call.
-     * @return Dry run indicator.
-     */
-    public boolean isDryRun() {
-        return dryRun;
-    }
-
-    public void setDryRun(boolean dryRun) {
-        this.dryRun = dryRun;
-    }
 
     @Override
     public Map<String, Object> toMap() {

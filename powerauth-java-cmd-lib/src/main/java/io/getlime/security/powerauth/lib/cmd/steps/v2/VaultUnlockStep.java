@@ -30,15 +30,18 @@ import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.http.PowerAuthHttpBody;
 import io.getlime.security.powerauth.http.PowerAuthSignatureHttpHeader;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
-import io.getlime.security.powerauth.lib.cmd.steps.BaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VaultUnlockStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.request.v2.VaultUnlockRequest;
 import io.getlime.security.powerauth.rest.api.model.response.v2.VaultUnlockResponse;
-import org.json.simple.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
@@ -60,9 +63,25 @@ import java.util.Objects;
  * </ul>
  *
  * @author Petr Dvorak
- *
  */
-public class VaultUnlockStep implements BaseStep {
+@Component(value = "vaultUnlockStepV2")
+public class VaultUnlockStep extends AbstractBaseStepV2 {
+
+    /**
+     * Constructor
+     * @param stepLogger Step logger
+     */
+    @Autowired
+    public VaultUnlockStep(StepLogger stepLogger) {
+        super(PowerAuthStep.VAULT_UNLOCK, PowerAuthVersion.VERSION_2, stepLogger);
+    }
+
+    /**
+     * Constructor for backward compatibility
+     */
+    public VaultUnlockStep() {
+        this(DEFAULT_STEP_LOGGER);
+    }
 
     private static final KeyConvertor keyConvertor = new KeyConvertor();
     private static final KeyGenerator keyGenerator = new KeyGenerator();
@@ -72,39 +91,31 @@ public class VaultUnlockStep implements BaseStep {
 
     /**
      * Execute this step with given context
+     *
      * @param context Provided context
      * @return Result status object, null in case of failure.
      * @throws Exception In case of any error.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    @Override
+    public ResultStatusObject execute(Map<String, Object> context) throws Exception {
 
         // Read properties from "context"
         VaultUnlockStepModel model = new VaultUnlockStepModel();
         model.fromMap(context);
 
-        if (stepLogger != null) {
-            stepLogger.writeItem(
-                    "vault-unlock-start",
-                    "Vault Unlock Started",
-                    null,
-                    "OK",
-                    null
-            );
-        }
-
         // Prepare the activation URI
         String uri = model.getUriString() + "/pa/vault/unlock";
 
+        ResultStatusObject resultStatusObject = model.getResultStatus();
+
         // Get data from status
-        String activationId = JsonUtil.stringValue(model.getResultStatusObject(), "activationId");
-        byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signaturePossessionKey"));
-        byte[] signatureBiometryKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signatureBiometryKey"));
-        byte[] signatureKnowledgeKeySalt = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signatureKnowledgeKeySalt"));
-        byte[] signatureKnowledgeKeyEncryptedBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "signatureKnowledgeKeyEncrypted"));
-        byte[] transportMasterKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "transportMasterKey"));
-        byte[] encryptedDevicePrivateKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "encryptedDevicePrivateKey"));
-        byte[] serverPublicKeyBytes = BaseEncoding.base64().decode(JsonUtil.stringValue(model.getResultStatusObject(), "serverPublicKey"));
+        String activationId = resultStatusObject.getActivationId();
+        byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySaltBytes();
+        byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncryptedBytes();
+        byte[] transportMasterKeyBytes = BaseEncoding.base64().decode(resultStatusObject.getTransportMasterKey());
+        byte[] encryptedDevicePrivateKeyBytes = resultStatusObject.getEncryptedDevicePrivateKeyBytes();
+        byte[] serverPublicKeyBytes = BaseEncoding.base64().decode(resultStatusObject.getServerPublicKey());
 
         // Ask for the password to unlock knowledge factor key
         char[] password;
@@ -116,9 +127,9 @@ public class VaultUnlockStep implements BaseStep {
         }
 
         // Get the signature keys
-        SecretKey signaturePossessionKey = keyConvertor.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
+        SecretKey signaturePossessionKey = resultStatusObject.getSignaturePossessionKeyObject();
         SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(password, signatureKnowledgeKeyEncryptedBytes, signatureKnowledgeKeySalt, keyGenerator);
-        SecretKey signatureBiometryKey = keyConvertor.convertBytesToSharedSecretKey(signatureBiometryKeyBytes);
+        SecretKey signatureBiometryKey = resultStatusObject.getSignatureBiometryKeyObject();
 
         // Get the transport key
         SecretKey transportMasterKey = keyConvertor.convertBytesToSharedSecretKey(transportMasterKeyBytes);
@@ -137,17 +148,17 @@ public class VaultUnlockStep implements BaseStep {
 
         // Compute the current PowerAuth signature for possession and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString("POST", "/pa/vault/unlock", nonceBytes, requestBytes) + "&" + model.getApplicationSecret();
-        byte[] ctrData = CounterUtil.getCtrData(model, stepLogger);
-        PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion());
+        byte[] ctrData = CounterUtil.getCtrData(model.getResultStatus(), stepLogger);
+        PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion().value());
         String signatureValue = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), ctrData, signatureFormat);
-        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion());
+        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion().value());
         String httpAuthorizationHeader = header.buildHttpHeader();
 
         // Increment the counter
         CounterUtil.incrementCounter(model);
 
         // Store the activation status (updated counter)
-        String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+        String formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatus());
         try (FileWriter file = new FileWriter(model.getStatusFileName())) {
             file.write(formatted);
         }
@@ -161,16 +172,15 @@ public class VaultUnlockStep implements BaseStep {
             headers.put(PowerAuthSignatureHttpHeader.HEADER_NAME, httpAuthorizationHeader);
             headers.putAll(model.getHeaders());
 
-            if (stepLogger != null) {
-                stepLogger.writeServerCall("vault-unlock-request-sent", uri, "POST", request.getRequestObject(), headers);
-            }
+            stepLogger.writeServerCall("vault-unlock-request-sent", uri, "POST", request.getRequestObject(), null, headers);
 
             ResponseEntity<ObjectResponse<VaultUnlockResponse>> responseEntity;
             RestClient restClient = RestClientFactory.getRestClient();
             if (restClient == null) {
                 return null;
             }
-            ParameterizedTypeReference<ObjectResponse<VaultUnlockResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<VaultUnlockResponse>>() {};
+            ParameterizedTypeReference<ObjectResponse<VaultUnlockResponse>> typeReference = new ParameterizedTypeReference<ObjectResponse<VaultUnlockResponse>>() {
+            };
             try {
                 responseEntity = restClient.post(uri, requestBytes, null, MapUtil.toMultiValueMap(headers), typeReference);
             } catch (RestClientException ex) {
@@ -178,29 +188,25 @@ public class VaultUnlockStep implements BaseStep {
                 CounterUtil.incrementCounter(model);
 
                 // Store the activation status (updated counter)
-                formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+                formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatus());
                 try (FileWriter file = new FileWriter(model.getStatusFileName())) {
                     file.write(formatted);
                 }
 
-                if (stepLogger != null) {
-                    stepLogger.writeServerCallError("vault-unlock-error-server-call",  ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
-                    stepLogger.writeDoneFailed("vault-unlock-failed");
-                }
+                stepLogger.writeServerCallError("vault-unlock-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
+                stepLogger.writeDoneFailed("vault-unlock-failed");
                 return null;
             }
 
             ObjectResponse<VaultUnlockResponse> responseWrapper = Objects.requireNonNull(responseEntity.getBody());
 
-            if (stepLogger != null) {
-                stepLogger.writeServerCallOK("vault-unlock-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
-            }
+            stepLogger.writeServerCallOK("vault-unlock-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
 
             VaultUnlockResponse responseObject = responseWrapper.getResponseObject();
             byte[] encryptedVaultEncryptionKey = BaseEncoding.base64().decode(responseObject.getEncryptedVaultEncryptionKey());
 
             PowerAuthClientVault vault = new PowerAuthClientVault();
-            ctrData = CounterUtil.getCtrData(model, stepLogger);
+            ctrData = CounterUtil.getCtrData(model.getResultStatus(), stepLogger);
             SecretKey vaultEncryptionKey = vault.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey, ctrData);
             PrivateKey devicePrivateKey = vault.decryptDevicePrivateKey(encryptedDevicePrivateKeyBytes, vaultEncryptionKey);
             PublicKey serverPublicKey = keyConvertor.convertBytesToPublicKey(serverPublicKeyBytes);
@@ -209,7 +215,7 @@ public class VaultUnlockStep implements BaseStep {
             CounterUtil.incrementCounter(model);
 
             // Store the activation status (updated counter)
-            formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+            formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatus());
             try (FileWriter file = new FileWriter(model.getStatusFileName())) {
                 file.write(formatted);
             }
@@ -227,34 +233,29 @@ public class VaultUnlockStep implements BaseStep {
             objectMap.put("devicePrivateKey", BaseEncoding.base64().encode(keyConvertor.convertPrivateKeyToBytes(devicePrivateKey)));
             objectMap.put("privateKeyDecryptionSuccessful", (equal ? "true" : "false"));
 
-            if (stepLogger != null) {
-                stepLogger.writeItem(
-                        "vault-unlock-finished",
-                        "Vault Unlocked",
-                        "Secure vault was successfully unlocked",
-                        "OK",
-                        objectMap
-                );
-                stepLogger.writeDoneOK("vault-unlock-success");
-            }
-            return model.getResultStatusObject();
+            stepLogger.writeItem(
+                    "vault-unlock-finished",
+                    "Vault Unlocked",
+                    "Secure vault was successfully unlocked",
+                    "OK",
+                    objectMap
+            );
+            stepLogger.writeDoneOK("vault-unlock-success");
 
-
+            return model.getResultStatus();
         } catch (Exception exception) {
 
             // Increment the counter, second time for vault unlock
             CounterUtil.incrementCounter(model);
 
             // Store the activation status (updated counter)
-            formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatusObject());
+            formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(model.getResultStatus());
             try (FileWriter file = new FileWriter(model.getStatusFileName())) {
                 file.write(formatted);
             }
 
-            if (stepLogger != null) {
-                stepLogger.writeError("vault-unlock-error-generic", exception);
-                stepLogger.writeDoneFailed("vault-unlock-failed");
-            }
+            stepLogger.writeError("vault-unlock-error-generic", exception);
+            stepLogger.writeDoneFailed("vault-unlock-failed");
             return null;
         }
     }

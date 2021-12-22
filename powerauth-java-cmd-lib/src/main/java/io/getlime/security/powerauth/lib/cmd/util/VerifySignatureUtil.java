@@ -20,13 +20,18 @@ import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.http.PowerAuthRequestCanonizationUtils;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
+import org.springframework.http.HttpMethod;
 
-import java.io.Console;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Help class with utils for signature verification.
+ *
+ * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
+ */
 public class VerifySignatureUtil {
 
     /**
@@ -40,77 +45,51 @@ public class VerifySignatureUtil {
      */
     public static byte[] extractRequestDataBytes(VerifySignatureStepModel model, StepLogger stepLogger) throws URISyntaxException, IOException {
         byte[] requestDataBytes;
-        if ("GET".equals(model.getHttpMethod().toUpperCase())) {
+        if (HttpMethod.GET.name().equals(model.getHttpMethod().toUpperCase())) {
             String query = new URI(model.getUriString()).getRawQuery();
             String canonizedQuery = PowerAuthRequestCanonizationUtils.canonizeGetParameters(query);
             if (canonizedQuery != null) {
                 requestDataBytes = canonizedQuery.getBytes(StandardCharsets.UTF_8);
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "signature-verify-normalize-data",
-                            "Normalized GET data",
-                            "GET query data were normalized into the canonical string.",
-                            "OK",
-                            canonizedQuery
-                    );
-                }
+                stepLogger.writeItem(
+                        "signature-verify-normalize-data",
+                        "Normalized GET data",
+                        "GET query data were normalized into the canonical string.",
+                        "OK",
+                        canonizedQuery
+                );
             } else {
                 requestDataBytes = new byte[0];
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "signature-verify-empty-data",
-                            "Empty data",
-                            "No GET query parameters found in provided URL, signature will contain no data",
-                            "WARNING",
-                            null
-                    );
-                }
+                stepLogger.writeItem(
+                        "signature-verify-empty-data",
+                        "Empty data",
+                        "No GET query parameters found in provided URL, signature will contain no data",
+                        "WARNING",
+                        null
+                );
             }
         } else {
             // Read data input file
             requestDataBytes = model.getData();
             if (requestDataBytes != null && requestDataBytes.length > 0) {
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "signature-verify-request-payload",
-                            "Request payload",
-                            "Data from the request payload file, used as the POST / DELETE / ... method body, encoded as Base64.",
-                            "OK",
-                            BaseEncoding.base64().encode(requestDataBytes)
-                    );
-                }
+                stepLogger.writeItem(
+                        "signature-verify-request-payload",
+                        "Request payload",
+                        "Data from the request payload file, used as the POST / DELETE / ... method body, encoded as Base64.",
+                        "OK",
+                        BaseEncoding.base64().encode(requestDataBytes)
+                );
             } else {
                 requestDataBytes = new byte[0];
-                if (stepLogger != null) {
-                    stepLogger.writeItem(
-                            "signature-verify-empty-data",
-                            "Empty data",
-                            "Data file was not found, signature will contain no data",
-                            "WARNING",
-                            null
-                    );
-                }
+                stepLogger.writeItem(
+                        "signature-verify-empty-data",
+                        "Empty data",
+                        "Data file was not found, signature will contain no data",
+                        "WARNING",
+                        null
+                );
             }
         }
         return requestDataBytes;
     }
 
-    /**
-     * Get knowledge key unlock password.
-     *
-     * @param model Verify signature step model.
-     * @return Knowledge key unlock password.
-     */
-    public static char[] getKnowledgeKeyPassword(VerifySignatureStepModel model) {
-        char[] password;
-        if (model.getPassword() == null) {
-            // Ask for the password to unlock knowledge factor key
-            Console console = System.console();
-            password = console.readPassword("Enter your password to unlock the knowledge related key: ");
-        } else {
-            // Password is stored in model
-            password = model.getPassword().toCharArray();
-        }
-        return password;
-    }
 }

@@ -27,8 +27,12 @@ public class ExtendedActivationStatusBlobInfo extends ActivationStatusBlobInfo {
 
     private String activationStatusName;
 
+    /**
+     * Creates a copy of the original ActivationStatusBlobInfo raw attributes
+     * @param orig Original data
+     * @return Copy of the original ActivationStatusBlobInfo raw attributes
+     */
     public static ExtendedActivationStatusBlobInfo copy(ActivationStatusBlobInfo orig) {
-        // Copy the original raw attributes
         final ExtendedActivationStatusBlobInfo result = new ExtendedActivationStatusBlobInfo();
         result.setActivationStatus(orig.getActivationStatus());
         result.setCtrByte(orig.getCtrByte());

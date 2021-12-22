@@ -22,6 +22,7 @@ import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import io.getlime.core.rest.model.base.request.ObjectRequest;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -83,7 +84,7 @@ public class JsonStepLogger implements StepLogger {
             generator.writeStartObject();
             generator.writeFieldName("steps");
             generator.writeStartArray();
-            flush();
+            // don't flush now, lazily wait for a logged item
         } catch (IOException e) {
             //
         }
@@ -117,14 +118,20 @@ public class JsonStepLogger implements StepLogger {
      * @param id Step ID.
      * @param uri URI that will be called.
      * @param method HTTP method of the call.
+     * @param requestBytes Request bytes, in case of the POST, PUT, DELETE method.
      * @param requestObject Request object, in case of the POST, PUT, DELETE method.
      * @param headers HTTP request headers.
      */
-    @Override public void writeServerCall(String id, String uri, String method, Object requestObject, Map<String, ?> headers) {
+    @Override public void writeServerCall(String id, String uri, String method, Object requestObject, byte[] requestBytes, Map<String, ?> headers) {
         Map<String, Object> map = new HashMap<>();
         map.put("url", uri);
         map.put("method", method);
-        map.put("requestObject", requestObject);
+        map.put("requestBytes", requestBytes);
+        if (requestObject instanceof ObjectRequest) {
+            map.put("requestObject", ((ObjectRequest<?>) requestObject).getRequestObject());
+        } else {
+            map.put("requestObject", requestObject);
+        }
         map.put("requestHeaders", headers);
         String name = "Sending Request";
         String desc = "Calling PowerAuth Standard RESTful API endpoint";
