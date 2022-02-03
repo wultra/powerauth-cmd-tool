@@ -284,7 +284,7 @@ Use this method to send encrypted data to the server.
 
 ```bash
 java -jar powerauth-java-cmd.jar \
-    --url "http://localhost:8080/enrollment-server-spring/exchange" \
+    --url "http://localhost:8080/enrollment-server/exchange" \
     --config-file "config.json" \
     --method "encrypt" \
     --data-file "request.json" \
@@ -300,7 +300,7 @@ Use this method to send signed and encrypted data to the server.
 
 ```bash
 java -jar powerauth-java-cmd.jar \
-    --url "http://localhost:8080/enrollment-server-spring/exchange/v3/signed" \
+    --url "http://localhost:8080/enrollment-server/exchange/v3/signed" \
     --status-file "pa_status.json" \
     --config-file "config.json" \
     --method "sign-encrypt" \
@@ -313,6 +313,25 @@ java -jar powerauth-java-cmd.jar \
 
 The data in `request.json` file is signed and encrypted using ECIES encryption. See chapter [Validate the Signature](#validate-the-signature) which describes signature parameters.
 The encrypted data is sent to specified endpoint URL. The endpoint which receives encrypted data needs to decrypt the data, verify data signature and return encrypted response back to the client. The cmd line tool receives the encrypted response from server, decrypts it and prints it into the command line.
+
+### Send Encrypted Data with Token Validation to Server
+
+Use this method to send encrypted data with token validation to the server.
+
+```bash
+java -jar powerauth-java-cmd.jar \
+    --url "http://localhost:8080/enrollment-server/exchange/v3/token" \
+    --status-file "pa_status.json" \
+    --config-file "config.json" \
+    --method "token-encrypt" \
+    --http-method "POST" \
+    --data-file "request.json" \
+    --token-id "66b8b981-a89d-4fc2-bd49-1c05f937a6f2" \
+    --token-secret "xfb1NUXAPbvDZK8qyNVGyw=="
+```
+
+The data in `request.json` file is encrypted using ECIES encryption and token authentication is computed.
+The encrypted data is sent to specified endpoint URL. The endpoint which receives encrypted data needs to decrypt the data, validate the token and return encrypted response back to the client. The cmd line tool receives the encrypted response from server, decrypts it and prints it into the command line.
 
 ### Start Upgrade
 
@@ -348,18 +367,19 @@ PowerAuth Reference Client is called as any Java application that is packaged as
 
 ```
 usage: java -jar powerauth-java-cmd.jar
- -a,--activation-code <arg>          In case a specified method is 'create', this field contains
-                                     the activation key (a concatenation of a short activation ID
-                                     and activation OTP).
+ -a,--activation-code <arg>          In case a specified method is 'create', this field contains the
+                                     activation key (a concatenation of a short activation ID and
+                                     activation OTP).
  -A,--activation-otp <arg>           In case a specified method is 'create', this field contains
                                      additional activation OTP (PA server 0.24+)
  -c,--config-file <arg>              Specifies a path to the config file with Base64 encoded server
                                      master public key, application ID and application secret.
  -C,--custom-attributes-file <arg>   In case a specified method is 'create-custom', this field
                                      specifies the path to the file with custom attributes.
- -d,--data-file <arg>                In case a specified method is 'sign', this field specifies a
-                                     file with the input data to be signed and verified with the
-                                     server, as specified in PowerAuth signature process.
+ -d,--data-file <arg>                In case a specified method is 'sign', 'sign-encrypt' or
+                                     'token-encrypt', this field specifies a file with the input
+                                     data to be signed and verified with the server, as specified in
+                                     PowerAuth signature process or MAC token based authentication.
  -D,--device-info <arg>              Information about user device.
  -e,--endpoint <arg>                 Deprecated option, use the resource-id option instead.
  -E,--resource-id <arg>              In case a specified method is 'sign' or 'sign-encrypt', this
@@ -367,16 +387,21 @@ usage: java -jar powerauth-java-cmd.jar
                                      signature process.
  -h,--help                           Print this help manual.
  -H,--http-header <key=value>        Use provided HTTP header for communication
+ -hs,--help-steps                    PowerAuth supported steps and versions.
+ -hv,--help-versions                 PowerAuth supported versions and steps.
  -I,--identity-file <arg>            In case a specified method is 'create-custom', this field
                                      specifies the path to the file with identity attributes.
  -i,--invalidSsl                     Client may accept invalid SSL certificate in HTTPS
                                      communication.
- -l,--signature-type <arg>           In case a specified method is 'sign', this field specifies a
-                                     signature type, as specified in PowerAuth signature process.
+ -l,--signature-type <arg>           In case a specified method is 'sign' or 'sign-encrypt', this
+                                     field specifies a signature type, as specified in PowerAuth
+                                     signature process.
  -m,--method <arg>                   What API method to call, available names are 'create',
                                      'status', 'remove', 'sign', 'unlock', 'create-custom',
                                      'create-token', 'validate-token', 'remove-token', 'encrypt',
-                                     'sign-encrypt', 'start-upgrade' and 'commit-upgrade'.
+                                     'sign-encrypt', 'token-encrypt', 'start-upgrade',
+                                     'commit-upgrade', 'create-recovery' and
+                                     'confirm-recovery-code'.
  -o,--scope <arg>                    ECIES encryption scope: 'application' or 'activation'.
  -p,--password <arg>                 Password used for a knowledge related key encryption. If not
                                      specified, an interactive input is required.
@@ -387,14 +412,16 @@ usage: java -jar powerauth-java-cmd.jar
                                      data persistence.
  -S,--token-secret <arg>             Token secret (Base64 encoded bytes), in case of
                                      'token-validate' method.
- -t,--http-method <arg>              In case a specified method is 'sign', this field specifies a
-                                     HTTP method, as specified in PowerAuth signature process.
+ -t,--http-method <arg>              In case a specified method is 'sign', 'sign-encrypt' or
+                                     'token-encrypt', this field specifies a HTTP method, as
+                                     specified in PowerAuth signature process.
  -T,--token-id <arg>                 Token ID (UUID4), in case of 'token-validate' method.
  -u,--url <arg>                      Base URL of the PowerAuth Standard RESTful API.
  -v,--version <arg>                  PowerAuth protocol version.
- -y,--dry-run                        In case a specified method is 'sign' or 'validate-token' and 
-                                     this attribute is specified, the step is stopped right after 
-                                     signing the request body and preparing appropriate headers.
+ -y,--dry-run                        In case a specified method is 'sign', 'sign-encrypt',
+                                     'validate-token' or 'token-encrypt' and this attribute is
+                                     specified, the step is stopped right after signing the request
+                                     body and preparing appropriate headers.
 ```
 
 ## Troubleshooting

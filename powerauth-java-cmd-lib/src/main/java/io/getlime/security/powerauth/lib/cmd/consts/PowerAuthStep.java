@@ -94,6 +94,11 @@ public enum PowerAuthStep {
     TOKEN_VALIDATE("token-validate", "Token Digest Validation", "validate-token"),
 
     /**
+     * Send an encrypted request with token-based authentication
+     */
+    TOKEN_ENCRYPT("token-encrypt", "Generate Token and Encrypt Request", "token-encrypt"),
+
+    /**
      * Committing upgrade from activation version 2 to version 3
      */
     UPGRADE_COMMIT("upgrade-commit", "Upgrade Commit", "commit-upgrade"),

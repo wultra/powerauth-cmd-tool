@@ -169,7 +169,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @param stepContext       Context of this step
      * @param applicationSecret Application secret
      * @param eciesSharedInfo   Parameter sharedInfo1
-     * @param data              Request data for the encyption
+     * @param data              Request data for the encryption
      * @throws Exception when an error during encryption of the request data occurred
      */
     public void addEncryptedRequest(StepContext<M, R> stepContext, String applicationSecret, EciesSharedInfo1 eciesSharedInfo, byte[] data) throws Exception {
