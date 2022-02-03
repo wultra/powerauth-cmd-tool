@@ -96,7 +96,7 @@ public enum PowerAuthStep {
     /**
      * Send an encrypted request with token-based authentication
      */
-    TOKEN_ENCRYPT("token-encrypt", "Generate Token and Encrypt Request", "token-encrypt"),
+    TOKEN_ENCRYPT("token-encrypt", "Encrypt Request and Validate Token Digest", "token-encrypt"),
 
     /**
      * Committing upgrade from activation version 2 to version 3
