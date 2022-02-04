@@ -1,6 +1,6 @@
 /*
  * PowerAuth Command-line utility
- * Copyright 2018 Wultra s.r.o.
+ * Copyright 2022 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,9 +28,8 @@ import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
-import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.model.TokenAndEncryptStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptionUtil;
-import io.getlime.security.powerauth.lib.cmd.util.VerifySignatureUtil;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
@@ -40,7 +39,7 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 /**
- * Sign and encrypt step signs request data and performs encryption using ECIES encryption in activation scope.
+ * Token and encrypt step generates token authentication for request data and performs encryption using ECIES encryption in activation scope.
  *
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
@@ -48,26 +47,25 @@ import java.util.Map;
  *     <li>3.1</li>
  * </ul>
  * <p>
- *  @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  *  @author Roman Strobl, roman.strobl@wultra.com
  */
 @Component
-public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepModel, EciesEncryptedResponse> {
+public class TokenAndEncryptStep extends AbstractBaseStep<TokenAndEncryptStepModel, EciesEncryptedResponse> {
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
     /**
-     * Constructor
-     * @param powerAuthHeaderFactory PowerAuth header factory
-     * @param resultStatusService Result status service
-     * @param stepLoggerFactory Step logger factory
+     * Constructor.
+     * @param powerAuthHeaderFactory PowerAuth header factory.
+     * @param resultStatusService Result status service.
+     * @param stepLoggerFactory Step logger factory.
      */
     @Autowired
-    public SignAndEncryptStep(
+    public TokenAndEncryptStep(
             PowerAuthHeaderFactory powerAuthHeaderFactory,
             ResultStatusService resultStatusService,
             StepLoggerFactory stepLoggerFactory) {
-        super(PowerAuthStep.SIGN_ENCRYPT, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
+        super(PowerAuthStep.TOKEN_ENCRYPT, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
@@ -75,7 +73,7 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
     /**
      * Constructor for backward compatibility
      */
-    public SignAndEncryptStep() {
+    public TokenAndEncryptStep() {
         this(
                 BackwardCompatibilityConst.POWER_AUTH_HEADER_FACTORY,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
@@ -89,39 +87,43 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
     }
 
     @Override
-    public StepContext<VerifySignatureStepModel, EciesEncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        VerifySignatureStepModel model = new VerifySignatureStepModel();
+    public StepContext<TokenAndEncryptStepModel, EciesEncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+        TokenAndEncryptStepModel model = new TokenAndEncryptStepModel();
         model.fromMap(context);
 
         RequestContext requestContext = RequestContext.builder()
                 .signatureHttpMethod(model.getHttpMethod())
-                .signatureRequestUri(model.getResourceId())
                 .uri(model.getUriString())
                 .build();
 
-        StepContext<VerifySignatureStepModel, EciesEncryptedResponse> stepContext =
+        StepContext<TokenAndEncryptStepModel, EciesEncryptedResponse> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
         // Verify that HTTP method is set
         if (model.getHttpMethod() == null) {
-            stepLogger.writeError("sign-encrypt-error-http-method", "HTTP method not specified", "Specify HTTP method to use for sending request");
-            stepLogger.writeDoneFailed("sign-encrypt-failed");
+            stepLogger.writeError(getStep().id() + "-error-http-method", "HTTP method not specified", "Specify HTTP method to use for sending request");
+            stepLogger.writeDoneFailed("token-encrypt-failed");
             return null;
         }
 
-        // Verify HTTP method, only POST is supported
-        if (!HttpMethod.POST.name().equals(model.getHttpMethod().toUpperCase())) {
-            stepLogger.writeError("sign-encrypt-error-http-method-invalid", "Sign and Encrypt Request Failed", "Unsupported HTTP method: " + model.getHttpMethod().toUpperCase());
-            stepLogger.writeDoneFailed("sign-encrypt-failed");
+        // Verify HTTP method, GET is not supported
+        if (HttpMethod.GET.name().equals(model.getHttpMethod().toUpperCase())) {
+            stepLogger.writeError(getStep().id() + "-error-http-method-invalid", "Token and Encrypt Request Failed", "Unsupported HTTP method: " + model.getHttpMethod().toUpperCase());
+            stepLogger.writeDoneFailed("token-encrypt-failed");
             return null;
         }
 
         // Read data which needs to be encrypted
-        final byte[] requestDataBytes = model.getData();
-        if (requestDataBytes == null) {
-            stepLogger.writeError("sign-encrypt-error-file", "Sign and Encrypt Request Failed", "Request data for encryption and signing is null.");
-            stepLogger.writeDoneFailed("sign-encrypt-failed");
-            return null;
+        byte[] requestDataBytes = model.getData();
+        if (requestDataBytes == null || requestDataBytes.length == 0) {
+            requestDataBytes = new byte[0];
+            stepLogger.writeItem(
+                    getStep().id() + "-warning-empty-data",
+                    "Empty data",
+                    "Data file was not found, signature will contain no data",
+                    "WARNING",
+                    null
+            );
         }
 
         stepLogger.writeItem(
@@ -132,21 +134,17 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
                 requestDataBytes
         );
 
-        // Construct the signature base string data
-        byte[] dataFileBytes = VerifySignatureUtil.extractRequestDataBytes(model, stepLogger);
-        requestContext.setRequestObject(dataFileBytes);
+        requestContext.setRequestObject(requestDataBytes);
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
         // Encrypt the request
         addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.ACTIVATION_SCOPE_GENERIC, requestDataBytes);
 
-        incrementCounter(model);
-
         return stepContext;
     }
 
     @Override
-    public void processResponse(StepContext<VerifySignatureStepModel, EciesEncryptedResponse> stepContext) throws Exception {
+    public void processResponse(StepContext<TokenAndEncryptStepModel, EciesEncryptedResponse> stepContext) throws Exception {
         EncryptionUtil.processEncryptedResponse(stepContext, getStep().id());
     }
 
