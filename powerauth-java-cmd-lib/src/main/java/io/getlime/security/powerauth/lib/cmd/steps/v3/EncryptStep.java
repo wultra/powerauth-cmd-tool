@@ -16,10 +16,8 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
-import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
 import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
@@ -35,6 +33,7 @@ import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.security.SimpleSecurityContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
+import io.getlime.security.powerauth.lib.cmd.util.EncryptionUtil;
 import io.getlime.security.powerauth.lib.cmd.util.SecurityUtil;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -168,27 +167,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
 
     @Override
     public void processResponse(StepContext<EncryptStepModel, EciesEncryptedResponse> stepContext) throws Exception {
-        EncryptStepModel model = stepContext.getModel();
-        EciesEncryptor encryptor = ((SimpleSecurityContext) stepContext.getSecurityContext()).getEncryptor();
-
-        EciesEncryptedResponse encryptedResponse = stepContext.getResponseContext().getResponseBodyObject();
-
-        byte[] macResponse = BaseEncoding.base64().decode(encryptedResponse.getMac());
-        byte[] encryptedDataResponse = BaseEncoding.base64().decode(encryptedResponse.getEncryptedData());
-        EciesCryptogram eciesCryptogramResponse = new EciesCryptogram(macResponse, encryptedDataResponse);
-
-        final byte[] decryptedBytes = encryptor.decryptResponse(eciesCryptogramResponse);
-
-        String decryptedMessage = new String(decryptedBytes, StandardCharsets.UTF_8);
-        model.getResultStatus().setResponseData(decryptedMessage);
-
-        stepContext.getStepLogger().writeItem(
-                getStep().id() + "-response-decrypt",
-                "Decrypted Response",
-                "Following data were decrypted",
-                "OK",
-                decryptedMessage
-        );
+        EncryptionUtil.processEncryptedResponse(stepContext, getStep().id());
     }
 
 }

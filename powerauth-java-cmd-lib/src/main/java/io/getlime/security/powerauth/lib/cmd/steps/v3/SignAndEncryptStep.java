@@ -16,7 +16,6 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
@@ -28,11 +27,9 @@ import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
-import io.getlime.security.powerauth.lib.cmd.steps.context.ResponseContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
-import io.getlime.security.powerauth.lib.cmd.steps.context.security.SimpleSecurityContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
-import io.getlime.security.powerauth.lib.cmd.util.SecurityUtil;
+import io.getlime.security.powerauth.lib.cmd.util.EncryptionUtil;
 import io.getlime.security.powerauth.lib.cmd.util.VerifySignatureUtil;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +37,6 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
@@ -151,20 +147,7 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
 
     @Override
     public void processResponse(StepContext<VerifySignatureStepModel, EciesEncryptedResponse> stepContext) throws Exception {
-        ResponseContext<EciesEncryptedResponse> responseContext = stepContext.getResponseContext();
-        EciesEncryptor encryptor = ((SimpleSecurityContext) stepContext.getSecurityContext()).getEncryptor();
-        final byte[] decryptedBytes = SecurityUtil.decryptBytesFromResponse(encryptor, responseContext.getResponseBodyObject());
-
-        String decryptedMessage = new String(decryptedBytes, StandardCharsets.UTF_8);
-        stepContext.getModel().getResultStatus().setResponseData(decryptedMessage);
-
-        stepContext.getStepLogger().writeItem(
-                getStep().id() + "-response-decrypted",
-                "Decrypted Response",
-                "Following data were decrypted",
-                "OK",
-                decryptedMessage
-        );
+        EncryptionUtil.processEncryptedResponse(stepContext, getStep().id());
     }
 
 }

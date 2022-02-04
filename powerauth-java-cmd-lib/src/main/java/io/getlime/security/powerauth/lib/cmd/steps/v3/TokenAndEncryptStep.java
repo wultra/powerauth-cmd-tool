@@ -16,34 +16,26 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
-import io.getlime.security.powerauth.lib.cmd.header.TokenAndEncryptionHeaderProvider;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
-import io.getlime.security.powerauth.lib.cmd.steps.context.ResponseContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
-import io.getlime.security.powerauth.lib.cmd.steps.context.security.SimpleSecurityContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.TokenAndEncryptStepModel;
-import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
-import io.getlime.security.powerauth.lib.cmd.steps.model.VerifyTokenStepModel;
-import io.getlime.security.powerauth.lib.cmd.util.SecurityUtil;
-import io.getlime.security.powerauth.lib.cmd.util.VerifySignatureUtil;
+import io.getlime.security.powerauth.lib.cmd.util.EncryptionUtil;
 import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
@@ -109,14 +101,14 @@ public class TokenAndEncryptStep extends AbstractBaseStep<TokenAndEncryptStepMod
 
         // Verify that HTTP method is set
         if (model.getHttpMethod() == null) {
-            stepLogger.writeError("token-encrypt-error-http-method", "HTTP method not specified", "Specify HTTP method to use for sending request");
+            stepLogger.writeError(getStep().id() + "-error-http-method", "HTTP method not specified", "Specify HTTP method to use for sending request");
             stepLogger.writeDoneFailed("token-encrypt-failed");
             return null;
         }
 
         // Verify HTTP method, GET is not supported
         if (HttpMethod.GET.name().equals(model.getHttpMethod().toUpperCase())) {
-            stepLogger.writeError("token-encrypt-error-http-method-invalid", "Token and Encrypt Request Failed", "Unsupported HTTP method: " + model.getHttpMethod().toUpperCase());
+            stepLogger.writeError(getStep().id() + "-error-http-method-invalid", "Token and Encrypt Request Failed", "Unsupported HTTP method: " + model.getHttpMethod().toUpperCase());
             stepLogger.writeDoneFailed("token-encrypt-failed");
             return null;
         }
@@ -126,7 +118,7 @@ public class TokenAndEncryptStep extends AbstractBaseStep<TokenAndEncryptStepMod
         if (requestDataBytes == null || requestDataBytes.length == 0) {
             requestDataBytes = new byte[0];
             stepLogger.writeItem(
-                    "token-validate-warning-empty-data",
+                    getStep().id() + "-warning-empty-data",
                     "Empty data",
                     "Data file was not found, signature will contain no data",
                     "WARNING",
@@ -153,20 +145,7 @@ public class TokenAndEncryptStep extends AbstractBaseStep<TokenAndEncryptStepMod
 
     @Override
     public void processResponse(StepContext<TokenAndEncryptStepModel, EciesEncryptedResponse> stepContext) throws Exception {
-        ResponseContext<EciesEncryptedResponse> responseContext = stepContext.getResponseContext();
-        EciesEncryptor encryptor = ((SimpleSecurityContext) stepContext.getSecurityContext()).getEncryptor();
-        final byte[] decryptedBytes = SecurityUtil.decryptBytesFromResponse(encryptor, responseContext.getResponseBodyObject());
-
-        String decryptedMessage = new String(decryptedBytes, StandardCharsets.UTF_8);
-        stepContext.getModel().getResultStatus().setResponseData(decryptedMessage);
-
-        stepContext.getStepLogger().writeItem(
-                getStep().id() + "-response-decrypted",
-                "Decrypted Response",
-                "Following data were decrypted",
-                "OK",
-                decryptedMessage
-        );
+        EncryptionUtil.processEncryptedResponse(stepContext, getStep().id());
     }
 
 }

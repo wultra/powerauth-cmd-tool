@@ -84,6 +84,11 @@ public enum PowerAuthStep {
     TOKEN_CREATE("token-create", "Token Create", "create-token"),
 
     /**
+     * Send an encrypted request with token-based authentication
+     */
+    TOKEN_ENCRYPT("token-encrypt", "Encrypt Request and Validate Token Digest", "token-encrypt"),
+
+    /**
      * Removing a previously created token
      */
     TOKEN_REMOVE("token-remove", "Token Remove", "remove-token"),
@@ -92,11 +97,6 @@ public enum PowerAuthStep {
      * Validating a previously created token
      */
     TOKEN_VALIDATE("token-validate", "Token Digest Validation", "validate-token"),
-
-    /**
-     * Send an encrypted request with token-based authentication
-     */
-    TOKEN_ENCRYPT("token-encrypt", "Encrypt Request and Validate Token Digest", "token-encrypt"),
 
     /**
      * Committing upgrade from activation version 2 to version 3
