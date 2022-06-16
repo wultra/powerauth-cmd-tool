@@ -64,7 +64,7 @@ public class Application {
 
         ConfigurableApplicationContext appContext = new SpringApplicationBuilder(CmdLibApplication.class)
                 .web(WebApplicationType.NONE)
-                .run(args);;
+                .run(args);
 
         StepExecutionService stepExecutionService = appContext.getBeanFactory().getBean(StepExecutionService.class);
         StepProvider stepProvider = appContext.getBeanFactory().getBean(StepProvider.class);
@@ -82,17 +82,17 @@ public class Application {
             options.addOption("hs", "help-steps", false, "PowerAuth supported steps and versions.");
             options.addOption("hv", "help-versions", false, "PowerAuth supported versions and steps.");
             options.addOption("u", "url", true, "Base URL of the PowerAuth Standard RESTful API.");
-            options.addOption("m", "method", true, "What API method to call, available names are 'create', 'status', 'remove', 'sign', 'unlock', 'create-custom', 'create-token', 'validate-token', 'remove-token', 'encrypt', 'sign-encrypt', 'start-upgrade', 'commit-upgrade', 'create-recovery' and 'confirm-recovery-code'.");
+            options.addOption("m", "method", true, "What API method to call, available names are 'create', 'status', 'remove', 'sign', 'unlock', 'create-custom', 'create-token', 'validate-token', 'remove-token', 'encrypt', 'sign-encrypt', 'token-encrypt', 'start-upgrade', 'commit-upgrade', 'create-recovery' and 'confirm-recovery-code'.");
             options.addOption("c", "config-file", true, "Specifies a path to the config file with Base64 encoded server master public key, application ID and application secret.");
             options.addOption("s", "status-file", true, "Path to the file with the activation status, serving as the data persistence.");
             options.addOption("a", "activation-code", true, "In case a specified method is 'create', this field contains the activation key (a concatenation of a short activation ID and activation OTP).");
             options.addOption("A", "activation-otp", true, "In case a specified method is 'create', this field contains additional activation OTP (PA server 0.24+)");
-            options.addOption("t", "http-method", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a HTTP method, as specified in PowerAuth signature process.");
+            options.addOption("t", "http-method", true, "In case a specified method is 'sign', 'sign-encrypt' or 'token-encrypt', this field specifies a HTTP method, as specified in PowerAuth signature process.");
             options.addOption("e", "endpoint", true, "Deprecated option, use the resource-id option instead.");
             options.addOption("E", "resource-id", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a URI identifier, as specified in PowerAuth signature process.");
             options.addOption("l", "signature-type", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a signature type, as specified in PowerAuth signature process.");
-            options.addOption("d", "data-file", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a file with the input data to be signed and verified with the server, as specified in PowerAuth signature process.");
-            options.addOption("y", "dry-run", false, "In case a specified method is 'sign' or 'validate-token' and this attribute is specified, the step is stopped right after signing the request body and preparing appropriate headers.");
+            options.addOption("d", "data-file", true, "In case a specified method is 'sign', 'sign-encrypt' or 'token-encrypt', this field specifies a file with the input data to be signed and verified with the server, as specified in PowerAuth signature process or MAC token based authentication.");
+            options.addOption("y", "dry-run", false, "In case a specified method is 'sign', 'sign-encrypt', 'validate-token' or 'token-encrypt' and this attribute is specified, the step is stopped right after signing the request body and preparing appropriate headers.");
             options.addOption("p", "password", true, "Password used for a knowledge related key encryption. If not specified, an interactive input is required.");
             options.addOption("I", "identity-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with identity attributes.");
             options.addOption("C", "custom-attributes-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with custom attributes.");
@@ -428,6 +428,26 @@ public class Application {
 
                     stepExecutionService.execute(powerAuthStep, version, model);
                     break;
+                }
+                case TOKEN_ENCRYPT: {
+                    TokenAndEncryptStepModel model = new TokenAndEncryptStepModel();
+                    model.setTokenId(cmd.getOptionValue("T"));
+                    model.setTokenSecret(cmd.getOptionValue("S"));
+                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
+                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setHttpMethod(cmd.getOptionValue("t"));
+                    model.setDryRun(cmd.hasOption("dry-run"));
+                    model.setHeaders(httpHeaders);
+                    model.setResultStatus(resultStatusObject);
+                    model.setUriString(uriString);
+                    model.setVersion(version);
+
+                    // Read the file with request data
+                    String dataFileName = cmd.getOptionValue("d");
+                    final byte[] dataFileBytes = FileUtil.readFileBytes(stepLogger, dataFileName, "request-data", "Request data file");
+                    model.setData(dataFileBytes);
+
+                    stepExecutionService.execute(powerAuthStep, version, model);
                 }
                 case UPGRADE_START: {
                     StartUpgradeStepModel model = new StartUpgradeStepModel();

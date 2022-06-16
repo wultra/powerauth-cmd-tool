@@ -18,6 +18,7 @@ package io.getlime.security.powerauth.lib.cmd.header;
 
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.data.TokenAndEncryptionHeaderData;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.TokenHeaderData;
 import org.springframework.stereotype.Component;
 
@@ -57,6 +58,16 @@ public class PowerAuthHeaderFactory {
      */
     public <M extends TokenHeaderData> TokenHeaderProvider getHeaderProvider(M model) {
         return new TokenHeaderProvider();
+    }
+
+    /**
+     * Creates a token and encryption header provider instance
+     * @param model Step model
+     * @param <M> Model class based on {@link TokenAndEncryptionHeaderData}
+     * @return New token and encryption header provider instance
+     */
+    public <M extends TokenAndEncryptionHeaderData> TokenAndEncryptionHeaderProvider getHeaderProvider(M model) {
+        return new TokenAndEncryptionHeaderProvider();
     }
 
 }
