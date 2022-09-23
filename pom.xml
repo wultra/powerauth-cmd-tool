@@ -78,7 +78,7 @@
         <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
         <maven-deploy-plugin.version>3.0.0-M2</maven-deploy-plugin.version>
         <maven-javadoc-plugin.version>3.4.0</maven-javadoc-plugin.version>
-        <spring-boot.version>2.6.8</spring-boot.version>
+        <spring-boot.version>2.6.12</spring-boot.version>
         <bc.version>1.70</bc.version>
         <jackson.version>2.13.3</jackson.version>
         <commons-cli.version>1.5.0</commons-cli.version>
