@@ -365,10 +365,10 @@ The commit upgrade request is sent to the server including a version `3.0` signa
 
 Use this method to compute offline PowerAuth signature. 
 
-```
+```bash
 java -jar powerauth-java-cmd.jar \
-    --status-file "pa_status.json" \
-    --config-file "pamk.json" \
+    --status-file "/tmp/pa_status.json" \
+    --config-file "/tmp/pamk.json" \
     --method "compute-offline-signature" \
     --qr-code-data "c68dc57f-ee5f-497c-8c92-338439426e76\nApprove Login\nPlease confirm the login request.\nA2\nB\nETIK4iFz1E9u6vABKSbytg==\n1MEYCIQCnQqFFzS589auwdMRZ9Aq5qFxso21oxd2sng9Vp7gCUgIhAITaJ9L3fP2tov63mcIgU2e/37h9EXyAMhzrCXXDNJZE" \
     --nonce "ETIK4iFz1E9u6vABKSbytg==" \
