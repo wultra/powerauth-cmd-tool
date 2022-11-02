@@ -113,17 +113,9 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
             return null;
         }
 
-        if (model.getNonce() == null) {
-            stepLogger.writeError(getStep().id() + "-error-missing-nonce", "Missing offline nonce", "Specify offline signature nonce");
-            stepLogger.writeDoneFailed(getStep().id() + "-failed");
-            return null;
-        }
-
         final String offlineData = unescape(model.getQrCodeData());
-        final String nonce = model.getNonce();
         final Map<String, String> inputMap = new HashMap<>();
         inputMap.put("QR_CODE_DATA", offlineData);
-        inputMap.put("NONCE", nonce);
 
         stepLogger.writeItem(
                 getStep().id() + "-start",
@@ -142,7 +134,7 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
             password = model.getPassword().toCharArray();
         }
 
-        final String offlineSignature = calculateOfflineSignature(offlineData, nonce, stepLogger, model.getResultStatus(), password);
+        final String offlineSignature = calculateOfflineSignature(offlineData, stepLogger, model.getResultStatus(), password);
 
         final Map<String, String> resultMap = new HashMap<>();
         resultMap.put("OFFLINE_SIGNATURE", offlineSignature);
@@ -164,12 +156,18 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
         return text.replace("\\n", "\n");
     }
 
-    private String calculateOfflineSignature(final String offlineData, final String nonce, final StepLogger stepLogger,
+    private String calculateOfflineSignature(final String offlineData, final StepLogger stepLogger,
                                              final ResultStatusObject resultStatusObject, final char[] password) {
         // Split the offline data into individual lines, see: https://github.com/wultra/powerauth-webflow/blob/develop/docs/Off-line-Signatures-QR-Code.md
         final String[] parts = offlineData.split("\n");
+        if (parts.length < 7) {
+            stepLogger.writeError(getStep().id() + "-error-invalid-qr-code-data", "Invalid QR code data", "Invalid QR code, expected 7 lines of data or more");
+            stepLogger.writeDoneFailed(getStep().id() + "-failed");
+            return null;
+        }
         final String operationId = parts[0];
         final String operationData = parts[3];
+        final String nonce = parts[5];
         final String signatureLine = parts[parts.length - 1];
 
         // 1 = KEY_SERVER_PRIVATE was used to sign data (personalized offline signature), otherwise return error

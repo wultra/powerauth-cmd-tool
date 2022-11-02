@@ -43,11 +43,6 @@ public class ComputeOfflineSignatureModel extends BaseStepModel implements Resul
     private String qrCodeData;
 
     /**
-     * Offline operation nonce.
-     */
-    private String nonce;
-
-    /**
      * Knowledge key password (PIN).
      */
     private String password;
@@ -57,7 +52,6 @@ public class ComputeOfflineSignatureModel extends BaseStepModel implements Resul
         Map<String, Object> context = super.toMap();
         context.put("STATUS_FILENAME", statusFileName);
         context.put("QR_CODE_DATA", qrCodeData);
-        context.put("NONCE", nonce);
         context.put("PASSWORD", password);
         return context;
     }
@@ -67,7 +61,6 @@ public class ComputeOfflineSignatureModel extends BaseStepModel implements Resul
         super.fromMap(context);
         setStatusFileName((String) context.get("STATUS_FILENAME"));
         setQrCodeData((String) context.get("QR_CODE_DATA"));
-        setNonce((String) context.get("NONCE"));
         setPassword((String) context.get("PASSWORD"));
     }
 

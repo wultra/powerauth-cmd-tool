@@ -105,7 +105,6 @@ public class Application {
             options.addOption("P", "platform", true, "User device platform.");
             options.addOption("D", "device-info", true, "Information about user device.");
             options.addOption("q", "qr-code-data", true, "Data for offline signature encoded in QR code.");
-            options.addOption("n", "nonce", true, "Value of cryptographic nonce.");
             options.addOption("v", "version", true, "PowerAuth protocol version.");
 
             Option httpHeaderOption = Option.builder("H")
@@ -178,11 +177,6 @@ public class Application {
             String qrCodeData = null;
             if (cmd.hasOption("q")) {
                 qrCodeData = cmd.getOptionValue("q");
-            }
-
-            String nonce = null;
-            if (cmd.hasOption("n")) {
-                nonce = cmd.getOptionValue("n");
             }
 
             // Read values
@@ -540,7 +534,6 @@ public class Application {
                     ComputeOfflineSignatureModel model = new ComputeOfflineSignatureModel();
                     model.setStatusFileName(statusFileName);
                     model.setQrCodeData(qrCodeData);
-                    model.setNonce(nonce);
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatus(resultStatusObject);
                     model.setVersion(version);
