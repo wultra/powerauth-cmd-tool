@@ -543,7 +543,6 @@ public class Application {
                     model.setNonce(nonce);
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatus(resultStatusObject);
-                    model.setUriString(uriString);
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
