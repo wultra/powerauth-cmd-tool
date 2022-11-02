@@ -115,7 +115,7 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
 
         final String offlineData = unescape(model.getQrCodeData());
         final Map<String, String> inputMap = new HashMap<>();
-        inputMap.put("QR_CODE_DATA", offlineData);
+        inputMap.put("qrCodeData", offlineData);
 
         stepLogger.writeItem(
                 getStep().id() + "-start",
@@ -137,7 +137,7 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
         final String offlineSignature = calculateOfflineSignature(offlineData, stepLogger, model.getResultStatus(), password);
 
         final Map<String, String> resultMap = new HashMap<>();
-        resultMap.put("OFFLINE_SIGNATURE", offlineSignature);
+        resultMap.put("offlineSignature", offlineSignature);
 
         stepLogger.writeItem(
                 getStep().id() + "-finished",
