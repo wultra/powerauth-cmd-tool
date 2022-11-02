@@ -104,6 +104,8 @@ public class Application {
             options.addOption("R", "recovery-code", true, "Recovery code to be confirmed.");
             options.addOption("P", "platform", true, "User device platform.");
             options.addOption("D", "device-info", true, "Information about user device.");
+            options.addOption("q", "qr-code-data", true, "Data for offline signature encoded in QR code.");
+            options.addOption("n", "nonce", true, "Value of cryptographic nonce.");
             options.addOption("v", "version", true, "PowerAuth protocol version.");
 
             Option httpHeaderOption = Option.builder("H")
@@ -171,6 +173,16 @@ public class Application {
                 deviceInfo = cmd.getOptionValue("D");
             } else {
                 deviceInfo = "cmd-tool";
+            }
+
+            String qrCodeData = null;
+            if (cmd.hasOption("q")) {
+                qrCodeData = cmd.getOptionValue("q");
+            }
+
+            String nonce = null;
+            if (cmd.hasOption("n")) {
+                nonce = cmd.getOptionValue("n");
             }
 
             // Read values
@@ -520,6 +532,22 @@ public class Application {
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
+                    break;
+                }
+
+                case SIGNATURE_OFFLINE_COMPUTE: {
+
+                    ComputeOfflineSignatureModel model = new ComputeOfflineSignatureModel();
+                    model.setStatusFileName(statusFileName);
+                    model.setQrCodeData(qrCodeData);
+                    model.setNonce(nonce);
+                    model.setPassword(cmd.getOptionValue("p"));
+                    model.setResultStatus(resultStatusObject);
+                    model.setUriString(uriString);
+                    model.setVersion(version);
+
+                    stepExecutionService.execute(powerAuthStep, version, model);
+                    break;
                 }
 
                 default:
