@@ -135,6 +135,9 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
         }
 
         final String offlineSignature = calculateOfflineSignature(offlineData, stepLogger, model.getResultStatus(), password);
+        if (offlineSignature == null) {
+            return null;
+        }
 
         final Map<String, String> resultMap = new HashMap<>();
         resultMap.put("offlineSignature", offlineSignature);
