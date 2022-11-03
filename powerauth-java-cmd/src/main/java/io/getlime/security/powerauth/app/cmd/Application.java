@@ -531,7 +531,7 @@ public class Application {
 
                 case SIGNATURE_OFFLINE_COMPUTE: {
 
-                    ComputeOfflineSignatureModel model = new ComputeOfflineSignatureModel();
+                    ComputeOfflineSignatureStepModel model = new ComputeOfflineSignatureStepModel();
                     model.setStatusFileName(statusFileName);
                     model.setQrCodeData(qrCodeData);
                     model.setPassword(cmd.getOptionValue("p"));

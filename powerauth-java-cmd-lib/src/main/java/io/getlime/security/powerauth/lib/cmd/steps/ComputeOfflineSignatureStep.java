@@ -30,7 +30,7 @@ import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
-import io.getlime.security.powerauth.lib.cmd.steps.model.ComputeOfflineSignatureModel;
+import io.getlime.security.powerauth.lib.cmd.steps.model.ComputeOfflineSignatureStepModel;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
@@ -61,7 +61,7 @@ import java.util.Map;
  * @author Roman Strobl, roman.strobl@wultra.com
  */
 @Component
-public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOfflineSignatureModel, Void> {
+public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOfflineSignatureStepModel, Void> {
 
     private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
     private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
@@ -96,15 +96,15 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
     }
 
     @Override
-    public StepContext<ComputeOfflineSignatureModel, Void> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        final ComputeOfflineSignatureModel model = new ComputeOfflineSignatureModel();
+    public StepContext<ComputeOfflineSignatureStepModel, Void> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+        final ComputeOfflineSignatureStepModel model = new ComputeOfflineSignatureStepModel();
         model.fromMap(context);
 
         final RequestContext requestContext = RequestContext.builder()
                 .uri(model.getUriString())
                 .build();
 
-        final StepContext<ComputeOfflineSignatureModel, Void> stepContext =
+        final StepContext<ComputeOfflineSignatureStepModel, Void> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
         if (model.getQrCodeData() == null) {

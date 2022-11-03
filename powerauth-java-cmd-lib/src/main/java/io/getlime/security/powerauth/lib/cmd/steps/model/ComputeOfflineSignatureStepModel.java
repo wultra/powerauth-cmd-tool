@@ -30,7 +30,7 @@ import java.util.Map;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ComputeOfflineSignatureModel extends BaseStepModel implements ResultStatusChangeable, DryRunCapable {
+public class ComputeOfflineSignatureStepModel extends BaseStepModel implements ResultStatusChangeable, DryRunCapable {
 
     /**
      * File name of the file with stored activation status.
