@@ -102,8 +102,8 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
                 buildStepContext(stepLogger, model, requestContext);
 
         Map<String, String> map = new HashMap<>();
-        map.put("TOKEN_ID", model.getTokenId());
-        map.put("TOKEN_SECRET", model.getTokenSecret());
+        map.put("tokenId", model.getTokenId());
+        map.put("tokenSecret", model.getTokenSecret());
         stepLogger.writeItem(
                 "token-validate-start",
                 "Token Digest Validation Started",
