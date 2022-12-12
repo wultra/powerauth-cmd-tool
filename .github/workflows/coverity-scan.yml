@@ -9,7 +9,7 @@ on:
 
 jobs:
   coverity-scan:
-    uses: wultra/wultra-infrastructure/.github/workflows/maven-test.yml@develop
+    uses: wultra/wultra-infrastructure/.github/workflows/coverity-scan.yml@issues/coverity_scan
     secrets: inherit
     with:
       project-name: ${{ github.repository }}
