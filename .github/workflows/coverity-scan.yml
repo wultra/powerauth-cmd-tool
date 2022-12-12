@@ -8,7 +8,7 @@ on:
 
 jobs:
   coverity-scan:
-    uses: wultra/wultra-infrastructure/.github/workflows/coverity-scan.yml@issues/coverity_scan
+    uses: wultra/wultra-infrastructure/.github/workflows/coverity-scan.yml@develop
     secrets: inherit
     with:
       project-name: ${{ github.event.repository.name }}
