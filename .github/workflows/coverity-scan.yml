@@ -12,6 +12,6 @@ jobs:
     uses: wultra/wultra-infrastructure/.github/workflows/coverity-scan.yml@issues/coverity_scan
     secrets: inherit
     with:
-      project-name: ${{ github.repository }}
+      project-name: ${{ github.event.repository.name }}
       version: ${{ github.sha }}
       description: ${{ github.ref }}
