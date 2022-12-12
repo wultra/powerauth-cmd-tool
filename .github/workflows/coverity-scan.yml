@@ -6,7 +6,6 @@ on:
     branches:
       - 'issues/coverity_scan'
 
-
 jobs:
   coverity-scan:
     uses: wultra/wultra-infrastructure/.github/workflows/coverity-scan.yml@issues/coverity_scan
