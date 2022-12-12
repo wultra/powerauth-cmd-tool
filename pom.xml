@@ -91,6 +91,16 @@
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.getlime.security</groupId>
+                <artifactId>powerauth-java-cmd-lib</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <build>
         <plugins>
             <plugin>

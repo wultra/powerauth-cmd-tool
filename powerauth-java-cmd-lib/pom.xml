@@ -6,13 +6,11 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>powerauth-java-cmd-lib</artifactId>
     <description>PowerAuth Command-line Utility - Java Library</description>
-    <version>1.4.0-SNAPSHOT</version>
 
     <parent>
         <artifactId>powerauth-cmd-parent</artifactId>
         <groupId>io.getlime.security</groupId>
         <version>1.4.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <dependencies>
