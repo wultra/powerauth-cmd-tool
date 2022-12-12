@@ -1,0 +1,17 @@
+name: Run Coverity scan and upload results
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'issues/coverity_scan'
+
+
+jobs:
+  coverity-scan:
+    uses: wultra/wultra-infrastructure/.github/workflows/maven-test.yml@develop
+    secrets: inherit
+    with:
+      project-name: ${{ github.repository }}
+      version: ${{ github.sha }}
+      description: ${{ github.ref }}
