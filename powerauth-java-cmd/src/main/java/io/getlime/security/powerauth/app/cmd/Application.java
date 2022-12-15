@@ -454,6 +454,7 @@ public class Application {
                     model.setData(dataFileBytes);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
+                    break;
                 }
                 case UPGRADE_START: {
                     StartUpgradeStepModel model = new StartUpgradeStepModel();
