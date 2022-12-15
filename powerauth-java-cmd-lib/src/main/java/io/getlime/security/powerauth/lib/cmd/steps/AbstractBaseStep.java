@@ -295,6 +295,10 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * Calls the server and prepares response context with the response data
      */
     private @Nullable ResponseContext<R> callServer(StepContext<M, R> stepContext) throws Exception {
+        if (stepContext == null) {
+            return null;
+        }
+
         M model = stepContext.getModel();
         RequestContext requestContext = stepContext.getRequestContext();
 

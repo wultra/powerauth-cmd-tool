@@ -78,7 +78,7 @@ public class PrepareActivationStep extends AbstractBaseStepV2 {
      */
     @Autowired
     public PrepareActivationStep(StepLogger stepLogger) {
-        super(PowerAuthStep.ACTIVATION_CREATE, PowerAuthVersion.VERSION_2, stepLogger);
+        super(PowerAuthStep.ACTIVATION_CREATE, PowerAuthVersion.VERSION_2, Objects.requireNonNull(stepLogger, "stepLogger must not be null"));
     }
 
     /**
@@ -110,11 +110,9 @@ public class PrepareActivationStep extends AbstractBaseStepV2 {
         Pattern p = Pattern.compile("^[A-Z2-7]{5}-[A-Z2-7]{5}-[A-Z2-7]{5}-[A-Z2-7]{5}(#.*)?$");
         Matcher m = p.matcher(model.getActivationCode());
         if (!m.find()) {
-            if (stepLogger != null) {
-                stepLogger.writeError("activation-create-error-activation-code", "Activation failed", "Activation code has invalid format");
-                stepLogger.writeDoneFailed("activation-create-failed");
-                return null;
-            }
+            stepLogger.writeError("activation-create-error-activation-code", "Activation failed", "Activation code has invalid format");
+            stepLogger.writeDoneFailed("activation-create-failed");
+            return null;
         }
         String activationIdShort = model.getActivationCode().substring(0, 11);
         String activationOTP = model.getActivationCode().substring(12, 23);
