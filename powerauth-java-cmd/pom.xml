@@ -30,7 +30,7 @@
     <parent>
         <groupId>io.getlime.security</groupId>
         <artifactId>powerauth-cmd-parent</artifactId>
-        <version>1.4.0</version>
+        <version>${revision}</version>
     </parent>
 
     <dependencies>
