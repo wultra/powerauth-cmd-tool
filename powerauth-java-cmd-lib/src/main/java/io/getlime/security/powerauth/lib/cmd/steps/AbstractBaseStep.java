@@ -142,7 +142,10 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
                 null
         );
 
-        StepContext<M, R> stepContext = prepareStepContext(stepLogger, context);
+        final StepContext<M, R> stepContext = prepareStepContext(stepLogger, context);
+        if (stepContext == null) {
+            return null;
+        }
 
         try {
             ResponseContext<R> responseContext = callServer(stepContext);
@@ -295,6 +298,15 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * Calls the server and prepares response context with the response data
      */
     private @Nullable ResponseContext<R> callServer(StepContext<M, R> stepContext) throws Exception {
+        if (stepContext == null) {
+            return null;
+        }
+
+        final ParameterizedTypeReference<R> responseTypeReference = getResponseTypeReference();
+        if (responseTypeReference == null) {
+            return null;
+        }
+
         M model = stepContext.getModel();
         RequestContext requestContext = stepContext.getRequestContext();
 
@@ -328,9 +340,9 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
         try {
             // Call the right method with the REST client
             if (HttpMethod.GET.equals(requestContext.getHttpMethod())) {
-                responseEntity = restClient.get(requestContext.getUri(), null, MapUtil.toMultiValueMap(headers), ParameterizedTypeReference.forType(getResponseTypeReference().getType()));
+                responseEntity = restClient.get(requestContext.getUri(), null, MapUtil.toMultiValueMap(headers), responseTypeReference);
             } else {
-                responseEntity = restClient.post(requestContext.getUri(), requestBytes, null, MapUtil.toMultiValueMap(headers), ParameterizedTypeReference.forType(getResponseTypeReference().getType()));
+                responseEntity = restClient.post(requestContext.getUri(), requestBytes, null, MapUtil.toMultiValueMap(headers), responseTypeReference);
             }
         } catch (RestClientException ex) {
             stepContext.getStepLogger().writeServerCallError(step.id() + "-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));

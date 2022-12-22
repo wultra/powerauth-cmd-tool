@@ -6,20 +6,17 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>powerauth-java-cmd-lib</artifactId>
     <description>PowerAuth Command-line Utility - Java Library</description>
-    <version>1.3.0</version>
 
     <parent>
         <artifactId>powerauth-cmd-parent</artifactId>
         <groupId>io.getlime.security</groupId>
-        <version>1.3.0</version>
-        <relativePath>../pom.xml</relativePath>
+        <version>1.4.0</version>
     </parent>
 
     <dependencies>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>commons-cli</groupId>
@@ -60,15 +57,13 @@
 
         <dependency>
             <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk15on</artifactId>
-            <version>${bc.version}</version>
+            <artifactId>bcprov-jdk18on</artifactId>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
-            <version>${spring-boot.version}</version>
             <exclusions>
                 <exclusion>
                     <artifactId>log4j-to-slf4j</artifactId>
@@ -79,7 +74,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
-            <version>${spring-boot.version}</version>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -91,7 +85,6 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>${lombok.version}</version>
         </dependency>
 
     </dependencies>

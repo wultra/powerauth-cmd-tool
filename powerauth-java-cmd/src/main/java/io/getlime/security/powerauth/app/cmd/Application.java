@@ -104,6 +104,7 @@ public class Application {
             options.addOption("R", "recovery-code", true, "Recovery code to be confirmed.");
             options.addOption("P", "platform", true, "User device platform.");
             options.addOption("D", "device-info", true, "Information about user device.");
+            options.addOption("q", "qr-code-data", true, "Data for offline signature encoded in QR code.");
             options.addOption("v", "version", true, "PowerAuth protocol version.");
 
             Option httpHeaderOption = Option.builder("H")
@@ -171,6 +172,11 @@ public class Application {
                 deviceInfo = cmd.getOptionValue("D");
             } else {
                 deviceInfo = "cmd-tool";
+            }
+
+            String qrCodeData = null;
+            if (cmd.hasOption("q")) {
+                qrCodeData = cmd.getOptionValue("q");
             }
 
             // Read values
@@ -448,6 +454,7 @@ public class Application {
                     model.setData(dataFileBytes);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
+                    break;
                 }
                 case UPGRADE_START: {
                     StartUpgradeStepModel model = new StartUpgradeStepModel();
@@ -520,6 +527,20 @@ public class Application {
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
+                    break;
+                }
+
+                case SIGNATURE_OFFLINE_COMPUTE: {
+
+                    ComputeOfflineSignatureStepModel model = new ComputeOfflineSignatureStepModel();
+                    model.setStatusFileName(statusFileName);
+                    model.setQrCodeData(qrCodeData);
+                    model.setPassword(cmd.getOptionValue("p"));
+                    model.setResultStatus(resultStatusObject);
+                    model.setVersion(version);
+
+                    stepExecutionService.execute(powerAuthStep, version, model);
+                    break;
                 }
 
                 default:
