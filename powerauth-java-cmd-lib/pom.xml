@@ -10,7 +10,7 @@
     <parent>
         <artifactId>powerauth-cmd-parent</artifactId>
         <groupId>io.getlime.security</groupId>
-        <version>${revision}</version>
+        <version>1.5.0-SNAPSHOT</version>
     </parent>
 
     <dependencies>
