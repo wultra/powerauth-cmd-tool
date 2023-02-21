@@ -17,7 +17,7 @@
 package io.getlime.security.powerauth.lib.cmd.steps;
 
 import com.google.common.io.BaseEncoding;
-import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureFormat;
+import io.getlime.security.powerauth.crypto.lib.config.SignatureConfiguration;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.crypto.lib.util.SignatureUtils;
@@ -223,7 +223,7 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
             return SIGNATURE_UTILS.computePowerAuthSignature((signatureBaseString + "&offline").getBytes(StandardCharsets.UTF_8),
                     signatureKeys,
                     CounterUtil.getCtrData(resultStatusObject, stepLogger),
-                    PowerAuthSignatureFormat.DECIMAL);
+                    SignatureConfiguration.decimal());
         } catch (Exception ex) {
             stepLogger.writeError(getStep().id() + "-error-cryptography", "Cryptography error", ex.getMessage());
             stepLogger.writeDoneFailed(getStep().id() + "-failed");
