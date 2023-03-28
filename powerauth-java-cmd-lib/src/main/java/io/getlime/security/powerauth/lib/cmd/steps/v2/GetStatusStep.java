@@ -16,7 +16,6 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
-import com.google.common.io.BaseEncoding;
 import com.wultra.core.rest.client.base.RestClient;
 import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
@@ -41,6 +40,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -100,7 +100,7 @@ public class GetStatusStep extends AbstractBaseStepV2 {
         // Get data from status
         final String activationId = resultStatusObject.getActivationId();
         final String transportMasterKeyBase64 = resultStatusObject.getTransportMasterKey();
-        final SecretKey transportMasterKey = keyConvertor.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKeyBase64));
+        final SecretKey transportMasterKey = keyConvertor.convertBytesToSharedSecretKey(Base64.getDecoder().decode(transportMasterKeyBase64));
 
         // Send the activation status request to the server
         final ActivationStatusRequest requestObject = new ActivationStatusRequest();
@@ -138,7 +138,7 @@ public class GetStatusStep extends AbstractBaseStepV2 {
 
             // Process the server response
             final ActivationStatusResponse responseObject = responseWrapper.getResponseObject();
-            final byte[] cStatusBlob = BaseEncoding.base64().decode(responseObject.getEncryptedStatusBlob());
+            final byte[] cStatusBlob = Base64.getDecoder().decode(responseObject.getEncryptedStatusBlob());
 
             // Print the results
             final ActivationStatusBlobInfo statusBlobRaw = activation.getStatusFromEncryptedBlob(cStatusBlob, null, null, transportMasterKey);

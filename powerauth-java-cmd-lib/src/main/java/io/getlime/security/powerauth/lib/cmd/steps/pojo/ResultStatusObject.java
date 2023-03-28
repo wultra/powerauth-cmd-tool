@@ -16,7 +16,6 @@
 package io.getlime.security.powerauth.lib.cmd.steps.pojo;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -27,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.crypto.SecretKey;
 import java.security.PublicKey;
+import java.util.Base64;
 
 /**
  * Activation status object
@@ -104,7 +104,7 @@ public class ResultStatusObject {
     @JsonIgnore
     public byte[] getEncryptedDevicePrivateKeyBytes() {
         String encryptedDevicePrivateKey = (String) jsonObject.get("encryptedDevicePrivateKey");
-        return BaseEncoding.base64().decode(encryptedDevicePrivateKey);
+        return Base64.getDecoder().decode(encryptedDevicePrivateKey);
     }
 
     /**
@@ -113,7 +113,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setEncryptedDevicePrivateKeyBytes(byte[] encryptedDevicePrivateKeyBytes) {
-        String encryptedDevicePrivateKey = BaseEncoding.base64().encode(encryptedDevicePrivateKeyBytes);
+        String encryptedDevicePrivateKey = Base64.getEncoder().encodeToString(encryptedDevicePrivateKeyBytes);
         jsonObject.put("encryptedDevicePrivateKey", encryptedDevicePrivateKey);
     }
 
@@ -154,7 +154,7 @@ public class ResultStatusObject {
     @JsonIgnore
     public PublicKey getServerPublicKeyObject() throws Exception {
         String serverPublicKey = (String) jsonObject.get("serverPublicKey");
-        return KEY_CONVERTOR.convertBytesToPublicKey(BaseEncoding.base64().decode(serverPublicKey));
+        return KEY_CONVERTOR.convertBytesToPublicKey(Base64.getDecoder().decode(serverPublicKey));
     }
 
     /**
@@ -164,7 +164,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setServerPublicKeyObject(PublicKey serverPublicKeyObject) throws Exception {
-        String serverPublicKey = BaseEncoding.base64().encode(KEY_CONVERTOR.convertPublicKeyToBytes(serverPublicKeyObject));
+        String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertPublicKeyToBytes(serverPublicKeyObject));
         jsonObject.put("serverPublicKey", serverPublicKey);
     }
 
@@ -189,7 +189,7 @@ public class ResultStatusObject {
     @JsonIgnore
     public SecretKey getSignatureBiometryKeyObject() {
         String signatureBiometryKey = (String) jsonObject.get("signatureBiometryKey");
-        return KEY_CONVERTOR.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(signatureBiometryKey));
+        return KEY_CONVERTOR.convertBytesToSharedSecretKey(Base64.getDecoder().decode(signatureBiometryKey));
     }
 
     /**
@@ -198,7 +198,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setSignatureBiometryKeyObject(SecretKey signatureBiometryKeyObject) {
-        String signatureBiometryKey = BaseEncoding.base64().encode(KEY_CONVERTOR.convertSharedSecretKeyToBytes(signatureBiometryKeyObject));
+        String signatureBiometryKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertSharedSecretKeyToBytes(signatureBiometryKeyObject));
         jsonObject.put("signatureBiometryKey", signatureBiometryKey);
     }
 
@@ -223,7 +223,7 @@ public class ResultStatusObject {
     @JsonIgnore
     public byte[] getSignatureKnowledgeKeyEncryptedBytes() {
         String signatureKnowledgeKeyEncrypted = (String) jsonObject.get("signatureKnowledgeKeyEncrypted");
-        return BaseEncoding.base64().decode(signatureKnowledgeKeyEncrypted);
+        return Base64.getDecoder().decode(signatureKnowledgeKeyEncrypted);
     }
 
     /**
@@ -232,7 +232,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setSignatureKnowledgeKeyEncryptedBytes(byte[] signatureKnowledgeKeyEncryptedBytes) {
-        String signatureKnowledgeKeyEncrypted = BaseEncoding.base64().encode(signatureKnowledgeKeyEncryptedBytes);
+        String signatureKnowledgeKeyEncrypted = Base64.getEncoder().encodeToString(signatureKnowledgeKeyEncryptedBytes);
         jsonObject.put("signatureKnowledgeKeyEncrypted", signatureKnowledgeKeyEncrypted);
     }
 
@@ -257,7 +257,7 @@ public class ResultStatusObject {
     @JsonIgnore
     public byte[] getSignatureKnowledgeKeySaltBytes() {
         String signatureKnowledgeKeySalt = (String) jsonObject.get("signatureKnowledgeKeySalt");
-        return BaseEncoding.base64().decode(signatureKnowledgeKeySalt);
+        return Base64.getDecoder().decode(signatureKnowledgeKeySalt);
     }
 
     /**
@@ -266,7 +266,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setSignatureKnowledgeKeySaltBytes(byte[] signatureKnowledgeKeySaltBytes) {
-        String signatureKnowledgeKeySalt = BaseEncoding.base64().encode(signatureKnowledgeKeySaltBytes);
+        String signatureKnowledgeKeySalt = Base64.getEncoder().encodeToString(signatureKnowledgeKeySaltBytes);
         jsonObject.put("signatureKnowledgeKeySalt", signatureKnowledgeKeySalt);
     }
 
@@ -291,7 +291,7 @@ public class ResultStatusObject {
     @JsonIgnore
     public SecretKey getSignaturePossessionKeyObject() {
         String signaturePossessionKey = (String) jsonObject.get("signaturePossessionKey");
-        return KEY_CONVERTOR.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(signaturePossessionKey));
+        return KEY_CONVERTOR.convertBytesToSharedSecretKey(Base64.getDecoder().decode(signaturePossessionKey));
     }
 
     /**
@@ -300,7 +300,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setSignaturePossessionKeyObject(SecretKey signaturePossessionKeyObject) {
-        String signaturePossessionKey = BaseEncoding.base64().encode(KEY_CONVERTOR.convertSharedSecretKeyToBytes(signaturePossessionKeyObject));
+        String signaturePossessionKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertSharedSecretKeyToBytes(signaturePossessionKeyObject));
         jsonObject.put("signaturePossessionKey", signaturePossessionKey);
     }
 
@@ -325,7 +325,7 @@ public class ResultStatusObject {
     @JsonIgnore
     public SecretKey getTransportMasterKeyObject() {
         String transportMasterKey = (String) jsonObject.get("transportMasterKey");
-        return KEY_CONVERTOR.convertBytesToSharedSecretKey(BaseEncoding.base64().decode(transportMasterKey));
+        return KEY_CONVERTOR.convertBytesToSharedSecretKey(Base64.getDecoder().decode(transportMasterKey));
     }
 
     /**
@@ -334,7 +334,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setTransportMasterKeyObject(SecretKey transportMasterKeyObject) {
-        String transportMasterKey = BaseEncoding.base64().encode(KEY_CONVERTOR.convertSharedSecretKeyToBytes(transportMasterKeyObject));
+        String transportMasterKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertSharedSecretKeyToBytes(transportMasterKeyObject));
         jsonObject.put("transportMasterKey", transportMasterKey);
     }
 

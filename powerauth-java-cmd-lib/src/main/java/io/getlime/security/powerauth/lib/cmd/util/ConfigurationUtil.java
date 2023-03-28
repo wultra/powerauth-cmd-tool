@@ -16,7 +16,6 @@
  */
 package io.getlime.security.powerauth.lib.cmd.util;
 
-import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.lib.model.exception.CryptoProviderException;
 import io.getlime.security.powerauth.crypto.lib.model.exception.GenericCryptoException;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
@@ -25,6 +24,7 @@ import org.json.simple.JSONObject;
 
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
+import java.util.Base64;
 
 /**
  * Helper class for configuration 
@@ -81,7 +81,7 @@ public class ConfigurationUtil {
     public static PublicKey getMasterKey(JSONObject clientConfigObject, StepLogger stepLogger) {
         if (clientConfigObject != null && clientConfigObject.get("masterPublicKey") != null) {
             try {
-                byte[] masterKeyBytes = BaseEncoding.base64().decode((String) clientConfigObject.get("masterPublicKey"));
+                byte[] masterKeyBytes = Base64.getDecoder().decode((String) clientConfigObject.get("masterPublicKey"));
                 return keyConvertor.convertBytesToPublicKey(masterKeyBytes);
             } catch (IllegalArgumentException e) {
                 stepLogger.writeError("master-key-error-encoding", "Invalid Master Server Public Key", "Master Server Public Key must be stored in a valid Base64 encoding", e);

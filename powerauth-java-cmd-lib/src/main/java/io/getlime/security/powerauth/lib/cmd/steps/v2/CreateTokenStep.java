@@ -17,7 +17,6 @@
 package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.io.BaseEncoding;
 import com.wultra.core.rest.client.base.RestClient;
 import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
@@ -49,10 +48,7 @@ import java.io.Console;
 import java.io.FileWriter;
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.ECPublicKey;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Helper class with token creation logic.
@@ -132,7 +128,7 @@ public class CreateTokenStep extends AbstractBaseStepV2 {
         final EciesCryptogram eciesCryptogram = encryptor.encryptRequest(new byte[0], false);
         // Prepare encryption request
         TokenCreateRequest requestObject = new TokenCreateRequest();
-        String ephemeralPublicKeyBase64 = BaseEncoding.base64().encode(eciesCryptogram.getEphemeralPublicKey());
+        String ephemeralPublicKeyBase64 = Base64.getEncoder().encodeToString(eciesCryptogram.getEphemeralPublicKey());
         requestObject.setEphemeralPublicKey(ephemeralPublicKeyBase64);
         final ObjectRequest<TokenCreateRequest> request = new ObjectRequest<>(requestObject);
 
@@ -146,7 +142,7 @@ public class CreateTokenStep extends AbstractBaseStepV2 {
         final PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion().value());
         final SignatureConfiguration signatureConfiguration = SignatureConfiguration.forFormat(signatureFormat);
         String signatureValue = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), Arrays.asList(signaturePossessionKey, signatureKnowledgeKey), ctrData, signatureConfiguration);
-        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion().value());
+        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), Base64.getEncoder().encodeToString(nonceBytes), model.getVersion().value());
         String httpAuthorizationHeader = header.buildHttpHeader();
 
         // Increment the counter
@@ -189,8 +185,8 @@ public class CreateTokenStep extends AbstractBaseStepV2 {
 
             final TokenCreateResponse responseObject = responseWrapper.getResponseObject();
 
-            byte[] macResponse = BaseEncoding.base64().decode(responseObject.getMac());
-            byte[] encryptedDataResponse = BaseEncoding.base64().decode(responseObject.getEncryptedData());
+            byte[] macResponse = Base64.getDecoder().decode(responseObject.getMac());
+            byte[] encryptedDataResponse = Base64.getDecoder().decode(responseObject.getEncryptedData());
             EciesCryptogram eciesCryptogramResponse = new EciesCryptogram(macResponse, encryptedDataResponse);
 
             final byte[] decryptedBytes = encryptor.decryptResponse(eciesCryptogramResponse);

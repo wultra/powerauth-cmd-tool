@@ -16,7 +16,6 @@
  */
 package io.getlime.security.powerauth.lib.cmd.util;
 
-import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.lib.generator.HashBasedCounter;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.BaseStepModel;
@@ -24,6 +23,7 @@ import io.getlime.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 
 import java.nio.ByteBuffer;
+import java.util.Base64;
 
 /**
  * Helper class for counter.
@@ -65,7 +65,7 @@ public class CounterUtil {
             case 3:
                 String ctrDataBase64 = resultStatusObject.getCtrData();
                 if (!ctrDataBase64.isEmpty()) {
-                    ctrData = BaseEncoding.base64().decode(ctrDataBase64);
+                    ctrData = Base64.getDecoder().decode(ctrDataBase64);
                 }
                 break;
             default:
@@ -102,9 +102,9 @@ public class CounterUtil {
         if (version == 3) {
             String ctrDataBase64 = resultStatusObject.getCtrData();
             if (!ctrDataBase64.isEmpty()) {
-                byte[] ctrData = BaseEncoding.base64().decode(ctrDataBase64);
+                byte[] ctrData = Base64.getDecoder().decode(ctrDataBase64);
                 ctrData = new HashBasedCounter().next(ctrData);
-                resultStatusObject.setCtrData(BaseEncoding.base64().encode(ctrData));
+                resultStatusObject.setCtrData(Base64.getEncoder().encodeToString(ctrData));
             }
         }
     }

@@ -16,7 +16,6 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
-import com.google.common.io.BaseEncoding;
 import com.wultra.core.rest.client.base.RestClient;
 import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
@@ -38,6 +37,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -98,7 +98,7 @@ public class EncryptStep extends AbstractBaseStepV2 {
             return null;
         }
         // Prepare the encryptor
-        ClientNonPersonalizedEncryptor encryptor = new ClientNonPersonalizedEncryptor(BaseEncoding.base64().decode(model.getApplicationKey()), model.getMasterPublicKey());
+        ClientNonPersonalizedEncryptor encryptor = new ClientNonPersonalizedEncryptor(Base64.getDecoder().decode(model.getApplicationKey()), model.getMasterPublicKey());
 
         // Encrypt the request data
         final NonPersonalizedEncryptedMessage encryptedMessage = encryptor.encrypt(requestDataBytes);
@@ -109,14 +109,14 @@ public class EncryptStep extends AbstractBaseStepV2 {
         }
 
         NonPersonalizedEncryptedPayloadModel encryptedRequestObject = new NonPersonalizedEncryptedPayloadModel();
-        encryptedRequestObject.setAdHocIndex(BaseEncoding.base64().encode(encryptedMessage.getAdHocIndex()));
-        encryptedRequestObject.setApplicationKey(BaseEncoding.base64().encode(encryptedMessage.getApplicationKey()));
-        encryptedRequestObject.setEncryptedData(BaseEncoding.base64().encode(encryptedMessage.getEncryptedData()));
-        encryptedRequestObject.setEphemeralPublicKey(BaseEncoding.base64().encode(encryptedMessage.getEphemeralPublicKey()));
-        encryptedRequestObject.setMac(BaseEncoding.base64().encode(encryptedMessage.getMac()));
-        encryptedRequestObject.setMacIndex(BaseEncoding.base64().encode(encryptedMessage.getMacIndex()));
-        encryptedRequestObject.setNonce(BaseEncoding.base64().encode(encryptedMessage.getNonce()));
-        encryptedRequestObject.setSessionIndex(BaseEncoding.base64().encode(encryptedMessage.getSessionIndex()));
+        encryptedRequestObject.setAdHocIndex(Base64.getEncoder().encodeToString(encryptedMessage.getAdHocIndex()));
+        encryptedRequestObject.setApplicationKey(Base64.getEncoder().encodeToString(encryptedMessage.getApplicationKey()));
+        encryptedRequestObject.setEncryptedData(Base64.getEncoder().encodeToString(encryptedMessage.getEncryptedData()));
+        encryptedRequestObject.setEphemeralPublicKey(Base64.getEncoder().encodeToString(encryptedMessage.getEphemeralPublicKey()));
+        encryptedRequestObject.setMac(Base64.getEncoder().encodeToString(encryptedMessage.getMac()));
+        encryptedRequestObject.setMacIndex(Base64.getEncoder().encodeToString(encryptedMessage.getMacIndex()));
+        encryptedRequestObject.setNonce(Base64.getEncoder().encodeToString(encryptedMessage.getNonce()));
+        encryptedRequestObject.setSessionIndex(Base64.getEncoder().encodeToString(encryptedMessage.getSessionIndex()));
 
         ObjectRequest<NonPersonalizedEncryptedPayloadModel> body = new ObjectRequest<>();
         body.setRequestObject(encryptedRequestObject);
@@ -159,14 +159,14 @@ public class EncryptStep extends AbstractBaseStepV2 {
 
             // Decrypt the server response
             final NonPersonalizedEncryptedPayloadModel encryptedResponseObject = responseWrapper.getResponseObject();
-            encryptedMessage.setApplicationKey(BaseEncoding.base64().decode(encryptedResponseObject.getApplicationKey()));
-            encryptedMessage.setAdHocIndex(BaseEncoding.base64().decode(encryptedResponseObject.getAdHocIndex()));
-            encryptedMessage.setEphemeralPublicKey(BaseEncoding.base64().decode(encryptedResponseObject.getEphemeralPublicKey()));
-            encryptedMessage.setEncryptedData(BaseEncoding.base64().decode(encryptedResponseObject.getEncryptedData()));
-            encryptedMessage.setMac(BaseEncoding.base64().decode(encryptedResponseObject.getMac()));
-            encryptedMessage.setMacIndex(BaseEncoding.base64().decode(encryptedResponseObject.getMacIndex()));
-            encryptedMessage.setNonce(BaseEncoding.base64().decode(encryptedResponseObject.getNonce()));
-            encryptedMessage.setSessionIndex(BaseEncoding.base64().decode(encryptedResponseObject.getSessionIndex()));
+            encryptedMessage.setApplicationKey(Base64.getDecoder().decode(encryptedResponseObject.getApplicationKey()));
+            encryptedMessage.setAdHocIndex(Base64.getDecoder().decode(encryptedResponseObject.getAdHocIndex()));
+            encryptedMessage.setEphemeralPublicKey(Base64.getDecoder().decode(encryptedResponseObject.getEphemeralPublicKey()));
+            encryptedMessage.setEncryptedData(Base64.getDecoder().decode(encryptedResponseObject.getEncryptedData()));
+            encryptedMessage.setMac(Base64.getDecoder().decode(encryptedResponseObject.getMac()));
+            encryptedMessage.setMacIndex(Base64.getDecoder().decode(encryptedResponseObject.getMacIndex()));
+            encryptedMessage.setNonce(Base64.getDecoder().decode(encryptedResponseObject.getNonce()));
+            encryptedMessage.setSessionIndex(Base64.getDecoder().decode(encryptedResponseObject.getSessionIndex()));
 
             byte[] decryptedMessageBytes = encryptor.decrypt(encryptedMessage);
             if (decryptedMessageBytes == null) {
