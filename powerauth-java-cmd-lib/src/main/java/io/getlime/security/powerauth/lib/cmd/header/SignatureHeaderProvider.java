@@ -16,7 +16,6 @@
  */
 package io.getlime.security.powerauth.lib.cmd.header;
 
-import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
 import io.getlime.security.powerauth.crypto.lib.config.SignatureConfiguration;
@@ -90,16 +89,16 @@ public class SignatureHeaderProvider implements PowerAuthHeaderProvider<Signatur
         }
         String signatureValue = SIGNATURE.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), signatureSecretKeys, ctrData, signatureConfiguration);
 
-        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(resultStatusObject.getActivationId(), model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion().value());
+        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(resultStatusObject.getActivationId(), model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), Base64.getEncoder().encodeToString(nonceBytes), model.getVersion().value());
 
         Map<String, String> lowLevelData = new HashMap<>();
         lowLevelData.put("counter", String.valueOf(resultStatusObject.getCounter()));
         int version = resultStatusObject.getVersion().intValue();
         if (version == 3) {
-            lowLevelData.put("ctrData", BaseEncoding.base64().encode(ctrData));
+            lowLevelData.put("ctrData", Base64.getEncoder().encodeToString(ctrData));
         }
         lowLevelData.put("signatureBaseString", signatureBaseString);
-        lowLevelData.put("nonce", BaseEncoding.base64().encode(nonceBytes));
+        lowLevelData.put("nonce", Base64.getEncoder().encodeToString(nonceBytes));
         lowLevelData.put("applicationSecret", model.getApplicationSecret());
 
         if (model instanceof VerifySignatureStepModel) {

@@ -17,7 +17,6 @@
 package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.io.BaseEncoding;
 import com.wultra.core.rest.client.base.RestClient;
 import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
@@ -45,6 +44,7 @@ import java.io.Console;
 import java.io.FileWriter;
 import java.security.KeyPair;
 import java.security.PublicKey;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -148,8 +148,8 @@ public class PrepareActivationStep extends AbstractBaseStepV2 {
                 activationIdShort,
                 nonceDeviceBytes,
                 cDevicePublicKeyBytes,
-                BaseEncoding.base64().decode(model.getApplicationKey()),
-                BaseEncoding.base64().decode(model.getApplicationSecret())
+                Base64.getDecoder().decode(model.getApplicationKey()),
+                Base64.getDecoder().decode(model.getApplicationSecret())
         );
         byte[] ephemeralPublicKeyBytes = keyConversion.convertPublicKeyToBytes(clientEphemeralKeyPair.getPublic());
 
@@ -158,10 +158,10 @@ public class PrepareActivationStep extends AbstractBaseStepV2 {
         requestObject.setActivationIdShort(activationIdShort);
         requestObject.setApplicationKey(model.getApplicationKey());
         requestObject.setActivationName(model.getActivationName());
-        requestObject.setActivationNonce(BaseEncoding.base64().encode(nonceDeviceBytes));
-        requestObject.setEphemeralPublicKey(BaseEncoding.base64().encode(ephemeralPublicKeyBytes));
-        requestObject.setEncryptedDevicePublicKey(BaseEncoding.base64().encode(cDevicePublicKeyBytes));
-        requestObject.setApplicationSignature(BaseEncoding.base64().encode(signature));
+        requestObject.setActivationNonce(Base64.getEncoder().encodeToString(nonceDeviceBytes));
+        requestObject.setEphemeralPublicKey(Base64.getEncoder().encodeToString(ephemeralPublicKeyBytes));
+        requestObject.setEncryptedDevicePublicKey(Base64.getEncoder().encodeToString(cDevicePublicKeyBytes));
+        requestObject.setApplicationSignature(Base64.getEncoder().encodeToString(signature));
         ObjectRequest<ActivationCreateRequest> body = new ObjectRequest<>();
         body.setRequestObject(requestObject);
 
@@ -197,10 +197,10 @@ public class PrepareActivationStep extends AbstractBaseStepV2 {
             // Process the server response
             ActivationCreateResponse responseObject = responseWrapper.getResponseObject();
             String activationId = responseObject.getActivationId();
-            byte[] nonceServerBytes = BaseEncoding.base64().decode(responseObject.getActivationNonce());
-            byte[] cServerPubKeyBytes = BaseEncoding.base64().decode(responseObject.getEncryptedServerPublicKey());
-            byte[] cServerPubKeySignatureBytes = BaseEncoding.base64().decode(responseObject.getEncryptedServerPublicKeySignature());
-            byte[] ephemeralKeyBytes = BaseEncoding.base64().decode(responseObject.getEphemeralPublicKey());
+            byte[] nonceServerBytes = Base64.getDecoder().decode(responseObject.getActivationNonce());
+            byte[] cServerPubKeyBytes = Base64.getDecoder().decode(responseObject.getEncryptedServerPublicKey());
+            byte[] cServerPubKeySignatureBytes = Base64.getDecoder().decode(responseObject.getEncryptedServerPublicKeySignature());
+            byte[] ephemeralKeyBytes = Base64.getDecoder().decode(responseObject.getEphemeralPublicKey());
             PublicKey ephemeralPublicKey = keyConversion.convertBytesToPublicKey(ephemeralKeyBytes);
 
             // Verify that the server public key signature is valid

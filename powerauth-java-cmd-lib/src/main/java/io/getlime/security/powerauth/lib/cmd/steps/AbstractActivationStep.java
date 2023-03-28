@@ -17,7 +17,6 @@
 package io.getlime.security.powerauth.lib.cmd.steps;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.vault.PowerAuthClientVault;
@@ -54,6 +53,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.PublicKey;
 import java.security.interfaces.ECPublicKey;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -139,8 +139,8 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         ActivationSecurityContext securityContext = (ActivationSecurityContext) context.getSecurityContext();
 
         // Read activation layer 1 response and decrypt it
-        byte[] macL1 = BaseEncoding.base64().decode(encryptedResponseL1.getMac());
-        byte[] encryptedDataL1 = BaseEncoding.base64().decode(encryptedResponseL1.getEncryptedData());
+        byte[] macL1 = Base64.getDecoder().decode(encryptedResponseL1.getMac());
+        byte[] encryptedDataL1 = Base64.getDecoder().decode(encryptedResponseL1.getEncryptedData());
         EciesCryptogram responseCryptogramL1 = new EciesCryptogram(macL1, encryptedDataL1);
         byte[] decryptedDataL1 = securityContext.getEncryptorL1().decryptResponse(responseCryptogramL1);
 
@@ -156,8 +156,8 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         );
 
         // Decrypt layer 2 response
-        byte[] macL2 = BaseEncoding.base64().decode(responseL1.getActivationData().getMac());
-        byte[] encryptedDataL2 = BaseEncoding.base64().decode(responseL1.getActivationData().getEncryptedData());
+        byte[] macL2 = Base64.getDecoder().decode(responseL1.getActivationData().getMac());
+        byte[] encryptedDataL2 = Base64.getDecoder().decode(responseL1.getActivationData().getEncryptedData());
         EciesCryptogram responseCryptogramL2 = new EciesCryptogram(macL2, encryptedDataL2);
         byte[] decryptedDataL2 = securityContext.getEncryptorL2().decryptResponse(responseCryptogramL2);
 
@@ -175,7 +175,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         String activationId = responseL2.getActivationId();
         String ctrDataBase64 = responseL2.getCtrData();
         String serverPublicKeyBase64 = responseL2.getServerPublicKey();
-        PublicKey serverPublicKey = KEY_CONVERTOR.convertBytesToPublicKey(BaseEncoding.base64().decode(serverPublicKeyBase64));
+        PublicKey serverPublicKey = KEY_CONVERTOR.convertBytesToPublicKey(Base64.getDecoder().decode(serverPublicKeyBase64));
 
         // Compute master secret key
         SecretKey masterSecretKey = KEY_FACTORY.generateClientMasterSecretKey(securityContext.getDeviceKeyPair().getPrivate(), serverPublicKey);
@@ -286,7 +286,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
 
         // Generate device key pair
         byte[] devicePublicKeyBytes = KEY_CONVERTOR.convertPublicKeyToBytes(securityContext.getDeviceKeyPair().getPublic());
-        String devicePublicKeyBase64 = BaseEncoding.base64().encode(devicePublicKeyBytes);
+        String devicePublicKeyBase64 = Base64.getEncoder().encodeToString(devicePublicKeyBytes);
 
         // Create activation layer 2 request which is decryptable only on PowerAuth server
         ActivationLayer2Request requestL2 = new ActivationLayer2Request();

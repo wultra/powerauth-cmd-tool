@@ -16,7 +16,6 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps;
 
-import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.lib.config.SignatureConfiguration;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
@@ -42,10 +41,7 @@ import javax.crypto.SecretKey;
 import java.io.Console;
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.ECPublicKey;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Step for computing offline PowerAuth signature.
@@ -184,12 +180,12 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
         try {
             // Verify ECDSA signature from the offline data, return error in case of invalid signature
             final String ecdsaSignature = signatureLine.substring(1);
-            final byte[] serverPublicKeyBytes = BaseEncoding.base64().decode(resultStatusObject.getServerPublicKey());
+            final byte[] serverPublicKeyBytes = Base64.getDecoder().decode(resultStatusObject.getServerPublicKey());
             final ECPublicKey serverPublicKey = (ECPublicKey) KEY_CONVERTOR.convertBytesToPublicKey(serverPublicKeyBytes);
             final String offlineDataWithoutSignature = offlineData.substring(0, offlineData.length() - ecdsaSignature.length());
             final boolean dataSignatureValid = SIGNATURE_UTILS.validateECDSASignature(
                     offlineDataWithoutSignature.getBytes(StandardCharsets.UTF_8),
-                    BaseEncoding.base64().decode(ecdsaSignature),
+                    Base64.getDecoder().decode(ecdsaSignature),
                     serverPublicKey);
             if (!dataSignatureValid) {
                 stepLogger.writeError(getStep().id() + "-error-invalid-signature", "Invalid signature", "Invalid signature of offline data");
@@ -202,13 +198,13 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
             final String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString(
                     "POST",
                     "/operation/authorize/offline",
-                    BaseEncoding.base64().decode(nonce),
+                    Base64.getDecoder().decode(nonce),
                     dataForSignature.getBytes(StandardCharsets.UTF_8));
 
             // Prepare keys for PowerAuth offline signature calculation
-            final byte[] signaturePossessionKeyBytes = BaseEncoding.base64().decode(resultStatusObject.getSignaturePossessionKey());
-            final byte[] signatureKnowledgeKeySalt = BaseEncoding.base64().decode(resultStatusObject.getSignatureKnowledgeKeySalt());
-            final byte[] signatureKnowledgeKeyEncryptedBytes = BaseEncoding.base64().decode(resultStatusObject.getSignatureKnowledgeKeyEncrypted());
+            final byte[] signaturePossessionKeyBytes = Base64.getDecoder().decode(resultStatusObject.getSignaturePossessionKey());
+            final byte[] signatureKnowledgeKeySalt = Base64.getDecoder().decode(resultStatusObject.getSignatureKnowledgeKeySalt());
+            final byte[] signatureKnowledgeKeyEncryptedBytes = Base64.getDecoder().decode(resultStatusObject.getSignatureKnowledgeKeyEncrypted());
             final SecretKey signaturePossessionKey = KEY_CONVERTOR.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
             final SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(
                     password,

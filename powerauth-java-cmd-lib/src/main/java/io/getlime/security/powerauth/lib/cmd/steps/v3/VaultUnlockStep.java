@@ -15,7 +15,6 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
-import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.vault.PowerAuthClientVault;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
@@ -24,9 +23,9 @@ import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
+import io.getlime.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLoggerFactory;
-import io.getlime.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
@@ -44,6 +43,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -138,7 +138,7 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Ecie
         SecretKey transportMasterKey = resultStatusObject.getTransportMasterKeyObject();
         byte[] encryptedDevicePrivateKeyBytes = resultStatusObject.getEncryptedDevicePrivateKeyBytes();
 
-        byte[] encryptedVaultEncryptionKey = BaseEncoding.base64().decode(responsePayload.getEncryptedVaultEncryptionKey());
+        byte[] encryptedVaultEncryptionKey = Base64.getDecoder().decode(responsePayload.getEncryptedVaultEncryptionKey());
 
         PowerAuthClientVault vault = new PowerAuthClientVault();
         SecretKey vaultEncryptionKey = vault.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey);
@@ -152,10 +152,10 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Ecie
         // Print the results
         Map<String, Object> objectMap = new HashMap<>();
         objectMap.put("activationId", resultStatusObject.getActivationId());
-        objectMap.put("encryptedVaultEncryptionKey", BaseEncoding.base64().encode(encryptedVaultEncryptionKey));
-        objectMap.put("transportMasterKey", BaseEncoding.base64().encode(KEY_CONVERTOR.convertSharedSecretKeyToBytes(transportMasterKey)));
-        objectMap.put("vaultEncryptionKey", BaseEncoding.base64().encode(KEY_CONVERTOR.convertSharedSecretKeyToBytes(vaultEncryptionKey)));
-        objectMap.put("devicePrivateKey", BaseEncoding.base64().encode(KEY_CONVERTOR.convertPrivateKeyToBytes(devicePrivateKey)));
+        objectMap.put("encryptedVaultEncryptionKey", Base64.getEncoder().encodeToString(encryptedVaultEncryptionKey));
+        objectMap.put("transportMasterKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertSharedSecretKeyToBytes(transportMasterKey)));
+        objectMap.put("vaultEncryptionKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertSharedSecretKeyToBytes(vaultEncryptionKey)));
+        objectMap.put("devicePrivateKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertPrivateKeyToBytes(devicePrivateKey)));
         objectMap.put("privateKeyDecryptionSuccessful", (equal ? "true" : "false"));
 
         stepContext.getStepLogger().writeItem(

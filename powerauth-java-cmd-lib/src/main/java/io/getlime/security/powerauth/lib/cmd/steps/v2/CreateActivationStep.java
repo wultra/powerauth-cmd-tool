@@ -1,7 +1,6 @@
 package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.io.BaseEncoding;
 import com.wultra.core.rest.client.base.RestClient;
 import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
@@ -35,6 +34,7 @@ import java.io.FileWriter;
 import java.net.URLEncoder;
 import java.security.KeyPair;
 import java.security.PublicKey;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -169,8 +169,8 @@ public class CreateActivationStep extends AbstractBaseStepV2 {
                 activationIdShort,
                 nonceDeviceBytes,
                 cDevicePublicKeyBytes,
-                BaseEncoding.base64().decode(model.getApplicationKey()),
-                BaseEncoding.base64().decode(model.getApplicationSecret())
+                Base64.getDecoder().decode(model.getApplicationKey()),
+                Base64.getDecoder().decode(model.getApplicationSecret())
         );
         byte[] ephemeralPublicKeyBytes = keyConvertor.convertPublicKeyToBytes(clientEphemeralKeyPair.getPublic());
 
@@ -179,10 +179,10 @@ public class CreateActivationStep extends AbstractBaseStepV2 {
         powerauth.setActivationIdShort(activationIdShort);
         powerauth.setApplicationKey(model.getApplicationKey());
         powerauth.setActivationName(model.getActivationName());
-        powerauth.setActivationNonce(BaseEncoding.base64().encode(nonceDeviceBytes));
-        powerauth.setEphemeralPublicKey(BaseEncoding.base64().encode(ephemeralPublicKeyBytes));
-        powerauth.setEncryptedDevicePublicKey(BaseEncoding.base64().encode(cDevicePublicKeyBytes));
-        powerauth.setApplicationSignature(BaseEncoding.base64().encode(signature));
+        powerauth.setActivationNonce(Base64.getEncoder().encodeToString(nonceDeviceBytes));
+        powerauth.setEphemeralPublicKey(Base64.getEncoder().encodeToString(ephemeralPublicKeyBytes));
+        powerauth.setEncryptedDevicePublicKey(Base64.getEncoder().encodeToString(cDevicePublicKeyBytes));
+        powerauth.setApplicationSignature(Base64.getEncoder().encodeToString(signature));
 
         ActivationCreateCustomRequest requestObject = new ActivationCreateCustomRequest();
         requestObject.setIdentity(identityAttributes);
@@ -201,19 +201,19 @@ public class CreateActivationStep extends AbstractBaseStepV2 {
         byte[] requestObjectBytes = mapper.writeValueAsBytes(requestObject);
 
         // Prepare the encryptor
-        ClientNonPersonalizedEncryptor encryptor = new ClientNonPersonalizedEncryptor(BaseEncoding.base64().decode(model.getApplicationKey()), model.getMasterPublicKey());
+        ClientNonPersonalizedEncryptor encryptor = new ClientNonPersonalizedEncryptor(Base64.getDecoder().decode(model.getApplicationKey()), model.getMasterPublicKey());
 
         // Encrypt the bytes
         final NonPersonalizedEncryptedMessage encryptedMessage = encryptor.encrypt(requestObjectBytes);
         NonPersonalizedEncryptedPayloadModel encryptedRequestObject = new NonPersonalizedEncryptedPayloadModel();
-        encryptedRequestObject.setAdHocIndex(BaseEncoding.base64().encode(encryptedMessage.getAdHocIndex()));
-        encryptedRequestObject.setApplicationKey(BaseEncoding.base64().encode(encryptedMessage.getApplicationKey()));
-        encryptedRequestObject.setEncryptedData(BaseEncoding.base64().encode(encryptedMessage.getEncryptedData()));
-        encryptedRequestObject.setEphemeralPublicKey(BaseEncoding.base64().encode(encryptedMessage.getEphemeralPublicKey()));
-        encryptedRequestObject.setMac(BaseEncoding.base64().encode(encryptedMessage.getMac()));
-        encryptedRequestObject.setMacIndex(BaseEncoding.base64().encode(encryptedMessage.getMacIndex()));
-        encryptedRequestObject.setNonce(BaseEncoding.base64().encode(encryptedMessage.getNonce()));
-        encryptedRequestObject.setSessionIndex(BaseEncoding.base64().encode(encryptedMessage.getSessionIndex()));
+        encryptedRequestObject.setAdHocIndex(Base64.getEncoder().encodeToString(encryptedMessage.getAdHocIndex()));
+        encryptedRequestObject.setApplicationKey(Base64.getEncoder().encodeToString(encryptedMessage.getApplicationKey()));
+        encryptedRequestObject.setEncryptedData(Base64.getEncoder().encodeToString(encryptedMessage.getEncryptedData()));
+        encryptedRequestObject.setEphemeralPublicKey(Base64.getEncoder().encodeToString(encryptedMessage.getEphemeralPublicKey()));
+        encryptedRequestObject.setMac(Base64.getEncoder().encodeToString(encryptedMessage.getMac()));
+        encryptedRequestObject.setMacIndex(Base64.getEncoder().encodeToString(encryptedMessage.getMacIndex()));
+        encryptedRequestObject.setNonce(Base64.getEncoder().encodeToString(encryptedMessage.getNonce()));
+        encryptedRequestObject.setSessionIndex(Base64.getEncoder().encodeToString(encryptedMessage.getSessionIndex()));
 
         ObjectRequest<NonPersonalizedEncryptedPayloadModel> body = new ObjectRequest<>();
         body.setRequestObject(encryptedRequestObject);
@@ -256,14 +256,14 @@ public class CreateActivationStep extends AbstractBaseStepV2 {
 
             // Decrypt the server response
             final NonPersonalizedEncryptedPayloadModel encryptedResponseObject = responseWrapper.getResponseObject();
-            encryptedMessage.setApplicationKey(BaseEncoding.base64().decode(encryptedResponseObject.getApplicationKey()));
-            encryptedMessage.setAdHocIndex(BaseEncoding.base64().decode(encryptedResponseObject.getAdHocIndex()));
-            encryptedMessage.setEphemeralPublicKey(BaseEncoding.base64().decode(encryptedResponseObject.getEphemeralPublicKey()));
-            encryptedMessage.setEncryptedData(BaseEncoding.base64().decode(encryptedResponseObject.getEncryptedData()));
-            encryptedMessage.setMac(BaseEncoding.base64().decode(encryptedResponseObject.getMac()));
-            encryptedMessage.setMacIndex(BaseEncoding.base64().decode(encryptedResponseObject.getMacIndex()));
-            encryptedMessage.setNonce(BaseEncoding.base64().decode(encryptedResponseObject.getNonce()));
-            encryptedMessage.setSessionIndex(BaseEncoding.base64().decode(encryptedResponseObject.getSessionIndex()));
+            encryptedMessage.setApplicationKey(Base64.getDecoder().decode(encryptedResponseObject.getApplicationKey()));
+            encryptedMessage.setAdHocIndex(Base64.getDecoder().decode(encryptedResponseObject.getAdHocIndex()));
+            encryptedMessage.setEphemeralPublicKey(Base64.getDecoder().decode(encryptedResponseObject.getEphemeralPublicKey()));
+            encryptedMessage.setEncryptedData(Base64.getDecoder().decode(encryptedResponseObject.getEncryptedData()));
+            encryptedMessage.setMac(Base64.getDecoder().decode(encryptedResponseObject.getMac()));
+            encryptedMessage.setMacIndex(Base64.getDecoder().decode(encryptedResponseObject.getMacIndex()));
+            encryptedMessage.setNonce(Base64.getDecoder().decode(encryptedResponseObject.getNonce()));
+            encryptedMessage.setSessionIndex(Base64.getDecoder().decode(encryptedResponseObject.getSessionIndex()));
             byte[] originalResponseObjectBytes = encryptor.decrypt(encryptedMessage);
             ActivationCreateResponse responseObject = mapper.readValue(originalResponseObjectBytes, ActivationCreateResponse.class);
 
@@ -277,10 +277,10 @@ public class CreateActivationStep extends AbstractBaseStepV2 {
 
             // Process the response object
             String activationId = responseObject.getActivationId();
-            byte[] nonceServerBytes = BaseEncoding.base64().decode(responseObject.getActivationNonce());
-            byte[] cServerPubKeyBytes = BaseEncoding.base64().decode(responseObject.getEncryptedServerPublicKey());
-            byte[] cServerPubKeySignatureBytes = BaseEncoding.base64().decode(responseObject.getEncryptedServerPublicKeySignature());
-            byte[] ephemeralKeyBytes = BaseEncoding.base64().decode(responseObject.getEphemeralPublicKey());
+            byte[] nonceServerBytes = Base64.getDecoder().decode(responseObject.getActivationNonce());
+            byte[] cServerPubKeyBytes = Base64.getDecoder().decode(responseObject.getEncryptedServerPublicKey());
+            byte[] cServerPubKeySignatureBytes = Base64.getDecoder().decode(responseObject.getEncryptedServerPublicKeySignature());
+            byte[] ephemeralKeyBytes = Base64.getDecoder().decode(responseObject.getEphemeralPublicKey());
             PublicKey ephemeralPublicKey = keyConvertor.convertBytesToPublicKey(ephemeralKeyBytes);
 
             // Verify that the server public key signature is valid

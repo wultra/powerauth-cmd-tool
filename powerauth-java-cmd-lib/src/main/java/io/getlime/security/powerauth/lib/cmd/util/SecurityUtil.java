@@ -16,7 +16,6 @@
  */
 package io.getlime.security.powerauth.lib.cmd.util;
 
-import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.exception.EciesException;
@@ -34,6 +33,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.InvalidKeySpecException;
+import java.util.Base64;
 
 /**
  * Helper class with security utilities.
@@ -69,8 +69,8 @@ public class SecurityUtil {
                                                  EciesSharedInfo1 sharedInfo)
             throws CryptoProviderException, GenericCryptoException, InvalidKeySpecException {
         byte[] applicationSecret = applicationSecretValue.getBytes(StandardCharsets.UTF_8);
-        byte[] serverPublicKeyBytes = BaseEncoding.base64().decode(resultStatusObject.getServerPublicKey());
-        byte[] transportMasterKeyBytes = BaseEncoding.base64().decode(resultStatusObject.getTransportMasterKey());
+        byte[] serverPublicKeyBytes = Base64.getDecoder().decode(resultStatusObject.getServerPublicKey());
+        byte[] transportMasterKeyBytes = Base64.getDecoder().decode(resultStatusObject.getTransportMasterKey());
         final ECPublicKey serverPublicKey = (ECPublicKey) KEY_CONVERTOR.convertBytesToPublicKey(serverPublicKeyBytes);
         return ECIES_FACTORY.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
                 transportMasterKeyBytes, sharedInfo);
@@ -105,8 +105,8 @@ public class SecurityUtil {
      */
     public static byte[] decryptBytesFromResponse(EciesEncryptor encryptor, EciesEncryptedResponse encryptedResponse)
             throws EciesException {
-        byte[] macResponse = BaseEncoding.base64().decode(encryptedResponse.getMac());
-        byte[] encryptedDataResponse = BaseEncoding.base64().decode(encryptedResponse.getEncryptedData());
+        byte[] macResponse = Base64.getDecoder().decode(encryptedResponse.getMac());
+        byte[] encryptedDataResponse = Base64.getDecoder().decode(encryptedResponse.getEncryptedData());
         final EciesCryptogram eciesCryptogramResponse = new EciesCryptogram(macResponse, encryptedDataResponse);
 
         return encryptor.decryptResponse(eciesCryptogramResponse);
@@ -121,10 +121,10 @@ public class SecurityUtil {
      */
     public static EciesEncryptedRequest createEncryptedRequest(EciesCryptogram eciesCryptogram, boolean useIv) {
         EciesEncryptedRequest request = new EciesEncryptedRequest();
-        request.setEncryptedData(BaseEncoding.base64().encode(eciesCryptogram.getEncryptedData()));
-        request.setEphemeralPublicKey(BaseEncoding.base64().encode(eciesCryptogram.getEphemeralPublicKey()));
-        request.setMac(BaseEncoding.base64().encode(eciesCryptogram.getMac()));
-        request.setNonce(useIv ? BaseEncoding.base64().encode(eciesCryptogram.getNonce()) : null);
+        request.setEncryptedData(Base64.getEncoder().encodeToString(eciesCryptogram.getEncryptedData()));
+        request.setEphemeralPublicKey(Base64.getEncoder().encodeToString(eciesCryptogram.getEphemeralPublicKey()));
+        request.setMac(Base64.getEncoder().encodeToString(eciesCryptogram.getMac()));
+        request.setNonce(useIv ? Base64.getEncoder().encodeToString(eciesCryptogram.getNonce()) : null);
         return request;
     }
 

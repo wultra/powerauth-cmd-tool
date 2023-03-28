@@ -17,7 +17,6 @@
 package io.getlime.security.powerauth.lib.cmd.steps.v2;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.io.BaseEncoding;
 import com.wultra.core.rest.client.base.RestClient;
 import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
@@ -50,6 +49,7 @@ import java.io.FileWriter;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -114,9 +114,9 @@ public class VaultUnlockStep extends AbstractBaseStepV2 {
         String activationId = resultStatusObject.getActivationId();
         byte[] signatureKnowledgeKeySalt = resultStatusObject.getSignatureKnowledgeKeySaltBytes();
         byte[] signatureKnowledgeKeyEncryptedBytes = resultStatusObject.getSignatureKnowledgeKeyEncryptedBytes();
-        byte[] transportMasterKeyBytes = BaseEncoding.base64().decode(resultStatusObject.getTransportMasterKey());
+        byte[] transportMasterKeyBytes = Base64.getDecoder().decode(resultStatusObject.getTransportMasterKey());
         byte[] encryptedDevicePrivateKeyBytes = resultStatusObject.getEncryptedDevicePrivateKeyBytes();
-        byte[] serverPublicKeyBytes = BaseEncoding.base64().decode(resultStatusObject.getServerPublicKey());
+        byte[] serverPublicKeyBytes = Base64.getDecoder().decode(resultStatusObject.getServerPublicKey());
 
         // Ask for the password to unlock knowledge factor key
         char[] password;
@@ -153,7 +153,7 @@ public class VaultUnlockStep extends AbstractBaseStepV2 {
         final PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion().value());
         final SignatureConfiguration signatureConfiguration = SignatureConfiguration.forFormat(signatureFormat);
         String signatureValue = signature.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), keyFactory.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey), ctrData, signatureConfiguration);
-        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion().value());
+        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(activationId, model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), Base64.getEncoder().encodeToString(nonceBytes), model.getVersion().value());
         String httpAuthorizationHeader = header.buildHttpHeader();
 
         // Increment the counter
@@ -205,7 +205,7 @@ public class VaultUnlockStep extends AbstractBaseStepV2 {
             stepLogger.writeServerCallOK("vault-unlock-response-received", responseWrapper, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
 
             VaultUnlockResponse responseObject = responseWrapper.getResponseObject();
-            byte[] encryptedVaultEncryptionKey = BaseEncoding.base64().decode(responseObject.getEncryptedVaultEncryptionKey());
+            byte[] encryptedVaultEncryptionKey = Base64.getDecoder().decode(responseObject.getEncryptedVaultEncryptionKey());
 
             PowerAuthClientVault vault = new PowerAuthClientVault();
             ctrData = CounterUtil.getCtrData(model.getResultStatus(), stepLogger);
@@ -229,10 +229,10 @@ public class VaultUnlockStep extends AbstractBaseStepV2 {
             // Print the results
             Map<String, Object> objectMap = new HashMap<>();
             objectMap.put("activationId", activationId);
-            objectMap.put("encryptedVaultEncryptionKey", BaseEncoding.base64().encode(encryptedVaultEncryptionKey));
-            objectMap.put("transportMasterKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(transportMasterKey)));
-            objectMap.put("vaultEncryptionKey", BaseEncoding.base64().encode(keyConvertor.convertSharedSecretKeyToBytes(vaultEncryptionKey)));
-            objectMap.put("devicePrivateKey", BaseEncoding.base64().encode(keyConvertor.convertPrivateKeyToBytes(devicePrivateKey)));
+            objectMap.put("encryptedVaultEncryptionKey", Base64.getEncoder().encodeToString(encryptedVaultEncryptionKey));
+            objectMap.put("transportMasterKey", Base64.getEncoder().encodeToString(keyConvertor.convertSharedSecretKeyToBytes(transportMasterKey)));
+            objectMap.put("vaultEncryptionKey", Base64.getEncoder().encodeToString(keyConvertor.convertSharedSecretKeyToBytes(vaultEncryptionKey)));
+            objectMap.put("devicePrivateKey", Base64.getEncoder().encodeToString(keyConvertor.convertPrivateKeyToBytes(devicePrivateKey)));
             objectMap.put("privateKeyDecryptionSuccessful", (equal ? "true" : "false"));
 
             stepLogger.writeItem(
