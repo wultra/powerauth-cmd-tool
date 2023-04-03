@@ -21,6 +21,7 @@ import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.BaseStepModel;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
+import org.springframework.util.Assert;
 
 import java.nio.ByteBuffer;
 import java.util.Base64;
@@ -102,9 +103,10 @@ public class CounterUtil {
         if (version == 3) {
             String ctrDataBase64 = resultStatusObject.getCtrData();
             if (!ctrDataBase64.isEmpty()) {
-                byte[] ctrData = Base64.getDecoder().decode(ctrDataBase64);
-                ctrData = new HashBasedCounter().next(ctrData);
-                resultStatusObject.setCtrData(Base64.getEncoder().encodeToString(ctrData));
+                final byte[] ctrData = Base64.getDecoder().decode(ctrDataBase64);
+                final byte[] nextCrtData = new HashBasedCounter().next(ctrData);
+                Assert.state(nextCrtData != null, "nextCrtData must not be null");
+                resultStatusObject.setCtrData(Base64.getEncoder().encodeToString(nextCrtData));
             }
         }
     }
