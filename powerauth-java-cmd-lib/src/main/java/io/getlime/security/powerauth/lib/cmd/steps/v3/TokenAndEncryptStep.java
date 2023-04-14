@@ -46,7 +46,7 @@ import java.util.Map;
  *     <li>3.0</li>
  *     <li>3.1</li>
  * </ul>
- * <p>
+ *
  *  @author Roman Strobl, roman.strobl@wultra.com
  */
 @Component
