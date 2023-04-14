@@ -11,10 +11,9 @@ You can download the latest `powerauth-java-cmd.jar` at the releases page:
 ## Supported Java Runtime Versions
 
 The following Java runtime versions are supported:
-- Java 8 (LTS release)
-- Java 11 (LTS release)
+- Java 17 (LTS release) or higher
 
-The command-line tool application may run on other Java versions, however we do not perform extensive testing with non-LTS releases. Java version 17 is not supported yet due to issues with running Bouncy Castle provider from a fat jar.
+Older Java versions are currently not supported due to migration to Spring Boot 3
 
 ## Bouncy Castle Library Usage
 
