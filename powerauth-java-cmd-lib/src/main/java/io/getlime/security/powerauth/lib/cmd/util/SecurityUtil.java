@@ -25,8 +25,8 @@ import io.getlime.security.powerauth.crypto.lib.model.exception.CryptoProviderEx
 import io.getlime.security.powerauth.crypto.lib.model.exception.GenericCryptoException;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
-import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
-import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
+import io.getlime.security.powerauth.rest.api.model.request.EciesEncryptedRequest;
+import io.getlime.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

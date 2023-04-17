@@ -21,7 +21,7 @@ import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.lib.cmd.steps.context.ResponseContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.security.SimpleSecurityContext;
-import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
+import io.getlime.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
 
 import java.nio.charset.StandardCharsets;
 

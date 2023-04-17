@@ -16,7 +16,7 @@
  */
 package io.getlime.security.powerauth.lib.cmd.consts;
 
-import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
+import io.getlime.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
 import org.springframework.core.ParameterizedTypeReference;
 
 import java.nio.charset.StandardCharsets;
