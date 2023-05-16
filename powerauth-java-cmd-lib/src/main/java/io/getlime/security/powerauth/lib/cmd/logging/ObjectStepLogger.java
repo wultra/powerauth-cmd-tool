@@ -103,7 +103,7 @@ public class ObjectStepLogger implements StepLogger {
         map.put("url", uri);
         map.put("method", method);
         map.put("requestBytes", requestBytes);
-        map.put("requestObject", request.getRequestObject());
+        map.put("requestObject", request.requestObject());
         map.put("requestHeaders", headers);
         String name = "Sending Request";
         String desc = "Calling PowerAuth Standard RESTful API endpoint";
@@ -267,7 +267,7 @@ public class ObjectStepLogger implements StepLogger {
             return null;
         }
         for (StepItem item: items) {
-            if (id.equals(item.getId())) {
+            if (id.equals(item.id())) {
                 return item;
             }
         }
@@ -284,7 +284,7 @@ public class ObjectStepLogger implements StepLogger {
             return null;
         }
         for (StepItem item: items) {
-            if (itemName.equals(item.getName())) {
+            if (itemName.equals(item.name())) {
                 return item;
             }
         }
@@ -309,7 +309,7 @@ public class ObjectStepLogger implements StepLogger {
             return null;
         }
         for (StepError error: errors) {
-            if (id.equals(error.getId())) {
+            if (id.equals(error.id())) {
                 return error;
             }
         }
@@ -326,7 +326,7 @@ public class ObjectStepLogger implements StepLogger {
             return null;
         }
         for (StepError error: errors) {
-            if (errorName.equals(error.getName())) {
+            if (errorName.equals(error.name())) {
                 return error;
             }
         }

@@ -31,6 +31,6 @@ public enum PersistenceType {
     /**
      * Memory
      */
-    MEMORY;
+    MEMORY
 
 }

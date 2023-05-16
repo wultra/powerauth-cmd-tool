@@ -54,7 +54,7 @@ import java.util.Objects;
 public class RemoveTokenStep extends AbstractBaseStep<RemoveTokenStepModel, ObjectResponse<TokenRemoveResponse>> {
 
     private static final ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>> RESPONSE_TYPE_REFERENCE =
-            new ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>>() { };
+            new ParameterizedTypeReference<>() {};
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
@@ -118,7 +118,7 @@ public class RemoveTokenStep extends AbstractBaseStep<RemoveTokenStepModel, Obje
     }
 
     @Override
-    public void processResponse(StepContext<RemoveTokenStepModel, ObjectResponse<TokenRemoveResponse>> stepContext) throws Exception {
+    public void processResponse(StepContext<RemoveTokenStepModel, ObjectResponse<TokenRemoveResponse>> stepContext) {
         ObjectResponse<TokenRemoveResponse> responseWrapper =
                 Objects.requireNonNull(stepContext.getResponseContext().getResponseBodyObject());
 

@@ -75,9 +75,10 @@ public class JsonStepLogger implements StepLogger {
     /**
      * Start the object streaming, outputs start of the JSON object:
      *
-     * // {
-     * //    "steps" : [
-     *
+     * <pre>
+     * {
+     *     "steps" : [
+     * </pre>
      */
     @Override public void start() {
         try {
@@ -175,9 +176,10 @@ public class JsonStepLogger implements StepLogger {
     /**
      * Closes the logger output, writes code to close the array and opened object:
      *
-     * //     ]
-     * // }
-     *
+     * <pre>
+     *     ]
+     * }
+     * </pre>
      */
     @Override public void close() {
         try {

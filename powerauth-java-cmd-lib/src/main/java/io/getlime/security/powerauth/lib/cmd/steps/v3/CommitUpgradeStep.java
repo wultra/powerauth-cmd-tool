@@ -50,8 +50,7 @@ import java.util.Map;
 @Component
 public class CommitUpgradeStep extends AbstractBaseStep<CommitUpgradeStepModel, Response> {
 
-    private static final ParameterizedTypeReference<Response> RESPONSE_TYPE_REFERENCE =
-            new ParameterizedTypeReference<Response>() { };
+    private static final ParameterizedTypeReference<Response> RESPONSE_TYPE_REFERENCE = new ParameterizedTypeReference<>() {};
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 

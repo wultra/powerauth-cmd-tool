@@ -70,12 +70,12 @@ public enum PowerAuthVersion {
     /**
      * Major version value
      */
-    int majorVersion;
+    private final int majorVersion;
 
     /**
      * Version string value ("2.1", "3.0", ...)
      */
-    String value;
+    private final String value;
 
     /**
      * Constructor
