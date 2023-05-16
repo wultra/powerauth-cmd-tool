@@ -52,8 +52,8 @@ import java.util.Map;
 @Component
 public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepModel, ObjectResponse<Map<String, Object>>> {
 
-    ParameterizedTypeReference<ObjectResponse<Map<String, Object>>> RESPONSE_TYPE_REFERENCE =
-            new ParameterizedTypeReference<ObjectResponse<Map<String, Object>>>() { };
+    private static final ParameterizedTypeReference<ObjectResponse<Map<String, Object>>> RESPONSE_TYPE_REFERENCE =
+            new ParameterizedTypeReference<>() {};
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
@@ -130,7 +130,7 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
     }
 
     @Override
-    public void processResponse(StepContext<VerifySignatureStepModel, ObjectResponse<Map<String, Object>>> stepContext) throws Exception {
+    public void processResponse(StepContext<VerifySignatureStepModel, ObjectResponse<Map<String, Object>>> stepContext) {
         stepContext.getStepLogger().writeItem(
                 getStep().id() + "-signature-verified",
                 "Signature verified",

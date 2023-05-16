@@ -18,59 +18,12 @@ package io.getlime.security.powerauth.lib.cmd.logging.model;
 /**
  * Class representing an error in step.
  *
+ * @param id           Error ID.
+ * @param name         Error name.
+ * @param errorMessage Error message.
+ * @param exception    Exception.
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class StepError {
+public record StepError(String id, String name, String errorMessage, Exception exception) {
 
-    private final String id;
-    private final String name;
-    private final String errorMessage;
-    private final Exception exception;
-
-    /**
-     * Constructor with error details.
-     *
-     * @param id Error ID.
-     * @param name Error name.
-     * @param errorMessage Error message.
-     * @param exception Exception.
-     */
-    public StepError(String id, String name, String errorMessage, Exception exception) {
-        this.id = id;
-        this.name = name;
-        this.errorMessage = errorMessage;
-        this.exception = exception;
-    }
-
-    /**
-     * Get error ID.
-     * @return Error ID.
-     */
-    public String getId() {
-        return id;
-    }
-
-    /**
-     * Get error name.
-     * @return Error name.
-     */
-    public String getName() {
-        return name;
-    }
-
-    /**
-     * Get error message.
-     * @return Error message.
-     */
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
-    /**
-     * Get exception.
-     * @return Exception.
-     */
-    public Exception getException() {
-        return exception;
-    }
 }

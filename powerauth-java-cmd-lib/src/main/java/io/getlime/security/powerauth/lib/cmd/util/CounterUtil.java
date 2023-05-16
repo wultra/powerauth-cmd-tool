@@ -60,16 +60,14 @@ public class CounterUtil {
         long counter = resultStatusObject.getCounter();
         int version = resultStatusObject.getVersion().intValue();
         switch (version) {
-            case 2:
-                ctrData = ByteBuffer.allocate(16).putLong(8, counter).array();
-                break;
-            case 3:
+            case 2 -> ctrData = ByteBuffer.allocate(16).putLong(8, counter).array();
+            case 3 -> {
                 String ctrDataBase64 = resultStatusObject.getCtrData();
                 if (!ctrDataBase64.isEmpty()) {
                     ctrData = Base64.getDecoder().decode(ctrDataBase64);
                 }
-                break;
-            default:
+            }
+            default -> {
                 if (stepLogger != null) {
                     stepLogger.writeItem(
                             "generic-error-version",
@@ -79,6 +77,7 @@ public class CounterUtil {
                             null
                     );
                 }
+            }
         }
         return ctrData;
     }

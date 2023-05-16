@@ -120,27 +120,26 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
         final EciesSharedInfo1 eciesSharedInfo1;
         final PowerAuthEncryptionHttpHeader header;
         switch (model.getScope()) {
-            case "application":
+            case "application" -> {
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/application
                 eciesSharedInfo1 = EciesSharedInfo1.APPLICATION_SCOPE_GENERIC;
                 encryptor = ECIES_FACTORY.getEciesEncryptorForApplication((ECPublicKey) model.getMasterPublicKey(),
                         applicationSecret, eciesSharedInfo1);
                 header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), model.getVersion().value());
-                break;
-
-            case "activation":
+            }
+            case "activation" -> {
                 ResultStatusObject resultStatusObject = model.getResultStatus();
                 eciesSharedInfo1 = EciesSharedInfo1.ACTIVATION_SCOPE_GENERIC;
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/activation
                 encryptor = SecurityUtil.createEncryptor(model.getApplicationSecret(), resultStatusObject, EciesSharedInfo1.ACTIVATION_SCOPE_GENERIC);
                 final String activationId = resultStatusObject.getActivationId();
                 header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), activationId, model.getVersion().value());
-                break;
-
-            default:
+            }
+            default -> {
                 stepLogger.writeError("encrypt-error-scope", "Encrypt Request Failed", "Unsupported encryption scope: " + model.getScope());
                 stepLogger.writeDoneFailed("encrypt-failed");
                 return null;
+            }
         }
 
         stepContext.setSecurityContext(

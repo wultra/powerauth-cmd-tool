@@ -63,7 +63,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     /**
      * Step logger
      */
-    protected StepLoggerFactory stepLoggerFactory;
+    protected final StepLoggerFactory stepLoggerFactory;
 
     /**
      * Constructor
@@ -86,7 +86,6 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
 
     /**
      * Prepares a context for this step execution
-     *
      *
      * @param stepLogger Step logger
      * @param context Context data

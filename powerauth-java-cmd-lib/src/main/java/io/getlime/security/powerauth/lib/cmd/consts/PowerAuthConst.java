@@ -36,7 +36,6 @@ public class PowerAuthConst {
     /**
      * Most common response type reference for version 3
      */
-    public static final ParameterizedTypeReference<EciesEncryptedResponse> RESPONSE_TYPE_REFERENCE_V3 =
-            new ParameterizedTypeReference<EciesEncryptedResponse>() { };
+    public static final ParameterizedTypeReference<EciesEncryptedResponse> RESPONSE_TYPE_REFERENCE_V3 = new ParameterizedTypeReference<>() {};
 
 }

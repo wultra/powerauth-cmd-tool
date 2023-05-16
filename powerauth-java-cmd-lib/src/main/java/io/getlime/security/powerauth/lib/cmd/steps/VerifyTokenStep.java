@@ -51,8 +51,7 @@ import java.util.Map;
 @Component
 public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<String, Object>> {
 
-    ParameterizedTypeReference<Map<String, Object>> RESPONSE_TYPE_REFERENCE =
-            new ParameterizedTypeReference<Map<String, Object>>() { };
+    private static final ParameterizedTypeReference<Map<String, Object>> RESPONSE_TYPE_REFERENCE = new ParameterizedTypeReference<>() {};
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
@@ -157,7 +156,7 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
     }
 
     @Override
-    public void processResponse(StepContext<VerifyTokenStepModel, Map<String, Object>> stepContext) throws Exception {
+    public void processResponse(StepContext<VerifyTokenStepModel, Map<String, Object>> stepContext) {
         stepContext.getStepLogger().writeItem(
                 getStep().id() + "-digest-verified",
                 "Token digest verified",

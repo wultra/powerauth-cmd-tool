@@ -21,7 +21,6 @@ import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
 import org.springframework.http.HttpMethod;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -41,9 +40,8 @@ public class VerifySignatureUtil {
      * @param stepLogger Step logger.
      * @return Request data bytes.
      * @throws URISyntaxException In case URI is invalid.
-     * @throws IOException In case of any IO error.
      */
-    public static byte[] extractRequestDataBytes(VerifySignatureStepModel model, StepLogger stepLogger) throws URISyntaxException, IOException {
+    public static byte[] extractRequestDataBytes(VerifySignatureStepModel model, StepLogger stepLogger) throws URISyntaxException {
         byte[] requestDataBytes;
         if (HttpMethod.GET.name().equals(model.getHttpMethod().toUpperCase())) {
             String query = new URI(model.getUriString()).getRawQuery();

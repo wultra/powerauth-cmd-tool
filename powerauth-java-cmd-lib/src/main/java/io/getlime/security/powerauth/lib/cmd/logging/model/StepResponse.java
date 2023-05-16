@@ -20,48 +20,11 @@ import java.util.Map;
 /**
  * Class representing response from intermediate server.
  *
+ * @param statusCode HTTP status code.
+ * @param responseObject Response object.
+ * @param headers HTTP headers.
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class StepResponse {
+public record StepResponse(int statusCode, Object responseObject, Map<String, ?> headers) {
 
-    private final int statusCode;
-    private final Object responseObject;
-    private final Map<String, ?> headers;
-
-    /**
-     * Constructor with all details.
-     *
-     * @param statusCode HTTP status code.
-     * @param responseObject Response object.
-     * @param headers HTTP headers.
-     */
-    public StepResponse(int statusCode, Object responseObject, Map<String, ?> headers) {
-        this.statusCode = statusCode;
-        this.responseObject = responseObject;
-        this.headers = headers;
-    }
-
-    /**
-     * Get HTTP status code.
-     * @return HTTP status code.
-     */
-    public int getStatusCode() {
-        return statusCode;
-    }
-
-    /**
-     * Get response object.
-     * @return Response object.
-     */
-    public Object getResponseObject() {
-        return responseObject;
-    }
-
-    /**
-     * Get HTTP headers.
-     * @return HTTP headers.
-     */
-    public Map<String, ?> getHeaders() {
-        return headers;
-    }
 }

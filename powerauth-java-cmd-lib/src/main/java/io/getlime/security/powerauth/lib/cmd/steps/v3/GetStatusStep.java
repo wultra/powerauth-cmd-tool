@@ -63,8 +63,7 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, ObjectRe
     public static final String ATTRIBUTE_CHALLENGE = "challenge";
 
     private static final ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>> RESPONSE_TYPE_REFERENCE =
-            new ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>>() {
-            };
+            new ParameterizedTypeReference<>() {};
 
     private static final PowerAuthClientActivation ACTIVATION = new PowerAuthClientActivation();
 
