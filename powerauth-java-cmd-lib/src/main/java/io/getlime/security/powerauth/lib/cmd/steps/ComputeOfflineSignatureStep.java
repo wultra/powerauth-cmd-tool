@@ -36,6 +36,7 @@ import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
@@ -124,8 +125,9 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
         // Ask for the password to unlock knowledge factor key
         final char[] password;
         if (model.getPassword() == null) {
-            Console console = System.console();
+            final Console console = System.console();
             password = console.readPassword("Enter your password to unlock the knowledge related key: ");
+            Assert.state(password != null, "Not able to read a password from the console");
         } else {
             password = model.getPassword().toCharArray();
         }
