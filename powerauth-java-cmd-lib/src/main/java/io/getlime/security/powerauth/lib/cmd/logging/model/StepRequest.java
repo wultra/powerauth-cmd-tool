@@ -15,6 +15,8 @@
  */
 package io.getlime.security.powerauth.lib.cmd.logging.model;
 
+import io.getlime.core.rest.model.base.request.ObjectRequest;
+
 import java.util.Map;
 
 /**
@@ -28,4 +30,15 @@ import java.util.Map;
  */
 public record StepRequest(String uri, String method, Object requestObject, Map<String, ?> headers) {
 
+    /**
+     * Get request object.
+     * @return Request object.
+     */
+    @Override
+    public Object requestObject() {
+        if (requestObject instanceof ObjectRequest) {
+            return ((ObjectRequest<?>) requestObject).getRequestObject();
+        }
+        return requestObject;
+    }
 }
