@@ -46,6 +46,7 @@ import io.getlime.security.powerauth.rest.api.model.response.ActivationLayer1Res
 import io.getlime.security.powerauth.rest.api.model.response.ActivationLayer2Response;
 import io.getlime.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.util.Assert;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
@@ -191,10 +192,11 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         // Encrypt the original device private key using the vault unlock key
         byte[] encryptedDevicePrivateKey = VAULT.encryptDevicePrivateKey(securityContext.getDeviceKeyPair().getPrivate(), vaultUnlockMasterKey);
 
-        char[] password;
+        final char[] password;
         if (model.getPassword() == null) {
-            Console console = System.console();
+            final Console console = System.console();
             password = console.readPassword("Select a password to encrypt the knowledge related key: ");
+            Assert.state(password != null, "Not able to read a password from the console");
         } else {
             password = model.getPassword().toCharArray();
         }
