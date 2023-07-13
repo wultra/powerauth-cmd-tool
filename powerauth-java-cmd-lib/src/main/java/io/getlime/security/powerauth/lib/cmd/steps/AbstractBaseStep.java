@@ -4,7 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.wultra.core.rest.client.base.RestClient;
 import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
+import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesPayload;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
@@ -32,6 +32,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import javax.annotation.Nullable;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -192,9 +193,11 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
         }
 
         final boolean useIv = model.getVersion().useIv();
+        final boolean useTimestamp = model.getVersion().useTimestamp();
 
-        final EciesCryptogram eciesCryptogram = encryptor.encryptRequest(data, useIv);
-        final EciesEncryptedRequest encryptedRequest = SecurityUtil.createEncryptedRequest(eciesCryptogram, useIv);
+        // TODO
+        final EciesPayload eciesPayload = encryptor.encrypt(data, useIv, true, null);
+        final EciesEncryptedRequest encryptedRequest = SecurityUtil.createEncryptedRequest(eciesPayload, useIv, useTimestamp, null);
 
         stepContext.getRequestContext().setRequestObject(encryptedRequest);
     }
@@ -210,9 +213,12 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      */
     public <T> T decryptResponse(StepContext<?, EciesEncryptedResponse> stepContext, Class<T> cls) throws Exception {
         SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
-        EciesEncryptor encryptor = securityContext.getEncryptor();
+        // EciesDecryptor decryptor = SecurityUtil.createDecryptor(applicationSecret, )
+
         EciesEncryptedResponse encryptedResponse = stepContext.getResponseContext().getResponseBodyObject();
-        byte[] decryptedBytes = SecurityUtil.decryptBytesFromResponse(encryptor, encryptedResponse);
+        // byte[] decryptedBytes = SecurityUtil.decryptBytesFromResponse(decryptor, encryptedResponse);
+        // TODO
+        byte[] decryptedBytes = "".getBytes(StandardCharsets.UTF_8);
         final T responsePayload = RestClientConfiguration.defaultMapper().readValue(decryptedBytes, cls);
         stepContext.getResponseContext().setResponsePayloadDecrypted(responsePayload);
 

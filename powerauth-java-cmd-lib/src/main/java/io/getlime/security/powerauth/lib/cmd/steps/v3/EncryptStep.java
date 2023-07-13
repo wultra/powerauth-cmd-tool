@@ -18,7 +18,10 @@ package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory;
+import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesParameters;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
+import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
+import io.getlime.security.powerauth.crypto.lib.model.exception.CryptoProviderException;
 import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
@@ -42,6 +45,7 @@ import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.ECPublicKey;
+import java.util.Date;
 import java.util.Map;
 
 /**
@@ -124,7 +128,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/application
                 eciesSharedInfo1 = EciesSharedInfo1.APPLICATION_SCOPE_GENERIC;
                 encryptor = ECIES_FACTORY.getEciesEncryptorForApplication((ECPublicKey) model.getMasterPublicKey(),
-                        applicationSecret, eciesSharedInfo1);
+                        applicationSecret, eciesSharedInfo1, getEciesParameters());
                 header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), model.getVersion().value());
             }
             case "activation" -> {
@@ -167,6 +171,13 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
     @Override
     public void processResponse(StepContext<EncryptStepModel, EciesEncryptedResponse> stepContext) throws Exception {
         EncryptionUtil.processEncryptedResponse(stepContext, getStep().id());
+    }
+
+    private EciesParameters getEciesParameters() throws CryptoProviderException {
+        final byte[] associatedData = null; // TODO
+        final Long timestamp = new Date().getTime();
+        final byte[] nonceBytes = new KeyGenerator().generateRandomBytes(16);
+        return EciesParameters.builder().nonce(nonceBytes).associatedData(associatedData).timestamp(timestamp).build();
     }
 
 }

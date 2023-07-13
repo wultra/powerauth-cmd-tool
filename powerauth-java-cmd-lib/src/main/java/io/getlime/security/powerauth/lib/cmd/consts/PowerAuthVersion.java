@@ -99,6 +99,16 @@ public enum PowerAuthVersion {
     }
 
     /**
+     * Provides flag whether encryption uses timestamp.
+     * <p>This feature is supported only for protocol V3.2+.</p>
+     *
+     * @return Flag whether encryption uses timestamp
+     */
+    public boolean useTimestamp() {
+        return majorVersion >= 3 && !V3_0.equals(this) && !V3_1.equals(this);
+    }
+
+    /**
      * @return Version string value
      */
     public String value() {

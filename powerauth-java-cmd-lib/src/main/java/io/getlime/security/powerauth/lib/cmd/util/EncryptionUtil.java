@@ -18,6 +18,8 @@
 package io.getlime.security.powerauth.lib.cmd.util;
 
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
+import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesScope;
+import io.getlime.security.powerauth.crypto.lib.util.ByteUtils;
 import io.getlime.security.powerauth.lib.cmd.steps.context.ResponseContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.security.SimpleSecurityContext;
@@ -41,7 +43,9 @@ public class EncryptionUtil {
     public static void processEncryptedResponse(StepContext<?, EciesEncryptedResponse> stepContext, String stepId) throws Exception {
         ResponseContext<EciesEncryptedResponse> responseContext = stepContext.getResponseContext();
         EciesEncryptor encryptor = ((SimpleSecurityContext) stepContext.getSecurityContext()).getEncryptor();
-        final byte[] decryptedBytes = SecurityUtil.decryptBytesFromResponse(encryptor, responseContext.getResponseBodyObject());
+        // TODO - implement response decryption
+        // final byte[] decryptedBytes = SecurityUtil.decryptBytesFromResponse(decryptor, responseContext.getResponseBodyObject());
+        final byte[] decryptedBytes = "".getBytes(StandardCharsets.UTF_8);
 
         String decryptedMessage = new String(decryptedBytes, StandardCharsets.UTF_8);
         stepContext.getModel().getResultStatus().setResponseData(decryptedMessage);
@@ -54,4 +58,25 @@ public class EncryptionUtil {
                 decryptedMessage
         );
     }
+
+    /**
+     * Derive associated data for ECIES.
+     * @param eciesScope ECIES scope.
+     * @param version Crypto protocol version.
+     * @param applicationKey Application key.
+     * @param activationId Activation identifier.
+     * @return Associated data.
+     */
+    public static byte[] deriveAssociatedData(EciesScope eciesScope, String version, String applicationKey, String activationId) {
+        if ("3.2".equals(version)) {
+            if (eciesScope == EciesScope.ACTIVATION_SCOPE) {
+                return ByteUtils.concatStrings(version, applicationKey, activationId);
+            } else {
+                return ByteUtils.concatStrings(version, applicationKey);
+            }
+        } else {
+            return null;
+        }
+    }
+
 }
