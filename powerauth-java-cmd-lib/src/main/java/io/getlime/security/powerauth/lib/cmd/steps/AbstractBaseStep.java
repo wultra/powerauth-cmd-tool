@@ -3,8 +3,12 @@ package io.getlime.security.powerauth.lib.cmd.steps;
 import com.google.common.collect.ImmutableList;
 import com.wultra.core.rest.client.base.RestClient;
 import com.wultra.core.rest.client.base.RestClientException;
+import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesDecryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
+import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory;
+import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesParameters;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesPayload;
+import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesScope;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
@@ -65,6 +69,8 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * Step logger
      */
     protected final StepLoggerFactory stepLoggerFactory;
+
+    private static final EciesFactory ECIES_FACTORY = new EciesFactory();
 
     /**
      * Constructor
@@ -212,25 +218,37 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @throws Exception when an error during object decryption occurred
      */
     public <T> T decryptResponse(StepContext<?, EciesEncryptedResponse> stepContext, Class<T> cls) throws Exception {
-        SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
-        // EciesDecryptor decryptor = SecurityUtil.createDecryptor(applicationSecret, )
+        try {
+            SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
+            EciesEncryptedResponse encryptedResponse = stepContext.getResponseContext().getResponseBodyObject();
+            EciesParameters eciesParameters = EciesParameters.builder()
+                    .nonce(Base64.getDecoder().decode(encryptedResponse.getNonce()))
+                    .timestamp(encryptedResponse.getTimestamp())
+                    .build();
+            String applicationSecret = securityContext.getApplicationSecret();
+            byte[] ephemeralPublicKey = Base64.getDecoder().decode(encryptedResponse.getEphemeralPublicKey());
+            EciesEncryptor encryptor = securityContext.getEncryptor();
+            EciesDecryptor eciesDecryptor = ECIES_FACTORY.getEciesDecryptor(EciesScope.APPLICATION_SCOPE,
+                    encryptor.getEnvelopeKey(), applicationSecret.getBytes(StandardCharsets.UTF_8), null,
+                    eciesParameters, ephemeralPublicKey);
 
-        EciesEncryptedResponse encryptedResponse = stepContext.getResponseContext().getResponseBodyObject();
-        // byte[] decryptedBytes = SecurityUtil.decryptBytesFromResponse(decryptor, encryptedResponse);
-        // TODO
-        byte[] decryptedBytes = "".getBytes(StandardCharsets.UTF_8);
-        final T responsePayload = RestClientConfiguration.defaultMapper().readValue(decryptedBytes, cls);
-        stepContext.getResponseContext().setResponsePayloadDecrypted(responsePayload);
+            byte[] decryptedBytes = SecurityUtil.decryptBytesFromResponse(eciesDecryptor, encryptedResponse);
 
-        stepContext.getStepLogger().writeItem(
-                getStep().id() + "-response-decrypt",
-                "Decrypted Response",
-                "Following data were decrypted",
-                "OK",
-                responsePayload
-        );
+            final T responsePayload = RestClientConfiguration.defaultMapper().readValue(decryptedBytes, cls);
+            stepContext.getResponseContext().setResponsePayloadDecrypted(responsePayload);
 
-        return responsePayload;
+            stepContext.getStepLogger().writeItem(
+                    getStep().id() + "-response-decrypt",
+                    "Decrypted Response",
+                    "Following data were decrypted",
+                    "OK",
+                    responsePayload
+            );
+
+            return responsePayload;
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
     /**

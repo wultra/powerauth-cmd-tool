@@ -43,16 +43,6 @@ public class ActivationSecurityContext implements SecurityContext {
     private EciesEncryptor encryptorL2;
 
     /**
-     * Decryptor used on layer 1
-     */
-    private EciesDecryptor decryptorL1;
-
-    /**
-     * Encryptor used on layer 2
-     */
-    private EciesDecryptor decryptorL2;
-
-    /**
      * Device key pair
      */
     private KeyPair deviceKeyPair;
