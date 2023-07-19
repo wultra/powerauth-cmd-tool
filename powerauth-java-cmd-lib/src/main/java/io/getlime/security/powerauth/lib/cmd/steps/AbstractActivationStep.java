@@ -142,9 +142,8 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         byte[] macL1 = Base64.getDecoder().decode(encryptedResponseL1.getMac());
         byte[] encryptedDataL1 = Base64.getDecoder().decode(encryptedResponseL1.getEncryptedData());
         byte[] nonceL1 = encryptedResponseL1.getNonce() != null ? Base64.getDecoder().decode(encryptedResponseL1.getNonce()) : null;
-        String version = context.getModel().getVersion().toString();
         String applicationKey = context.getModel().getApplicationKey();
-        final byte[] associatedDataL1 = "3.2".equals(version) ? EncryptionUtil.deriveAssociatedData(EciesScope.APPLICATION_SCOPE, version, applicationKey, null) : null;
+        final byte[] associatedDataL1 = context.getModel().getVersion().useTimestamp() ? EncryptionUtil.deriveAssociatedData(EciesScope.APPLICATION_SCOPE, model.getVersion(), applicationKey, null) : null;
 
         Long timestampL1 = encryptedResponseL1.getTimestamp();
 
@@ -175,7 +174,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         byte[] macL2 = Base64.getDecoder().decode(responseL1.getActivationData().getMac());
         byte[] encryptedDataL2 = Base64.getDecoder().decode(responseL1.getActivationData().getEncryptedData());
         byte[] nonceL2 = responseL1.getActivationData().getNonce() != null ? Base64.getDecoder().decode(responseL1.getActivationData().getNonce()) : null;
-        final byte[] associatedDataL2 = "3.2".equals(version) ? EncryptionUtil.deriveAssociatedData(EciesScope.APPLICATION_SCOPE, version, applicationKey, null) : null;
+        final byte[] associatedDataL2 = context.getModel().getVersion().useTimestamp() ? EncryptionUtil.deriveAssociatedData(EciesScope.APPLICATION_SCOPE, model.getVersion(), applicationKey, null) : null;
         Long timestampL2 = responseL1.getActivationData().getTimestamp();
 
         EciesCryptogram responseCryptogramL2 = new EciesCryptogram(ephemeralPublicKeyL2, macL2, encryptedDataL2);
@@ -271,21 +270,22 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
      * @param version Protocol version
      * @throws Exception when an error during encryption of the request data occurred
      */
-    protected void addEncryptedRequest(StepContext<M, EciesEncryptedResponse> stepContext, String version) throws Exception {
+    protected void addEncryptedRequest(StepContext<M, EciesEncryptedResponse> stepContext, PowerAuthVersion version) throws Exception {
         M model = stepContext.getModel();
 
         // Get activation key and secret
         final byte[] applicationKey = model.getApplicationKey().getBytes(StandardCharsets.UTF_8);
         final byte[] applicationSecret = model.getApplicationSecret().getBytes(StandardCharsets.UTF_8);
 
-        final Long timestamp = "3.2".equals(version) ? new Date().getTime() : null;
-        final byte[] associatedData = "3.2".equals(version) ? EncryptionUtil.deriveAssociatedData(EciesScope.APPLICATION_SCOPE, version, new String(applicationKey, StandardCharsets.UTF_8), null) : null;
+        final Long timestamp = version.useTimestamp() ? new Date().getTime() : null;
+        final byte[] associatedData = version.useTimestamp() ? EncryptionUtil.deriveAssociatedData(EciesScope.APPLICATION_SCOPE, version, new String(applicationKey, StandardCharsets.UTF_8), null) : null;
+        final byte[] nonceBytesL1 = version.useIv() ? new KeyGenerator().generateRandomBytes(16) : null;
+        final byte[] nonceBytesL2 = version.useIv() ? new KeyGenerator().generateRandomBytes(16) : null;
+        final EciesParameters eciesParametersL1 = EciesParameters.builder().nonce(nonceBytesL1).associatedData(associatedData).timestamp(timestamp).build();
+        final EciesParameters eciesParametersL2 = EciesParameters.builder().nonce(nonceBytesL2).associatedData(associatedData).timestamp(timestamp).build();
 
-        final byte[] nonceBytes = new KeyGenerator().generateRandomBytes(16);
-        final EciesParameters eciesParameters = EciesParameters.builder().nonce(nonceBytes).associatedData(associatedData).timestamp(timestamp).build();
-
-        EciesEncryptor eciesEncryptorL1 = ECIES_FACTORY.getEciesEncryptorForApplication((ECPublicKey) model.getMasterPublicKey(), applicationSecret, EciesSharedInfo1.APPLICATION_SCOPE_GENERIC, eciesParameters);
-        EciesEncryptor eciesEncryptorL2 = ECIES_FACTORY.getEciesEncryptorForApplication((ECPublicKey) model.getMasterPublicKey(), applicationSecret, EciesSharedInfo1.ACTIVATION_LAYER_2, eciesParameters);
+        EciesEncryptor eciesEncryptorL1 = ECIES_FACTORY.getEciesEncryptorForApplication((ECPublicKey) model.getMasterPublicKey(), applicationSecret, EciesSharedInfo1.APPLICATION_SCOPE_GENERIC, eciesParametersL1);
+        EciesEncryptor eciesEncryptorL2 = ECIES_FACTORY.getEciesEncryptorForApplication((ECPublicKey) model.getMasterPublicKey(), applicationSecret, EciesSharedInfo1.ACTIVATION_LAYER_2, eciesParametersL2);
 
         KeyPair deviceKeyPair = ACTIVATION.generateDeviceKeyPair();
 
@@ -337,11 +337,11 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         final boolean useTimestamp = model.getVersion().useTimestamp();
 
         // Encrypt request data using ECIES in application scope with sharedInfo1 = /pa/activation
-        final byte[] associatedDataL2 = "3.2".equals(version) ? EncryptionUtil.deriveAssociatedData(EciesScope.APPLICATION_SCOPE, version, new String(applicationKey, StandardCharsets.UTF_8), null) : null;
+        final byte[] associatedDataL2 = useTimestamp ? EncryptionUtil.deriveAssociatedData(EciesScope.APPLICATION_SCOPE, version, new String(applicationKey, StandardCharsets.UTF_8), null) : null;
         EciesPayload eciesPayloadL2 = SecurityUtil.encryptObject(securityContext.getEncryptorL2(), requestL2, useIv, useTimestamp, associatedDataL2);
 
         // Prepare the encrypted layer 2 request
-        EciesEncryptedRequest encryptedRequestL2 = SecurityUtil.createEncryptedRequest(eciesPayloadL2, useIv, useTimestamp, associatedDataL2);
+        EciesEncryptedRequest encryptedRequestL2 = SecurityUtil.createEncryptedRequest(eciesPayloadL2, useIv, useTimestamp);
 
         // Prepare activation layer 1 request which is decryptable on intermediate server
         ActivationLayer1Request requestL1 = prepareLayer1Request(stepContext, encryptedRequestL2);
@@ -358,7 +358,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         EciesPayload eciesPayloadL1 = SecurityUtil.encryptObject(securityContext.getEncryptorL1(), requestL1, useIv, useTimestamp, associatedData);
 
         // Prepare the encrypted layer 1 request
-        EciesEncryptedRequest encryptedRequestL1 = SecurityUtil.createEncryptedRequest(eciesPayloadL1, useIv, useTimestamp, associatedData);
+        EciesEncryptedRequest encryptedRequestL1 = SecurityUtil.createEncryptedRequest(eciesPayloadL1, useIv, useTimestamp);
 
         stepContext.getRequestContext().setRequestObject(encryptedRequestL1);
     }

@@ -179,16 +179,17 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @param applicationSecret Application secret
      * @param eciesSharedInfo   Parameter sharedInfo1
      * @param data              Request data for the encryption
+     * @param associatedData    Data associated with ECIES
      * @throws Exception when an error during encryption of the request data occurred
      */
-    public void addEncryptedRequest(StepContext<M, R> stepContext, String applicationSecret, EciesSharedInfo1 eciesSharedInfo, byte[] data) throws Exception {
+    public void addEncryptedRequest(StepContext<M, R> stepContext, String applicationSecret, EciesSharedInfo1 eciesSharedInfo, byte[] data, byte[] associatedData) throws Exception {
         M model = stepContext.getModel();
         SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
         ResultStatusObject resultStatusObject = model.getResultStatus();
 
         EciesEncryptor encryptor;
         if (securityContext == null) {
-            encryptor = SecurityUtil.createEncryptor(applicationSecret, resultStatusObject, eciesSharedInfo);
+            encryptor = SecurityUtil.createEncryptor(applicationSecret, resultStatusObject, eciesSharedInfo, stepContext.getModel().getVersion(), associatedData);
             stepContext.setSecurityContext(
                     SimpleSecurityContext.builder()
                             .encryptor(encryptor)
@@ -201,9 +202,8 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
         final boolean useIv = model.getVersion().useIv();
         final boolean useTimestamp = model.getVersion().useTimestamp();
 
-        // TODO
-        final EciesPayload eciesPayload = encryptor.encrypt(data, useIv, true, null);
-        final EciesEncryptedRequest encryptedRequest = SecurityUtil.createEncryptedRequest(eciesPayload, useIv, useTimestamp, null);
+        final EciesPayload eciesPayload = encryptor.encrypt(data, useIv, true, associatedData);
+        final EciesEncryptedRequest encryptedRequest = SecurityUtil.createEncryptedRequest(eciesPayload, useIv, useTimestamp);
 
         stepContext.getRequestContext().setRequestObject(encryptedRequest);
     }
@@ -214,25 +214,35 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @param stepContext       Step context
      * @param cls               Class type of the decrypted object
      * @param <T>               Class of the decrypted object
+     * @param associatedData    Data associated with ECIES
      * @return Decrypted object from the provided response
      * @throws Exception when an error during object decryption occurred
      */
-    public <T> T decryptResponse(StepContext<?, EciesEncryptedResponse> stepContext, Class<T> cls) throws Exception {
+    public <T> T decryptResponse(StepContext<?, EciesEncryptedResponse> stepContext, Class<T> cls, EciesScope eciesScope, byte[] associatedData) throws Exception {
         try {
             SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
             EciesEncryptedResponse encryptedResponse = stepContext.getResponseContext().getResponseBodyObject();
+            final byte[] transportMasterKeyBytes = Base64.getDecoder().decode(stepContext.getModel().getResultStatus().getTransportMasterKey());
+            final byte[] nonceBytes = encryptedResponse.getNonce() != null ? Base64.getDecoder().decode(encryptedResponse.getNonce()) : null;
             EciesParameters eciesParameters = EciesParameters.builder()
-                    .nonce(Base64.getDecoder().decode(encryptedResponse.getNonce()))
+                    .nonce(nonceBytes)
                     .timestamp(encryptedResponse.getTimestamp())
                     .build();
-            String applicationSecret = securityContext.getApplicationSecret();
+            String applicationSecret = stepContext.getModel().toMap().get("APPLICATION_SECRET").toString();
             byte[] ephemeralPublicKey = Base64.getDecoder().decode(encryptedResponse.getEphemeralPublicKey());
             EciesEncryptor encryptor = securityContext.getEncryptor();
-            EciesDecryptor eciesDecryptor = ECIES_FACTORY.getEciesDecryptor(EciesScope.APPLICATION_SCOPE,
-                    encryptor.getEnvelopeKey(), applicationSecret.getBytes(StandardCharsets.UTF_8), null,
-                    eciesParameters, ephemeralPublicKey);
+            EciesDecryptor eciesDecryptor;
+            if (eciesScope == EciesScope.ACTIVATION_SCOPE) {
+                eciesDecryptor = ECIES_FACTORY.getEciesDecryptor(EciesScope.ACTIVATION_SCOPE,
+                        encryptor.getEnvelopeKey(), applicationSecret.getBytes(StandardCharsets.UTF_8), transportMasterKeyBytes,
+                        eciesParameters, ephemeralPublicKey);
+            } else {
+                eciesDecryptor = ECIES_FACTORY.getEciesDecryptor(EciesScope.APPLICATION_SCOPE,
+                        encryptor.getEnvelopeKey(), applicationSecret.getBytes(StandardCharsets.UTF_8), null,
+                        eciesParameters, ephemeralPublicKey);
+            }
 
-            byte[] decryptedBytes = SecurityUtil.decryptBytesFromResponse(eciesDecryptor, encryptedResponse);
+            byte[] decryptedBytes = SecurityUtil.decryptBytesFromResponse(eciesDecryptor, encryptedResponse, associatedData);
 
             final T responsePayload = RestClientConfiguration.defaultMapper().readValue(decryptedBytes, cls);
             stepContext.getResponseContext().setResponsePayloadDecrypted(responsePayload);

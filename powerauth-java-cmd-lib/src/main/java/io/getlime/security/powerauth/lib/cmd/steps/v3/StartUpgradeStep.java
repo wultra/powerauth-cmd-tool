@@ -16,6 +16,7 @@
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.google.common.collect.ImmutableMap;
+import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesScope;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
@@ -29,6 +30,8 @@ import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
+import io.getlime.security.powerauth.lib.cmd.steps.model.VaultUnlockStepModel;
+import io.getlime.security.powerauth.lib.cmd.util.EncryptionUtil;
 import io.getlime.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
 import io.getlime.security.powerauth.rest.api.model.response.UpgradeResponsePayload;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -97,7 +100,9 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, Ec
         StepContext<StartUpgradeStepModel, EciesEncryptedResponse> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
-        addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.UPGRADE, PowerAuthConst.EMPTY_JSON_BYTES);
+        final String activationId = model.getResultStatus().getActivationId();
+        final byte[] associatedData = model.getVersion().useTimestamp() ? EncryptionUtil.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion(), model.getApplicationKey(), activationId) : null;
+        addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.UPGRADE, PowerAuthConst.EMPTY_JSON_BYTES, associatedData);
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
@@ -106,8 +111,10 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, Ec
 
     @Override
     public void processResponse(StepContext<StartUpgradeStepModel, EciesEncryptedResponse> stepContext) throws Exception {
-        StartUpgradeStepModel model = stepContext.getModel();
-        final UpgradeResponsePayload responsePayload = decryptResponse(stepContext, UpgradeResponsePayload.class);
+        final StartUpgradeStepModel model = stepContext.getModel();
+        final String activationId = model.getResultStatus().getActivationId();
+        final byte[] associatedData = model.getVersion().useTimestamp() ? EncryptionUtil.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion(), model.getApplicationKey(), activationId) : null;
+        final UpgradeResponsePayload responsePayload = decryptResponse(stepContext, UpgradeResponsePayload.class, EciesScope.ACTIVATION_SCOPE, associatedData);
 
         // Store the activation status (updated counter)
         model.getResultStatus().setCtrData(responsePayload.getCtrData());

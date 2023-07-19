@@ -45,7 +45,12 @@ public enum PowerAuthVersion {
     /**
      * Version 3.1
      */
-    V3_1(3, "3.1");
+    V3_1(3, "3.1"),
+
+    /**
+     * Version 3.1
+     */
+    V3_2(3, "3.2");
 
     /**
      * All supported versions
@@ -65,7 +70,7 @@ public enum PowerAuthVersion {
     /**
      * All versions belonging to major version 3
      */
-    public static final ImmutableList<PowerAuthVersion> VERSION_3 = ImmutableList.of(V3_0, V3_1);
+    public static final ImmutableList<PowerAuthVersion> VERSION_3 = ImmutableList.of(V3_0, V3_1, V3_2);
 
     /**
      * Major version value

@@ -34,9 +34,4 @@ public class SimpleSecurityContext implements SecurityContext {
      */
     private EciesEncryptor encryptor;
 
-    /**
-     * Application secret.
-     */
-    private String applicationSecret;
-
 }

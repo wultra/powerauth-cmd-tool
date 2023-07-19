@@ -116,7 +116,7 @@ public class PrepareActivationStep extends AbstractActivationStep<PrepareActivat
                 buildStepContext(stepLogger, model, requestContext);
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
-        addEncryptedRequest(stepContext, model.getVersion().value());
+        addEncryptedRequest(stepContext, model.getVersion());
 
         return stepContext;
     }
