@@ -232,7 +232,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
                     .nonce(nonceBytes)
                     .timestamp(encryptedResponse.getTimestamp())
                     .build();
-            String applicationSecret = stepContext.getModel().toMap().get("APPLICATION_SECRET").toString();
+            String applicationSecret = (String) stepContext.getModel().toMap().get("APPLICATION_SECRET");
             byte[] ephemeralPublicKey = Base64.getDecoder().decode(encryptedResponse.getEphemeralPublicKey());
             EciesEncryptor encryptor = securityContext.getEncryptor();
             EciesDecryptor eciesDecryptor;
