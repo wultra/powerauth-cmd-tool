@@ -29,6 +29,8 @@ import io.getlime.security.powerauth.rest.api.model.request.EciesEncryptedReques
 import io.getlime.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
 import lombok.Getter;
 import org.json.simple.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -47,6 +49,8 @@ import java.util.*;
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  */
 public abstract class AbstractBaseStep<M extends BaseStepData, R> implements BaseStep {
+
+    private static final Logger logger = LoggerFactory.getLogger(AbstractBaseStep.class);
 
     /**
      * Corresponding PowerAuth step
@@ -257,6 +261,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
 
             return responsePayload;
         } catch (Exception ex) {
+            logger.debug(ex.getMessage(), ex);
             return null;
         }
     }
