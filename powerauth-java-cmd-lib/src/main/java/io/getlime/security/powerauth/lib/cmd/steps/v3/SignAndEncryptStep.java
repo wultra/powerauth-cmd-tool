@@ -142,7 +142,7 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
 
         // Encrypt the request
         final String activationId = model.getResultStatus().getActivationId();
-        final byte[] associatedData = model.getVersion().useTimestamp() ? EncryptionUtil.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion(), model.getApplicationKey(), activationId) : null;
+        final byte[] associatedData = model.getVersion().useTimestamp() ? EciesUtils.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion().toString(), model.getApplicationKey(), activationId) : null;
         addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.ACTIVATION_SCOPE_GENERIC, requestDataBytes, associatedData);
 
         incrementCounter(model);
@@ -155,7 +155,7 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
         final VerifySignatureStepModel model = stepContext.getModel();
         final String applicationSecret = model.getApplicationSecret();
         final String activationId = model.getResultStatus().getActivationId();
-        final byte[] associatedData = model.getVersion().useTimestamp() ? EncryptionUtil.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion(), model.getApplicationKey(), activationId) : null;
+        final byte[] associatedData = model.getVersion().useTimestamp() ? EciesUtils.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion().toString(), model.getApplicationKey(), activationId) : null;
         EncryptionUtil.processEncryptedResponse(stepContext, getStep().id(), applicationSecret, EciesScope.ACTIVATION_SCOPE, associatedData);
     }
 

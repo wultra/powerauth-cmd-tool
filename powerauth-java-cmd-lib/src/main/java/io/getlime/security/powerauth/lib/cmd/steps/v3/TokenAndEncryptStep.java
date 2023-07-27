@@ -18,6 +18,7 @@ package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesScope;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
+import io.getlime.security.powerauth.crypto.lib.util.EciesUtils;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
@@ -141,7 +142,7 @@ public class TokenAndEncryptStep extends AbstractBaseStep<TokenAndEncryptStepMod
 
         // Encrypt the request
         final String activationId = model.getResultStatus().getActivationId();
-        final byte[] associatedData = model.getVersion().useTimestamp() ? EncryptionUtil.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion(), model.getApplicationKey(), activationId) : null;
+        final byte[] associatedData = model.getVersion().useTimestamp() ? EciesUtils.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion().toString(), model.getApplicationKey(), activationId) : null;
         addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.ACTIVATION_SCOPE_GENERIC, requestDataBytes, associatedData);
 
         return stepContext;
@@ -152,7 +153,7 @@ public class TokenAndEncryptStep extends AbstractBaseStep<TokenAndEncryptStepMod
         final TokenAndEncryptStepModel model = stepContext.getModel();
         final String applicationSecret = model.getApplicationSecret();
         final String activationId = model.getResultStatus().getActivationId();
-        final byte[] associatedData = model.getVersion().useTimestamp() ? EncryptionUtil.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion(), model.getApplicationKey(), activationId) : null;
+        final byte[] associatedData = model.getVersion().useTimestamp() ? EciesUtils.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion().toString(), model.getApplicationKey(), activationId) : null;
         EncryptionUtil.processEncryptedResponse(stepContext, getStep().id(), applicationSecret, EciesScope.ACTIVATION_SCOPE, associatedData);
     }
 

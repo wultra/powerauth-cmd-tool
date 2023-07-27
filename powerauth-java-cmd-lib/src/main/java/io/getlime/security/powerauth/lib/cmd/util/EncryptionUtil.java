@@ -85,24 +85,4 @@ public class EncryptionUtil {
         );
     }
 
-    /**
-     * Derive associated data for ECIES.
-     * @param eciesScope ECIES scope.
-     * @param version Crypto protocol version.
-     * @param applicationKey Application key.
-     * @param activationId Activation identifier.
-     * @return Associated data.
-     */
-    public static byte[] deriveAssociatedData(EciesScope eciesScope, PowerAuthVersion version, String applicationKey, String activationId) {
-        if (version.useTimestamp()) {
-            if (eciesScope == EciesScope.ACTIVATION_SCOPE) {
-                return ByteUtils.concatStrings(version.value(), applicationKey, activationId);
-            } else {
-                return ByteUtils.concatStrings(version.value(), applicationKey);
-            }
-        } else {
-            return null;
-        }
-    }
-
 }

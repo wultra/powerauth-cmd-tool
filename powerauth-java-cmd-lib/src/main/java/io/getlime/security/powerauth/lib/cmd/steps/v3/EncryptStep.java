@@ -23,6 +23,7 @@ import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesScope
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.crypto.lib.model.exception.CryptoProviderException;
+import io.getlime.security.powerauth.crypto.lib.util.EciesUtils;
 import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
@@ -129,7 +130,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
             case "application" -> {
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/application
                 eciesSharedInfo1 = EciesSharedInfo1.APPLICATION_SCOPE_GENERIC;
-                final byte[] associatedData = model.getVersion().useTimestamp() ? EncryptionUtil.deriveAssociatedData(EciesScope.APPLICATION_SCOPE, model.getVersion(), model.getApplicationKey(), null) : null;
+                final byte[] associatedData = model.getVersion().useTimestamp() ? EciesUtils.deriveAssociatedData(EciesScope.APPLICATION_SCOPE, model.getVersion().toString(), model.getApplicationKey(), null) : null;
                 encryptor = ECIES_FACTORY.getEciesEncryptorForApplication((ECPublicKey) model.getMasterPublicKey(),
                         applicationSecret, eciesSharedInfo1, getEciesParameters(model.getVersion(), associatedData));
                 header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), model.getVersion().value());
@@ -139,7 +140,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
                 eciesSharedInfo1 = EciesSharedInfo1.ACTIVATION_SCOPE_GENERIC;
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/activation
                 final String activationId = model.getResultStatus().getActivationId();
-                final byte[] associatedData = model.getVersion().useTimestamp() ? EncryptionUtil.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion(), model.getApplicationKey(), activationId) : null;
+                final byte[] associatedData = model.getVersion().useTimestamp() ? EciesUtils.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion().toString(), model.getApplicationKey(), activationId) : null;
                 encryptor = SecurityUtil.createEncryptor(model.getApplicationSecret(), resultStatusObject, EciesSharedInfo1.ACTIVATION_SCOPE_GENERIC, model.getVersion(), associatedData);
                 header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), activationId, model.getVersion().value());
             }
@@ -157,7 +158,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
         );
 
         final String activationId = model.getResultStatus().getActivationId();
-        final byte[] associatedData = model.getVersion().useTimestamp() ? EncryptionUtil.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion(), model.getApplicationKey(), activationId) : null;
+        final byte[] associatedData = model.getVersion().useTimestamp() ? EciesUtils.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion().toString(), model.getApplicationKey(), activationId) : null;
         addEncryptedRequest(stepContext, model.getApplicationSecret(), eciesSharedInfo1, requestDataBytes, associatedData);
 
         String headerValue = header.buildHttpHeader();
@@ -188,7 +189,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
             eciesScope = EciesScope.APPLICATION_SCOPE;
             activationId = null;
         }
-        final byte[] associatedData = model.getVersion().useTimestamp() ? EncryptionUtil.deriveAssociatedData(eciesScope, model.getVersion(), model.getApplicationKey(), activationId) : null;
+        final byte[] associatedData = model.getVersion().useTimestamp() ? EciesUtils.deriveAssociatedData(eciesScope, model.getVersion().toString(), model.getApplicationKey(), activationId) : null;
         EncryptionUtil.processEncryptedResponse(stepContext, getStep().id(), applicationSecret, eciesScope, associatedData);
     }
 

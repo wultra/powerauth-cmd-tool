@@ -19,6 +19,7 @@ import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKey
 import io.getlime.security.powerauth.crypto.client.vault.PowerAuthClientVault;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesScope;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
+import io.getlime.security.powerauth.crypto.lib.util.EciesUtils;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
@@ -124,7 +125,7 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Ecie
         final byte[] requestBytesPayload = RestClientConfiguration.defaultMapper().writeValueAsBytes(requestPayload);
 
         final String activationId = model.getResultStatus().getActivationId();
-        final byte[] associatedData = model.getVersion().useTimestamp() ? EncryptionUtil.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion(), model.getApplicationKey(), activationId) : null;
+        final byte[] associatedData = model.getVersion().useTimestamp() ? EciesUtils.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion().toString(), model.getApplicationKey(), activationId) : null;
         addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.VAULT_UNLOCK, requestBytesPayload, associatedData);
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
@@ -138,7 +139,7 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Ecie
     public void processResponse(StepContext<VaultUnlockStepModel, EciesEncryptedResponse> stepContext) throws Exception {
         final VaultUnlockStepModel model = stepContext.getModel();
         final String activationId = model.getResultStatus().getActivationId();
-        final byte[] associatedData = model.getVersion().useTimestamp() ? EncryptionUtil.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion(), model.getApplicationKey(), activationId) : null;
+        final byte[] associatedData = model.getVersion().useTimestamp() ? EciesUtils.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion().toString(), model.getApplicationKey(), activationId) : null;
         final VaultUnlockResponsePayload responsePayload = decryptResponse(stepContext, VaultUnlockResponsePayload.class, EciesScope.ACTIVATION_SCOPE, associatedData);
 
         ResultStatusObject resultStatusObject = stepContext.getModel().getResultStatus();
