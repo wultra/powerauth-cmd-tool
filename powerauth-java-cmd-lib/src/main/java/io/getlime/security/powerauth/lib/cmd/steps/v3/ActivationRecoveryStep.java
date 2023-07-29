@@ -91,7 +91,7 @@ public class ActivationRecoveryStep extends AbstractActivationStep<ActivationRec
         StepContext<ActivationRecoveryStepModel, EciesEncryptedResponse> stepContext = buildStepContext(stepLogger, model, requestContext);
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
-        addEncryptedRequest(stepContext);
+        addEncryptedRequest(stepContext, model.getVersion());
 
         return stepContext;
     }

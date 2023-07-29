@@ -16,6 +16,7 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.context.security;
 
+import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesDecryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
 import lombok.Builder;
 import lombok.Data;

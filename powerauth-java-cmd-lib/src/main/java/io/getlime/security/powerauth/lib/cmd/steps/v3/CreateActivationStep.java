@@ -92,7 +92,7 @@ public class CreateActivationStep extends AbstractActivationStep<CreateActivatio
                 buildStepContext(stepLogger, model, requestContext);
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
-        addEncryptedRequest(stepContext);
+        addEncryptedRequest(stepContext, model.getVersion());
 
         return stepContext;
     }

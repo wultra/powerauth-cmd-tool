@@ -17,7 +17,9 @@ package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.vault.PowerAuthClientVault;
+import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesScope;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
+import io.getlime.security.powerauth.crypto.lib.util.EciesUtils;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
@@ -30,8 +32,10 @@ import io.getlime.security.powerauth.lib.cmd.status.ResultStatusService;
 import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
+import io.getlime.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VaultUnlockStepModel;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
+import io.getlime.security.powerauth.lib.cmd.util.EncryptionUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.rest.api.model.request.VaultUnlockRequestPayload;
 import io.getlime.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
@@ -120,7 +124,9 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Ecie
 
         final byte[] requestBytesPayload = RestClientConfiguration.defaultMapper().writeValueAsBytes(requestPayload);
 
-        addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.VAULT_UNLOCK, requestBytesPayload);
+        final String activationId = model.getResultStatus().getActivationId();
+        final byte[] associatedData = model.getVersion().useTimestamp() ? EciesUtils.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion().toString(), model.getApplicationKey(), activationId) : null;
+        addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.VAULT_UNLOCK, requestBytesPayload, associatedData);
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
@@ -131,7 +137,10 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Ecie
 
     @Override
     public void processResponse(StepContext<VaultUnlockStepModel, EciesEncryptedResponse> stepContext) throws Exception {
-        final VaultUnlockResponsePayload responsePayload = decryptResponse(stepContext, VaultUnlockResponsePayload.class);
+        final VaultUnlockStepModel model = stepContext.getModel();
+        final String activationId = model.getResultStatus().getActivationId();
+        final byte[] associatedData = model.getVersion().useTimestamp() ? EciesUtils.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion().toString(), model.getApplicationKey(), activationId) : null;
+        final VaultUnlockResponsePayload responsePayload = decryptResponse(stepContext, VaultUnlockResponsePayload.class, EciesScope.ACTIVATION_SCOPE, associatedData);
 
         ResultStatusObject resultStatusObject = stepContext.getModel().getResultStatus();
 

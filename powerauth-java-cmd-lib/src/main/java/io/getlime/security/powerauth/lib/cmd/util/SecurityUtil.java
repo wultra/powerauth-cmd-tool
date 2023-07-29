@@ -16,14 +16,17 @@
  */
 package io.getlime.security.powerauth.lib.cmd.util;
 
+import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesDecryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
+import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEnvelopeKey;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.exception.EciesException;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
+import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.*;
+import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.crypto.lib.model.exception.CryptoProviderException;
 import io.getlime.security.powerauth.crypto.lib.model.exception.GenericCryptoException;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
+import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.rest.api.model.request.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
@@ -34,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
+import java.util.Date;
 
 /**
  * Helper class with security utilities.
@@ -63,17 +67,51 @@ public class SecurityUtil {
      * @throws CryptoProviderException when an error during encryptor preparation occurred
      * @throws GenericCryptoException when an error during encryptor preparation occurred
      * @throws InvalidKeySpecException when an error during server public key processing occurred
+     * @throws EciesException when an encryption error occurs
      */
     public static EciesEncryptor createEncryptor(String applicationSecretValue,
                                                  ResultStatusObject resultStatusObject,
-                                                 EciesSharedInfo1 sharedInfo)
-            throws CryptoProviderException, GenericCryptoException, InvalidKeySpecException {
-        byte[] applicationSecret = applicationSecretValue.getBytes(StandardCharsets.UTF_8);
-        byte[] serverPublicKeyBytes = Base64.getDecoder().decode(resultStatusObject.getServerPublicKey());
-        byte[] transportMasterKeyBytes = Base64.getDecoder().decode(resultStatusObject.getTransportMasterKey());
+                                                 EciesSharedInfo1 sharedInfo,
+                                                 PowerAuthVersion version,
+                                                 byte[] associatedData)
+            throws CryptoProviderException, GenericCryptoException, InvalidKeySpecException, EciesException {
+        final byte[] applicationSecret = applicationSecretValue.getBytes(StandardCharsets.UTF_8);
+        final byte[] serverPublicKeyBytes = Base64.getDecoder().decode(resultStatusObject.getServerPublicKey());
+        final byte[] transportMasterKeyBytes = Base64.getDecoder().decode(resultStatusObject.getTransportMasterKey());
         final ECPublicKey serverPublicKey = (ECPublicKey) KEY_CONVERTOR.convertBytesToPublicKey(serverPublicKeyBytes);
+        final Long timestamp = version.useTimestamp() ? new Date().getTime() : null;
+        final byte[] nonceBytes = version.useIv() ? new KeyGenerator().generateRandomBytes(16) : null;
+        final EciesParameters parameters = EciesParameters.builder().nonce(nonceBytes).associatedData(associatedData).timestamp(timestamp).build();
         return ECIES_FACTORY.getEciesEncryptorForActivation(serverPublicKey, applicationSecret,
-                transportMasterKeyBytes, sharedInfo);
+                transportMasterKeyBytes, sharedInfo, parameters);
+    }
+
+    /**
+     * Creates new decryptor
+     *
+     * @param applicationSecretValue Application secret value
+     * @param resultStatusObject Activation status object
+     * @param envelopeKey Envelope key
+     * @param ephemeralPublicKey Ephemeral public key
+     *
+     * @return New decryptor instance
+     * @throws CryptoProviderException when an error during encryptor preparation occurred
+     * @throws GenericCryptoException when an error during encryptor preparation occurred
+     */
+    public static EciesDecryptor createDecryptor(String applicationSecretValue,
+                                                 ResultStatusObject resultStatusObject,
+                                                 EciesEnvelopeKey envelopeKey,
+                                                 byte[] ephemeralPublicKey,
+                                                 PowerAuthVersion version,
+                                                 byte[] associatedData)
+            throws CryptoProviderException, GenericCryptoException {
+        final byte[] applicationSecret = applicationSecretValue.getBytes(StandardCharsets.UTF_8);
+        final byte[] transportMasterKeyBytes = Base64.getDecoder().decode(resultStatusObject.getTransportMasterKey());
+        final Long timestamp = version.useTimestamp() ? new Date().getTime() : null;
+        final byte[] nonceBytes = version.useIv() ? new KeyGenerator().generateRandomBytes(16) : null;
+        final EciesParameters parameters = EciesParameters.builder().nonce(nonceBytes).associatedData(associatedData).timestamp(timestamp).build();
+        return ECIES_FACTORY.getEciesDecryptor(EciesScope.ACTIVATION_SCOPE, envelopeKey, applicationSecret,
+                transportMasterKeyBytes, parameters, ephemeralPublicKey);
     }
 
     /**
@@ -83,48 +121,58 @@ public class SecurityUtil {
      * @param encryptor Encyptor instance
      * @param value Object value to be encrypted
      * @param useIv True for encryption with non-zero initialization vector
-     *
+     * @param useTimestamp True when timestamp is used
+     * @param associatedData Data associated with ECIES request
      * @return Cryptogram value of the provided object.
      * @throws EciesException when an error during object encryption occurred
      * @throws IOException when an error during object encryption occurred
      */
-    public static EciesCryptogram encryptObject(EciesEncryptor encryptor, Object value, boolean useIv)
+    public static EciesPayload encryptObject(EciesEncryptor encryptor, Object value, boolean useIv, boolean useTimestamp, byte[] associatedData)
             throws EciesException, IOException {
         ByteArrayOutputStream baosL = new ByteArrayOutputStream();
         RestClientConfiguration.defaultMapper().writeValue(baosL, value);
-        return encryptor.encryptRequest(baosL.toByteArray(), useIv);
+        return encryptor.encrypt(baosL.toByteArray(), useIv, useTimestamp, associatedData);
     }
 
     /**
      * Decrypts bytes from a response
      *
-     * @param encryptor Encryptor
+     * @param decryptor Decryptor
      * @param encryptedResponse Encrypted response
      * @return decrypted bytes
      * @throws EciesException when an error during decryption occurred
      */
-    public static byte[] decryptBytesFromResponse(EciesEncryptor encryptor, EciesEncryptedResponse encryptedResponse)
+    public static byte[] decryptBytesFromResponse(EciesDecryptor decryptor, EciesEncryptedResponse encryptedResponse, byte[] associatedData)
             throws EciesException {
-        byte[] macResponse = Base64.getDecoder().decode(encryptedResponse.getMac());
-        byte[] encryptedDataResponse = Base64.getDecoder().decode(encryptedResponse.getEncryptedData());
-        final EciesCryptogram eciesCryptogramResponse = new EciesCryptogram(macResponse, encryptedDataResponse);
 
-        return encryptor.decryptResponse(eciesCryptogramResponse);
+        final byte[] ephemeralPublicKey = Base64.getDecoder().decode(encryptedResponse.getEphemeralPublicKey());
+        final byte[] mac = Base64.getDecoder().decode(encryptedResponse.getMac());
+        final byte[] encryptedData = Base64.getDecoder().decode(encryptedResponse.getEncryptedData());
+        final byte[] nonce = encryptedResponse.getNonce() != null ? Base64.getDecoder().decode(encryptedResponse.getNonce()) : null;
+        final Long timestamp = encryptedResponse.getTimestamp();
+        final EciesCryptogram eciesCryptogramResponse = new EciesCryptogram(ephemeralPublicKey, mac, encryptedData);
+
+        final EciesParameters parameters = new EciesParameters(nonce, associatedData, timestamp);
+        final EciesPayload payload = new EciesPayload(eciesCryptogramResponse, parameters);
+
+        return decryptor.decrypt(payload);
     }
 
     /**
      * Creates an encrypted request instance
      *
-     * @param eciesCryptogram Cryptogram data to be sent
+     * @param eciesPayload Ecies payload data to be sent
      * @param useIv True for encryption with non-zero initialization vector
+     * @param useTimestamp True when timestamp is present
      * @return Encrypted request instance
      */
-    public static EciesEncryptedRequest createEncryptedRequest(EciesCryptogram eciesCryptogram, boolean useIv) {
+    public static EciesEncryptedRequest createEncryptedRequest(EciesPayload eciesPayload, boolean useIv, boolean useTimestamp) {
         EciesEncryptedRequest request = new EciesEncryptedRequest();
-        request.setEncryptedData(Base64.getEncoder().encodeToString(eciesCryptogram.getEncryptedData()));
-        request.setEphemeralPublicKey(Base64.getEncoder().encodeToString(eciesCryptogram.getEphemeralPublicKey()));
-        request.setMac(Base64.getEncoder().encodeToString(eciesCryptogram.getMac()));
-        request.setNonce(useIv ? Base64.getEncoder().encodeToString(eciesCryptogram.getNonce()) : null);
+        request.setEncryptedData(Base64.getEncoder().encodeToString(eciesPayload.getCryptogram().getEncryptedData()));
+        request.setEphemeralPublicKey(Base64.getEncoder().encodeToString(eciesPayload.getCryptogram().getEphemeralPublicKey()));
+        request.setMac(Base64.getEncoder().encodeToString(eciesPayload.getCryptogram().getMac()));
+        request.setNonce(useIv ? Base64.getEncoder().encodeToString(eciesPayload.getParameters().getNonce()) : null);
+        request.setTimestamp(useTimestamp ? new Date().getTime() : null);
         return request;
     }
 
