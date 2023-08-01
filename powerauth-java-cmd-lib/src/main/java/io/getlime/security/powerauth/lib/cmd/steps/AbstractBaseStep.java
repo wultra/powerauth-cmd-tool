@@ -224,16 +224,18 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      */
     public <T> T decryptResponse(StepContext<?, EciesEncryptedResponse> stepContext, Class<T> cls, EciesScope eciesScope, byte[] associatedData) throws Exception {
         try {
-            SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
+            final PowerAuthVersion version = stepContext.getModel().getVersion();
+            final SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
             EciesEncryptedResponse encryptedResponse = stepContext.getResponseContext().getResponseBodyObject();
             final byte[] transportMasterKeyBytes = Base64.getDecoder().decode(stepContext.getModel().getResultStatus().getTransportMasterKey());
-            final byte[] nonceBytes = encryptedResponse.getNonce() != null ? Base64.getDecoder().decode(encryptedResponse.getNonce()) : null;
+            final byte[] nonceBytes = version.useDifferentIvForResponse() && encryptedResponse.getNonce() != null ? Base64.getDecoder().decode(encryptedResponse.getNonce()) : null;
+            final Long timestamp = version.useTimestamp() ? encryptedResponse.getTimestamp() : null;
             EciesParameters eciesParameters = EciesParameters.builder()
                     .nonce(nonceBytes)
-                    .timestamp(encryptedResponse.getTimestamp())
+                    .timestamp(timestamp)
                     .build();
             String applicationSecret = (String) stepContext.getModel().toMap().get("APPLICATION_SECRET");
-            byte[] ephemeralPublicKey = Base64.getDecoder().decode(encryptedResponse.getEphemeralPublicKey());
+            byte[] ephemeralPublicKey = securityContext.getEncryptor().getEnvelopeKey().getEphemeralKeyPublic();
             EciesEncryptor encryptor = securityContext.getEncryptor();
             EciesDecryptor eciesDecryptor;
             if (eciesScope == EciesScope.ACTIVATION_SCOPE) {
