@@ -136,17 +136,18 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
     public ResultStatusObject processResponse(EciesEncryptedResponse encryptedResponseL1,
                                               StepContext<M, EciesEncryptedResponse> context) throws Exception {
         M model = context.getModel();
-        ActivationSecurityContext securityContext = (ActivationSecurityContext) context.getSecurityContext();
+        final PowerAuthVersion version = model.getVersion();
+        final ActivationSecurityContext securityContext = (ActivationSecurityContext) context.getSecurityContext();
 
         // Read activation layer 1 response and decrypt it
-        byte[] ephemeralPublicKeyL1 = Base64.getDecoder().decode(encryptedResponseL1.getEphemeralPublicKey());
+        byte[] ephemeralPublicKeyL1 = securityContext.getEncryptorL1().getEnvelopeKey().getEphemeralKeyPublic();
         byte[] macL1 = Base64.getDecoder().decode(encryptedResponseL1.getMac());
         byte[] encryptedDataL1 = Base64.getDecoder().decode(encryptedResponseL1.getEncryptedData());
-        byte[] nonceL1 = encryptedResponseL1.getNonce() != null ? Base64.getDecoder().decode(encryptedResponseL1.getNonce()) : null;
+        byte[] nonceL1 = version.useDifferentIvForResponse() && encryptedResponseL1.getNonce() != null ? Base64.getDecoder().decode(encryptedResponseL1.getNonce()) : null;
         String applicationKey = context.getModel().getApplicationKey();
         final byte[] associatedDataL1 = context.getModel().getVersion().useTimestamp() ? EciesUtils.deriveAssociatedData(EciesScope.APPLICATION_SCOPE, model.getVersion().toString(), applicationKey, null) : null;
 
-        Long timestampL1 = encryptedResponseL1.getTimestamp();
+        Long timestampL1 = version.useTimestamp() ? encryptedResponseL1.getTimestamp() : null;
 
         EciesCryptogram responseCryptogramL1 = new EciesCryptogram(ephemeralPublicKeyL1, macL1, encryptedDataL1);
         EciesParameters eciesParametersL1 = new EciesParameters(nonceL1, associatedDataL1, timestampL1);
@@ -171,12 +172,12 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         );
 
         // Decrypt layer 2 response
-        byte[] ephemeralPublicKeyL2 = Base64.getDecoder().decode(responseL1.getActivationData().getEphemeralPublicKey());
+        byte[] ephemeralPublicKeyL2 = securityContext.getEncryptorL2().getEnvelopeKey().getEphemeralKeyPublic();
         byte[] macL2 = Base64.getDecoder().decode(responseL1.getActivationData().getMac());
         byte[] encryptedDataL2 = Base64.getDecoder().decode(responseL1.getActivationData().getEncryptedData());
-        byte[] nonceL2 = responseL1.getActivationData().getNonce() != null ? Base64.getDecoder().decode(responseL1.getActivationData().getNonce()) : null;
+        byte[] nonceL2 = version.useDifferentIvForResponse() && responseL1.getActivationData().getNonce() != null ? Base64.getDecoder().decode(responseL1.getActivationData().getNonce()) : null;
         final byte[] associatedDataL2 = context.getModel().getVersion().useTimestamp() ? EciesUtils.deriveAssociatedData(EciesScope.APPLICATION_SCOPE, model.getVersion().toString(), applicationKey, null) : null;
-        Long timestampL2 = responseL1.getActivationData().getTimestamp();
+        Long timestampL2 = version.useTimestamp() ? responseL1.getActivationData().getTimestamp() : null;
 
         EciesCryptogram responseCryptogramL2 = new EciesCryptogram(ephemeralPublicKeyL2, macL2, encryptedDataL2);
         EciesParameters eciesParametersL2 = new EciesParameters(nonceL2, associatedDataL2, timestampL2);

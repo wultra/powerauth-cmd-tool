@@ -104,6 +104,16 @@ public enum PowerAuthVersion {
     }
 
     /**
+     * Provides flag whether decryption uses different non-zero initialization vector.
+     * <p>This feature is supported only for protocol V3.2+.</p>
+     *
+     * @return Flag whether decryption uses different non-zero initialization vector.
+     */
+    public boolean useDifferentIvForResponse() {
+        return majorVersion >= 3 && V3_2.equals(this);
+    }
+
+    /**
      * Provides flag whether encryption uses timestamp.
      * <p>This feature is supported only for protocol V3.2+.</p>
      *

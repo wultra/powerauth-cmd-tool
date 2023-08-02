@@ -87,34 +87,6 @@ public class SecurityUtil {
     }
 
     /**
-     * Creates new decryptor
-     *
-     * @param applicationSecretValue Application secret value
-     * @param resultStatusObject Activation status object
-     * @param envelopeKey Envelope key
-     * @param ephemeralPublicKey Ephemeral public key
-     *
-     * @return New decryptor instance
-     * @throws CryptoProviderException when an error during encryptor preparation occurred
-     * @throws GenericCryptoException when an error during encryptor preparation occurred
-     */
-    public static EciesDecryptor createDecryptor(String applicationSecretValue,
-                                                 ResultStatusObject resultStatusObject,
-                                                 EciesEnvelopeKey envelopeKey,
-                                                 byte[] ephemeralPublicKey,
-                                                 PowerAuthVersion version,
-                                                 byte[] associatedData)
-            throws CryptoProviderException, GenericCryptoException {
-        final byte[] applicationSecret = applicationSecretValue.getBytes(StandardCharsets.UTF_8);
-        final byte[] transportMasterKeyBytes = Base64.getDecoder().decode(resultStatusObject.getTransportMasterKey());
-        final Long timestamp = version.useTimestamp() ? new Date().getTime() : null;
-        final byte[] nonceBytes = version.useIv() ? new KeyGenerator().generateRandomBytes(16) : null;
-        final EciesParameters parameters = EciesParameters.builder().nonce(nonceBytes).associatedData(associatedData).timestamp(timestamp).build();
-        return ECIES_FACTORY.getEciesDecryptor(EciesScope.ACTIVATION_SCOPE, envelopeKey, applicationSecret,
-                transportMasterKeyBytes, parameters, ephemeralPublicKey);
-    }
-
-    /**
      * Encrypts an object using the provided encryptor
      * <p>The object will be serialized to json and the json bytes will be then encrypted</p>
      *
