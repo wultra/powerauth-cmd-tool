@@ -45,17 +45,20 @@ public class EncryptionUtil {
      * Process an encrypted response for a step.
      * @param stepContext Step context.
      * @param stepId Step identifier.
+     * @param eciesScope Scope of ECIES.
+     * @param applicationSecret Application's secret.
+     * @param associatedData Associated data for ECIES.
      * @throws Exception Thrown in case response decryption fails.
      */
     public static void processEncryptedResponse(StepContext<?, EciesEncryptedResponse> stepContext, String stepId, String applicationSecret, EciesScope eciesScope, byte[] associatedData) throws Exception {
         ResponseContext<EciesEncryptedResponse> responseContext = stepContext.getResponseContext();
         EciesEncryptor encryptor = ((SimpleSecurityContext) stepContext.getSecurityContext()).getEncryptor();
 
+        final PowerAuthVersion version = stepContext.getModel().getVersion();
         final String nonce = responseContext.getResponseBodyObject().getNonce();
-        final byte[] nonceBytes = nonce != null ? Base64.getDecoder().decode(nonce) : null;
+        final byte[] nonceBytes = version.useDifferentIvForResponse() && nonce != null ? Base64.getDecoder().decode(nonce) : null;
         final Long timestamp = responseContext.getResponseBodyObject().getTimestamp();
-        final String ephemeralPublicKey = responseContext.getResponseBodyObject().getEphemeralPublicKey();
-        final byte[] ephemeralPublicKeyBytes = Base64.getDecoder().decode(ephemeralPublicKey);
+        final byte[] ephemeralPublicKeyBytes = encryptor.getEnvelopeKey().getEphemeralKeyPublic();
         final byte[] transportMasterKeyBytes = eciesScope == EciesScope.ACTIVATION_SCOPE ? Base64.getDecoder().decode(stepContext.getModel().getResultStatus().getTransportMasterKey()) : null;
 
         EciesParameters eciesParameters = EciesParameters.builder().nonce(nonceBytes).timestamp(timestamp).associatedData(associatedData).build();

@@ -218,6 +218,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @param stepContext       Step context
      * @param cls               Class type of the decrypted object
      * @param <T>               Class of the decrypted object
+     * @param eciesScope        Scope of ECIES
      * @param associatedData    Data associated with ECIES
      * @return Decrypted object from the provided response
      * @throws Exception when an error during object decryption occurred

@@ -62,6 +62,8 @@ public class SecurityUtil {
      * @param applicationSecretValue Application secret value
      * @param resultStatusObject Activation status object
      * @param sharedInfo Shared info parameter value
+     * @param associatedData Associated data for ECIES.
+     * @param version Protocol version.
      *
      * @return New encryptor instance
      * @throws CryptoProviderException when an error during encryptor preparation occurred
@@ -111,13 +113,14 @@ public class SecurityUtil {
      *
      * @param decryptor Decryptor
      * @param encryptedResponse Encrypted response
+     * @param associatedData Associated data for ECIES
      * @return decrypted bytes
      * @throws EciesException when an error during decryption occurred
      */
     public static byte[] decryptBytesFromResponse(EciesDecryptor decryptor, EciesEncryptedResponse encryptedResponse, byte[] associatedData)
             throws EciesException {
 
-        final byte[] ephemeralPublicKey = Base64.getDecoder().decode(encryptedResponse.getEphemeralPublicKey());
+        final byte[] ephemeralPublicKey = decryptor.getEnvelopeKey().getEphemeralKeyPublic();
         final byte[] mac = Base64.getDecoder().decode(encryptedResponse.getMac());
         final byte[] encryptedData = Base64.getDecoder().decode(encryptedResponse.getEncryptedData());
         final byte[] nonce = encryptedResponse.getNonce() != null ? Base64.getDecoder().decode(encryptedResponse.getNonce()) : null;
