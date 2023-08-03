@@ -31,8 +31,6 @@ import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
-import io.getlime.security.powerauth.lib.cmd.steps.model.VaultUnlockStepModel;
-import io.getlime.security.powerauth.lib.cmd.util.EncryptionUtil;
 import io.getlime.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
 import io.getlime.security.powerauth.rest.api.model.response.UpgradeResponsePayload;
 import org.springframework.beans.factory.annotation.Autowired;

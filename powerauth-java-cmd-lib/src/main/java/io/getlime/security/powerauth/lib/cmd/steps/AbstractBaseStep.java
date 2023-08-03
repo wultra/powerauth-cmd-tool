@@ -10,6 +10,8 @@ import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesParam
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesPayload;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesScope;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
+import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
+import io.getlime.security.powerauth.crypto.lib.model.exception.CryptoProviderException;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.DisabledStepLogger;
@@ -75,6 +77,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     protected final StepLoggerFactory stepLoggerFactory;
 
     private static final EciesFactory ECIES_FACTORY = new EciesFactory();
+    private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
 
     /**
      * Constructor
@@ -192,22 +195,26 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
         ResultStatusObject resultStatusObject = model.getResultStatus();
 
         EciesEncryptor encryptor;
+        EciesParameters parameters;
         if (securityContext == null) {
-            encryptor = SecurityUtil.createEncryptor(applicationSecret, resultStatusObject, eciesSharedInfo, stepContext.getModel().getVersion(), associatedData);
+            parameters = getRequestEciesParameters(stepContext.getModel().getVersion(), associatedData);
+            encryptor = SecurityUtil.createEncryptorForActivationScope(applicationSecret, resultStatusObject, eciesSharedInfo, parameters);
             stepContext.setSecurityContext(
                     SimpleSecurityContext.builder()
                             .encryptor(encryptor)
+                            .requestParameters(parameters)
                             .build()
             );
         } else {
             encryptor = securityContext.getEncryptor();
+            parameters = securityContext.getRequestParameters();
         }
 
         final boolean useIv = model.getVersion().useIv();
         final boolean useTimestamp = model.getVersion().useTimestamp();
 
-        final EciesPayload eciesPayload = encryptor.encrypt(data, useIv, true, associatedData);
-        final EciesEncryptedRequest encryptedRequest = SecurityUtil.createEncryptedRequest(eciesPayload, useIv, useTimestamp);
+        final EciesPayload eciesPayload = encryptor.encrypt(data, parameters);
+        final EciesEncryptedRequest encryptedRequest = SecurityUtil.createEncryptedRequest(eciesPayload);
 
         stepContext.getRequestContext().setRequestObject(encryptedRequest);
     }
@@ -229,7 +236,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             final SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
             EciesEncryptedResponse encryptedResponse = stepContext.getResponseContext().getResponseBodyObject();
             final byte[] transportMasterKeyBytes = Base64.getDecoder().decode(stepContext.getModel().getResultStatus().getTransportMasterKey());
-            final byte[] nonceBytes = version.useDifferentIvForResponse() && encryptedResponse.getNonce() != null ? Base64.getDecoder().decode(encryptedResponse.getNonce()) : null;
+            final byte[] nonceBytes = version.useDifferentIvForResponse() && encryptedResponse.getNonce() != null ? Base64.getDecoder().decode(encryptedResponse.getNonce()) : securityContext.getRequestParameters().getNonce();
             final Long timestamp = version.useTimestamp() ? encryptedResponse.getTimestamp() : null;
             EciesParameters eciesParameters = EciesParameters.builder()
                     .nonce(nonceBytes)
@@ -249,7 +256,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
                         eciesParameters, ephemeralPublicKey);
             }
 
-            byte[] decryptedBytes = SecurityUtil.decryptBytesFromResponse(eciesDecryptor, encryptedResponse, associatedData);
+            byte[] decryptedBytes = SecurityUtil.decryptBytesFromResponse(eciesDecryptor, encryptedResponse, eciesParameters);
 
             final T responsePayload = RestClientConfiguration.defaultMapper().readValue(decryptedBytes, cls);
             stepContext.getResponseContext().setResponsePayloadDecrypted(responsePayload);
@@ -267,6 +274,19 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             logger.debug(ex.getMessage(), ex);
             return null;
         }
+    }
+
+    /**
+     * Createa EciesParameters object for the new encrypted request.
+     * @param version Protocol version.
+     * @param associatedData Associated data to be a part of the request.
+     * @return EciesParameters object.
+     * @throws CryptoProviderException In case of random generator fails.
+     */
+    public EciesParameters getRequestEciesParameters(PowerAuthVersion version, byte[] associatedData) throws CryptoProviderException {
+        final Long timestamp = version.useTimestamp() ? new Date().getTime() : null;
+        final byte[] nonceBytes = version.useIv() ? KEY_GENERATOR.generateRandomBytes(16) : null;
+        return EciesParameters.builder().nonce(nonceBytes).associatedData(associatedData).timestamp(timestamp).build();
     }
 
     /**

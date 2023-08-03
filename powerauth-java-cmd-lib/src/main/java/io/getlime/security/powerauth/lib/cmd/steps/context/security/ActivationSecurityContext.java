@@ -18,6 +18,8 @@ package io.getlime.security.powerauth.lib.cmd.steps.context.security;
 
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesDecryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
+import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesParameters;
+import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesPayload;
 import lombok.Builder;
 import lombok.Data;
 
@@ -41,6 +43,15 @@ public class ActivationSecurityContext implements SecurityContext {
      * Encryptor used on layer 2
      */
     private EciesEncryptor encryptorL2;
+
+    /**
+     * ECIES parameters used for request encryption on layer 1
+     */
+    private EciesParameters requestParametersL1;
+    /**
+     * ECIES parameters used for request encryption on layer 2
+     */
+    private EciesParameters requestParametersL2;
 
     /**
      * Device key pair
