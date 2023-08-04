@@ -277,7 +277,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     }
 
     /**
-     * Createa EciesParameters object for the new encrypted request.
+     * Create EciesParameters object for the new encrypted request.
      * @param version Protocol version.
      * @param associatedData Associated data to be a part of the request.
      * @return EciesParameters object.
