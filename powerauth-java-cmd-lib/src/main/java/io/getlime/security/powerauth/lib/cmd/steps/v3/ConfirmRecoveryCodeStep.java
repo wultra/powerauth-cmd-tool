@@ -31,8 +31,6 @@ import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.ConfirmRecoveryCodeStepModel;
-import io.getlime.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
-import io.getlime.security.powerauth.lib.cmd.util.EncryptionUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.rest.api.model.request.ConfirmRecoveryRequestPayload;
 import io.getlime.security.powerauth.rest.api.model.response.ConfirmRecoveryResponsePayload;

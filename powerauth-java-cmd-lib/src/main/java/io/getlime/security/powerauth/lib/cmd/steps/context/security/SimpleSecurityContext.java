@@ -17,6 +17,7 @@
 package io.getlime.security.powerauth.lib.cmd.steps.context.security;
 
 import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
+import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesParameters;
 import lombok.Builder;
 import lombok.Data;
 
@@ -33,5 +34,10 @@ public class SimpleSecurityContext implements SecurityContext {
      * Encryptor
      */
     private EciesEncryptor encryptor;
+
+    /**
+     * ECIES parameters used for request encryption
+     */
+    private EciesParameters requestParameters;
 
 }
