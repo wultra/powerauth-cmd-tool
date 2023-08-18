@@ -46,6 +46,7 @@ import java.util.regex.Pattern;
  * <ul>
  *      <li>3.0</li>
  *      <li>3.1</li>
+ *      <li>3.2</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
@@ -115,8 +116,8 @@ public class PrepareActivationStep extends AbstractActivationStep<PrepareActivat
         StepContext<PrepareActivationStepModel, EciesEncryptedResponse> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
+        addEncryptedRequest(stepContext);
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
-        addEncryptedRequest(stepContext, model.getVersion());
 
         return stepContext;
     }

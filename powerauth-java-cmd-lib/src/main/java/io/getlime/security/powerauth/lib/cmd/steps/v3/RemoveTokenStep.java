@@ -45,6 +45,7 @@ import java.util.Objects;
  * <ul>
  *      <li>3.0</li>
  *      <li>3.1</li>
+ *      <li>3.2</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
