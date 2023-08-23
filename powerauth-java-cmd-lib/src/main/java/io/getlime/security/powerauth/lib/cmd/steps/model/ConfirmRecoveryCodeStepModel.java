@@ -18,6 +18,7 @@ package io.getlime.security.powerauth.lib.cmd.steps.model;
 
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ReplayAttackCapable;
 import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -33,7 +34,7 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ConfirmRecoveryCodeStepModel extends BaseStepModel
-        implements ResultStatusChangeable, SignatureHeaderData {
+        implements ResultStatusChangeable, SignatureHeaderData, ReplayAttackCapable {
 
     /**
      * File name of the file with stored activation status.
@@ -65,6 +66,12 @@ public class ConfirmRecoveryCodeStepModel extends BaseStepModel
      */
     private PublicKey masterPublicKey;
 
+    /**
+     * Flag indicating that this step should retry its networking call to simulate replay attack.
+     */
+    private boolean isReplayAttack;
+
+
     @Override
     public PowerAuthSignatureTypes getSignatureType() {
         return PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE;
@@ -79,6 +86,7 @@ public class ConfirmRecoveryCodeStepModel extends BaseStepModel
         context.put("PASSWORD", password);
         context.put("RECOVERY_CODE", recoveryCode);
         context.put("MASTER_PUBLIC_KEY", masterPublicKey);
+        context.put("REPLAY_ATTACK", isReplayAttack);
         return context;
     }
 
@@ -91,6 +99,7 @@ public class ConfirmRecoveryCodeStepModel extends BaseStepModel
         setPassword((String) context.get("PASSWORD"));
         setRecoveryCode((String) context.get("RECOVERY_CODE"));
         setMasterPublicKey((PublicKey) context.get("MASTER_PUBLIC_KEY"));
+        setReplayAttack((boolean) context.getOrDefault("REPLAY_ATTACK", false));
     }
 
 }

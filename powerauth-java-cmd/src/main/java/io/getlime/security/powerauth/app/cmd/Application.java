@@ -93,6 +93,7 @@ public class Application {
             options.addOption("l", "signature-type", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a signature type, as specified in PowerAuth signature process.");
             options.addOption("d", "data-file", true, "In case a specified method is 'sign', 'sign-encrypt' or 'token-encrypt', this field specifies a file with the input data to be signed and verified with the server, as specified in PowerAuth signature process or MAC token based authentication.");
             options.addOption("y", "dry-run", false, "In case a specified method is 'sign', 'sign-encrypt', 'validate-token' or 'token-encrypt' and this attribute is specified, the step is stopped right after signing the request body and preparing appropriate headers.");
+            options.addOption("2", "replay-attack", false, "In case a specified method supports encryption or authentication then simulate the replay attack by sending payload for twice to the server. If 2nd attempt should not succeed.");
             options.addOption("p", "password", true, "Password used for a knowledge related key encryption. If not specified, an interactive input is required.");
             options.addOption("I", "identity-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with identity attributes.");
             options.addOption("C", "custom-attributes-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with custom attributes.");
@@ -229,6 +230,7 @@ public class Application {
                     model.setUriString(uriString);
                     model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
                     model.setVersion(version);
+                    model.setReplayAttack(cmd.hasOption("replay-attack"));
 
                     stepExecutionService.execute(powerAuthStep, version, model);
                 }
@@ -243,6 +245,7 @@ public class Application {
                     model.setHttpMethod(cmd.getOptionValue("t"));
                     model.setVersion(version);
                     model.setDryRun(cmd.hasOption("dry-run"));
+                    model.setReplayAttack(cmd.hasOption("replay-attack"));
 
                     // Read the file with request data
                     String dataFileName = cmd.getOptionValue("d");
@@ -288,6 +291,7 @@ public class Application {
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
                     model.setVersion(version);
+                    model.setReplayAttack(cmd.hasOption("replay-attack"));
 
                     stepExecutionService.execute(powerAuthStep, version, model);
                 }
@@ -330,6 +334,7 @@ public class Application {
                     model.setUriString(uriString);
                     model.setVersion(version);
                     model.setDryRun(cmd.hasOption("dry-run"));
+                    model.setReplayAttack(cmd.hasOption("replay-attack"));
 
                     // Read the file with request data
                     String dataFileName = cmd.getOptionValue("d");
@@ -351,6 +356,7 @@ public class Application {
                     model.setUriString(uriString);
                     model.setReason(reason);
                     model.setVersion(version);
+                    model.setReplayAttack(cmd.hasOption("replay-attack"));
 
                     stepExecutionService.execute(powerAuthStep, version, model);
                 }
@@ -380,6 +386,7 @@ public class Application {
                     model.setResultStatus(resultStatusObject);
                     model.setUriString(uriString);
                     model.setVersion(version);
+                    model.setReplayAttack(cmd.hasOption("replay-attack"));
 
                     stepExecutionService.execute(powerAuthStep, version, model);
                 }
@@ -394,6 +401,7 @@ public class Application {
                     model.setScope(cmd.getOptionValue("o"));
                     model.setUriString(uriString);
                     model.setVersion(version);
+                    model.setReplayAttack(cmd.hasOption("replay-attack"));
 
                     // Read the file with request data
                     String dataFileName = cmd.getOptionValue("d");
@@ -415,6 +423,7 @@ public class Application {
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
                     model.setVersion(version);
+                    model.setReplayAttack(cmd.hasOption("replay-attack"));
 
                     // Read the file with request data
                     String dataFileName = cmd.getOptionValue("d");
@@ -435,6 +444,7 @@ public class Application {
                     model.setResultStatus(resultStatusObject);
                     model.setUriString(uriString);
                     model.setVersion(version);
+                    model.setReplayAttack(cmd.hasOption("replay-attack"));
 
                     // Read the file with request data
                     String dataFileName = cmd.getOptionValue("d");
@@ -452,6 +462,7 @@ public class Application {
                     model.setResultStatus(resultStatusObject);
                     model.setUriString(uriString);
                     model.setVersion(version);
+                    model.setReplayAttack(cmd.hasOption("replay-attack"));
 
                     stepExecutionService.execute(powerAuthStep, version, model);
                 }
@@ -491,6 +502,7 @@ public class Application {
                     model.setResultStatus(resultStatusObject);
                     model.setUriString(uriString);
                     model.setVersion(version);
+                    model.setReplayAttack(cmd.hasOption("replay-attack"));
 
                     stepExecutionService.execute(powerAuthStep, version, model);
                 }
@@ -506,6 +518,7 @@ public class Application {
                     model.setResultStatus(resultStatusObject);
                     model.setUriString(uriString);
                     model.setVersion(version);
+                    model.setReplayAttack(cmd.hasOption("replay-attack"));
 
                     stepExecutionService.execute(powerAuthStep, version, model);
                 }

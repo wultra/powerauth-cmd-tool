@@ -17,6 +17,7 @@ package io.getlime.security.powerauth.lib.cmd.steps.model;
 
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.ActivationData;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ReplayAttackCapable;
 import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -33,7 +34,7 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ActivationRecoveryStepModel extends BaseStepModel
-        implements ActivationData, ResultStatusChangeable, EncryptionHeaderData {
+        implements ActivationData, ResultStatusChangeable, EncryptionHeaderData, ReplayAttackCapable {
 
     /**
      * Identity attributes.
@@ -86,6 +87,11 @@ public class ActivationRecoveryStepModel extends BaseStepModel
     private PublicKey masterPublicKey;
 
     /**
+     * Flag indicating that this step should retry its networking call to simulate replay attack.
+     */
+    private boolean isReplayAttack;
+
+    /**
      * Default constructor.
      */
     public ActivationRecoveryStepModel() {
@@ -105,6 +111,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel
         context.put("DEVICE_INFO", deviceInfo);
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
+        context.put("REPLAY_ATTACK", isReplayAttack);
         return context;
     }
 
@@ -122,6 +129,7 @@ public class ActivationRecoveryStepModel extends BaseStepModel
         setDeviceInfo((String) context.get("DEVICE_INFO"));
         setApplicationKey((String) context.get("APPLICATION_KEY"));
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
+        setReplayAttack((boolean) context.getOrDefault("REPLAY_ATTACK", false));
     }
 
 }

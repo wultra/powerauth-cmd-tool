@@ -16,6 +16,7 @@
 package io.getlime.security.powerauth.lib.cmd.steps.model;
 
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ReplayAttackCapable;
 import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -30,7 +31,7 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class StartUpgradeStepModel extends BaseStepModel
-        implements ResultStatusChangeable, EncryptionHeaderData {
+        implements ResultStatusChangeable, EncryptionHeaderData, ReplayAttackCapable {
 
     /**
      * File name of the file with stored activation status.
@@ -47,12 +48,18 @@ public class StartUpgradeStepModel extends BaseStepModel
      */
     private String applicationSecret;
 
+    /**
+     * Flag indicating that this step should retry its networking call to simulate replay attack.
+     */
+    private boolean isReplayAttack;
+
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> context = super.toMap();
         context.put("STATUS_FILENAME", statusFileName);
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
+        context.put("REPLAY_ATTACK", isReplayAttack);
         return context;
     }
 
@@ -62,6 +69,7 @@ public class StartUpgradeStepModel extends BaseStepModel
         setStatusFileName((String) context.get("STATUS_FILENAME"));
         setApplicationKey((String) context.get("APPLICATION_KEY"));
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
+        setReplayAttack((boolean) context.getOrDefault("REPLAY_ATTACK", false));
     }
 
 }
