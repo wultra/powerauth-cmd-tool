@@ -19,6 +19,7 @@ package io.getlime.security.powerauth.lib.cmd.steps.model;
 
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
 import io.getlime.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ReplayAttackCapable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -33,7 +34,7 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class EncryptStepModel extends BaseStepModel
-        implements EncryptionHeaderData, DryRunCapable {
+        implements EncryptionHeaderData, DryRunCapable, ReplayAttackCapable {
 
     /**
      * Request data.
@@ -70,6 +71,11 @@ public class EncryptStepModel extends BaseStepModel
      */
     private String scope;
 
+    /**
+     * Flag indicating that this step should retry its networking call to simulate replay attack.
+     */
+    private boolean isReplayAttack;
+
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> context = super.toMap();
@@ -79,6 +85,7 @@ public class EncryptStepModel extends BaseStepModel
         context.put("DRY_RUN", dryRun);
         context.put("MASTER_PUBLIC_KEY", masterPublicKey);
         context.put("SCOPE", scope);
+        context.put("REPLAY_ATTACK", isReplayAttack);
         return context;
     }
 
@@ -91,6 +98,7 @@ public class EncryptStepModel extends BaseStepModel
         setDryRun((boolean) context.get("DRY_RUN"));
         setMasterPublicKey((PublicKey) context.get("MASTER_PUBLIC_KEY"));
         setScope((String) context.get("SCOPE"));
+        setReplayAttack((boolean) context.getOrDefault("REPLAY_ATTACK", false));
     }
 
 }

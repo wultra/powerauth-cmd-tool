@@ -41,6 +41,7 @@ import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.security.SimpleSecurityContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import io.getlime.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ReplayAttackCapable;
 import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.*;
@@ -93,8 +94,6 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     protected final StepLoggerFactory stepLoggerFactory;
 
     private static final EncryptorFactory ENCRYPTOR_FACTORY = new EncryptorFactory();
-    private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
-    private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
 
     /**
      * Constructor
@@ -177,19 +176,39 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             return null;
         }
 
+        final boolean simulateReplay = isReplayAttack(stepContext.getModel());
         try {
-            ResponseContext<R> responseContext = callServer(stepContext);
+            ResponseContext<R> responseContext = callServer(stepContext, false);
             if (responseContext != null) {
                 stepContext.setResponseContext(responseContext);
                 processResponse(stepContext);
-                stepLogger.writeDoneOK(getStep().id() + "-success");
+                if (!simulateReplay) {
+                    stepLogger.writeDoneOK(getStep().id() + "-success");
+                }
             } else if (!isDryRun(stepContext.getModel())) {
                 stepContext.getStepLogger().writeDoneFailed(getStep().id() + "-failed");
+                return null;
             }
         } catch (Exception exception) {
             stepLogger.writeError(getStep().id() + "-error-generic", exception);
             stepLogger.writeDoneFailed(getStep().id() + "-failed");
             return null;
+        }
+
+        if (simulateReplay) {
+            try {
+                stepLogger.writeItem(
+                        getStep().id() + "-replay-attack-start",
+                        "Replaying " + getStep().description(),
+                        null,
+                        "OK",
+                        null
+                );
+                callServer(stepContext, true);
+            } catch (Exception exception) {
+                stepLogger.writeError(getStep().id() + "-replay-attack-error-generic", exception);
+                stepLogger.writeDoneFailed(getStep().id() + "-failed");
+            }
         }
 
         return stepContext.getModel().getResultStatusObject();
@@ -312,7 +331,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     public final void processResponse(StepContext<M, R> stepContext, byte[] responseBody, Class<R> responseObjectClass) throws Exception {
         R responseBodyObject = HttpUtil.fromBytes(responseBody, responseObjectClass);
         ResponseEntity<R> responseEntity = ResponseEntity.of(Optional.of(responseBodyObject));
-        addResponseContext(stepContext, responseEntity);
+        addResponseContext(stepContext, responseEntity, false);
         processResponse(stepContext);
     }
 
@@ -362,7 +381,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     /**
      * Calls the server and prepares response context with the response data
      */
-    private @Nullable ResponseContext<R> callServer(StepContext<M, R> stepContext) throws Exception {
+    private @Nullable ResponseContext<R> callServer(StepContext<M, R> stepContext, boolean doReplayAttack) throws Exception {
         if (stepContext == null) {
             return null;
         }
@@ -372,6 +391,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             return null;
         }
 
+        final String replayPrefix = doReplayAttack ? "-replay-attack" : "";
         M model = stepContext.getModel();
         RequestContext requestContext = stepContext.getRequestContext();
 
@@ -386,7 +406,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
 
         byte[] requestBytes = HttpUtil.toRequestBytes(requestContext.getRequestObject());
 
-        stepContext.getStepLogger().writeServerCall(step.id() + "-request-sent", requestContext.getUri(), requestContext.getHttpMethod().name(), requestContext.getRequestObject(), requestBytes, headers);
+        stepContext.getStepLogger().writeServerCall(step.id() + replayPrefix + "-request-sent", requestContext.getUri(), requestContext.getHttpMethod().name(), requestContext.getRequestObject(), requestBytes, headers);
 
         // In the case of a dry run the execution ends here
         if (isDryRun(model)) {
@@ -397,7 +417,10 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
 
         RestClient restClient = RestClientFactory.getRestClient();
         if (restClient == null) {
-            stepContext.getStepLogger().writeError(step.id() + "-error-rest-client", "Unable to prepare a REST client");
+            stepContext.getStepLogger().writeError(step.id() + replayPrefix + "-error-rest-client", "Unable to prepare a REST client");
+            if (doReplayAttack) {
+                stepContext.getStepLogger().writeDoneFailed(step.id() + "-failed");
+            }
             return null;
         }
 
@@ -410,16 +433,39 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
                 responseEntity = restClient.post(requestContext.getUri(), requestBytes, null, MapUtil.toMultiValueMap(headers), responseTypeReference);
             }
         } catch (RestClientException ex) {
-            stepContext.getStepLogger().writeServerCallError(step.id() + "-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
+            if (!doReplayAttack) {
+                // Regular execution
+                stepContext.getStepLogger().writeServerCallError(step.id() + "-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
+            } else {
+                // Replay
+                if (ex.getStatusCode().is4xxClientError()) {
+                    // Replay attack was properly handled on the server
+                    stepContext.getStepLogger().writeDoneOK(getStep().id() + "-success");
+                } else {
+                    // Replay attack failed, but the status code is not what we expected
+                    stepContext.getStepLogger().writeError(step.id() + "-replay-attack-wrong-status", "Replay attack failed with wrong HTTP status code");
+                    stepContext.getStepLogger().writeServerCallError(step.id() + "-replay-attack-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
+                    stepContext.getStepLogger().writeDoneFailed(step.id() + "-failed");
+                }
+            }
             return null;
         }
-
-        return addResponseContext(stepContext, responseEntity);
+        return addResponseContext(stepContext, responseEntity, doReplayAttack);
     }
 
-    private ResponseContext<R> addResponseContext(StepContext<M,R> stepContext, ResponseEntity<R> responseEntity) {
+    private ResponseContext<R> addResponseContext(StepContext<M,R> stepContext, ResponseEntity<R> responseEntity, boolean doReplayAttack) {
         R responseBodyObject = Objects.requireNonNull(responseEntity.getBody());
-        stepContext.getStepLogger().writeServerCallOK(step.id() + "-response-received", responseBodyObject, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
+        if (!doReplayAttack) {
+            // Regular execution
+            stepContext.getStepLogger().writeServerCallOK(step.id() + "-response-received", responseBodyObject, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
+        } else {
+            // Keep response in log, even if this is not what we expected.
+            stepContext.getStepLogger().writeServerCallOK(step.id() + "-replay-attack-response-received", responseBodyObject, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
+            // During the replay attack we should not end-up here.
+            stepContext.getStepLogger().writeError(step.id() + "-replay-attack-succeeded", "Replay attack succeeded and that's bad.");
+            stepContext.getStepLogger().writeDoneFailed(step.id() + "-failed");
+            return null;
+        }
 
         ResponseContext<R> responseContext = ResponseContext.<R>builder()
                 .responseBodyObject(responseBodyObject)
@@ -432,6 +478,11 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
 
     private boolean isDryRun(M model) {
         return model instanceof DryRunCapable && ((DryRunCapable) model).isDryRun();
+    }
+
+    private boolean isReplayAttack(M model) {
+        return !isDryRun(model) && // if dry-run is on, then disable replay attack feature
+                model instanceof ReplayAttackCapable && ((ReplayAttackCapable) model).isReplayAttack();
     }
 
 }

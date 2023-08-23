@@ -19,6 +19,7 @@ package io.getlime.security.powerauth.lib.cmd.steps.model;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
 import io.getlime.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ReplayAttackCapable;
 import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -35,7 +36,7 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class VerifySignatureStepModel extends BaseStepModel
-        implements ResultStatusChangeable, DryRunCapable, SignatureHeaderData {
+        implements ResultStatusChangeable, DryRunCapable, SignatureHeaderData, ReplayAttackCapable {
 
     private static final Logger logger = LoggerFactory.getLogger(VerifySignatureStepModel.class);
 
@@ -84,6 +85,12 @@ public class VerifySignatureStepModel extends BaseStepModel
      */
     private boolean dryRun;
 
+    /**
+     * Flag indicating that this step should retry its networking call to simulate replay attack.
+     */
+    private boolean isReplayAttack;
+
+
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> context = super.toMap();
@@ -96,6 +103,7 @@ public class VerifySignatureStepModel extends BaseStepModel
         context.put("DATA", data);
         context.put("PASSWORD", password);
         context.put("DRY_RUN", dryRun);
+        context.put("REPLAY_ATTACK", isReplayAttack);
         return context;
     }
 
@@ -116,6 +124,7 @@ public class VerifySignatureStepModel extends BaseStepModel
         setData((byte[]) context.get("DATA"));
         setPassword((String) context.get("PASSWORD"));
         setDryRun((boolean) context.get("DRY_RUN"));
+        setReplayAttack((boolean) context.getOrDefault("REPLAY_ATTACK", false));
     }
 
 }

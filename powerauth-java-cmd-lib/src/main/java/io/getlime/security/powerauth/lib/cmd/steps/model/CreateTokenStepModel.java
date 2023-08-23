@@ -18,6 +18,7 @@ package io.getlime.security.powerauth.lib.cmd.steps.model;
 
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ReplayAttackCapable;
 import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -33,7 +34,7 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class CreateTokenStepModel extends BaseStepModel
-        implements SignatureHeaderData, ResultStatusChangeable {
+        implements SignatureHeaderData, ResultStatusChangeable, ReplayAttackCapable {
 
     /**
      * File name of the file with stored activation status.
@@ -65,6 +66,12 @@ public class CreateTokenStepModel extends BaseStepModel
      */
     private PublicKey masterPublicKey;
 
+    /**
+     * Flag indicating that this step should retry its networking call to simulate replay attack.
+     */
+    private boolean isReplayAttack;
+
+
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> context = super.toMap();
@@ -74,6 +81,7 @@ public class CreateTokenStepModel extends BaseStepModel
         context.put("PASSWORD", password);
         context.put("SIGNATURE_TYPE", signatureType.toString());
         context.put("MASTER_PUBLIC_KEY", masterPublicKey);
+        context.put("REPLAY_ATTACK", isReplayAttack);
         return context;
     }
 
@@ -86,6 +94,7 @@ public class CreateTokenStepModel extends BaseStepModel
         setPassword((String) context.get("PASSWORD"));
         setSignatureType(PowerAuthSignatureTypes.getEnumFromString((String) context.get("SIGNATURE_TYPE")));
         setMasterPublicKey((PublicKey) context.get("MASTER_PUBLIC_KEY"));
+        setReplayAttack((boolean) context.getOrDefault("REPLAY_ATTACK", false));
     }
 
 }

@@ -18,6 +18,7 @@ package io.getlime.security.powerauth.lib.cmd.steps.model;
 
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ReplayAttackCapable;
 import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -32,7 +33,7 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class VaultUnlockStepModel extends BaseStepModel
-        implements ResultStatusChangeable, SignatureHeaderData {
+        implements ResultStatusChangeable, SignatureHeaderData, ReplayAttackCapable {
 
     /**
      * Application key.
@@ -64,6 +65,12 @@ public class VaultUnlockStepModel extends BaseStepModel
      */
     private String reason;
 
+    /**
+     * Flag indicating that this step should retry its networking call to simulate replay attack.
+     */
+    private boolean isReplayAttack;
+
+
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> context = super.toMap();
@@ -73,6 +80,7 @@ public class VaultUnlockStepModel extends BaseStepModel
         context.put("SIGNATURE_TYPE", signatureType.toString());
         context.put("PASSWORD", password);
         context.put("REASON", reason);
+        context.put("REPLAY_ATTACK", isReplayAttack);
         return context;
     }
 
@@ -85,6 +93,7 @@ public class VaultUnlockStepModel extends BaseStepModel
         setSignatureType(PowerAuthSignatureTypes.getEnumFromString((String) context.get("SIGNATURE_TYPE")));
         setPassword((String) context.get("PASSWORD"));
         setReason((String) context.get("REASON"));
+        setReplayAttack((boolean) context.getOrDefault("REPLAY_ATTACK", false));
     }
 
 }
