@@ -16,11 +16,17 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.context.security;
 
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
+
 /**
  * Security context interface
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  */
 public interface SecurityContext {
-
+    /**
+     * Implementation must return scope of encryption to be used or null if scope is not determined yet.
+     * @return {@link EncryptorScope} or null if not known yet.
+     */
+    EncryptorScope getEncryptorScope();
 }

@@ -16,9 +16,7 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesScope;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
-import io.getlime.security.powerauth.crypto.lib.util.EciesUtils;
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
@@ -47,6 +45,7 @@ import java.util.Map;
  * <ul>
  *     <li>3.0</li>
  *     <li>3.1</li>
+ *     <li>3.2</li>
  * </ul>
  *
  *  @author Roman Strobl, roman.strobl@wultra.com
@@ -137,23 +136,19 @@ public class TokenAndEncryptStep extends AbstractBaseStep<TokenAndEncryptStepMod
         );
 
         requestContext.setRequestObject(requestDataBytes);
-        powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
         // Encrypt the request
-        final String activationId = model.getResultStatus().getActivationId();
-        final byte[] associatedData = EciesUtils.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion().toString(), model.getApplicationKey(), activationId);
-        addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.ACTIVATION_SCOPE_GENERIC, requestDataBytes, associatedData);
+
+        addEncryptedRequest(stepContext, model.getApplicationKey(), model.getApplicationSecret(), EncryptorId.ACTIVATION_SCOPE_GENERIC, requestDataBytes);
+
+        powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
         return stepContext;
     }
 
     @Override
     public void processResponse(StepContext<TokenAndEncryptStepModel, EciesEncryptedResponse> stepContext) throws Exception {
-        final TokenAndEncryptStepModel model = stepContext.getModel();
-        final String applicationSecret = model.getApplicationSecret();
-        final String activationId = model.getResultStatus().getActivationId();
-        final byte[] associatedData = EciesUtils.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion().toString(), model.getApplicationKey(), activationId);
-        SecurityUtil.processEncryptedResponse(stepContext, getStep().id(), applicationSecret, EciesScope.ACTIVATION_SCOPE, associatedData);
+        SecurityUtil.processEncryptedResponse(stepContext, getStep().id());
     }
 
 }

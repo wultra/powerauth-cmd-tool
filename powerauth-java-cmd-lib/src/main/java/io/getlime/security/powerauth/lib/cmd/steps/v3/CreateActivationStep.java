@@ -42,6 +42,7 @@ import java.util.Map;
  * <ul>
  *     <li>3.0</li>
  *     <li>3.1</li>
+ *     <li>3.2</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
@@ -91,8 +92,8 @@ public class CreateActivationStep extends AbstractActivationStep<CreateActivatio
         StepContext<CreateActivationStepModel, EciesEncryptedResponse> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
+        addEncryptedRequest(stepContext);
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
-        addEncryptedRequest(stepContext, model.getVersion());
 
         return stepContext;
     }

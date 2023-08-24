@@ -17,9 +17,7 @@
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.google.common.collect.ImmutableMap;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesScope;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
-import io.getlime.security.powerauth.crypto.lib.util.EciesUtils;
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
@@ -47,6 +45,7 @@ import java.util.Map;
  * <ul>
  *      <li>3.0</li>
  *      <li>3.1</li>
+ *      <li>3.2</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
@@ -101,9 +100,7 @@ public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, Ecie
 
         StepContext<CreateTokenStepModel, EciesEncryptedResponse> stepContext = buildStepContext(stepLogger, model, requestContext);
 
-        final String activationId = model.getResultStatus().getActivationId();
-        final byte[] associatedData = model.getVersion().useTimestamp() ? EciesUtils.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion().toString(), model.getApplicationKey(), activationId) : null;
-        addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.CREATE_TOKEN, PowerAuthConst.EMPTY_JSON_BYTES, associatedData);
+        addEncryptedRequest(stepContext, model.getApplicationKey(), model.getApplicationSecret(), EncryptorId.CREATE_TOKEN, PowerAuthConst.EMPTY_JSON_BYTES);
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
@@ -114,10 +111,8 @@ public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, Ecie
 
     @Override
     public void processResponse(StepContext<CreateTokenStepModel, EciesEncryptedResponse> stepContext) throws Exception {
-        final CreateTokenStepModel model = stepContext.getModel();
-        final String activationId = model.getResultStatus().getActivationId();
-        final byte[] associatedData = model.getVersion().useTimestamp() ? EciesUtils.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion().toString(), model.getApplicationKey(), activationId) : null;
-        final TokenResponsePayload tokenResponsePayload = decryptResponse(stepContext, TokenResponsePayload.class, EciesScope.ACTIVATION_SCOPE, associatedData);
+
+        final TokenResponsePayload tokenResponsePayload = decryptResponse(stepContext, TokenResponsePayload.class);
 
         stepContext.getStepLogger().writeItem(
                 getStep().id() + "-token-obtained",

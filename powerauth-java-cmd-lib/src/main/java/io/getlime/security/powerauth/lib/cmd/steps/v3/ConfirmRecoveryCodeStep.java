@@ -16,9 +16,7 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesScope;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
-import io.getlime.security.powerauth.crypto.lib.util.EciesUtils;
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
@@ -49,6 +47,7 @@ import java.util.Map;
  * <ul>
  *      <li>3.0</li>
  *      <li>3.1</li>
+ *      <li>3.2</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
@@ -111,9 +110,7 @@ public class ConfirmRecoveryCodeStep extends AbstractBaseStep<ConfirmRecoveryCod
         // Encrypt the request
         final byte[] requestBytesPayload = RestClientConfiguration.defaultMapper().writeValueAsBytes(confirmRequestPayload);
 
-        final String activationId = model.getResultStatus().getActivationId();
-        final byte[] associatedData = model.getVersion().useTimestamp() ? EciesUtils.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion().toString(), model.getApplicationKey(), activationId) : null;
-        addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.CONFIRM_RECOVERY_CODE, requestBytesPayload, associatedData);
+        addEncryptedRequest(stepContext, model.getApplicationKey(), model.getApplicationSecret(), EncryptorId.CONFIRM_RECOVERY_CODE, requestBytesPayload);
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
@@ -124,11 +121,7 @@ public class ConfirmRecoveryCodeStep extends AbstractBaseStep<ConfirmRecoveryCod
 
     @Override
     public void processResponse(StepContext<ConfirmRecoveryCodeStepModel, EciesEncryptedResponse> stepContext) throws Exception {
-        final ConfirmRecoveryCodeStepModel model = stepContext.getModel();
-        final String activationId = model.getResultStatus().getActivationId();
-        final byte[] associatedData = model.getVersion().useTimestamp() ? EciesUtils.deriveAssociatedData(EciesScope.ACTIVATION_SCOPE, model.getVersion().toString(), model.getApplicationKey(), activationId) : null;
-        final ConfirmRecoveryResponsePayload confirmResponsePayload = decryptResponse(stepContext, ConfirmRecoveryResponsePayload.class, EciesScope.ACTIVATION_SCOPE, associatedData);
-
+        final ConfirmRecoveryResponsePayload confirmResponsePayload = decryptResponse(stepContext, ConfirmRecoveryResponsePayload.class);
         Map<String, Object> objectMap = new HashMap<>();
         objectMap.put("alreadyConfirmed", confirmResponsePayload.getAlreadyConfirmed());
 
