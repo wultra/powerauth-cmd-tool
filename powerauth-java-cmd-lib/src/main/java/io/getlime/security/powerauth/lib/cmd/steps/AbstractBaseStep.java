@@ -208,22 +208,18 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      */
     public void addEncryptedRequest(StepContext<M, R> stepContext, String applicationKey, String applicationSecret, EncryptorId encryptorId, byte[] data) throws Exception {
         M model = stepContext.getModel();
-        SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
-        ResultStatusObject resultStatusObject = model.getResultStatus();
+        final SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
+        final ResultStatusObject resultStatusObject = model.getResultStatus();
 
-        ClientEncryptor encryptor;
+        final ClientEncryptor encryptor;
         if (securityContext == null) {
             final byte[] transportMasterKeyBytes = Base64.getDecoder().decode(resultStatusObject.getTransportMasterKey());
-            encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(
-                    encryptorId,
-                    new EncryptorParameters(model.getVersion().value(),applicationKey, resultStatusObject.getActivationId()),
-                    new ClientEncryptorSecrets(resultStatusObject.getServerPublicKeyObject(), applicationSecret, transportMasterKeyBytes)
-            );
-            stepContext.setSecurityContext(
-                    SimpleSecurityContext.builder()
+            final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), applicationKey, resultStatusObject.getActivationId());
+            final ClientEncryptorSecrets encryptorSecrets = new ClientEncryptorSecrets(resultStatusObject.getServerPublicKeyObject(), applicationSecret, transportMasterKeyBytes);
+            encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(encryptorId, encryptorParameters, encryptorSecrets);
+            stepContext.setSecurityContext(SimpleSecurityContext.builder()
                             .encryptor(encryptor)
-                            .build()
-            );
+                            .build());
         } else {
             encryptor = securityContext.getEncryptor();
         }

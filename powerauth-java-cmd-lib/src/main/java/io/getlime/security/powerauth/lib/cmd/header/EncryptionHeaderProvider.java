@@ -20,7 +20,6 @@ import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
 import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
-import io.getlime.security.powerauth.lib.cmd.steps.context.security.SecurityContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
 
 /**
@@ -39,8 +38,7 @@ public class EncryptionHeaderProvider implements PowerAuthHeaderProvider<Encrypt
         EncryptionHeaderData model = stepContext.getModel();
         EncryptorScope encryptorScope = stepContext.getSecurityContext().getEncryptorScope();
         if (encryptorScope == null) {
-            // Scope is not determined yet. To fix this, move call to "addHeader()" after "addEncryptedRequest" call.
-            throw new IllegalStateException("Scope of encryption is not yet determined");
+            throw new IllegalStateException("Scope is not determined yet. To fix this, move call to addHeader() after addEncryptedRequest call.");
         }
         String activationId = encryptorScope == EncryptorScope.ACTIVATION_SCOPE ? model.getResultStatus().getActivationId() : null;
         PowerAuthEncryptionHttpHeader header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), activationId, model.getVersion().value());
