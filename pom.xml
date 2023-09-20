@@ -84,8 +84,9 @@
         <commons-cli.version>1.5.0</commons-cli.version>
         <commons-io.version>2.13.0</commons-io.version>
         <json-simple.version>1.1.1</json-simple.version>
-        <powerauth.version>1.5.0-SNAPSHOT</powerauth.version>
-        <wultra-java-core.version>1.7.0-SNAPSHOT</wultra-java-core.version>
+        <powerauth-restful-integration>1.5.0</powerauth-restful-integration>
+        <powerauth-crypto.version>1.5.1</powerauth-crypto.version>
+        <wultra-core.version>1.7.0</wultra-core.version>
         <maven-surefire-plugin.version>3.1.2</maven-surefire-plugin.version>
     </properties>
 
