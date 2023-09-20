@@ -81,12 +81,6 @@
             <artifactId>rest-client-base</artifactId>
             <version>${wultra-java-core.version}</version>
         </dependency>
-
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-        </dependency>
-
     </dependencies>
 
 </project>
