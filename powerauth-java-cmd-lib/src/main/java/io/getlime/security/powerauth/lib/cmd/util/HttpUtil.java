@@ -17,9 +17,9 @@
 package io.getlime.security.powerauth.lib.cmd.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import jakarta.annotation.Nullable;
 import org.springframework.http.HttpHeaders;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
