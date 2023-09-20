@@ -18,8 +18,8 @@ package io.getlime.security.powerauth.lib.cmd.util;
 
 import io.getlime.security.powerauth.lib.cmd.exception.PowerAuthCmdException;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import jakarta.annotation.Nullable;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

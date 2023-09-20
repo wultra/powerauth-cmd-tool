@@ -46,6 +46,7 @@ import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.*;
 import io.getlime.security.powerauth.rest.api.model.request.EciesEncryptedRequest;
 import io.getlime.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
+import jakarta.annotation.Nullable;
 import lombok.Getter;
 import org.json.simple.JSONObject;
 import org.slf4j.Logger;
@@ -56,7 +57,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
-import javax.annotation.Nullable;
 import java.util.*;
 
 /**
