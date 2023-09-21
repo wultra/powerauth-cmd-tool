@@ -210,7 +210,7 @@ public class Application {
                 }
                 applicationKey = config.appKeyBase64();
                 applicationSecret = config.appSecretBase64();
-                masterPublicKey = ConfigurationUtil.extractMasterPublicKey(config, stepLogger);
+                masterPublicKey = ConfigurationUtil.getMasterPublicKey(config, stepLogger);
             } else {
                 // Fallback to traditional mobile SDK configuration
                 applicationKey = ConfigurationUtil.getApplicationKey(clientConfigObject);
