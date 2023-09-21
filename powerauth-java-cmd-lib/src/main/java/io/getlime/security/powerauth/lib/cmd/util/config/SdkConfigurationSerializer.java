@@ -19,6 +19,8 @@
 
 package io.getlime.security.powerauth.lib.cmd.util.config;
 
+import org.springframework.util.StringUtils;
+
 import java.util.Base64;
 
 /**
@@ -40,13 +42,13 @@ public class SdkConfigurationSerializer {
         final String appKeyBase64 = config.appKeyBase64();
         final String appSecretBase64 = config.appSecretBase64();
         final String masterPublicKeyBase64 = config.masterPublicKeyBase64();
-        if (appKeyBase64 == null || appKeyBase64.isEmpty()) {
+        if (!StringUtils.hasText(appKeyBase64)) {
             throw new IllegalArgumentException("Invalid application key");
         }
-        if (appSecretBase64 == null || appSecretBase64.isEmpty()) {
+        if (!StringUtils.hasText(appSecretBase64)) {
             throw new IllegalArgumentException("Invalid application secret");
         }
-        if (masterPublicKeyBase64 == null || masterPublicKeyBase64.isEmpty()) {
+        if (!StringUtils.hasText(masterPublicKeyBase64)) {
             throw new IllegalArgumentException("Invalid public key");
         }
         final SdkDataWriter writer = new SdkDataWriter();
