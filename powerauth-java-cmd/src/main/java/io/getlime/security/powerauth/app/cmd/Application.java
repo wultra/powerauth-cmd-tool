@@ -31,6 +31,8 @@ import io.getlime.security.powerauth.lib.cmd.util.ConfigurationUtil;
 import io.getlime.security.powerauth.lib.cmd.util.FileUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientFactory;
+import io.getlime.security.powerauth.lib.cmd.util.config.SdkConfiguration;
+import io.getlime.security.powerauth.lib.cmd.util.config.SdkConfigurationSerializer;
 import org.apache.commons.cli.*;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONObject;
@@ -194,7 +196,27 @@ public class Application {
             clientConfigObject = new JSONObject(configAttributes);
 
             // Read master public key
-            PublicKey masterPublicKey = ConfigurationUtil.getMasterKey(clientConfigObject, stepLogger);
+            final String mobileSdkConfig = ConfigurationUtil.getMobileSdkConfig(clientConfigObject);
+            final String applicationKey;
+            final String applicationSecret;
+            final PublicKey masterPublicKey;
+            if (mobileSdkConfig != null) {
+                // Extract simplified mobile SDK configuration
+                final SdkConfiguration config = SdkConfigurationSerializer.deserialize(mobileSdkConfig);
+                if (config == null) {
+                    stepLogger.writeError("invalid-sdk-config", "Invalid Mobile SDK Config", "Mobile SDK Config is not valid");
+                    stepLogger.writeDoneFailed("sdk-config-failed");
+                    System.exit(1);
+                }
+                applicationKey = config.appKeyBase64();
+                applicationSecret = config.appSecretBase64();
+                masterPublicKey = ConfigurationUtil.getMasterPublicKey(config, stepLogger);
+            } else {
+                // Fallback to traditional mobile SDK configuration
+                applicationKey = ConfigurationUtil.getApplicationKey(clientConfigObject);
+                applicationSecret = ConfigurationUtil.getApplicationSecret(clientConfigObject);
+                masterPublicKey = ConfigurationUtil.getMasterPublicKey(clientConfigObject, stepLogger);
+            }
 
             // Read current activation state from the activation state file or create an empty state
             ResultStatusObject resultStatusObject;
@@ -219,8 +241,8 @@ public class Application {
                 case TOKEN_CREATE -> {
 
                     CreateTokenStepModel model = new CreateTokenStepModel();
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
                     model.setPassword(cmd.getOptionValue("p"));
@@ -254,8 +276,8 @@ public class Application {
                 case TOKEN_REMOVE -> {
                     RemoveTokenStepModel model = new RemoveTokenStepModel();
                     model.setTokenId(cmd.getOptionValue("T"));
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
                     model.setPassword(cmd.getOptionValue("p"));
@@ -279,8 +301,8 @@ public class Application {
                     model.setActivationName(ConfigurationUtil.getApplicationName(clientConfigObject));
                     model.setPlatform(platform);
                     model.setDeviceInfo(deviceInfo);
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
                     model.setPassword(cmd.getOptionValue("p"));
@@ -304,8 +326,8 @@ public class Application {
                 case ACTIVATION_REMOVE -> {
 
                     RemoveStepModel model = new RemoveStepModel();
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatus(resultStatusObject);
@@ -318,8 +340,8 @@ public class Application {
                 case SIGNATURE_VERIFY -> {
 
                     VerifySignatureStepModel model = new VerifySignatureStepModel();
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setHttpMethod(cmd.getOptionValue("t"));
                     model.setPassword(cmd.getOptionValue("p"));
@@ -341,8 +363,8 @@ public class Application {
                 case VAULT_UNLOCK -> {
 
                     VaultUnlockStepModel model = new VaultUnlockStepModel();
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatus(resultStatusObject);
@@ -369,8 +391,8 @@ public class Application {
                     model.setPlatform(platform);
                     model.setDeviceInfo(deviceInfo);
                     model.setActivationOtp(cmd.getOptionValue("a"));
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setCustomAttributes(customAttributes);
                     model.setHeaders(httpHeaders);
                     model.setIdentityAttributes(identityAttributes);
@@ -385,8 +407,8 @@ public class Application {
                 }
                 case ENCRYPT -> {
                     EncryptStepModel model = new EncryptStepModel();
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setDryRun(cmd.hasOption("dry-run"));
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
@@ -404,8 +426,8 @@ public class Application {
                 }
                 case SIGN_ENCRYPT -> {
                     VerifySignatureStepModel model = new VerifySignatureStepModel();
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setHttpMethod(cmd.getOptionValue("t"));
                     model.setPassword(cmd.getOptionValue("p"));
@@ -427,8 +449,8 @@ public class Application {
                     TokenAndEncryptStepModel model = new TokenAndEncryptStepModel();
                     model.setTokenId(cmd.getOptionValue("T"));
                     model.setTokenSecret(cmd.getOptionValue("S"));
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHttpMethod(cmd.getOptionValue("t"));
                     model.setDryRun(cmd.hasOption("dry-run"));
                     model.setHeaders(httpHeaders);
@@ -445,8 +467,8 @@ public class Application {
                 }
                 case UPGRADE_START -> {
                     StartUpgradeStepModel model = new StartUpgradeStepModel();
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setStatusFileName(statusFileName);
                     model.setResultStatus(resultStatusObject);
@@ -457,8 +479,8 @@ public class Application {
                 }
                 case UPGRADE_COMMIT -> {
                     CommitUpgradeStepModel model = new CommitUpgradeStepModel();
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setStatusFileName(statusFileName);
                     model.setResultStatus(resultStatusObject);
@@ -480,8 +502,8 @@ public class Application {
                     model.setActivationName(ConfigurationUtil.getApplicationName(clientConfigObject));
                     model.setPlatform(platform);
                     model.setDeviceInfo(deviceInfo);
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setIdentityAttributes(identityAttributes);
                     model.setCustomAttributes(customAttributes);
                     model.setHeaders(httpHeaders);
@@ -497,8 +519,8 @@ public class Application {
                 case RECOVERY_CONFIRM -> {
 
                     ConfirmRecoveryCodeStepModel model = new ConfirmRecoveryCodeStepModel();
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
                     model.setStatusFileName(statusFileName);

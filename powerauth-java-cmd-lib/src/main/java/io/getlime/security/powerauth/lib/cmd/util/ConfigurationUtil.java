@@ -20,6 +20,7 @@ import io.getlime.security.powerauth.crypto.lib.model.exception.CryptoProviderEx
 import io.getlime.security.powerauth.crypto.lib.model.exception.GenericCryptoException;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
+import io.getlime.security.powerauth.lib.cmd.util.config.SdkConfiguration;
 import org.json.simple.JSONObject;
 
 import java.security.PublicKey;
@@ -78,10 +79,45 @@ public class ConfigurationUtil {
      * @param stepLogger Step logger instance.
      * @return Master public key.
      */
-    public static PublicKey getMasterKey(JSONObject clientConfigObject, StepLogger stepLogger) {
+    public static PublicKey getMasterPublicKey(JSONObject clientConfigObject, StepLogger stepLogger) {
         if (clientConfigObject != null && clientConfigObject.get("masterPublicKey") != null) {
+            return convertMasterPublicKey((String) clientConfigObject.get("masterPublicKey"), stepLogger);
+        }
+        return null;
+    }
+
+    /**
+     * Extract master public key from mobile SDK configuration
+     * @param config Mobile SDK configuration.
+     * @param stepLogger Step logger instance.
+     * @return Master public key.
+     */
+    public static PublicKey getMasterPublicKey(SdkConfiguration config, StepLogger stepLogger) {
+        return convertMasterPublicKey(config.masterPublicKeyBase64(), stepLogger);
+    }
+
+    /**
+     * Get mobile SDK configuration.
+     * @param clientConfigObject Object with configuration.
+     * @return Mobile SKD configuration.
+     */
+    public static String getMobileSdkConfig(JSONObject clientConfigObject) {
+        if (clientConfigObject.get("mobileSdkConfig") != null) {
+            return (String) clientConfigObject.get("mobileSdkConfig");
+        }
+        return null;
+    }
+
+    /**
+     * Convert master public key from String to PublicKey
+     * @param masterPublicKey Master public key
+     * @param stepLogger Step logger
+     * @return Public key
+     */
+    private static PublicKey convertMasterPublicKey(String masterPublicKey, StepLogger stepLogger) {
+        if (masterPublicKey != null) {
             try {
-                byte[] masterKeyBytes = Base64.getDecoder().decode((String) clientConfigObject.get("masterPublicKey"));
+                byte[] masterKeyBytes = Base64.getDecoder().decode(masterPublicKey);
                 return keyConvertor.convertBytesToPublicKey(masterKeyBytes);
             } catch (IllegalArgumentException e) {
                 stepLogger.writeError("master-key-error-encoding", "Invalid Master Server Public Key", "Master Server Public Key must be stored in a valid Base64 encoding", e);
@@ -107,5 +143,4 @@ public class ConfigurationUtil {
         }
         return null;
     }
-
 }
