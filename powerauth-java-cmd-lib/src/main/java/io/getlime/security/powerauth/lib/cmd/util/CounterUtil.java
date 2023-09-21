@@ -83,8 +83,7 @@ public class CounterUtil {
     }
 
     /**
-     * Increment counter value in step model. In version 2.0 and 2.1 only numeric counter is incremented. In version
-     * 3.0 the counter data is incremented using hash based counter, too.
+     * Increment counter value in step model.
      *
      * @param model Step model.
      */

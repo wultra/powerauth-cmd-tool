@@ -28,16 +28,6 @@ import java.util.Arrays;
 public enum PowerAuthVersion {
 
     /**
-     * Version 2.0
-     */
-    V2_0(2, "2.0"),
-
-    /**
-     * Version 2.1
-     */
-    V2_1(2, "2.1"),
-
-    /**
      * Version 3.0
      */
     V3_0(3, "3.0"),
@@ -60,12 +50,7 @@ public enum PowerAuthVersion {
     /**
      * Default version
      */
-    public static final PowerAuthVersion DEFAULT = V3_1;
-
-    /**
-     * All versions belonging to major version 2
-     */
-    public static final ImmutableList<PowerAuthVersion> VERSION_2 = ImmutableList.of(V2_0, V2_1);
+    public static final PowerAuthVersion DEFAULT = V3_2;
 
     /**
      * All versions belonging to major version 3
@@ -78,7 +63,7 @@ public enum PowerAuthVersion {
     private final int majorVersion;
 
     /**
-     * Version string value ("2.1", "3.0", ...)
+     * Version string value ("3.0", "3.1", "3.2", ...)
      */
     private final String value;
 
