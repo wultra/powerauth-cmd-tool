@@ -456,7 +456,7 @@ If you are using HTTPS, make sure you are using valid SSL certificate or that yo
 
 **Error: JCE cannot authenticate the provider BC**
 
-Please use a supported Java Runtime Version (LTS release of Java 8 or 11).
+Please use a supported Java Runtime Version (Java 17).
 
 ## License
 
