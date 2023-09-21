@@ -92,7 +92,7 @@ public class ConfigurationUtil {
      * @param stepLogger Step logger instance.
      * @return Master public key.
      */
-    public static PublicKey extractMasterPublicKey(SdkConfiguration config, StepLogger stepLogger) {
+    public static PublicKey getMasterPublicKey(SdkConfiguration config, StepLogger stepLogger) {
         return convertMasterPublicKey(config.masterPublicKeyBase64(), stepLogger);
     }
 
