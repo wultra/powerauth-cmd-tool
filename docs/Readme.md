@@ -11,9 +11,10 @@ You can download the latest `powerauth-java-cmd.jar` at the releases page:
 ## Supported Java Runtime Versions
 
 The following Java runtime versions are supported:
-- Java 17 (LTS release) or higher
+- OpenJDK 17 (LTS release) or higher
+- Oracle Java is not supported, please use OpenJDK.
 
-Older Java versions are currently not supported due to migration to Spring Boot 3
+Older Java versions are currently not supported due to migration to Spring Boot 3.
 
 ## Bouncy Castle Library Usage
 
@@ -456,7 +457,9 @@ If you are using HTTPS, make sure you are using valid SSL certificate or that yo
 
 **Error: JCE cannot authenticate the provider BC**
 
-Please use a supported Java Runtime Version (Java 17).
+Please use a supported Java Runtime Version (OpenJDK 17 or higher, not Oracle Java).
+
+See: https://github.com/wultra/powerauth-cmd-tool/issues/232#issuecomment-1730848437
 
 ## License
 
