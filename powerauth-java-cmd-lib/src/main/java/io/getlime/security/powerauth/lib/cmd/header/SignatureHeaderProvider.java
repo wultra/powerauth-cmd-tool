@@ -16,9 +16,9 @@
  */
 package io.getlime.security.powerauth.lib.cmd.header;
 
-import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.signature.PowerAuthClientSignature;
+import io.getlime.security.powerauth.crypto.lib.config.SignatureConfiguration;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureFormat;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
@@ -32,6 +32,7 @@ import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.CounterUtil;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.HttpUtil;
+import org.springframework.util.Assert;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
@@ -74,7 +75,8 @@ public class SignatureHeaderProvider implements PowerAuthHeaderProvider<Signatur
         // Compute the current PowerAuth signature for possession and knowledge factor
         String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString(requestContext.getSignatureHttpMethod(), requestContext.getSignatureRequestUri(), nonceBytes, requestBytes) + "&" + model.getApplicationSecret();
         byte[] ctrData = CounterUtil.getCtrData(resultStatusObject, stepContext.getStepLogger());
-        PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion().value());
+        final PowerAuthSignatureFormat signatureFormat = PowerAuthSignatureFormat.getFormatForSignatureVersion(model.getVersion().value());
+        final SignatureConfiguration signatureConfiguration = SignatureConfiguration.forFormat(signatureFormat);
 
         List<SecretKey> signatureSecretKeys;
         if (PowerAuthSignatureTypes.POSSESSION.equals(model.getSignatureType())) {
@@ -86,18 +88,18 @@ public class SignatureHeaderProvider implements PowerAuthHeaderProvider<Signatur
             SecretKey signatureKnowledgeKey = getSignatureKnowledgeKey(model);
             signatureSecretKeys = KEY_FACTORY.keysForSignatureType(model.getSignatureType(), signaturePossessionKey, signatureKnowledgeKey, signatureBiometryKey);
         }
-        String signatureValue = SIGNATURE.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), signatureSecretKeys, ctrData, signatureFormat);
+        String signatureValue = SIGNATURE.signatureForData(signatureBaseString.getBytes(StandardCharsets.UTF_8), signatureSecretKeys, ctrData, signatureConfiguration);
 
-        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(resultStatusObject.getActivationId(), model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), BaseEncoding.base64().encode(nonceBytes), model.getVersion().value());
+        PowerAuthSignatureHttpHeader header = new PowerAuthSignatureHttpHeader(resultStatusObject.getActivationId(), model.getApplicationKey(), signatureValue, model.getSignatureType().toString(), Base64.getEncoder().encodeToString(nonceBytes), model.getVersion().value());
 
         Map<String, String> lowLevelData = new HashMap<>();
         lowLevelData.put("counter", String.valueOf(resultStatusObject.getCounter()));
         int version = resultStatusObject.getVersion().intValue();
         if (version == 3) {
-            lowLevelData.put("ctrData", BaseEncoding.base64().encode(ctrData));
+            lowLevelData.put("ctrData", Base64.getEncoder().encodeToString(ctrData));
         }
         lowLevelData.put("signatureBaseString", signatureBaseString);
-        lowLevelData.put("nonce", BaseEncoding.base64().encode(nonceBytes));
+        lowLevelData.put("nonce", Base64.getEncoder().encodeToString(nonceBytes));
         lowLevelData.put("applicationSecret", model.getApplicationSecret());
 
         if (model instanceof VerifySignatureStepModel) {
@@ -127,10 +129,11 @@ public class SignatureHeaderProvider implements PowerAuthHeaderProvider<Signatur
         byte[] signatureKnowledgeKeyEncryptedBytes = model.getResultStatus().getSignatureKnowledgeKeyEncryptedBytes();
 
         // Ask for the password to unlock knowledge factor key
-        char[] password;
+        final char[] password;
         if (model.getPassword() == null) {
-            Console console = System.console();
+            final Console console = System.console();
             password = console.readPassword("Enter your password to unlock the knowledge related key: ");
+            Assert.state(password != null, "Not able to read a password from the console");
         } else {
             password = model.getPassword().toCharArray();
         }

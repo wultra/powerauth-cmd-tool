@@ -18,70 +18,13 @@ package io.getlime.security.powerauth.lib.cmd.logging.model;
 /**
  * Class representing a generic item in step.
  *
+ * @param id Identifier of the item.
+ * @param name Item name.
+ * @param description Item description.
+ * @param status Status.
+ * @param object Related object (optional).
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class StepItem {
+public record StepItem(String id, String name, String description, String status, Object object) {
 
-    private final String id;
-    private final String name;
-    private final String description;
-    private final String status;
-    private final Object object;
-
-    /**
-     * Constructor with all details.
-     *
-     * @param id Identifier of the item.
-     * @param name Item name.
-     * @param description Item description.
-     * @param status Status.
-     * @param object Related object (optional).
-     */
-    public StepItem(String id, String name, String description, String status, Object object) {
-        this.id = id;
-        this.name = name;
-        this.description = description;
-        this.status = status;
-        this.object = object;
-    }
-
-    /**
-     * Get the item ID.
-     * @return Item ID.
-     */
-    public String getId() {
-        return id;
-    }
-
-    /**
-     * Get item name.
-     * @return Item name.
-     */
-    public String getName() {
-        return name;
-    }
-
-    /**
-     * Get item description.
-     * @return Item description.
-     */
-    public String getDescription() {
-        return description;
-    }
-
-    /**
-     * Get item status.
-     * @return Item status.
-     */
-    public String getStatus() {
-        return status;
-    }
-
-    /**
-     * Get related object (optional).
-     * @return Related object (optional).
-     */
-    public Object getObject() {
-        return object;
-    }
 }

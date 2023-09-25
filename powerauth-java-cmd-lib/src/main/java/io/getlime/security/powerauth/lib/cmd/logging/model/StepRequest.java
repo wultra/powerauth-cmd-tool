@@ -22,61 +22,23 @@ import java.util.Map;
 /**
  * Class representing a request sent to intermediate server.
  *
+ * @param uri Request URI.
+ * @param method Request HTTP method.
+ * @param requestObject Request object.
+ * @param headers Request HTTP headers.
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public class StepRequest {
-
-    private final String uri;
-    private final String method;
-    private final Object requestObject;
-    private final Map<String, ?> headers;
-
-    /**
-     * Constructor with request details.
-     * @param uri Request URI.
-     * @param method Request HTTP method.
-     * @param requestObject Request object.
-     * @param headers Request HTTP headers.
-     */
-    public StepRequest(String uri, String method, Object requestObject, Map<String, ?> headers) {
-        this.uri = uri;
-        this.method = method;
-        this.requestObject = requestObject;
-        this.headers = headers;
-    }
-
-    /**
-     * Get request URI.
-     * @return Request URI.
-     */
-    public String getUri() {
-        return uri;
-    }
-
-    /**
-     * Get request HTTP method.
-     * @return Request HTTP method.
-     */
-    public String getMethod() {
-        return method;
-    }
+public record StepRequest(String uri, String method, Object requestObject, Map<String, ?> headers) {
 
     /**
      * Get request object.
      * @return Request object.
      */
-    public Object getRequestObject() {
+    @Override
+    public Object requestObject() {
         if (requestObject instanceof ObjectRequest) {
             return ((ObjectRequest<?>) requestObject).getRequestObject();
         }
         return requestObject;
-    }
-
-    /**
-     * Get request HTTP headers.
-     * @return Request HTTP headers.
-     */
-    public Map<String, ?> getHeaders() {
-        return headers;
     }
 }

@@ -29,8 +29,8 @@ import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.RemoveTokenStepModel;
-import io.getlime.security.powerauth.rest.api.model.request.v3.TokenRemoveRequest;
-import io.getlime.security.powerauth.rest.api.model.response.v3.TokenRemoveResponse;
+import io.getlime.security.powerauth.rest.api.model.request.TokenRemoveRequest;
+import io.getlime.security.powerauth.rest.api.model.response.TokenRemoveResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
@@ -45,6 +45,7 @@ import java.util.Objects;
  * <ul>
  *      <li>3.0</li>
  *      <li>3.1</li>
+ *      <li>3.2</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
@@ -54,7 +55,7 @@ import java.util.Objects;
 public class RemoveTokenStep extends AbstractBaseStep<RemoveTokenStepModel, ObjectResponse<TokenRemoveResponse>> {
 
     private static final ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>> RESPONSE_TYPE_REFERENCE =
-            new ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>>() { };
+            new ParameterizedTypeReference<>() {};
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
@@ -118,7 +119,7 @@ public class RemoveTokenStep extends AbstractBaseStep<RemoveTokenStepModel, Obje
     }
 
     @Override
-    public void processResponse(StepContext<RemoveTokenStepModel, ObjectResponse<TokenRemoveResponse>> stepContext) throws Exception {
+    public void processResponse(StepContext<RemoveTokenStepModel, ObjectResponse<TokenRemoveResponse>> stepContext) {
         ObjectResponse<TokenRemoveResponse> responseWrapper =
                 Objects.requireNonNull(stepContext.getResponseContext().getResponseBodyObject());
 

@@ -10,7 +10,7 @@
     <parent>
         <artifactId>powerauth-cmd-parent</artifactId>
         <groupId>io.getlime.security</groupId>
-        <version>1.4.0</version>
+        <version>1.5.0</version>
     </parent>
 
     <dependencies>
@@ -42,17 +42,17 @@
         <dependency>
             <groupId>io.getlime.security</groupId>
             <artifactId>powerauth-restful-model</artifactId>
-            <version>${powerauth.version}</version>
+            <version>${powerauth-restful-integration}</version>
         </dependency>
         <dependency>
             <groupId>io.getlime.security</groupId>
             <artifactId>powerauth-java-crypto</artifactId>
-            <version>${powerauth.version}</version>
+            <version>${powerauth-crypto.version}</version>
         </dependency>
         <dependency>
             <groupId>io.getlime.security</groupId>
             <artifactId>powerauth-java-http</artifactId>
-            <version>${powerauth.version}</version>
+            <version>${powerauth-crypto.version}</version>
         </dependency>
 
         <dependency>
@@ -79,14 +79,8 @@
         <dependency>
             <groupId>io.getlime.core</groupId>
             <artifactId>rest-client-base</artifactId>
-            <version>${wultra-java-core.version}</version>
+            <version>${wultra-core.version}</version>
         </dependency>
-
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-        </dependency>
-
     </dependencies>
 
 </project>

@@ -17,14 +17,16 @@
 package io.getlime.security.powerauth.lib.cmd.steps;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
 import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import io.getlime.security.powerauth.crypto.client.vault.PowerAuthClientVault;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesFactory;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
+import io.getlime.security.powerauth.crypto.lib.encryptor.ClientEncryptor;
+import io.getlime.security.powerauth.crypto.lib.encryptor.EncryptorFactory;
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptedRequest;
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptedResponse;
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorParameters;
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.v3.ClientEncryptorSecrets;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
@@ -40,23 +42,20 @@ import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.lib.cmd.util.SecurityUtil;
-import io.getlime.security.powerauth.rest.api.model.request.v3.ActivationLayer1Request;
-import io.getlime.security.powerauth.rest.api.model.request.v3.ActivationLayer2Request;
-import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
-import io.getlime.security.powerauth.rest.api.model.response.v3.ActivationLayer1Response;
-import io.getlime.security.powerauth.rest.api.model.response.v3.ActivationLayer2Response;
-import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
+import io.getlime.security.powerauth.rest.api.model.request.ActivationLayer1Request;
+import io.getlime.security.powerauth.rest.api.model.request.ActivationLayer2Request;
+import io.getlime.security.powerauth.rest.api.model.request.EciesEncryptedRequest;
+import io.getlime.security.powerauth.rest.api.model.response.ActivationLayer1Response;
+import io.getlime.security.powerauth.rest.api.model.response.ActivationLayer2Response;
+import io.getlime.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.util.Assert;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
-import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.PublicKey;
-import java.security.interfaces.ECPublicKey;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Abstract step with common parts used in activations steps
@@ -67,7 +66,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
 
     private static final PowerAuthClientActivation ACTIVATION = new PowerAuthClientActivation();
 
-    private static final EciesFactory ECIES_FACTORY = new EciesFactory();
+    private static final EncryptorFactory ENCRYPTOR_FACTORY = new EncryptorFactory();
 
     private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
 
@@ -136,13 +135,16 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
     public ResultStatusObject processResponse(EciesEncryptedResponse encryptedResponseL1,
                                               StepContext<M, EciesEncryptedResponse> context) throws Exception {
         M model = context.getModel();
-        ActivationSecurityContext securityContext = (ActivationSecurityContext) context.getSecurityContext();
+        final PowerAuthVersion version = model.getVersion();
+        final ActivationSecurityContext securityContext = (ActivationSecurityContext) context.getSecurityContext();
 
-        // Read activation layer 1 response and decrypt it
-        byte[] macL1 = BaseEncoding.base64().decode(encryptedResponseL1.getMac());
-        byte[] encryptedDataL1 = BaseEncoding.base64().decode(encryptedResponseL1.getEncryptedData());
-        EciesCryptogram responseCryptogramL1 = new EciesCryptogram(macL1, encryptedDataL1);
-        byte[] decryptedDataL1 = securityContext.getEncryptorL1().decryptResponse(responseCryptogramL1);
+        // Decrypt activation layer 1 response
+        final byte[] decryptedDataL1 = securityContext.getEncryptorL1().decryptResponse(new EncryptedResponse(
+                encryptedResponseL1.getEncryptedData(),
+                encryptedResponseL1.getMac(),
+                encryptedResponseL1.getNonce(),
+                encryptedResponseL1.getTimestamp()
+        ));
 
         // Read activation layer 1 response from data
         ActivationLayer1Response responseL1 = MAPPER.readValue(decryptedDataL1, ActivationLayer1Response.class);
@@ -155,11 +157,15 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
                 responseL1
         );
 
+
         // Decrypt layer 2 response
-        byte[] macL2 = BaseEncoding.base64().decode(responseL1.getActivationData().getMac());
-        byte[] encryptedDataL2 = BaseEncoding.base64().decode(responseL1.getActivationData().getEncryptedData());
-        EciesCryptogram responseCryptogramL2 = new EciesCryptogram(macL2, encryptedDataL2);
-        byte[] decryptedDataL2 = securityContext.getEncryptorL2().decryptResponse(responseCryptogramL2);
+        EciesEncryptedResponse encryptedResponseL2 = responseL1.getActivationData();
+        byte[] decryptedDataL2 = securityContext.getEncryptorL2().decryptResponse(new EncryptedResponse(
+                encryptedResponseL2.getEncryptedData(),
+                encryptedResponseL2.getMac(),
+                encryptedResponseL2.getNonce(),
+                encryptedResponseL2.getTimestamp()
+        ));
 
         // Convert activation layer 2 response from JSON to object and extract activation parameters
         ActivationLayer2Response responseL2 = MAPPER.readValue(decryptedDataL2, ActivationLayer2Response.class);
@@ -175,7 +181,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         String activationId = responseL2.getActivationId();
         String ctrDataBase64 = responseL2.getCtrData();
         String serverPublicKeyBase64 = responseL2.getServerPublicKey();
-        PublicKey serverPublicKey = KEY_CONVERTOR.convertBytesToPublicKey(BaseEncoding.base64().decode(serverPublicKeyBase64));
+        PublicKey serverPublicKey = KEY_CONVERTOR.convertBytesToPublicKey(Base64.getDecoder().decode(serverPublicKeyBase64));
 
         // Compute master secret key
         SecretKey masterSecretKey = KEY_FACTORY.generateClientMasterSecretKey(securityContext.getDeviceKeyPair().getPrivate(), serverPublicKey);
@@ -191,10 +197,11 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         // Encrypt the original device private key using the vault unlock key
         byte[] encryptedDevicePrivateKey = VAULT.encryptDevicePrivateKey(securityContext.getDeviceKeyPair().getPrivate(), vaultUnlockMasterKey);
 
-        char[] password;
+        final char[] password;
         if (model.getPassword() == null) {
-            Console console = System.console();
+            final Console console = System.console();
             password = console.readPassword("Select a password to encrypt the knowledge related key: ");
+            Assert.state(password != null, "Not able to read a password from the console");
         } else {
             password = model.getPassword().toCharArray();
         }
@@ -247,16 +254,22 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         M model = stepContext.getModel();
 
         // Get activation key and secret
-        final byte[] applicationSecret = model.getApplicationSecret().getBytes(StandardCharsets.UTF_8);
-
-        EciesEncryptor eciesEncryptorL1 = ECIES_FACTORY.getEciesEncryptorForApplication((ECPublicKey) model.getMasterPublicKey(), applicationSecret, EciesSharedInfo1.APPLICATION_SCOPE_GENERIC);
-        EciesEncryptor eciesEncryptorL2 = ECIES_FACTORY.getEciesEncryptorForApplication((ECPublicKey) model.getMasterPublicKey(), applicationSecret, EciesSharedInfo1.ACTIVATION_LAYER_2);
+        ClientEncryptor clientEncryptorL1 = ENCRYPTOR_FACTORY.getClientEncryptor(
+                EncryptorId.APPLICATION_SCOPE_GENERIC,
+                new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null),
+                new ClientEncryptorSecrets(model.getMasterPublicKey(), model.getApplicationSecret())
+        );
+        ClientEncryptor clientEncryptorL2 = ENCRYPTOR_FACTORY.getClientEncryptor(
+                EncryptorId.ACTIVATION_LAYER_2,
+                new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null),
+                new ClientEncryptorSecrets(model.getMasterPublicKey(), model.getApplicationSecret())
+        );
 
         KeyPair deviceKeyPair = ACTIVATION.generateDeviceKeyPair();
 
         ActivationSecurityContext securityContext = ActivationSecurityContext.builder()
-                .encryptorL1(eciesEncryptorL1)
-                .encryptorL2(eciesEncryptorL2)
+                .encryptorL1(clientEncryptorL1)
+                .encryptorL2(clientEncryptorL2)
                 .deviceKeyPair(deviceKeyPair)
                 .build();
         stepContext.setSecurityContext(securityContext);
@@ -286,7 +299,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
 
         // Generate device key pair
         byte[] devicePublicKeyBytes = KEY_CONVERTOR.convertPublicKeyToBytes(securityContext.getDeviceKeyPair().getPublic());
-        String devicePublicKeyBase64 = BaseEncoding.base64().encode(devicePublicKeyBytes);
+        String devicePublicKeyBase64 = Base64.getEncoder().encodeToString(devicePublicKeyBytes);
 
         // Create activation layer 2 request which is decryptable only on PowerAuth server
         ActivationLayer2Request requestL2 = new ActivationLayer2Request();
@@ -298,16 +311,14 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         requestL2.setPlatform(model.getPlatform());
         requestL2.setDeviceInfo(model.getDeviceInfo());
 
-        final boolean useIv = model.getVersion().useIv();
-
         // Encrypt request data using ECIES in application scope with sharedInfo1 = /pa/activation
-        EciesCryptogram eciesCryptogramL2 = SecurityUtil.encryptObject(securityContext.getEncryptorL2(), requestL2, useIv);
+        EncryptedRequest encryptedRequestL2 = SecurityUtil.encryptObject(clientEncryptorL2, requestL2);
 
         // Prepare the encrypted layer 2 request
-        EciesEncryptedRequest encryptedRequestL2 = SecurityUtil.createEncryptedRequest(eciesCryptogramL2, useIv);
+        EciesEncryptedRequest encryptedObjectL2 = SecurityUtil.createEncryptedRequest(encryptedRequestL2);
 
         // Prepare activation layer 1 request which is decryptable on intermediate server
-        ActivationLayer1Request requestL1 = prepareLayer1Request(stepContext, encryptedRequestL2);
+        ActivationLayer1Request requestL1 = prepareLayer1Request(stepContext, encryptedObjectL2);
 
         stepContext.getStepLogger().writeItem(
                 getStep().id() + "-request-encrypt",
@@ -318,12 +329,12 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         );
 
         // Encrypt the layer 1 request using ECIES in application scope with sharedInfo1 = /pa/generic/application
-        EciesCryptogram eciesCryptogramL1 = SecurityUtil.encryptObject(securityContext.getEncryptorL1(), requestL1, useIv);
+        EncryptedRequest encryptedRequestL1 = SecurityUtil.encryptObject(clientEncryptorL1, requestL1);
 
         // Prepare the encrypted layer 1 request
-        EciesEncryptedRequest encryptedRequestL1 = SecurityUtil.createEncryptedRequest(eciesCryptogramL1, useIv);
+        EciesEncryptedRequest encryptedRequestObjectL1 = SecurityUtil.createEncryptedRequest(encryptedRequestL1);
 
-        stepContext.getRequestContext().setRequestObject(encryptedRequestL1);
+        stepContext.getRequestContext().setRequestObject(encryptedRequestObjectL1);
     }
 
 }

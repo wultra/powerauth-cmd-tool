@@ -31,6 +31,8 @@ import io.getlime.security.powerauth.lib.cmd.util.ConfigurationUtil;
 import io.getlime.security.powerauth.lib.cmd.util.FileUtil;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientFactory;
+import io.getlime.security.powerauth.lib.cmd.util.config.SdkConfiguration;
+import io.getlime.security.powerauth.lib.cmd.util.config.SdkConfigurationSerializer;
 import org.apache.commons.cli.*;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONObject;
@@ -194,7 +196,27 @@ public class Application {
             clientConfigObject = new JSONObject(configAttributes);
 
             // Read master public key
-            PublicKey masterPublicKey = ConfigurationUtil.getMasterKey(clientConfigObject, stepLogger);
+            final String mobileSdkConfig = ConfigurationUtil.getMobileSdkConfig(clientConfigObject);
+            final String applicationKey;
+            final String applicationSecret;
+            final PublicKey masterPublicKey;
+            if (mobileSdkConfig != null) {
+                // Extract simplified mobile SDK configuration
+                final SdkConfiguration config = SdkConfigurationSerializer.deserialize(mobileSdkConfig);
+                if (config == null) {
+                    stepLogger.writeError("invalid-sdk-config", "Invalid Mobile SDK Config", "Mobile SDK Config is not valid");
+                    stepLogger.writeDoneFailed("sdk-config-failed");
+                    System.exit(1);
+                }
+                applicationKey = config.appKeyBase64();
+                applicationSecret = config.appSecretBase64();
+                masterPublicKey = ConfigurationUtil.getMasterPublicKey(config, stepLogger);
+            } else {
+                // Fallback to traditional mobile SDK configuration
+                applicationKey = ConfigurationUtil.getApplicationKey(clientConfigObject);
+                applicationSecret = ConfigurationUtil.getApplicationSecret(clientConfigObject);
+                masterPublicKey = ConfigurationUtil.getMasterPublicKey(clientConfigObject, stepLogger);
+            }
 
             // Read current activation state from the activation state file or create an empty state
             ResultStatusObject resultStatusObject;
@@ -216,11 +238,11 @@ public class Application {
 
             // Execute the code for given methods
             switch (powerAuthStep) {
-                case TOKEN_CREATE: {
+                case TOKEN_CREATE -> {
 
                     CreateTokenStepModel model = new CreateTokenStepModel();
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
                     model.setPassword(cmd.getOptionValue("p"));
@@ -231,9 +253,8 @@ public class Application {
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
-                    break;
                 }
-                case TOKEN_VALIDATE: {
+                case TOKEN_VALIDATE -> {
 
                     VerifyTokenStepModel model = new VerifyTokenStepModel();
                     model.setTokenId(cmd.getOptionValue("T"));
@@ -251,13 +272,12 @@ public class Application {
                     model.setData(dataFileBytes);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
-                    break;
                 }
-                case TOKEN_REMOVE: {
+                case TOKEN_REMOVE -> {
                     RemoveTokenStepModel model = new RemoveTokenStepModel();
                     model.setTokenId(cmd.getOptionValue("T"));
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
                     model.setPassword(cmd.getOptionValue("p"));
@@ -268,10 +288,8 @@ public class Application {
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
-                    break;
                 }
-                case ACTIVATION_CREATE:
-                case ACTIVATION_PREPARE: {
+                case ACTIVATION_CREATE, ACTIVATION_PREPARE -> {
                     if (powerAuthStep.equals(PowerAuthStep.ACTIVATION_PREPARE)) {
                         System.err.println("The 'prepare' step name is deprecated, use the 'create' step name instead");
                         powerAuthStep = PowerAuthStep.ACTIVATION_CREATE;
@@ -283,8 +301,8 @@ public class Application {
                     model.setActivationName(ConfigurationUtil.getApplicationName(clientConfigObject));
                     model.setPlatform(platform);
                     model.setDeviceInfo(deviceInfo);
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
                     model.setPassword(cmd.getOptionValue("p"));
@@ -294,9 +312,8 @@ public class Application {
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
-                    break;
                 }
-                case ACTIVATION_STATUS: {
+                case ACTIVATION_STATUS -> {
 
                     GetStatusStepModel model = new GetStatusStepModel();
                     model.setHeaders(httpHeaders);
@@ -305,13 +322,12 @@ public class Application {
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
-                    break;
                 }
-                case ACTIVATION_REMOVE: {
+                case ACTIVATION_REMOVE -> {
 
                     RemoveStepModel model = new RemoveStepModel();
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatus(resultStatusObject);
@@ -320,13 +336,12 @@ public class Application {
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
-                    break;
                 }
-                case SIGNATURE_VERIFY: {
+                case SIGNATURE_VERIFY -> {
 
                     VerifySignatureStepModel model = new VerifySignatureStepModel();
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setHttpMethod(cmd.getOptionValue("t"));
                     model.setPassword(cmd.getOptionValue("p"));
@@ -344,13 +359,12 @@ public class Application {
                     model.setData(dataFileBytes);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
-                    break;
                 }
-                case VAULT_UNLOCK: {
+                case VAULT_UNLOCK -> {
 
                     VaultUnlockStepModel model = new VaultUnlockStepModel();
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatus(resultStatusObject);
@@ -361,16 +375,15 @@ public class Application {
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
-                    break;
                 }
-                case ACTIVATION_CREATE_CUSTOM: {
+                case ACTIVATION_CREATE_CUSTOM -> {
 
                     String identityAttributesFileName = cmd.getOptionValue("I");
-                    Map<String,String> identityAttributes =
+                    Map<String, String> identityAttributes =
                             FileUtil.readDataFromFile(stepLogger, identityAttributesFileName, HashMap.class, "identity-attributes", "identity attributes");
 
                     String customAttributesFileName = cmd.getOptionValue("C");
-                    Map<String,Object> customAttributes =
+                    Map<String, Object> customAttributes =
                             FileUtil.readDataFromFile(stepLogger, customAttributesFileName, HashMap.class, "custom-attributes", "custom attributes");
 
                     CreateActivationStepModel model = new CreateActivationStepModel();
@@ -378,8 +391,8 @@ public class Application {
                     model.setPlatform(platform);
                     model.setDeviceInfo(deviceInfo);
                     model.setActivationOtp(cmd.getOptionValue("a"));
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setCustomAttributes(customAttributes);
                     model.setHeaders(httpHeaders);
                     model.setIdentityAttributes(identityAttributes);
@@ -391,12 +404,11 @@ public class Application {
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
-                    break;
                 }
-                case ENCRYPT: {
+                case ENCRYPT -> {
                     EncryptStepModel model = new EncryptStepModel();
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setDryRun(cmd.hasOption("dry-run"));
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
@@ -411,12 +423,11 @@ public class Application {
                     model.setData(dataFileBytes);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
-                    break;
                 }
-                case SIGN_ENCRYPT: {
+                case SIGN_ENCRYPT -> {
                     VerifySignatureStepModel model = new VerifySignatureStepModel();
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setHttpMethod(cmd.getOptionValue("t"));
                     model.setPassword(cmd.getOptionValue("p"));
@@ -433,14 +444,13 @@ public class Application {
                     model.setData(dataFileBytes);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
-                    break;
                 }
-                case TOKEN_ENCRYPT: {
+                case TOKEN_ENCRYPT -> {
                     TokenAndEncryptStepModel model = new TokenAndEncryptStepModel();
                     model.setTokenId(cmd.getOptionValue("T"));
                     model.setTokenSecret(cmd.getOptionValue("S"));
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHttpMethod(cmd.getOptionValue("t"));
                     model.setDryRun(cmd.hasOption("dry-run"));
                     model.setHeaders(httpHeaders);
@@ -454,12 +464,11 @@ public class Application {
                     model.setData(dataFileBytes);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
-                    break;
                 }
-                case UPGRADE_START: {
+                case UPGRADE_START -> {
                     StartUpgradeStepModel model = new StartUpgradeStepModel();
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setStatusFileName(statusFileName);
                     model.setResultStatus(resultStatusObject);
@@ -467,13 +476,11 @@ public class Application {
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
-                    break;
                 }
-
-                case UPGRADE_COMMIT: {
+                case UPGRADE_COMMIT -> {
                     CommitUpgradeStepModel model = new CommitUpgradeStepModel();
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setStatusFileName(statusFileName);
                     model.setResultStatus(resultStatusObject);
@@ -481,24 +488,22 @@ public class Application {
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
-                    break;
                 }
-
-                case ACTIVATION_RECOVERY: {
+                case ACTIVATION_RECOVERY -> {
                     String identityAttributesFileName = cmd.getOptionValue("I");
-                    Map<String,String> identityAttributes =
+                    Map<String, String> identityAttributes =
                             FileUtil.readDataFromFile(stepLogger, identityAttributesFileName, HashMap.class, "identity-attributes", "identity attributes");
 
                     String customAttributesFileName = cmd.getOptionValue("C");
-                    Map<String,Object> customAttributes =
+                    Map<String, Object> customAttributes =
                             FileUtil.readDataFromFile(stepLogger, customAttributesFileName, HashMap.class, "custom-attributes", "custom attributes");
 
                     ActivationRecoveryStepModel model = new ActivationRecoveryStepModel();
                     model.setActivationName(ConfigurationUtil.getApplicationName(clientConfigObject));
                     model.setPlatform(platform);
                     model.setDeviceInfo(deviceInfo);
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setIdentityAttributes(identityAttributes);
                     model.setCustomAttributes(customAttributes);
                     model.setHeaders(httpHeaders);
@@ -510,14 +515,12 @@ public class Application {
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
-                    break;
                 }
-
-                case RECOVERY_CONFIRM: {
+                case RECOVERY_CONFIRM -> {
 
                     ConfirmRecoveryCodeStepModel model = new ConfirmRecoveryCodeStepModel();
-                    model.setApplicationKey(ConfigurationUtil.getApplicationKey(clientConfigObject));
-                    model.setApplicationSecret(ConfigurationUtil.getApplicationSecret(clientConfigObject));
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
                     model.setStatusFileName(statusFileName);
@@ -527,10 +530,8 @@ public class Application {
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
-                    break;
                 }
-
-                case SIGNATURE_OFFLINE_COMPUTE: {
+                case SIGNATURE_OFFLINE_COMPUTE -> {
 
                     ComputeOfflineSignatureStepModel model = new ComputeOfflineSignatureStepModel();
                     model.setStatusFileName(statusFileName);
@@ -540,13 +541,11 @@ public class Application {
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
-                    break;
                 }
-
-                default:
+                default -> {
                     System.err.println("Not recognized PowerAuth step: " + powerAuthStep);
                     printPowerAuthStepsHelp(stepProvider);
-                    break;
+                }
             }
 
         } catch (ExecutionException | PowerAuthCmdException e) {

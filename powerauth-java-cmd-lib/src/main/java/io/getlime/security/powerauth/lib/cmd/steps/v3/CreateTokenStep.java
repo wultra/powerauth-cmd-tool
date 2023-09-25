@@ -17,7 +17,7 @@
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.google.common.collect.ImmutableMap;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
@@ -31,7 +31,7 @@ import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.CreateTokenStepModel;
 import io.getlime.security.powerauth.rest.api.model.entity.TokenResponsePayload;
-import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
+import io.getlime.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
@@ -45,6 +45,7 @@ import java.util.Map;
  * <ul>
  *      <li>3.0</li>
  *      <li>3.1</li>
+ *      <li>3.2</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
@@ -99,7 +100,7 @@ public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, Ecie
 
         StepContext<CreateTokenStepModel, EciesEncryptedResponse> stepContext = buildStepContext(stepLogger, model, requestContext);
 
-        addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.CREATE_TOKEN, PowerAuthConst.EMPTY_JSON_BYTES);
+        addEncryptedRequest(stepContext, model.getApplicationKey(), model.getApplicationSecret(), EncryptorId.CREATE_TOKEN, PowerAuthConst.EMPTY_JSON_BYTES);
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
@@ -110,6 +111,7 @@ public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, Ecie
 
     @Override
     public void processResponse(StepContext<CreateTokenStepModel, EciesEncryptedResponse> stepContext) throws Exception {
+
         final TokenResponsePayload tokenResponsePayload = decryptResponse(stepContext, TokenResponsePayload.class);
 
         stepContext.getStepLogger().writeItem(

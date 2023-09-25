@@ -17,9 +17,9 @@
 package io.getlime.security.powerauth.lib.cmd.status;
 
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
+import jakarta.annotation.Nullable;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 

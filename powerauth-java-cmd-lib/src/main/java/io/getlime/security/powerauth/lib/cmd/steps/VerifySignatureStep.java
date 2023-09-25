@@ -40,10 +40,9 @@ import java.util.Map;
  *
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
- *     <li>2.0</li>
- *     <li>2.1</li>
  *     <li>3.0</li>
  *     <li>3.1</li>
+ *     <li>3.2</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
@@ -52,8 +51,8 @@ import java.util.Map;
 @Component
 public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepModel, ObjectResponse<Map<String, Object>>> {
 
-    ParameterizedTypeReference<ObjectResponse<Map<String, Object>>> RESPONSE_TYPE_REFERENCE =
-            new ParameterizedTypeReference<ObjectResponse<Map<String, Object>>>() { };
+    private static final ParameterizedTypeReference<ObjectResponse<Map<String, Object>>> RESPONSE_TYPE_REFERENCE =
+            new ParameterizedTypeReference<>() {};
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
@@ -130,7 +129,7 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
     }
 
     @Override
-    public void processResponse(StepContext<VerifySignatureStepModel, ObjectResponse<Map<String, Object>>> stepContext) throws Exception {
+    public void processResponse(StepContext<VerifySignatureStepModel, ObjectResponse<Map<String, Object>>> stepContext) {
         stepContext.getStepLogger().writeItem(
                 getStep().id() + "-signature-verified",
                 "Signature verified",

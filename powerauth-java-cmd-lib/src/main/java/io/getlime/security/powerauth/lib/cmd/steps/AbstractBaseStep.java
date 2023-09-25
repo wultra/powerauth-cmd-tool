@@ -1,11 +1,34 @@
+/*
+ * PowerAuth Command-line utility
+ * Copyright 2023 Wultra s.r.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.getlime.security.powerauth.lib.cmd.steps;
 
 import com.google.common.collect.ImmutableList;
 import com.wultra.core.rest.client.base.RestClient;
 import com.wultra.core.rest.client.base.RestClientException;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.EciesEncryptor;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesCryptogram;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
+import io.getlime.security.powerauth.crypto.lib.encryptor.ClientEncryptor;
+import io.getlime.security.powerauth.crypto.lib.encryptor.EncryptorFactory;
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptedRequest;
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptedResponse;
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorParameters;
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.v3.ClientEncryptorSecrets;
+import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
+import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.DisabledStepLogger;
@@ -21,17 +44,19 @@ import io.getlime.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
 import io.getlime.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import io.getlime.security.powerauth.lib.cmd.util.*;
-import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
-import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
+import io.getlime.security.powerauth.rest.api.model.request.EciesEncryptedRequest;
+import io.getlime.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
+import jakarta.annotation.Nullable;
 import lombok.Getter;
 import org.json.simple.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
-import javax.annotation.Nullable;
 import java.util.*;
 
 /**
@@ -42,6 +67,8 @@ import java.util.*;
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  */
 public abstract class AbstractBaseStep<M extends BaseStepData, R> implements BaseStep {
+
+    private static final Logger logger = LoggerFactory.getLogger(AbstractBaseStep.class);
 
     /**
      * Corresponding PowerAuth step
@@ -63,7 +90,11 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     /**
      * Step logger
      */
-    protected StepLoggerFactory stepLoggerFactory;
+    protected final StepLoggerFactory stepLoggerFactory;
+
+    private static final EncryptorFactory ENCRYPTOR_FACTORY = new EncryptorFactory();
+    private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
+    private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
 
     /**
      * Constructor
@@ -86,7 +117,6 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
 
     /**
      * Prepares a context for this step execution
-     *
      *
      * @param stepLogger Step logger
      * @param context Context data
@@ -166,38 +196,61 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     }
 
     /**
-     * Prepares ECIES encryptor and encrypts request data with sharedInfo1.
+     * Prepares encryptor and encrypts request data with given encryptor.
      * The encrypted request is then added to the request context of this step.
      *
      * @param stepContext       Context of this step
+     * @param applicationKey    Application key.
      * @param applicationSecret Application secret
-     * @param eciesSharedInfo   Parameter sharedInfo1
+     * @param encryptorId       Encryptor identifier
      * @param data              Request data for the encryption
      * @throws Exception when an error during encryption of the request data occurred
      */
-    public void addEncryptedRequest(StepContext<M, R> stepContext, String applicationSecret, EciesSharedInfo1 eciesSharedInfo, byte[] data) throws Exception {
+    public void addEncryptedRequest(StepContext<M, R> stepContext, String applicationKey, String applicationSecret, EncryptorId encryptorId, byte[] data) throws Exception {
+        M model = stepContext.getModel();
+        final SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
+        final ResultStatusObject resultStatusObject = model.getResultStatus();
+
+        final ClientEncryptor encryptor;
+        if (securityContext == null) {
+            final byte[] transportMasterKeyBytes = Base64.getDecoder().decode(resultStatusObject.getTransportMasterKey());
+            final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), applicationKey, resultStatusObject.getActivationId());
+            final ClientEncryptorSecrets encryptorSecrets = new ClientEncryptorSecrets(resultStatusObject.getServerPublicKeyObject(), applicationSecret, transportMasterKeyBytes);
+            encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(encryptorId, encryptorParameters, encryptorSecrets);
+            stepContext.setSecurityContext(SimpleSecurityContext.builder()
+                            .encryptor(encryptor)
+                            .build());
+        } else {
+            encryptor = securityContext.getEncryptor();
+        }
+        addEncryptedRequest(stepContext, encryptor, data);
+    }
+
+    /**
+     * Encrypts request data with given encryptor.
+     * The encrypted request is then added to the request context of this step.
+     *
+     * @param stepContext       Context of this step
+     * @param encryptor         Encryptor to use
+     * @param data              Request data for the encryption
+     * @throws Exception when an error during encryption of the request data occurred
+     */
+    public void addEncryptedRequest(StepContext<M, R> stepContext, ClientEncryptor encryptor, byte[] data) throws Exception {
         M model = stepContext.getModel();
         SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
-        ResultStatusObject resultStatusObject = model.getResultStatus();
-
-        EciesEncryptor encryptor;
         if (securityContext == null) {
-            encryptor = SecurityUtil.createEncryptor(applicationSecret, resultStatusObject, eciesSharedInfo);
             stepContext.setSecurityContext(
                     SimpleSecurityContext.builder()
                             .encryptor(encryptor)
                             .build()
             );
-        } else {
-            encryptor = securityContext.getEncryptor();
+        } else if (securityContext.getEncryptor() != encryptor) {
+            throw new Exception("Different encryptor is already set to security context");
         }
 
-        final boolean useIv = model.getVersion().useIv();
-
-        final EciesCryptogram eciesCryptogram = encryptor.encryptRequest(data, useIv);
-        final EciesEncryptedRequest encryptedRequest = SecurityUtil.createEncryptedRequest(eciesCryptogram, useIv);
-
-        stepContext.getRequestContext().setRequestObject(encryptedRequest);
+        final EncryptedRequest encryptedRequest = encryptor.encryptRequest(data);
+        final EciesEncryptedRequest requestObject = SecurityUtil.createEncryptedRequest(encryptedRequest);
+        stepContext.getRequestContext().setRequestObject(requestObject);
     }
 
     /**
@@ -207,25 +260,33 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @param cls               Class type of the decrypted object
      * @param <T>               Class of the decrypted object
      * @return Decrypted object from the provided response
-     * @throws Exception when an error during object decryption occurred
      */
-    public <T> T decryptResponse(StepContext<?, EciesEncryptedResponse> stepContext, Class<T> cls) throws Exception {
-        SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
-        EciesEncryptor encryptor = securityContext.getEncryptor();
-        EciesEncryptedResponse encryptedResponse = stepContext.getResponseContext().getResponseBodyObject();
-        byte[] decryptedBytes = SecurityUtil.decryptBytesFromResponse(encryptor, encryptedResponse);
-        final T responsePayload = RestClientConfiguration.defaultMapper().readValue(decryptedBytes, cls);
-        stepContext.getResponseContext().setResponsePayloadDecrypted(responsePayload);
+    public <T> T decryptResponse(StepContext<?, EciesEncryptedResponse> stepContext, Class<T> cls) {
+        try {
+            final SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
+            final EciesEncryptedResponse encryptedResponse = stepContext.getResponseContext().getResponseBodyObject();
+            final byte[] decryptedBytes = securityContext.getEncryptor().decryptResponse(new EncryptedResponse(
+                    encryptedResponse.getEncryptedData(),
+                    encryptedResponse.getMac(),
+                    encryptedResponse.getNonce(),
+                    encryptedResponse.getTimestamp()
+            ));
+            final T responsePayload = RestClientConfiguration.defaultMapper().readValue(decryptedBytes, cls);
+            stepContext.getResponseContext().setResponsePayloadDecrypted(responsePayload);
 
-        stepContext.getStepLogger().writeItem(
-                getStep().id() + "-response-decrypt",
-                "Decrypted Response",
-                "Following data were decrypted",
-                "OK",
-                responsePayload
-        );
+            stepContext.getStepLogger().writeItem(
+                    getStep().id() + "-response-decrypt",
+                    "Decrypted Response",
+                    "Following data were decrypted",
+                    "OK",
+                    responsePayload
+            );
 
-        return responsePayload;
+            return responsePayload;
+        } catch (Exception ex) {
+            logger.debug(ex.getMessage(), ex);
+            return null;
+        }
     }
 
     /**

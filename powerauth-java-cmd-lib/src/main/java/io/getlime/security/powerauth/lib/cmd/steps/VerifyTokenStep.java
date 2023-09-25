@@ -39,10 +39,9 @@ import java.util.Map;
  *
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
- *     <li>2.0</li>
- *     <li>2.1</li>
  *     <li>3.0</li>
  *     <li>3.1</li>
+ *     <li>3.2</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
@@ -51,8 +50,7 @@ import java.util.Map;
 @Component
 public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<String, Object>> {
 
-    ParameterizedTypeReference<Map<String, Object>> RESPONSE_TYPE_REFERENCE =
-            new ParameterizedTypeReference<Map<String, Object>>() { };
+    private static final ParameterizedTypeReference<Map<String, Object>> RESPONSE_TYPE_REFERENCE = new ParameterizedTypeReference<>() {};
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
@@ -157,7 +155,7 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
     }
 
     @Override
-    public void processResponse(StepContext<VerifyTokenStepModel, Map<String, Object>> stepContext) throws Exception {
+    public void processResponse(StepContext<VerifyTokenStepModel, Map<String, Object>> stepContext) {
         stepContext.getStepLogger().writeItem(
                 getStep().id() + "-digest-verified",
                 "Token digest verified",

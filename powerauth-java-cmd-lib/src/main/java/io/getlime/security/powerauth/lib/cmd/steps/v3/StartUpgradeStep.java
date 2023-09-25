@@ -16,7 +16,7 @@
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import com.google.common.collect.ImmutableMap;
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
@@ -29,8 +29,8 @@ import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
-import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
-import io.getlime.security.powerauth.rest.api.model.response.v3.UpgradeResponsePayload;
+import io.getlime.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
+import io.getlime.security.powerauth.rest.api.model.response.UpgradeResponsePayload;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
@@ -44,6 +44,7 @@ import java.util.Map;
  * <ul>
  *      <li>3.0</li>
  *      <li>3.1</li>
+ *      <li>3.2</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
@@ -97,7 +98,7 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, Ec
         StepContext<StartUpgradeStepModel, EciesEncryptedResponse> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
-        addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.UPGRADE, PowerAuthConst.EMPTY_JSON_BYTES);
+        addEncryptedRequest(stepContext, model.getApplicationKey(), model.getApplicationSecret(), EncryptorId.UPGRADE, PowerAuthConst.EMPTY_JSON_BYTES);
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
@@ -106,7 +107,7 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, Ec
 
     @Override
     public void processResponse(StepContext<StartUpgradeStepModel, EciesEncryptedResponse> stepContext) throws Exception {
-        StartUpgradeStepModel model = stepContext.getModel();
+        final StartUpgradeStepModel model = stepContext.getModel();
         final UpgradeResponsePayload responsePayload = decryptResponse(stepContext, UpgradeResponsePayload.class);
 
         // Store the activation status (updated counter)

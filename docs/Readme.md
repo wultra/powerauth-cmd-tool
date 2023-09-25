@@ -11,10 +11,10 @@ You can download the latest `powerauth-java-cmd.jar` at the releases page:
 ## Supported Java Runtime Versions
 
 The following Java runtime versions are supported:
-- Java 8 (LTS release)
-- Java 11 (LTS release)
+- OpenJDK 17 (LTS release) or higher
+- Oracle Java is not supported, please use OpenJDK.
 
-The command-line tool application may run on other Java versions, however we do not perform extensive testing with non-LTS releases. Java version 17 is not supported yet due to issues with running Bouncy Castle provider from a fat jar.
+Older Java versions are currently not supported due to migration to Spring Boot 3.
 
 ## Bouncy Castle Library Usage
 
@@ -30,7 +30,20 @@ The command-line tool usually communicates with the Enrollment server component,
 
 _Note: You must create this file before you can use the utility. Obtain the information from the PowerAuth Admin interface._
 
-Client configuration file is required for the correct function of the command-line utility. It contains the same information that would be bundled inside a mobile app after download from the application marketplace. The file stores application key, application secret and master server public key in a following format:
+Client configuration file is required for the correct function of the command-line utility. It contains the same information that would be bundled inside a mobile app after download from the application marketplace. The file stores application name and mobile SDK configuration in the following format:
+
+```json
+{
+  "applicationName": "PowerAuth Reference Client",
+  "mobileSdkConfig": "ARCVs2uD4HXnu1uiMLjzv3jUEKhL+EbC7De2hP0CE4QZYMIBAUEEc7WjproYfURYdEDEx7OwSR0A5A+5HNGgUXx8F6eT3KOeIhcsw7tN5PoZN7m3sKutqmUPBrSFqtcDkmQxKTXzlA=="
+}
+```
+
+You must obtain the values for this file from the PowerAuth Admin interface:
+
+![PowerAuth Admin Preview](./images/pa_admin_application_detail.png)
+
+Note: In case you use an older version of the PowerAuth server which does not contain the mobile SDK configuration parameter, configure the individual parameters in the following format:
 
 ```json
 {
@@ -40,10 +53,6 @@ Client configuration file is required for the correct function of the command-li
   "masterPublicKey": "BO4+eqJPQTldjcV9G36dGiagsOHzgKgWz5uPuJKYwvIakbFmfWah1N4GXmBOS8aBEwQ+BcV04LL+OBBY0QS1bvg="
 }
 ```
-
-You must obtain the values for this file from the PowerAuth Admin interface:
-
-![PowerAuth Admin Preview](./images/pa_admin_application_detail.png)
 
 ## PowerAuth Client Status File
 
@@ -69,12 +78,12 @@ This file is automatically created by the utility after you call the `create` me
 ## Specifying PowerAuth Protocol Version
 
 Command-line tool supports following PowerAuth protocol versions:
-- Version `3.1` (default)
+- Version `3.2` (default)
+- Version `3.1`
 - Version `3.0`
-- Version `2.1`
-- Version `2.0`
 
-You can specify the version of protocol you want to use using parameter `version`. Both major and minor version needs to be specified for the command-line tool action, however the server stores only the major version in the database. The version affects used cryptography, for example version `2` activations use custom encryption, while version `3` activations use an integrated ECIES scheme.
+You can specify the version of protocol you want to use using parameter `version`. Both major and minor version needs to be specified for the command-line tool action, however the server stores only the major version in the database.
+The version affects used cryptography, for example version `3` activations use an integrated ECIES scheme.
 
 ## Supported Use-Cases
 
@@ -211,11 +220,13 @@ _Note: If a `--password` option is not provided, this method requires interactiv
 
 ### Validate Token
 
-Use a previously created token to authorize an operation.
+Token validation may be performed against any endpoint using [Token Based Authentication](https://github.com/wultra/powerauth-restful-integration/blob/develop/docs/RESTful-API-for-Spring.md#use-token-based-authentication).
+
+For example, use the previously created token to retrieve a list of operations.
 
 ```bash
 java -jar powerauth-java-cmd.jar \
-    --url "http://localhost:8080/enrollment-server/api/auth/token" \
+    --url "http://localhost:8080/enrollment-server/api/auth/token/app/operation/list" \
     --status-file "/tmp/pa_status.json" \
     --config-file "/tmp/pamk.json" \
     --method "validate-token" \
@@ -225,7 +236,9 @@ java -jar powerauth-java-cmd.jar \
     --token-secret "xfb1NUXAPbvDZK8qyNVGyw=="
 ```
 
-Uses the `validate-token` method for an activation with activation ID stored in the status file `/tmp/pa_status.json`, by calling an endpoint `/api/auth/token` hosted on root URL `http://localhost:8080/enrollment-server`. The endpoint must be published by the application -- see [Token Based Authentication](https://github.com/wultra/powerauth-restful-integration/blob/develop/docs/RESTful-API-for-Spring.md#use-token-based-authentication). Uses the application identifiers stored in the `/tmp/pamk.json` file. The request data is taken from file `/tmp/request.json`.
+Uses the `validate-token` method for an activation with activation ID stored in the status file `/tmp/pa_status.json`, by calling an endpoint `/api/auth/token/app/operation/list` hosted on root URL `http://localhost:8080/enrollment-server`.
+Uses the application identifiers stored in the `/tmp/pamk.json` file.
+The request data is taken from file `/tmp/request.json`.
 
 You can use the `dry-run` parameter, in this case the step is stopped right after signing the request body and preparing appropriate headers.
 
@@ -276,7 +289,6 @@ There is a required format of both `identity.json` and `custom-attributes.json` 
 
 _Note: If a `--password` option is not provided, this method requires interactive console input of the password, in order to encrypt the knowledge related signature key._
 
-_Note: In protocol version `2.x` you need to provide a full URL in `--url` parameter, pointing to the custom activation endpoint._
 
 ### Send Encrypted Data to Server
 
@@ -449,7 +461,9 @@ If you are using HTTPS, make sure you are using valid SSL certificate or that yo
 
 **Error: JCE cannot authenticate the provider BC**
 
-Please use a supported Java Runtime Version (LTS release of Java 8 or 11).
+Please use a supported Java Runtime Version (OpenJDK 17 or higher, not Oracle Java).
+
+See: https://github.com/wultra/powerauth-cmd-tool/issues/232#issuecomment-1730848437
 
 ## License
 

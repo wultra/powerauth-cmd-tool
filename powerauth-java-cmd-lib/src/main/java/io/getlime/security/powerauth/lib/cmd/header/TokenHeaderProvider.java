@@ -16,7 +16,6 @@
  */
 package io.getlime.security.powerauth.lib.cmd.header;
 
-import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.client.token.ClientTokenGenerator;
 import io.getlime.security.powerauth.http.PowerAuthTokenHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
@@ -24,6 +23,7 @@ import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.TokenHeaderData;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 /**
  * Token header provider
@@ -42,19 +42,20 @@ public class TokenHeaderProvider implements PowerAuthHeaderProvider<TokenHeaderD
         RequestContext requestContext = stepContext.getRequestContext();
 
         String tokenId = model.getTokenId();
-        byte[] tokenSecret = BaseEncoding.base64().decode(model.getTokenSecret());
+        byte[] tokenSecret = Base64.getDecoder().decode(model.getTokenSecret());
 
-        ClientTokenGenerator tokenGenerator = new ClientTokenGenerator();
+        final ClientTokenGenerator tokenGenerator = new ClientTokenGenerator();
+        final String version = model.getVersion().value();
         final byte[] tokenNonce = tokenGenerator.generateTokenNonce();
         final byte[] tokenTimestamp = tokenGenerator.generateTokenTimestamp();
-        final byte[] tokenDigest = tokenGenerator.computeTokenDigest(tokenNonce, tokenTimestamp, tokenSecret);
+        final byte[] tokenDigest = tokenGenerator.computeTokenDigest(tokenNonce, tokenTimestamp, version, tokenSecret);
 
         PowerAuthTokenHttpHeader header = new PowerAuthTokenHttpHeader(
                 tokenId,
-                BaseEncoding.base64().encode(tokenDigest),
-                BaseEncoding.base64().encode(tokenNonce),
+                Base64.getEncoder().encodeToString(tokenDigest),
+                Base64.getEncoder().encodeToString(tokenNonce),
                 new String(tokenTimestamp, StandardCharsets.UTF_8),
-                model.getVersion().value()
+                version
         );
 
         String headerValue = header.buildHttpHeader();

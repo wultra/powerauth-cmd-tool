@@ -15,7 +15,6 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
-import com.google.common.io.BaseEncoding;
 import io.getlime.core.rest.model.base.request.ObjectRequest;
 import io.getlime.core.rest.model.base.response.ObjectResponse;
 import io.getlime.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
@@ -33,12 +32,13 @@ import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.GetStatusStepModel;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
-import io.getlime.security.powerauth.rest.api.model.request.v3.ActivationStatusRequest;
-import io.getlime.security.powerauth.rest.api.model.response.v3.ActivationStatusResponse;
+import io.getlime.security.powerauth.rest.api.model.request.ActivationStatusRequest;
+import io.getlime.security.powerauth.rest.api.model.response.ActivationStatusResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -49,6 +49,7 @@ import java.util.Map;
  * <ul>
  *      <li>3.0</li>
  *      <li>3.1</li>
+ *      <li>3.2</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
@@ -63,8 +64,7 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, ObjectRe
     public static final String ATTRIBUTE_CHALLENGE = "challenge";
 
     private static final ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>> RESPONSE_TYPE_REFERENCE =
-            new ParameterizedTypeReference<ObjectResponse<ActivationStatusResponse>>() {
-            };
+            new ParameterizedTypeReference<>() {};
 
     private static final PowerAuthClientActivation ACTIVATION = new PowerAuthClientActivation();
 
@@ -122,7 +122,7 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, ObjectRe
         // Send the activation status request to the server
         final ActivationStatusRequest requestObject = new ActivationStatusRequest();
         requestObject.setActivationId(model.getResultStatus().getActivationId());
-        requestObject.setChallenge(challenge != null ? BaseEncoding.base64().encode(challenge) : null);
+        requestObject.setChallenge(challenge != null ? Base64.getEncoder().encodeToString(challenge) : null);
         final ObjectRequest<ActivationStatusRequest> body = new ObjectRequest<>();
         body.setRequestObject(requestObject);
 
@@ -139,8 +139,8 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, ObjectRe
 
         // Process the server response
         final ActivationStatusResponse responseObject = stepContext.getResponseContext().getResponseBodyObject().getResponseObject();
-        final byte[] cStatusBlob = BaseEncoding.base64().decode(responseObject.getEncryptedStatusBlob());
-        final byte[] cStatusBlobNonce = useChallenge ? BaseEncoding.base64().decode(responseObject.getNonce()) : null;
+        final byte[] cStatusBlob = Base64.getDecoder().decode(responseObject.getEncryptedStatusBlob());
+        final byte[] cStatusBlobNonce = useChallenge ? Base64.getDecoder().decode(responseObject.getNonce()) : null;
         final Map<String, Object> customObject = responseObject.getCustomObject();
         byte[] challenge = (byte[]) stepContext.getAttributes().get(ATTRIBUTE_CHALLENGE);
 

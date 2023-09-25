@@ -16,7 +16,7 @@
  */
 package io.getlime.security.powerauth.lib.cmd.consts;
 
-import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
+import io.getlime.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
 import org.springframework.core.ParameterizedTypeReference;
 
 import java.nio.charset.StandardCharsets;
@@ -36,7 +36,6 @@ public class PowerAuthConst {
     /**
      * Most common response type reference for version 3
      */
-    public static final ParameterizedTypeReference<EciesEncryptedResponse> RESPONSE_TYPE_REFERENCE_V3 =
-            new ParameterizedTypeReference<EciesEncryptedResponse>() { };
+    public static final ParameterizedTypeReference<EciesEncryptedResponse> RESPONSE_TYPE_REFERENCE_V3 = new ParameterizedTypeReference<>() {};
 
 }

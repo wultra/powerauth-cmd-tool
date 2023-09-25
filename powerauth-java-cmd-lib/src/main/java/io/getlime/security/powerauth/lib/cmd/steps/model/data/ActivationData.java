@@ -34,6 +34,11 @@ public interface ActivationData extends ResultStatusChangeable, BaseStepData {
     String getActivationName();
 
     /**
+     * @return Application key.
+     */
+    String getApplicationKey();
+
+    /**
      * @return Application secret.
      */
     String getApplicationSecret();

@@ -16,7 +16,7 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
@@ -30,9 +30,9 @@ import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.ConfirmRecoveryCodeStepModel;
 import io.getlime.security.powerauth.lib.cmd.util.RestClientConfiguration;
-import io.getlime.security.powerauth.rest.api.model.request.v3.ConfirmRecoveryRequestPayload;
-import io.getlime.security.powerauth.rest.api.model.response.v3.ConfirmRecoveryResponsePayload;
-import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
+import io.getlime.security.powerauth.rest.api.model.request.ConfirmRecoveryRequestPayload;
+import io.getlime.security.powerauth.rest.api.model.response.ConfirmRecoveryResponsePayload;
+import io.getlime.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
@@ -47,6 +47,7 @@ import java.util.Map;
  * <ul>
  *      <li>3.0</li>
  *      <li>3.1</li>
+ *      <li>3.2</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
@@ -109,7 +110,7 @@ public class ConfirmRecoveryCodeStep extends AbstractBaseStep<ConfirmRecoveryCod
         // Encrypt the request
         final byte[] requestBytesPayload = RestClientConfiguration.defaultMapper().writeValueAsBytes(confirmRequestPayload);
 
-        addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.CONFIRM_RECOVERY_CODE, requestBytesPayload);
+        addEncryptedRequest(stepContext, model.getApplicationKey(), model.getApplicationSecret(), EncryptorId.CONFIRM_RECOVERY_CODE, requestBytesPayload);
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
@@ -121,7 +122,6 @@ public class ConfirmRecoveryCodeStep extends AbstractBaseStep<ConfirmRecoveryCod
     @Override
     public void processResponse(StepContext<ConfirmRecoveryCodeStepModel, EciesEncryptedResponse> stepContext) throws Exception {
         final ConfirmRecoveryResponsePayload confirmResponsePayload = decryptResponse(stepContext, ConfirmRecoveryResponsePayload.class);
-
         Map<String, Object> objectMap = new HashMap<>();
         objectMap.put("alreadyConfirmed", confirmResponsePayload.getAlreadyConfirmed());
 

@@ -42,6 +42,7 @@ import java.util.Map;
  * <ul>
  *      <li>3.0</li>
  *      <li>3.1</li>
+ *      <li>3.2</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
@@ -50,8 +51,7 @@ import java.util.Map;
 @Component
 public class CommitUpgradeStep extends AbstractBaseStep<CommitUpgradeStepModel, Response> {
 
-    private static final ParameterizedTypeReference<Response> RESPONSE_TYPE_REFERENCE =
-            new ParameterizedTypeReference<Response>() { };
+    private static final ParameterizedTypeReference<Response> RESPONSE_TYPE_REFERENCE = new ParameterizedTypeReference<>() {};
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 

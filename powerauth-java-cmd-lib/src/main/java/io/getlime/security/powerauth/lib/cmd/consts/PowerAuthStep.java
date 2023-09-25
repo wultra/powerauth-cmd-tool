@@ -160,17 +160,17 @@ public enum PowerAuthStep {
     /**
      * Alias name of the step
      */
-    String alias;
+    private final String alias;
 
     /**
      * Description of the step
      */
-    String description;
+    private final String description;
 
     /**
      * Unique identification of the step
      */
-    String id;
+    private final String id;
 
     /**
      * @return Alis of the step

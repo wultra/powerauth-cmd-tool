@@ -82,25 +82,13 @@ public class ExtendedActivationStatusBlobInfo extends ActivationStatusBlobInfo {
      * @return A comprehensive displayable value.
      */
     private String convertStatusToStatusName(byte status) {
-        switch (status) {
-            case 1: {
-                return "CREATED";
-            }
-            case 2: {
-                return "PENDING_COMMIT";
-            }
-            case 3: {
-                return "ACTIVE";
-            }
-            case 4: {
-                return "BLOCKED";
-            }
-            case 5: {
-                return "REMOVED";
-            }
-            default: {
-                return "UNKNOWN";
-            }
-        }
+        return switch (status) {
+            case 1 -> "CREATED";
+            case 2 -> "PENDING_COMMIT";
+            case 3 -> "ACTIVE";
+            case 4 -> "BLOCKED";
+            case 5 -> "REMOVED";
+            default -> "UNKNOWN";
+        };
     }
 }

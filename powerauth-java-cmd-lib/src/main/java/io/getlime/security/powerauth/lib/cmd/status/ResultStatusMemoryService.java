@@ -22,8 +22,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-
 /**
  * Service for managing activation status objects based in memory
  *
@@ -45,7 +43,7 @@ public class ResultStatusMemoryService implements ResultStatusService {
     }
 
     @Override
-    public void save(ResultStatusChangeable model) throws IOException {
+    public void save(ResultStatusChangeable model) {
         ResultStatusObject status = model.getResultStatus();
         resultStatusMemoryHolder.put(status.getActivationId(), status);
     }

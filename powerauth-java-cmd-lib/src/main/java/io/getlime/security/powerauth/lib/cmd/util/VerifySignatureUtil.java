@@ -16,16 +16,15 @@
  */
 package io.getlime.security.powerauth.lib.cmd.util;
 
-import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.http.PowerAuthRequestCanonizationUtils;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
 import org.springframework.http.HttpMethod;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 /**
  * Help class with utils for signature verification.
@@ -41,9 +40,8 @@ public class VerifySignatureUtil {
      * @param stepLogger Step logger.
      * @return Request data bytes.
      * @throws URISyntaxException In case URI is invalid.
-     * @throws IOException In case of any IO error.
      */
-    public static byte[] extractRequestDataBytes(VerifySignatureStepModel model, StepLogger stepLogger) throws URISyntaxException, IOException {
+    public static byte[] extractRequestDataBytes(VerifySignatureStepModel model, StepLogger stepLogger) throws URISyntaxException {
         byte[] requestDataBytes;
         if (HttpMethod.GET.name().equals(model.getHttpMethod().toUpperCase())) {
             String query = new URI(model.getUriString()).getRawQuery();
@@ -76,7 +74,7 @@ public class VerifySignatureUtil {
                         "Request payload",
                         "Data from the request payload file, used as the POST / DELETE / ... method body, encoded as Base64.",
                         "OK",
-                        BaseEncoding.base64().encode(requestDataBytes)
+                        Base64.getEncoder().encode(requestDataBytes)
                 );
             } else {
                 requestDataBytes = new byte[0];

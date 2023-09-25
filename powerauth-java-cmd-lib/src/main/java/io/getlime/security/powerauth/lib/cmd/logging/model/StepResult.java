@@ -17,24 +17,9 @@ package io.getlime.security.powerauth.lib.cmd.logging.model;
 
 /**
  * Class representing a step result.
+ *
+ * @param success Whether step was successful.
  */
-public class StepResult {
+public record StepResult(boolean success) {
 
-    private final boolean success;
-
-    /**
-     * Constructor with step result.
-     * @param success Whether step was successful.
-     */
-    public StepResult(boolean success) {
-        this.success = success;
-    }
-
-    /**
-     * Get whether step was successful.
-     * @return Whether step was successful.
-     */
-    public boolean isSuccess() {
-        return success;
-    }
 }

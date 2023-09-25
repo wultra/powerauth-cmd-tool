@@ -16,7 +16,7 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
-import io.getlime.security.powerauth.crypto.lib.encryptor.ecies.model.EciesSharedInfo1;
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
@@ -29,8 +29,8 @@ import io.getlime.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.TokenAndEncryptStepModel;
-import io.getlime.security.powerauth.lib.cmd.util.EncryptionUtil;
-import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
+import io.getlime.security.powerauth.lib.cmd.util.SecurityUtil;
+import io.getlime.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
@@ -45,8 +45,9 @@ import java.util.Map;
  * <ul>
  *     <li>3.0</li>
  *     <li>3.1</li>
+ *     <li>3.2</li>
  * </ul>
- * <p>
+ *
  *  @author Roman Strobl, roman.strobl@wultra.com
  */
 @Component
@@ -135,17 +136,19 @@ public class TokenAndEncryptStep extends AbstractBaseStep<TokenAndEncryptStepMod
         );
 
         requestContext.setRequestObject(requestDataBytes);
-        powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
         // Encrypt the request
-        addEncryptedRequest(stepContext, model.getApplicationSecret(), EciesSharedInfo1.ACTIVATION_SCOPE_GENERIC, requestDataBytes);
+
+        addEncryptedRequest(stepContext, model.getApplicationKey(), model.getApplicationSecret(), EncryptorId.ACTIVATION_SCOPE_GENERIC, requestDataBytes);
+
+        powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
         return stepContext;
     }
 
     @Override
     public void processResponse(StepContext<TokenAndEncryptStepModel, EciesEncryptedResponse> stepContext) throws Exception {
-        EncryptionUtil.processEncryptedResponse(stepContext, getStep().id());
+        SecurityUtil.processEncryptedResponse(stepContext, getStep().id());
     }
 
 }

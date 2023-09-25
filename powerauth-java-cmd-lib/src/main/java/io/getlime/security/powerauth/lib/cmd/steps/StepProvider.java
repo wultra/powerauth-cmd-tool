@@ -66,10 +66,8 @@ public class StepProvider {
             Map<PowerAuthVersion, BaseStep> mappingVersion =
                     mappingStepVersion.computeIfAbsent(step.getStep(), value -> new HashMap<>());
 
-            step.getSupportedVersions().forEach(supportedVersion -> {
-                mappingVersion.put(supportedVersion, step);
-            });
-
+            step.getSupportedVersions().forEach(supportedVersion ->
+                    mappingVersion.put(supportedVersion, step));
         });
 
         this.mappingStepVersion = mappingStepVersion;

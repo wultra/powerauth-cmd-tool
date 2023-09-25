@@ -28,9 +28,9 @@ import io.getlime.security.powerauth.lib.cmd.steps.context.RequestContext;
 import io.getlime.security.powerauth.lib.cmd.steps.context.StepContext;
 import io.getlime.security.powerauth.lib.cmd.steps.model.PrepareActivationStepModel;
 import io.getlime.security.powerauth.rest.api.model.entity.ActivationType;
-import io.getlime.security.powerauth.rest.api.model.request.v3.ActivationLayer1Request;
-import io.getlime.security.powerauth.rest.api.model.request.v3.EciesEncryptedRequest;
-import io.getlime.security.powerauth.rest.api.model.response.v3.EciesEncryptedResponse;
+import io.getlime.security.powerauth.rest.api.model.request.ActivationLayer1Request;
+import io.getlime.security.powerauth.rest.api.model.request.EciesEncryptedRequest;
+import io.getlime.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -46,6 +46,7 @@ import java.util.regex.Pattern;
  * <ul>
  *      <li>3.0</li>
  *      <li>3.1</li>
+ *      <li>3.2</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
@@ -115,8 +116,8 @@ public class PrepareActivationStep extends AbstractActivationStep<PrepareActivat
         StepContext<PrepareActivationStepModel, EciesEncryptedResponse> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
-        powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
         addEncryptedRequest(stepContext);
+        powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
         return stepContext;
     }

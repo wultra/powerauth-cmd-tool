@@ -16,14 +16,15 @@
  */
 package io.getlime.security.powerauth.lib.cmd.util;
 
-import com.google.common.io.BaseEncoding;
 import io.getlime.security.powerauth.crypto.lib.generator.HashBasedCounter;
 import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.model.BaseStepModel;
 import io.getlime.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
+import org.springframework.util.Assert;
 
 import java.nio.ByteBuffer;
+import java.util.Base64;
 
 /**
  * Helper class for counter.
@@ -59,16 +60,14 @@ public class CounterUtil {
         long counter = resultStatusObject.getCounter();
         int version = resultStatusObject.getVersion().intValue();
         switch (version) {
-            case 2:
-                ctrData = ByteBuffer.allocate(16).putLong(8, counter).array();
-                break;
-            case 3:
+            case 2 -> ctrData = ByteBuffer.allocate(16).putLong(8, counter).array();
+            case 3 -> {
                 String ctrDataBase64 = resultStatusObject.getCtrData();
                 if (!ctrDataBase64.isEmpty()) {
-                    ctrData = BaseEncoding.base64().decode(ctrDataBase64);
+                    ctrData = Base64.getDecoder().decode(ctrDataBase64);
                 }
-                break;
-            default:
+            }
+            default -> {
                 if (stepLogger != null) {
                     stepLogger.writeItem(
                             "generic-error-version",
@@ -78,13 +77,13 @@ public class CounterUtil {
                             null
                     );
                 }
+            }
         }
         return ctrData;
     }
 
     /**
-     * Increment counter value in step model. In version 2.0 and 2.1 only numeric counter is incremented. In version
-     * 3.0 the counter data is incremented using hash based counter, too.
+     * Increment counter value in step model.
      *
      * @param model Step model.
      */
@@ -102,9 +101,10 @@ public class CounterUtil {
         if (version == 3) {
             String ctrDataBase64 = resultStatusObject.getCtrData();
             if (!ctrDataBase64.isEmpty()) {
-                byte[] ctrData = BaseEncoding.base64().decode(ctrDataBase64);
-                ctrData = new HashBasedCounter().next(ctrData);
-                resultStatusObject.setCtrData(BaseEncoding.base64().encode(ctrData));
+                final byte[] ctrData = Base64.getDecoder().decode(ctrDataBase64);
+                final byte[] nextCrtData = new HashBasedCounter().next(ctrData);
+                Assert.state(nextCrtData != null, "nextCrtData must not be null");
+                resultStatusObject.setCtrData(Base64.getEncoder().encodeToString(nextCrtData));
             }
         }
     }

@@ -39,16 +39,11 @@ public class CmdLibApplication {
      */
     @Bean
     public StepLogger stepLogger(StepLoggerConfig config) {
-        switch (config.getType()) {
-            case DISABLED:
-                return DisabledStepLogger.INSTANCE;
-            case JSON:
-                return new JsonStepLogger(System.out);
-            case OBJECT:
-                return new ObjectStepLogger(System.out);
-            default:
-                throw new IllegalStateException("Not supported step logger type: " + config.getType());
-        }
+        return switch (config.getType()) {
+            case DISABLED -> DisabledStepLogger.INSTANCE;
+            case JSON -> new JsonStepLogger(System.out);
+            case OBJECT -> new ObjectStepLogger(System.out);
+        };
     }
 
 }

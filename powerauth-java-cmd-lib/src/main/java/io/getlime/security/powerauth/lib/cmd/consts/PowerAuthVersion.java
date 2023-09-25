@@ -28,16 +28,6 @@ import java.util.Arrays;
 public enum PowerAuthVersion {
 
     /**
-     * Version 2.0
-     */
-    V2_0(2, "2.0"),
-
-    /**
-     * Version 2.1
-     */
-    V2_1(2, "2.1"),
-
-    /**
      * Version 3.0
      */
     V3_0(3, "3.0"),
@@ -45,7 +35,12 @@ public enum PowerAuthVersion {
     /**
      * Version 3.1
      */
-    V3_1(3, "3.1");
+    V3_1(3, "3.1"),
+
+    /**
+     * Version 3.1
+     */
+    V3_2(3, "3.2");
 
     /**
      * All supported versions
@@ -55,27 +50,22 @@ public enum PowerAuthVersion {
     /**
      * Default version
      */
-    public static final PowerAuthVersion DEFAULT = V3_1;
-
-    /**
-     * All versions belonging to major version 2
-     */
-    public static final ImmutableList<PowerAuthVersion> VERSION_2 = ImmutableList.of(V2_0, V2_1);
+    public static final PowerAuthVersion DEFAULT = V3_2;
 
     /**
      * All versions belonging to major version 3
      */
-    public static final ImmutableList<PowerAuthVersion> VERSION_3 = ImmutableList.of(V3_0, V3_1);
+    public static final ImmutableList<PowerAuthVersion> VERSION_3 = ImmutableList.of(V3_0, V3_1, V3_2);
 
     /**
      * Major version value
      */
-    int majorVersion;
+    private final int majorVersion;
 
     /**
-     * Version string value ("2.1", "3.0", ...)
+     * Version string value ("3.0", "3.1", "3.2", ...)
      */
-    String value;
+    private final String value;
 
     /**
      * Constructor
@@ -96,6 +86,26 @@ public enum PowerAuthVersion {
      */
     public boolean useIv() {
         return majorVersion >= 3 && !V3_0.equals(this);
+    }
+
+    /**
+     * Provides flag whether decryption uses different non-zero initialization vector.
+     * <p>This feature is supported only for protocol V3.2+.</p>
+     *
+     * @return Flag whether decryption uses different non-zero initialization vector.
+     */
+    public boolean useDifferentIvForResponse() {
+        return majorVersion >= 3 && V3_2.equals(this);
+    }
+
+    /**
+     * Provides flag whether encryption uses timestamp.
+     * <p>This feature is supported only for protocol V3.2+.</p>
+     *
+     * @return Flag whether encryption uses timestamp
+     */
+    public boolean useTimestamp() {
+        return majorVersion >= 3 && !V3_0.equals(this) && !V3_1.equals(this);
     }
 
     /**
