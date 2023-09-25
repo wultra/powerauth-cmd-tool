@@ -219,7 +219,9 @@ _Note: If a `--password` option is not provided, this method requires interactiv
 
 ### Validate Token
 
-Use a previously created token to retrieve a list of operations.
+Token validation may be performed against any endpoint using [Token Based Authentication](https://github.com/wultra/powerauth-restful-integration/blob/develop/docs/RESTful-API-for-Spring.md#use-token-based-authentication).
+
+For example, use the previously created token to retrieve a list of operations.
 
 ```bash
 java -jar powerauth-java-cmd.jar \
@@ -234,7 +236,7 @@ java -jar powerauth-java-cmd.jar \
 ```
 
 Uses the `validate-token` method for an activation with activation ID stored in the status file `/tmp/pa_status.json`, by calling an endpoint `/api/auth/token/app/operation/list` hosted on root URL `http://localhost:8080/enrollment-server`.
-The endpoint must be published by the application -- see [Token Based Authentication](https://github.com/wultra/powerauth-restful-integration/blob/develop/docs/RESTful-API-for-Spring.md#use-token-based-authentication). Uses the application identifiers stored in the `/tmp/pamk.json` file.
+Uses the application identifiers stored in the `/tmp/pamk.json` file.
 The request data is taken from file `/tmp/request.json`.
 
 You can use the `dry-run` parameter, in this case the step is stopped right after signing the request body and preparing appropriate headers.
