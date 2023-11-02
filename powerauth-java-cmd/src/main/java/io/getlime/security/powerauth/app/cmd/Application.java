@@ -295,6 +295,10 @@ public class Application {
                         powerAuthStep = PowerAuthStep.ACTIVATION_CREATE;
                     }
 
+                    String customAttributesFileName = cmd.getOptionValue("C");
+                    Map<String, Object> customAttributes =
+                            FileUtil.readDataFromFile(stepLogger, customAttributesFileName, HashMap.class, "custom-attributes", "custom attributes");
+
                     PrepareActivationStepModel model = new PrepareActivationStepModel();
                     model.setActivationCode(cmd.getOptionValue("a"));
                     model.setAdditionalActivationOtp(cmd.getOptionValue("A"));
@@ -303,6 +307,7 @@ public class Application {
                     model.setDeviceInfo(deviceInfo);
                     model.setApplicationKey(applicationKey);
                     model.setApplicationSecret(applicationSecret);
+                    model.setCustomAttributes(customAttributes);
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKey(masterPublicKey);
                     model.setPassword(cmd.getOptionValue("p"));

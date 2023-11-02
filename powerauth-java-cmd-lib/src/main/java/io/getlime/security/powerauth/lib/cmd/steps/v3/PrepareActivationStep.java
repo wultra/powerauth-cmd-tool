@@ -132,6 +132,7 @@ public class PrepareActivationStep extends AbstractActivationStep<PrepareActivat
         Map<String, String> identityAttributes = new HashMap<>();
         identityAttributes.put("code", stepContext.getModel().getActivationCode());
         requestL1.setIdentityAttributes(identityAttributes);
+        requestL1.setCustomAttributes(stepContext.getModel().getCustomAttributes());
         return requestL1;
     }
 
