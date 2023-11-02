@@ -47,6 +47,11 @@ public class PrepareActivationStepModel extends BaseStepModel
     private String activationCode;
 
     /**
+     * Custom attributes.
+     */
+    private Map<String, Object> customAttributes;
+
+    /**
      * Additional activation OTP, supported by PowerAuth Server {@code 0.24+}.
      */
     private String additionalActivationOtp;
@@ -102,6 +107,7 @@ public class PrepareActivationStepModel extends BaseStepModel
         context.put("MASTER_PUBLIC_KEY", masterPublicKey);
         context.put("STATUS_FILENAME", statusFileName);
         context.put("ACTIVATION_CODE", activationCode);
+        context.put("CUSTOM_ATTRIBUTES", customAttributes);
         context.put("ADDITIONAL_ACTIVATION_OTP", additionalActivationOtp);
         context.put("PASSWORD", password);
         context.put("ACTIVATION_NAME", activationName);
@@ -113,11 +119,13 @@ public class PrepareActivationStepModel extends BaseStepModel
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void fromMap(Map<String, Object> context) {
         super.fromMap(context);
         setMasterPublicKey((PublicKey) context.get("MASTER_PUBLIC_KEY"));
         setStatusFileName((String) context.get("STATUS_FILENAME"));
         setActivationCode((String) context.get("ACTIVATION_CODE"));
+        setCustomAttributes((Map<String, Object>) context.get("CUSTOM_ATTRIBUTES"));
         setAdditionalActivationOtp((String) context.get("ADDITIONAL_ACTIVATION_OTP"));
         setPassword((String) context.get("PASSWORD"));
         setActivationName((String) context.get("ACTIVATION_NAME"));
