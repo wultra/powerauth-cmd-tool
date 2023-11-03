@@ -24,6 +24,7 @@ import lombok.EqualsAndHashCode;
 
 import java.security.PublicKey;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -91,9 +92,11 @@ public class PrepareActivationStepModel extends BaseStepModel
      */
     private PublicKey masterPublicKey;
 
-    @Override
-    public Map<String, Object> getCustomAttributes() {
-        return Collections.emptyMap();
+    /**
+     * Constructor
+     */
+    public PrepareActivationStepModel() {
+        customAttributes = new HashMap<>();
     }
 
     @Override
