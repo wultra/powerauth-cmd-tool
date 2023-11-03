@@ -172,7 +172,7 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
         final String operationData = parts[3];
         final String nonce = parts[parts.length - 2];
         final String signatureLine = parts[parts.length - 1];
-        final String otp = parts.length == 8 ? parts[parts.length - 3] : null;
+        final String totp = (parts.length > 7 && parts[parts.length - 3].matches("^[0-9]+$")) ? parts[parts.length - 3] : null;
 
         // 1 = KEY_SERVER_PRIVATE was used to sign data (personalized offline signature), otherwise return error
         final String signatureType = signatureLine.substring(0, 1);
@@ -199,7 +199,7 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
             }
 
             // Prepare data for PowerAuth offline signature calculation
-            final String dataForSignature = Stream.of(operationId, operationData, otp)
+            final String dataForSignature = Stream.of(operationId, operationData, totp)
                     .filter(StringUtils::hasText)
                     .collect(Collectors.joining("&"));
             final String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString(
