@@ -37,12 +37,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
 import java.io.Console;
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.ECPublicKey;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Step for computing offline PowerAuth signature.
@@ -167,8 +170,9 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
         }
         final String operationId = parts[0];
         final String operationData = parts[3];
-        final String nonce = parts[5];
+        final String nonce = parts[parts.length - 2];
         final String signatureLine = parts[parts.length - 1];
+        final String totp = (parts.length > 7 && parts[parts.length - 3].matches("^[0-9]+$")) ? parts[parts.length - 3] : null;
 
         // 1 = KEY_SERVER_PRIVATE was used to sign data (personalized offline signature), otherwise return error
         final String signatureType = signatureLine.substring(0, 1);
@@ -195,7 +199,9 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
             }
 
             // Prepare data for PowerAuth offline signature calculation
-            final String dataForSignature = operationId + "&" + operationData;
+            final String dataForSignature = Stream.of(operationId, operationData, totp)
+                    .filter(StringUtils::hasText)
+                    .collect(Collectors.joining("&"));
             final String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString(
                     "POST",
                     "/operation/authorize/offline",
