@@ -64,6 +64,11 @@ public enum PowerAuthStep {
     ENCRYPT("encrypt", "Encrypt Request", "encrypt"),
 
     /**
+     * Run benchmark for generating random bytes
+     */
+    GENERATE_BENCHMARK("generate-benchmark", "Benchmark for generating random bytes", "generate-benchmark"),
+
+    /**
      * Confirming an activation recovery
      */
     RECOVERY_CONFIRM("recovery-confirm", "Confirm Recovery Code", "confirm-recovery-code"),

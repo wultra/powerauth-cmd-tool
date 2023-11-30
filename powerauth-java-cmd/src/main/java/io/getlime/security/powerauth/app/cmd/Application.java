@@ -18,6 +18,7 @@ package io.getlime.security.powerauth.app.cmd;
 
 import io.getlime.security.powerauth.app.cmd.exception.ExecutionException;
 import io.getlime.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
+import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.lib.cmd.CmdLibApplication;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
@@ -56,6 +57,9 @@ import java.util.stream.Collectors;
  * @author Petr Dvorak, petr@wultra.com
  */
 public class Application {
+
+    private static final long GENERATE_RANDOM_BENCHMARK_ROUNDS = 10_000L;
+    private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
 
     /**
      * Application main
@@ -107,6 +111,7 @@ public class Application {
             options.addOption("P", "platform", true, "User device platform.");
             options.addOption("D", "device-info", true, "Information about user device.");
             options.addOption("q", "qr-code-data", true, "Data for offline signature encoded in QR code.");
+            options.addOption("gr", "generate-rounds", true, "Number of rounds for generate random bytes benchmark.");
             options.addOption("v", "version", true, "PowerAuth protocol version.");
 
             Option httpHeaderOption = Option.builder("H")
@@ -547,6 +552,24 @@ public class Application {
 
                     stepExecutionService.execute(powerAuthStep, version, model);
                 }
+
+                case GENERATE_BENCHMARK -> {
+                    final String roundsParam = cmd.getOptionValue("gr");
+                    final long rounds;
+                    if (roundsParam != null && roundsParam.matches("[0-9]+")) {
+                        rounds = Long.parseLong(roundsParam);
+                    } else {
+                        rounds = GENERATE_RANDOM_BENCHMARK_ROUNDS;
+                    }
+                    System.out.println("Generating " + rounds + " rounds of 32-byte random bytes started.");
+                    long timeStart = System.currentTimeMillis();
+                    for (int i = 0; i < rounds; i++) {
+                        KEY_GENERATOR.generateRandomBytes(32);
+                    }
+                    long totalTime = System.currentTimeMillis() - timeStart;
+                    System.out.println("Generating " + rounds + " rounds of 32-byte random bytes finished, total time: " + totalTime + "ms.");
+                }
+
                 default -> {
                     System.err.println("Not recognized PowerAuth step: " + powerAuthStep);
                     printPowerAuthStepsHelp(stepProvider);
