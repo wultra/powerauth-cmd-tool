@@ -93,7 +93,7 @@
         <!-- Wultra Dependencies -->
         <powerauth-restful-integration>1.6.0-SNAPSHOT</powerauth-restful-integration>
         <powerauth-crypto.version>1.6.0-SNAPSHOT</powerauth-crypto.version>
-        <wultra-core.version>1.8.0-SNAPSHOT</wultra-core.version>
+        <wultra-core.version>1.8.0</wultra-core.version>
     </properties>
 
     <dependencyManagement>
