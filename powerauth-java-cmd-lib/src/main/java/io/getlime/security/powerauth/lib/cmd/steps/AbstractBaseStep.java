@@ -17,7 +17,6 @@
 
 package io.getlime.security.powerauth.lib.cmd.steps;
 
-import com.google.common.collect.ImmutableList;
 import com.wultra.core.rest.client.base.RestClient;
 import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ClientEncryptor;
@@ -27,8 +26,6 @@ import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptedRespons
 import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorParameters;
 import io.getlime.security.powerauth.crypto.lib.encryptor.model.v3.ClientEncryptorSecrets;
-import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
-import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.DisabledStepLogger;
@@ -80,7 +77,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * Supported versions of PowerAuth by this step
      */
     @Getter
-    private final ImmutableList<PowerAuthVersion> supportedVersions;
+    private final List<PowerAuthVersion> supportedVersions;
 
     /**
      * Result status service
@@ -93,8 +90,6 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     protected final StepLoggerFactory stepLoggerFactory;
 
     private static final EncryptorFactory ENCRYPTOR_FACTORY = new EncryptorFactory();
-    private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
-    private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
 
     /**
      * Constructor
@@ -109,7 +104,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
                             ResultStatusService resultStatusService,
                             StepLoggerFactory stepLoggerFactory) {
         this.step = step;
-        this.supportedVersions = ImmutableList.copyOf(supportedVersions);
+        this.supportedVersions = List.copyOf(supportedVersions);
 
         this.resultStatusService = resultStatusService;
         this.stepLoggerFactory = stepLoggerFactory;
