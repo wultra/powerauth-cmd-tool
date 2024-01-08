@@ -91,9 +91,9 @@
         <logback.version>1.4.14</logback.version>
 
         <!-- Wultra Dependencies -->
-        <powerauth-restful-integration>1.6.0</powerauth-restful-integration>
-        <powerauth-crypto.version>1.6.0</powerauth-crypto.version>
-        <wultra-core.version>1.8.0</wultra-core.version>
+        <powerauth-restful-integration>1.7.0-SNAPSHOT</powerauth-restful-integration>
+        <powerauth-crypto.version>1.7.0-SNAPSHOT</powerauth-crypto.version>
+        <wultra-core.version>1.9.0-SNAPSHOT</wultra-core.version>
     </properties>
 
     <dependencyManagement>
