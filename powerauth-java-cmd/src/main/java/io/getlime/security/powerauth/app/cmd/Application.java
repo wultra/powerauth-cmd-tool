@@ -289,12 +289,7 @@ public class Application {
 
                     stepExecutionService.execute(powerAuthStep, version, model);
                 }
-                case ACTIVATION_CREATE, ACTIVATION_PREPARE -> {
-                    if (powerAuthStep.equals(PowerAuthStep.ACTIVATION_PREPARE)) {
-                        System.err.println("The 'prepare' step name is deprecated, use the 'create' step name instead");
-                        powerAuthStep = PowerAuthStep.ACTIVATION_CREATE;
-                    }
-
+                case ACTIVATION_CREATE -> {
                     String customAttributesFileName = cmd.getOptionValue("C");
                     Map<String, Object> customAttributes =
                             FileUtil.readDataFromFile(stepLogger, customAttributesFileName, HashMap.class, "custom-attributes", "custom attributes");
