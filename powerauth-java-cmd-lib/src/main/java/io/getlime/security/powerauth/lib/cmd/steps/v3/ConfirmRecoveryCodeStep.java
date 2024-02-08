@@ -123,7 +123,7 @@ public class ConfirmRecoveryCodeStep extends AbstractBaseStep<ConfirmRecoveryCod
     public void processResponse(StepContext<ConfirmRecoveryCodeStepModel, EciesEncryptedResponse> stepContext) throws Exception {
         final ConfirmRecoveryResponsePayload confirmResponsePayload = decryptResponse(stepContext, ConfirmRecoveryResponsePayload.class);
         Map<String, Object> objectMap = new HashMap<>();
-        objectMap.put("alreadyConfirmed", confirmResponsePayload.getAlreadyConfirmed());
+        objectMap.put("alreadyConfirmed", confirmResponsePayload.isAlreadyConfirmed());
 
         stepContext.getStepLogger().writeItem(
                 getStep().id() + "-confirmation-done",
