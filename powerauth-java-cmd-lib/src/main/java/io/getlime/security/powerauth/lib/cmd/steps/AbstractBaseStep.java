@@ -126,26 +126,6 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     protected abstract ParameterizedTypeReference<R> getResponseTypeReference();
 
     /**
-     * Executes this step with a given context
-     *
-     * @param context Provided context
-     * @return Result status object, null in case of failure.
-     * @throws Exception In case of any error.
-     */
-    @Override
-    public ResultStatusObject execute(Map<String, Object> context) throws Exception {
-        StepLogger stepLogger = stepLoggerFactory.createStepLogger();
-        stepLogger.start();
-        JSONObject jsonObject = execute(stepLogger, context);
-        stepLogger.close();
-        if (jsonObject == null) {
-            return null;
-        } else {
-            return ResultStatusObject.fromJsonObject(jsonObject);
-        }
-    }
-
-    /**
      * Execute this step with given logger and context objects.
      *
      * <p>Keeps backward compatibility with former approaches of step instantiation and execution</p>
@@ -155,7 +135,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @return Result status object (with current activation status), null in case of failure.
      * @throws Exception In case of a failure.
      */
-    public final JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public final ResultStatusObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         if (stepLogger == null) {
             stepLogger = DisabledStepLogger.INSTANCE;
         }
@@ -187,7 +167,12 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             return null;
         }
 
-        return stepContext.getModel().getResultStatusObject();
+        final JSONObject resultStatusObject = stepContext.getModel().getResultStatusObject();
+        if (resultStatusObject == null) {
+            return null;
+        } else {
+            return ResultStatusObject.fromJsonObject(resultStatusObject);
+        }
     }
 
     /**
@@ -231,7 +216,6 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @throws Exception when an error during encryption of the request data occurred
      */
     public void addEncryptedRequest(StepContext<M, R> stepContext, ClientEncryptor encryptor, byte[] data) throws Exception {
-        M model = stepContext.getModel();
         SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
         if (securityContext == null) {
             stepContext.setSecurityContext(
