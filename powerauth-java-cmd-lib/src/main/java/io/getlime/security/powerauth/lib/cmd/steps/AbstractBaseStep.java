@@ -286,7 +286,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      */
     public final void processResponse(StepContext<M, R> stepContext, byte[] responseBody, Class<R> responseObjectClass) throws Exception {
         final R responseBodyObject = HttpUtil.fromBytes(responseBody, responseObjectClass);
-        final ResponseEntity<R> responseEntity = ResponseEntity.of(Optional.ofNullable(responseBodyObject));
+        final ResponseEntity<R> responseEntity = ResponseEntity.ofNullable(responseBodyObject);
         addResponseContext(stepContext, responseEntity);
         processResponse(stepContext);
     }
