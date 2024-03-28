@@ -18,6 +18,7 @@ package io.getlime.security.powerauth.lib.cmd.steps;
 
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
+import io.getlime.security.powerauth.lib.cmd.logging.StepLogger;
 import io.getlime.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 
 import java.util.List;
@@ -34,11 +35,12 @@ public interface BaseStep {
     /**
      * Execute this step with given context objects.
      *
+     * @param stepLogger Step logger.
      * @param context Context objects.
      * @return Result status object (with current activation status), null in case of failure.
      * @throws Exception In case of a failure.
      */
-    ResultStatusObject execute(Map<String, Object> context) throws Exception;
+    ResultStatusObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception;
 
     /**
      * @return Corresponding PowerAuth step

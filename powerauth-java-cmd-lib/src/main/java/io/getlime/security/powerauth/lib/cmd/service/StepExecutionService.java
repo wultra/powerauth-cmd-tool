@@ -80,9 +80,9 @@ public class StepExecutionService {
             throw new PowerAuthCmdException();
         }
 
-        BaseStep step = stepProvider.getStep(stepId, version);
+        final BaseStep step = stepProvider.getStep(stepId, version);
 
-        ResultStatusObject result = step.execute(model.toMap());
+        final ResultStatusObject result = step.execute(stepLogger, model.toMap());
         if (result == null) {
             throw new PowerAuthCmdException();
         }

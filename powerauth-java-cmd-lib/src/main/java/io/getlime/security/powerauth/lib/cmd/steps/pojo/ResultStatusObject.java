@@ -188,7 +188,10 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public SecretKey getSignatureBiometryKeyObject() {
-        String signatureBiometryKey = (String) jsonObject.get("signatureBiometryKey");
+        final String signatureBiometryKey = (String) jsonObject.get("signatureBiometryKey");
+        if (signatureBiometryKey == null) {
+            return null;
+        }
         return KEY_CONVERTOR.convertBytesToSharedSecretKey(Base64.getDecoder().decode(signatureBiometryKey));
     }
 
@@ -290,7 +293,10 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public SecretKey getSignaturePossessionKeyObject() {
-        String signaturePossessionKey = (String) jsonObject.get("signaturePossessionKey");
+        final String signaturePossessionKey = (String) jsonObject.get("signaturePossessionKey");
+        if (signaturePossessionKey == null) {
+            return null;
+        }
         return KEY_CONVERTOR.convertBytesToSharedSecretKey(Base64.getDecoder().decode(signaturePossessionKey));
     }
 
@@ -324,7 +330,10 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public SecretKey getTransportMasterKeyObject() {
-        String transportMasterKey = (String) jsonObject.get("transportMasterKey");
+        final String transportMasterKey = (String) jsonObject.get("transportMasterKey");
+        if (transportMasterKey == null) {
+            return null;
+        }
         return KEY_CONVERTOR.convertBytesToSharedSecretKey(Base64.getDecoder().decode(transportMasterKey));
     }
 

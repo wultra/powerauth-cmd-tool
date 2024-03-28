@@ -15,7 +15,6 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
-import com.google.common.collect.ImmutableMap;
 import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
@@ -119,7 +118,7 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, Ec
                 "Upgrade start step successfully completed",
                 "Upgrade start step was successfully completed",
                 "OK",
-                ImmutableMap.of("ctrData", responsePayload.getCtrData())
+                Map.of("ctrData", responsePayload.getCtrData())
         );
     }
 

@@ -289,15 +289,8 @@ public class Application {
 
                     stepExecutionService.execute(powerAuthStep, version, model);
                 }
-                case ACTIVATION_CREATE, ACTIVATION_PREPARE -> {
-                    if (powerAuthStep.equals(PowerAuthStep.ACTIVATION_PREPARE)) {
-                        System.err.println("The 'prepare' step name is deprecated, use the 'create' step name instead");
-                        powerAuthStep = PowerAuthStep.ACTIVATION_CREATE;
-                    }
-
-                    String customAttributesFileName = cmd.getOptionValue("C");
-                    Map<String, Object> customAttributes =
-                            FileUtil.readDataFromFile(stepLogger, customAttributesFileName, HashMap.class, "custom-attributes", "custom attributes");
+                case ACTIVATION_CREATE -> {
+                    final Map<String, Object> customAttributes = getCustomAttributes(cmd, stepLogger);
 
                     PrepareActivationStepModel model = new PrepareActivationStepModel();
                     model.setActivationCode(cmd.getOptionValue("a"));
@@ -387,9 +380,7 @@ public class Application {
                     Map<String, String> identityAttributes =
                             FileUtil.readDataFromFile(stepLogger, identityAttributesFileName, HashMap.class, "identity-attributes", "identity attributes");
 
-                    String customAttributesFileName = cmd.getOptionValue("C");
-                    Map<String, Object> customAttributes =
-                            FileUtil.readDataFromFile(stepLogger, customAttributesFileName, HashMap.class, "custom-attributes", "custom attributes");
+                    final Map<String, Object> customAttributes = getCustomAttributes(cmd, stepLogger);
 
                     CreateActivationStepModel model = new CreateActivationStepModel();
                     model.setActivationName(ConfigurationUtil.getApplicationName(clientConfigObject));
@@ -499,9 +490,7 @@ public class Application {
                     Map<String, String> identityAttributes =
                             FileUtil.readDataFromFile(stepLogger, identityAttributesFileName, HashMap.class, "identity-attributes", "identity attributes");
 
-                    String customAttributesFileName = cmd.getOptionValue("C");
-                    Map<String, Object> customAttributes =
-                            FileUtil.readDataFromFile(stepLogger, customAttributesFileName, HashMap.class, "custom-attributes", "custom attributes");
+                    final Map<String, Object> customAttributes = getCustomAttributes(cmd, stepLogger);
 
                     ActivationRecoveryStepModel model = new ActivationRecoveryStepModel();
                     model.setActivationName(ConfigurationUtil.getApplicationName(clientConfigObject));
@@ -567,6 +556,18 @@ public class Application {
             stepLogger.close();
         }
 
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> getCustomAttributes(CommandLine cmd, StepLogger stepLogger) throws Exception {
+        final String customAttributesFileName = cmd.getOptionValue("C");
+        final Map<String, Object> customAttributes;
+        if (customAttributesFileName != null) {
+            customAttributes = FileUtil.readDataFromFile(stepLogger, customAttributesFileName, HashMap.class, "custom-attributes", "custom attributes");
+        } else {
+            customAttributes = Collections.emptyMap();
+        }
+        return customAttributes;
     }
 
     private static void printPowerAuthStepsHelp(StepProvider stepProvider) {

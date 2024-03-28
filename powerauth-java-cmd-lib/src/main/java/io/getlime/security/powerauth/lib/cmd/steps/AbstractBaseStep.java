@@ -17,7 +17,6 @@
 
 package io.getlime.security.powerauth.lib.cmd.steps;
 
-import com.google.common.collect.ImmutableList;
 import com.wultra.core.rest.client.base.RestClient;
 import com.wultra.core.rest.client.base.RestClientException;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ClientEncryptor;
@@ -27,8 +26,6 @@ import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptedRespons
 import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorParameters;
 import io.getlime.security.powerauth.crypto.lib.encryptor.model.v3.ClientEncryptorSecrets;
-import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
-import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import io.getlime.security.powerauth.lib.cmd.logging.DisabledStepLogger;
@@ -80,7 +77,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * Supported versions of PowerAuth by this step
      */
     @Getter
-    private final ImmutableList<PowerAuthVersion> supportedVersions;
+    private final List<PowerAuthVersion> supportedVersions;
 
     /**
      * Result status service
@@ -93,8 +90,6 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     protected final StepLoggerFactory stepLoggerFactory;
 
     private static final EncryptorFactory ENCRYPTOR_FACTORY = new EncryptorFactory();
-    private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
-    private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
 
     /**
      * Constructor
@@ -109,7 +104,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
                             ResultStatusService resultStatusService,
                             StepLoggerFactory stepLoggerFactory) {
         this.step = step;
-        this.supportedVersions = ImmutableList.copyOf(supportedVersions);
+        this.supportedVersions = List.copyOf(supportedVersions);
 
         this.resultStatusService = resultStatusService;
         this.stepLoggerFactory = stepLoggerFactory;
@@ -131,26 +126,6 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     protected abstract ParameterizedTypeReference<R> getResponseTypeReference();
 
     /**
-     * Executes this step with a given context
-     *
-     * @param context Provided context
-     * @return Result status object, null in case of failure.
-     * @throws Exception In case of any error.
-     */
-    @Override
-    public ResultStatusObject execute(Map<String, Object> context) throws Exception {
-        StepLogger stepLogger = stepLoggerFactory.createStepLogger();
-        stepLogger.start();
-        JSONObject jsonObject = execute(stepLogger, context);
-        stepLogger.close();
-        if (jsonObject == null) {
-            return null;
-        } else {
-            return ResultStatusObject.fromJsonObject(jsonObject);
-        }
-    }
-
-    /**
      * Execute this step with given logger and context objects.
      *
      * <p>Keeps backward compatibility with former approaches of step instantiation and execution</p>
@@ -160,7 +135,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @return Result status object (with current activation status), null in case of failure.
      * @throws Exception In case of a failure.
      */
-    public final JSONObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public final ResultStatusObject execute(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         if (stepLogger == null) {
             stepLogger = DisabledStepLogger.INSTANCE;
         }
@@ -192,7 +167,12 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             return null;
         }
 
-        return stepContext.getModel().getResultStatusObject();
+        final JSONObject resultStatusObject = stepContext.getModel().getResultStatusObject();
+        if (resultStatusObject == null) {
+            return null;
+        } else {
+            return ResultStatusObject.fromJsonObject(resultStatusObject);
+        }
     }
 
     /**
@@ -236,7 +216,6 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @throws Exception when an error during encryption of the request data occurred
      */
     public void addEncryptedRequest(StepContext<M, R> stepContext, ClientEncryptor encryptor, byte[] data) throws Exception {
-        M model = stepContext.getModel();
         SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
         if (securityContext == null) {
             stepContext.setSecurityContext(
@@ -306,8 +285,8 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @throws Exception when an error during response processing occurred
      */
     public final void processResponse(StepContext<M, R> stepContext, byte[] responseBody, Class<R> responseObjectClass) throws Exception {
-        R responseBodyObject = HttpUtil.fromBytes(responseBody, responseObjectClass);
-        ResponseEntity<R> responseEntity = ResponseEntity.of(Optional.of(responseBodyObject));
+        final R responseBodyObject = HttpUtil.fromBytes(responseBody, responseObjectClass);
+        final ResponseEntity<R> responseEntity = ResponseEntity.ofNullable(responseBodyObject);
         addResponseContext(stepContext, responseEntity);
         processResponse(stepContext);
     }

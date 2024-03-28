@@ -16,9 +16,8 @@
  */
 package io.getlime.security.powerauth.lib.cmd.consts;
 
-import com.google.common.collect.ImmutableList;
-
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * PowerAuth protocol version enumeration
@@ -45,7 +44,7 @@ public enum PowerAuthVersion {
     /**
      * All supported versions
      */
-    public static final ImmutableList<PowerAuthVersion> ALL_VERSIONS = ImmutableList.copyOf(values());
+    public static final List<PowerAuthVersion> ALL_VERSIONS = List.of(values());
 
     /**
      * Default version
@@ -55,7 +54,7 @@ public enum PowerAuthVersion {
     /**
      * All versions belonging to major version 3
      */
-    public static final ImmutableList<PowerAuthVersion> VERSION_3 = ImmutableList.of(V3_0, V3_1, V3_2);
+    public static final List<PowerAuthVersion> VERSION_3 = List.of(V3_0, V3_1, V3_2);
 
     /**
      * Major version value

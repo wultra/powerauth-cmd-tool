@@ -136,7 +136,15 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Ecie
 
         ResultStatusObject resultStatusObject = stepContext.getModel().getResultStatus();
 
-        SecretKey transportMasterKey = resultStatusObject.getTransportMasterKeyObject();
+        final SecretKey transportMasterKey = resultStatusObject.getTransportMasterKeyObject();
+        if (transportMasterKey == null) {
+            stepContext.getStepLogger().writeError(
+                    getStep().id() + "-vault-unlock-failed",
+                    "Vault Unlock Failed",
+                    "transportMasterKey is null");
+            return;
+        }
+
         byte[] encryptedDevicePrivateKeyBytes = resultStatusObject.getEncryptedDevicePrivateKeyBytes();
 
         byte[] encryptedVaultEncryptionKey = Base64.getDecoder().decode(responsePayload.getEncryptedVaultEncryptionKey());
