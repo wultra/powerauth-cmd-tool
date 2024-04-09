@@ -54,7 +54,7 @@ public class FileUtil {
                     "Empty " + fileDescription + " file",
                     "File not provided, assuming empty data.",
                     "WARNING",
-                    filePath
+                    null
             );
             return new byte[0];
         }

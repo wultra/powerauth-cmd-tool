@@ -38,6 +38,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -144,7 +145,16 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, ObjectRe
         final Map<String, Object> customObject = responseObject.getCustomObject();
         byte[] challenge = (byte[]) stepContext.getAttributes().get(ATTRIBUTE_CHALLENGE);
 
-        final ActivationStatusBlobInfo statusBlobRaw = ACTIVATION.getStatusFromEncryptedBlob(cStatusBlob, challenge, cStatusBlobNonce, resultStatusObject.getTransportMasterKeyObject());
+        final SecretKey transportMasterKey = resultStatusObject.getTransportMasterKeyObject();
+        if (transportMasterKey == null) {
+            stepContext.getStepLogger().writeError(
+                    getStep().id() + "-failed",
+                    "Get Status Failed",
+                    "transportMasterKey is null");
+            return;
+        }
+
+        final ActivationStatusBlobInfo statusBlobRaw = ACTIVATION.getStatusFromEncryptedBlob(cStatusBlob, challenge, cStatusBlobNonce, transportMasterKey);
         final ExtendedActivationStatusBlobInfo statusBlob = ExtendedActivationStatusBlobInfo.copy(statusBlobRaw);
 
         final Map<String, Object> objectMap = new HashMap<>();

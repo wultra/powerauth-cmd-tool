@@ -16,7 +16,6 @@
  */
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
-import com.google.common.collect.ImmutableMap;
 import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
@@ -119,11 +118,8 @@ public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, Ecie
                 "Token successfully obtained",
                 "Token was successfully generated and decrypted",
                 "OK",
-                ImmutableMap.<String, Object>builder()
-                        .put("tokenId", tokenResponsePayload.getTokenId())
-                        .put("tokenSecret", tokenResponsePayload.getTokenSecret())
-                        .build()
-
+                Map.of("tokenId", tokenResponsePayload.getTokenId(),
+                        "tokenSecret",tokenResponsePayload.getTokenSecret())
         );
     }
 
