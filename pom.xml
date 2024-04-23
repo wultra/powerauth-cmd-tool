@@ -83,7 +83,6 @@
         <maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
         <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
         <spring-boot.version>3.2.5</spring-boot.version>
-        <bc.version>1.78.1</bc.version>
         <commons-cli.version>1.7.0</commons-cli.version>
         <commons-io.version>2.16.1</commons-io.version>
         <json-simple.version>1.1.1</json-simple.version>
@@ -108,12 +107,6 @@
                 <groupId>io.getlime.security</groupId>
                 <artifactId>powerauth-java-cmd-lib</artifactId>
                 <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.bouncycastle</groupId>
-                <artifactId>bcprov-jdk18on</artifactId>
-                <version>${bc.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
