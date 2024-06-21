@@ -82,7 +82,7 @@
         <maven-javadoc-plugin.version>3.7.0</maven-javadoc-plugin.version>
         <maven-enforcer-plugin.version>3.5.0</maven-enforcer-plugin.version>
         <maven-surefire-plugin.version>3.3.0</maven-surefire-plugin.version>
-        <spring-boot.version>3.3.0</spring-boot.version>
+        <spring-boot.version>3.3.1</spring-boot.version>
         <commons-cli.version>1.8.0</commons-cli.version>
         <commons-io.version>2.16.1</commons-io.version>
         <json-simple.version>1.1.1</json-simple.version>
