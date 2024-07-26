@@ -30,7 +30,7 @@
     <parent>
         <groupId>io.getlime.security</groupId>
         <artifactId>powerauth-cmd-parent</artifactId>
-        <version>1.7.0</version>
+        <version>1.8.0</version>
     </parent>
 
     <dependencies>
@@ -48,10 +48,6 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk18on</artifactId>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>

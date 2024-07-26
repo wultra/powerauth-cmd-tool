@@ -10,7 +10,7 @@
     <parent>
         <artifactId>powerauth-cmd-parent</artifactId>
         <groupId>io.getlime.security</groupId>
-        <version>1.7.0</version>
+        <version>1.8.0</version>
     </parent>
 
     <dependencies>
@@ -53,12 +53,6 @@
             <groupId>io.getlime.security</groupId>
             <artifactId>powerauth-java-http</artifactId>
             <version>${powerauth-crypto.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk18on</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>

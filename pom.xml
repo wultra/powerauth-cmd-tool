@@ -27,7 +27,7 @@
 
     <groupId>io.getlime.security</groupId>
     <artifactId>powerauth-cmd-parent</artifactId>
-    <version>1.7.0</version>
+    <version>1.8.0</version>
     <packaging>pom</packaging>
 
     <inceptionYear>2016</inceptionYear>
@@ -78,20 +78,19 @@
 
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
-        <maven-deploy-plugin.version>3.1.1</maven-deploy-plugin.version>
-        <maven-javadoc-plugin.version>3.6.3</maven-javadoc-plugin.version>
-        <maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
-        <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
-        <spring-boot.version>3.2.4</spring-boot.version>
-        <bc.version>1.77</bc.version>
-        <commons-cli.version>1.6.0</commons-cli.version>
+        <maven-deploy-plugin.version>3.1.2</maven-deploy-plugin.version>
+        <maven-javadoc-plugin.version>3.8.0</maven-javadoc-plugin.version>
+        <maven-enforcer-plugin.version>3.5.0</maven-enforcer-plugin.version>
+        <maven-surefire-plugin.version>3.3.1</maven-surefire-plugin.version>
+        <spring-boot.version>3.3.2</spring-boot.version>
+        <commons-cli.version>1.8.0</commons-cli.version>
         <commons-io.version>2.16.1</commons-io.version>
         <json-simple.version>1.1.1</json-simple.version>
 
         <!-- Wultra Dependencies -->
-        <powerauth-restful-integration>1.7.0</powerauth-restful-integration>
-        <powerauth-crypto.version>1.7.0</powerauth-crypto.version>
-        <wultra-core.version>1.9.0</wultra-core.version>
+        <powerauth-restful-integration>1.8.0</powerauth-restful-integration>
+        <powerauth-crypto.version>1.8.0</powerauth-crypto.version>
+        <wultra-core.version>1.10.0</wultra-core.version>
     </properties>
 
     <dependencyManagement>
@@ -108,12 +107,6 @@
                 <groupId>io.getlime.security</groupId>
                 <artifactId>powerauth-java-cmd-lib</artifactId>
                 <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.bouncycastle</groupId>
-                <artifactId>bcprov-jdk18on</artifactId>
-                <version>${bc.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
