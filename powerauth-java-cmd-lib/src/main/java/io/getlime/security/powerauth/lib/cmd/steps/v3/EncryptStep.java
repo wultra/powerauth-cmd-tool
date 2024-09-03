@@ -124,7 +124,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
             case "application" -> {
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/application
                 encryptorId = EncryptorId.APPLICATION_SCOPE_GENERIC;
-                final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null);
+                final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, null);
                 final ClientEncryptorSecrets encryptorSecrets = new ClientEncryptorSecrets(model.getMasterPublicKey(), model.getApplicationSecret());
                 encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(encryptorId, encryptorParameters, encryptorSecrets);
                 header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), model.getVersion().value());
@@ -134,7 +134,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
                 encryptorId = EncryptorId.ACTIVATION_SCOPE_GENERIC;
                 encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(
                         encryptorId,
-                        new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), resultStatusObject.getActivationId()),
+                        new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), resultStatusObject.getActivationId(), null),
                         new ClientEncryptorSecrets(resultStatusObject.getServerPublicKeyObject(), model.getApplicationSecret(), Base64.decode(resultStatusObject.getTransportMasterKey()))
                 );
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/activation
