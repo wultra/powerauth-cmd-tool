@@ -256,12 +256,12 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         // Get activation key and secret
         ClientEncryptor clientEncryptorL1 = ENCRYPTOR_FACTORY.getClientEncryptor(
                 EncryptorId.APPLICATION_SCOPE_GENERIC,
-                new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null),
+                new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, null),
                 new ClientEncryptorSecrets(model.getMasterPublicKey(), model.getApplicationSecret())
         );
         ClientEncryptor clientEncryptorL2 = ENCRYPTOR_FACTORY.getClientEncryptor(
                 EncryptorId.ACTIVATION_LAYER_2,
-                new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null),
+                new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, null),
                 new ClientEncryptorSecrets(model.getMasterPublicKey(), model.getApplicationSecret())
         );
 

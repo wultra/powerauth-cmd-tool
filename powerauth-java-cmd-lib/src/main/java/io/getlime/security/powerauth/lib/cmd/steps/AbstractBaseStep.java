@@ -194,7 +194,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
         final ClientEncryptor encryptor;
         if (securityContext == null) {
             final byte[] transportMasterKeyBytes = Base64.getDecoder().decode(resultStatusObject.getTransportMasterKey());
-            final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), applicationKey, resultStatusObject.getActivationId());
+            final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), applicationKey, resultStatusObject.getActivationId(), null);
             final ClientEncryptorSecrets encryptorSecrets = new ClientEncryptorSecrets(resultStatusObject.getServerPublicKeyObject(), applicationSecret, transportMasterKeyBytes);
             encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(encryptorId, encryptorParameters, encryptorSecrets);
             stepContext.setSecurityContext(SimpleSecurityContext.builder()
