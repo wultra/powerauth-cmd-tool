@@ -59,6 +59,9 @@ import java.util.*;
  */
 public class TemporaryKeyUtil {
 
+    private TemporaryKeyUtil() {
+    }
+
     public static final String TEMPORARY_KEY_ID = "temporaryKeyId";
     public static final String TEMPORARY_PUBLIC_KEY = "temporaryPublicKey";
 
