@@ -22,10 +22,7 @@ import io.getlime.security.powerauth.crypto.client.keyfactory.PowerAuthClientKey
 import io.getlime.security.powerauth.crypto.client.vault.PowerAuthClientVault;
 import io.getlime.security.powerauth.crypto.lib.encryptor.ClientEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.EncryptorFactory;
-import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptedRequest;
-import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptedResponse;
-import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
-import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorParameters;
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.*;
 import io.getlime.security.powerauth.crypto.lib.encryptor.model.v3.ClientEncryptorSecrets;
 import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
 import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
@@ -56,6 +53,9 @@ import java.io.Console;
 import java.security.KeyPair;
 import java.security.PublicKey;
 import java.util.*;
+
+import static io.getlime.security.powerauth.lib.cmd.util.TemporaryKeyUtil.TEMPORARY_KEY_ID;
+import static io.getlime.security.powerauth.lib.cmd.util.TemporaryKeyUtil.TEMPORARY_PUBLIC_KEY;
 
 /**
  * Abstract step with common parts used in activations steps
@@ -135,7 +135,6 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
     public ResultStatusObject processResponse(EciesEncryptedResponse encryptedResponseL1,
                                               StepContext<M, EciesEncryptedResponse> context) throws Exception {
         M model = context.getModel();
-        final PowerAuthVersion version = model.getVersion();
         final ActivationSecurityContext securityContext = (ActivationSecurityContext) context.getSecurityContext();
 
         // Decrypt activation layer 1 response
@@ -252,17 +251,22 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
      */
     protected void addEncryptedRequest(StepContext<M, EciesEncryptedResponse> stepContext) throws Exception {
         M model = stepContext.getModel();
+        fetchTemporaryKey(stepContext, EncryptorScope.APPLICATION_SCOPE);
 
+        final String temporaryPublicKey = (String) stepContext.getAttributes().get(TEMPORARY_PUBLIC_KEY);
+        final PublicKey encryptionPublicKey = temporaryPublicKey == null ?
+                model.getMasterPublicKey() :
+                KEY_CONVERTOR.convertBytesToPublicKey(Base64.getDecoder().decode(temporaryPublicKey));
         // Get activation key and secret
         ClientEncryptor clientEncryptorL1 = ENCRYPTOR_FACTORY.getClientEncryptor(
                 EncryptorId.APPLICATION_SCOPE_GENERIC,
-                new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, null),
-                new ClientEncryptorSecrets(model.getMasterPublicKey(), model.getApplicationSecret())
+                new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID)),
+                new ClientEncryptorSecrets(encryptionPublicKey, model.getApplicationSecret())
         );
         ClientEncryptor clientEncryptorL2 = ENCRYPTOR_FACTORY.getClientEncryptor(
                 EncryptorId.ACTIVATION_LAYER_2,
-                new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, null),
-                new ClientEncryptorSecrets(model.getMasterPublicKey(), model.getApplicationSecret())
+                new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID)),
+                new ClientEncryptorSecrets(encryptionPublicKey, model.getApplicationSecret())
         );
 
         KeyPair deviceKeyPair = ACTIVATION.generateDeviceKeyPair();

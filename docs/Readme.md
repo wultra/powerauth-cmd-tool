@@ -78,7 +78,8 @@ This file is automatically created by the utility after you call the `create` me
 ## Specifying PowerAuth Protocol Version
 
 Command-line tool supports following PowerAuth protocol versions:
-- Version `3.2` (default)
+- Version `3.3` (default)
+- Version `3.2`
 - Version `3.1`
 - Version `3.0`
 

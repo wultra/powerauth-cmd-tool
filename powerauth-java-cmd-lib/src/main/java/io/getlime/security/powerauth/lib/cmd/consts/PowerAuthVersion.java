@@ -37,9 +37,14 @@ public enum PowerAuthVersion {
     V3_1(3, "3.1"),
 
     /**
-     * Version 3.1
+     * Version 3.2
      */
-    V3_2(3, "3.2");
+    V3_2(3, "3.2"),
+
+    /**
+     * Version 3.3
+     */
+    V3_3(3, "3.3");
 
     /**
      * All supported versions
@@ -49,12 +54,12 @@ public enum PowerAuthVersion {
     /**
      * Default version
      */
-    public static final PowerAuthVersion DEFAULT = V3_2;
+    public static final PowerAuthVersion DEFAULT = V3_3;
 
     /**
      * All versions belonging to major version 3
      */
-    public static final List<PowerAuthVersion> VERSION_3 = List.of(V3_0, V3_1, V3_2);
+    public static final List<PowerAuthVersion> VERSION_3 = List.of(V3_0, V3_1, V3_2, V3_3);
 
     /**
      * Major version value
@@ -62,7 +67,7 @@ public enum PowerAuthVersion {
     private final int majorVersion;
 
     /**
-     * Version string value ("3.0", "3.1", "3.2", ...)
+     * Version string value ("3.0", "3.1", "3.2", "3.3", ...)
      */
     private final String value;
 
@@ -94,7 +99,7 @@ public enum PowerAuthVersion {
      * @return Flag whether decryption uses different non-zero initialization vector.
      */
     public boolean useDifferentIvForResponse() {
-        return majorVersion >= 3 && V3_2.equals(this);
+        return majorVersion >= 3 && !V3_0.equals(this) && !V3_1.equals(this);
     }
 
     /**
@@ -105,6 +110,16 @@ public enum PowerAuthVersion {
      */
     public boolean useTimestamp() {
         return majorVersion >= 3 && !V3_0.equals(this) && !V3_1.equals(this);
+    }
+
+    /**
+     * Provides flag whether encryption uses temporary keys.
+     * <p>This feature is supported only for protocol V3.3.+</p>
+     *
+     * @return Flag whether encryption uses temporary keys
+     */
+    public boolean useTemporaryKeys() {
+        return majorVersion >= 3 && !V3_0.equals(this) && !V3_1.equals(this) && !V3_2.equals(this);
     }
 
     /**

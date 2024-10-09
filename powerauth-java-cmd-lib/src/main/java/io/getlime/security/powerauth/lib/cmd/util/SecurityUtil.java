@@ -68,6 +68,7 @@ public class SecurityUtil {
         request.setMac(encryptedRequest.getMac());
         request.setNonce(encryptedRequest.getNonce());
         request.setTimestamp(encryptedRequest.getTimestamp());
+        request.setTemporaryKeyId(encryptedRequest.getTemporaryKeyId());
         return request;
     }
 
