@@ -142,8 +142,8 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
 
         // Prepare the encryption header
         final EncryptorId encryptorId;
-        ClientEncryptor encryptor = null;
-        PowerAuthEncryptionHttpHeader header = null;
+        final ClientEncryptor encryptor;
+        final PowerAuthEncryptionHttpHeader header;
         switch (scope) {
             case APPLICATION_SCOPE -> {
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/application
@@ -164,6 +164,10 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/activation
                 final String activationId = model.getResultStatus().getActivationId();
                 header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), activationId, model.getVersion().value());
+            }
+            default -> {
+                encryptor = null;
+                header = null;
             }
         }
 
