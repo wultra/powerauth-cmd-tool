@@ -88,7 +88,7 @@
         <json-simple.version>1.1.1</json-simple.version>
 
         <!-- Wultra Dependencies -->
-        <powerauth-restful-integration>1.9.0-SNAPSHOT</powerauth-restful-integration>
+        <powerauth-restful-integration>1.9.0</powerauth-restful-integration>
         <powerauth-crypto.version>1.9.0</powerauth-crypto.version>
         <wultra-core.version>1.11.0</wultra-core.version>
     </properties>
