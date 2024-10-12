@@ -62,7 +62,13 @@ public class TemporaryKeyUtil {
     private TemporaryKeyUtil() {
     }
 
+    /**
+     * Temporary key ID constant.
+     */
     public static final String TEMPORARY_KEY_ID = "temporaryKeyId";
+    /**
+     * Temporary public key constant.
+     */
     public static final String TEMPORARY_PUBLIC_KEY = "temporaryPublicKey";
 
     private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();

@@ -253,6 +253,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     /**
      * Fetch temporary key for current request, if applicable.
      * @param stepContext Step context.
+     * @param scope ECIES scope.
      * @throws Exception In case request fails.
      */
     public void fetchTemporaryKey(StepContext<M, R> stepContext, EncryptorScope scope) throws Exception {
