@@ -195,6 +195,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @param applicationSecret Application secret
      * @param encryptorId       Encryptor identifier
      * @param data              Request data for the encryption
+     * @param scope             Encryptor scope
      * @throws Exception when an error during encryption of the request data occurred
      */
     public void addEncryptedRequest(StepContext<M, R> stepContext, String applicationKey, String applicationSecret, EncryptorId encryptorId, byte[] data, EncryptorScope scope) throws Exception {
