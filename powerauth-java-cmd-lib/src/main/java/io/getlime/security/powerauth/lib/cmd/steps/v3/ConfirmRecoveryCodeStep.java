@@ -17,6 +17,7 @@
 package io.getlime.security.powerauth.lib.cmd.steps.v3;
 
 import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthStep;
@@ -48,6 +49,7 @@ import java.util.Map;
  *      <li>3.0</li>
  *      <li>3.1</li>
  *      <li>3.2</li>
+ *      <li>3.3</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
@@ -110,7 +112,7 @@ public class ConfirmRecoveryCodeStep extends AbstractBaseStep<ConfirmRecoveryCod
         // Encrypt the request
         final byte[] requestBytesPayload = RestClientConfiguration.defaultMapper().writeValueAsBytes(confirmRequestPayload);
 
-        addEncryptedRequest(stepContext, model.getApplicationKey(), model.getApplicationSecret(), EncryptorId.CONFIRM_RECOVERY_CODE, requestBytesPayload);
+        addEncryptedRequest(stepContext, model.getApplicationKey(), model.getApplicationSecret(), EncryptorId.CONFIRM_RECOVERY_CODE, requestBytesPayload, EncryptorScope.ACTIVATION_SCOPE);
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 

@@ -73,6 +73,7 @@ public interface DataWriter {
      * streams. For example, if count value is lesser than 128, then just
      * one byte is serialized.
      * @param count Count value to write.
+     * @return whether write succeeded
      */
     boolean writeCount(int count);
 
