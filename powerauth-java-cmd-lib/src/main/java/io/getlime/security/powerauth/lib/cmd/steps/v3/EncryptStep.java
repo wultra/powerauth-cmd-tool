@@ -136,9 +136,6 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
         }
         fetchTemporaryKey(stepContext, scope);
         final String temporaryPublicKey = (String) stepContext.getAttributes().get(TEMPORARY_PUBLIC_KEY);
-        final PublicKey encryptionPublicKey = temporaryPublicKey == null ?
-                model.getMasterPublicKey() :
-                KEY_CONVERTOR.convertBytesToPublicKey(java.util.Base64.getDecoder().decode(temporaryPublicKey));
 
         // Prepare the encryption header
         final EncryptorId encryptorId;
@@ -146,6 +143,9 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
         final PowerAuthEncryptionHttpHeader header;
         switch (scope) {
             case APPLICATION_SCOPE -> {
+                final PublicKey encryptionPublicKey = temporaryPublicKey == null ?
+                        model.getMasterPublicKey() :
+                        KEY_CONVERTOR.convertBytesToPublicKey(java.util.Base64.getDecoder().decode(temporaryPublicKey));
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/application
                 encryptorId = EncryptorId.APPLICATION_SCOPE_GENERIC;
                 final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, (String) context.get(TEMPORARY_KEY_ID));
@@ -154,7 +154,10 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
                 header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), model.getVersion().value());
             }
             case ACTIVATION_SCOPE -> {
-                ResultStatusObject resultStatusObject = model.getResultStatus();
+                final ResultStatusObject resultStatusObject = model.getResultStatus();
+                final PublicKey encryptionPublicKey = temporaryPublicKey == null ?
+                        resultStatusObject.getServerPublicKeyObject() :
+                        KEY_CONVERTOR.convertBytesToPublicKey(java.util.Base64.getDecoder().decode(temporaryPublicKey));
                 encryptorId = EncryptorId.ACTIVATION_SCOPE_GENERIC;
                 encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(
                         encryptorId,
