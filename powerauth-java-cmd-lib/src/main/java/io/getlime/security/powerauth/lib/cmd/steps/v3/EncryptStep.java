@@ -135,6 +135,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
             return null;
         }
         fetchTemporaryKey(stepContext, scope);
+        final String temporaryKeyId =  (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID);
         final String temporaryPublicKey = (String) stepContext.getAttributes().get(TEMPORARY_PUBLIC_KEY);
 
         // Prepare the encryption header
@@ -148,7 +149,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
                         KEY_CONVERTOR.convertBytesToPublicKey(java.util.Base64.getDecoder().decode(temporaryPublicKey));
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/application
                 encryptorId = EncryptorId.APPLICATION_SCOPE_GENERIC;
-                final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, (String) context.get(TEMPORARY_KEY_ID));
+                final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, temporaryKeyId);
                 final ClientEncryptorSecrets encryptorSecrets = new ClientEncryptorSecrets(encryptionPublicKey, model.getApplicationSecret());
                 encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(encryptorId, encryptorParameters, encryptorSecrets);
                 header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), model.getVersion().value());
@@ -161,7 +162,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
                 encryptorId = EncryptorId.ACTIVATION_SCOPE_GENERIC;
                 encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(
                         encryptorId,
-                        new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), resultStatusObject.getActivationId(), (String) context.get(TEMPORARY_KEY_ID)),
+                        new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), resultStatusObject.getActivationId(), temporaryKeyId),
                         new ClientEncryptorSecrets(encryptionPublicKey, model.getApplicationSecret(), Base64.decode(resultStatusObject.getTransportMasterKey()))
                 );
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/activation

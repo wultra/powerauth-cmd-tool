@@ -39,9 +39,14 @@ public class BaseStepModel implements BaseStepData {
     private Map<String, String> headers;
 
     /**
-     * Base URI of PowerAuth Standard RESTful API
+     * URL used for the request.
      */
     private String uriString;
+
+    /**
+     * Base URI of PowerAuth Standard RESTful API.
+     */
+    private String baseUriString;
 
     /**
      * Activation status object
@@ -109,6 +114,7 @@ public class BaseStepModel implements BaseStepData {
         Map<String, Object> context = new HashMap<>();
         context.put("HTTP_HEADERS", headers);
         context.put("URI_STRING", uriString);
+        context.put("BASE_URI_STRING", baseUriString);
         context.put("STATUS_OBJECT", resultStatusObject);
         context.put("VERSION", version);
         return context;
@@ -123,6 +129,7 @@ public class BaseStepModel implements BaseStepData {
     public void fromMap(Map<String, Object> context) {
         setHeaders((Map<String, String>) context.get("HTTP_HEADERS"));
         setUriString((String) context.get("URI_STRING"));
+        setBaseUriString((String) context.get("BASE_URI_STRING"));
         Object statusObject = context.get("STATUS_OBJECT");
         if (statusObject instanceof JSONObject) {
             setResultStatus(ResultStatusObject.fromJsonObject((JSONObject) statusObject));
