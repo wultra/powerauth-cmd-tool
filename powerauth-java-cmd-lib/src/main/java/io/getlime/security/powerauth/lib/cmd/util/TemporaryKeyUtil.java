@@ -42,6 +42,7 @@ import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.DLSequence;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
 import java.math.BigInteger;
@@ -85,7 +86,6 @@ public class TemporaryKeyUtil {
     public static void fetchTemporaryKey(PowerAuthStep step, StepContext<? extends BaseStepData, ?> stepContext, EncryptorScope scope) throws Exception {
         final PowerAuthVersion version = stepContext.getModel().getVersion();
         if (!version.useTemporaryKeys() || stepContext.getAttributes().containsKey(TEMPORARY_KEY_ID)) {
-            stepContext.getAttributes().put(TEMPORARY_KEY_ID, null);
             return;
         }
         final RestClient restClient = RestClientFactory.getRestClient();
@@ -144,7 +144,15 @@ public class TemporaryKeyUtil {
     private static void sendTemporaryKeyRequest(PowerAuthStep step, StepContext<? extends BaseStepData, ?> stepContext, EncryptorScope scope) throws Exception {
         final BaseStepModel model = (BaseStepModel) stepContext.getModel();
         final Map<String, String> headers = prepareHeaders();
-        final String uri = model.getUriString() + "/pa/v3/keystore/create";
+        String baseUri = model.getBaseUriString();
+        if (!StringUtils.hasText(baseUri)) {
+            baseUri = model.getUriString();
+            if (!StringUtils.hasText(baseUri)) {
+                stepContext.getStepLogger().writeError(step.id() + "-error-missing-base-uri-string", "Base URI string is required for fetching temporary keys");
+                return;
+            }
+        }
+        final String uri = baseUri + "/pa/v3/keystore/create";
         final byte[] challengeBytes = KEY_GENERATOR.generateRandomBytes(18);
         final String challenge = Base64.getEncoder().encodeToString(challengeBytes);
         final String requestData = createJwtRequest(stepContext, model, scope, challenge);
