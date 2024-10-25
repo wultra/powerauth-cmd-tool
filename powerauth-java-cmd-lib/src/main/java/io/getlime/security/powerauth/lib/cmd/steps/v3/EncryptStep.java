@@ -20,8 +20,9 @@ import io.getlime.security.powerauth.crypto.lib.encryptor.ClientEncryptor;
 import io.getlime.security.powerauth.crypto.lib.encryptor.EncryptorFactory;
 import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorParameters;
+import io.getlime.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
 import io.getlime.security.powerauth.crypto.lib.encryptor.model.v3.ClientEncryptorSecrets;
-import io.getlime.security.powerauth.crypto.lib.generator.KeyGenerator;
+import io.getlime.security.powerauth.crypto.lib.util.KeyConvertor;
 import io.getlime.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import io.getlime.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import io.getlime.security.powerauth.lib.cmd.consts.PowerAuthConst;
@@ -42,7 +43,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 
+import java.security.PublicKey;
 import java.util.Map;
+
+import static io.getlime.security.powerauth.lib.cmd.util.TemporaryKeyUtil.TEMPORARY_KEY_ID;
+import static io.getlime.security.powerauth.lib.cmd.util.TemporaryKeyUtil.TEMPORARY_PUBLIC_KEY;
 
 /**
  * Encrypt step encrypts request data using ECIES encryption in application or activation scope.
@@ -52,6 +57,7 @@ import java.util.Map;
  *     <li>3.0</li>
  *     <li>3.1</li>
  *     <li>3.2</li>
+ *     <li>3.3</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
@@ -61,7 +67,7 @@ import java.util.Map;
 public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncryptedResponse> {
 
     private static final EncryptorFactory ENCRYPTOR_FACTORY = new EncryptorFactory();
-    private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
+    private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
 
     /**
      * Constructor
@@ -115,36 +121,57 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
                 requestDataBytes
         );
 
-        final ClientEncryptor encryptor;
+        final EncryptorScope scope = switch (model.getScope()) {
+            case "activation":
+                yield EncryptorScope.ACTIVATION_SCOPE;
+            case "application":
+                yield EncryptorScope.APPLICATION_SCOPE;
+            default:
+                yield null;
+        };
+        if (scope == null) {
+            stepLogger.writeError("encrypt-error-scope", "Encrypt Request Failed", "Unsupported encryption scope: " + model.getScope());
+            stepLogger.writeDoneFailed("encrypt-failed");
+            return null;
+        }
+        fetchTemporaryKey(stepContext, scope);
+        final String temporaryKeyId =  (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID);
+        final String temporaryPublicKey = (String) stepContext.getAttributes().get(TEMPORARY_PUBLIC_KEY);
 
         // Prepare the encryption header
         final EncryptorId encryptorId;
+        final ClientEncryptor encryptor;
         final PowerAuthEncryptionHttpHeader header;
-        switch (model.getScope()) {
-            case "application" -> {
+        switch (scope) {
+            case APPLICATION_SCOPE -> {
+                final PublicKey encryptionPublicKey = temporaryPublicKey == null ?
+                        model.getMasterPublicKey() :
+                        KEY_CONVERTOR.convertBytesToPublicKey(java.util.Base64.getDecoder().decode(temporaryPublicKey));
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/application
                 encryptorId = EncryptorId.APPLICATION_SCOPE_GENERIC;
-                final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null);
-                final ClientEncryptorSecrets encryptorSecrets = new ClientEncryptorSecrets(model.getMasterPublicKey(), model.getApplicationSecret());
+                final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, temporaryKeyId);
+                final ClientEncryptorSecrets encryptorSecrets = new ClientEncryptorSecrets(encryptionPublicKey, model.getApplicationSecret());
                 encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(encryptorId, encryptorParameters, encryptorSecrets);
                 header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), model.getVersion().value());
             }
-            case "activation" -> {
-                ResultStatusObject resultStatusObject = model.getResultStatus();
+            case ACTIVATION_SCOPE -> {
+                final ResultStatusObject resultStatusObject = model.getResultStatus();
+                final PublicKey encryptionPublicKey = temporaryPublicKey == null ?
+                        resultStatusObject.getServerPublicKeyObject() :
+                        KEY_CONVERTOR.convertBytesToPublicKey(java.util.Base64.getDecoder().decode(temporaryPublicKey));
                 encryptorId = EncryptorId.ACTIVATION_SCOPE_GENERIC;
                 encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(
                         encryptorId,
-                        new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), resultStatusObject.getActivationId()),
-                        new ClientEncryptorSecrets(resultStatusObject.getServerPublicKeyObject(), model.getApplicationSecret(), Base64.decode(resultStatusObject.getTransportMasterKey()))
+                        new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), resultStatusObject.getActivationId(), temporaryKeyId),
+                        new ClientEncryptorSecrets(encryptionPublicKey, model.getApplicationSecret(), Base64.decode(resultStatusObject.getTransportMasterKey()))
                 );
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/activation
                 final String activationId = model.getResultStatus().getActivationId();
                 header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), activationId, model.getVersion().value());
             }
             default -> {
-                stepLogger.writeError("encrypt-error-scope", "Encrypt Request Failed", "Unsupported encryption scope: " + model.getScope());
-                stepLogger.writeDoneFailed("encrypt-failed");
-                return null;
+                encryptor = null;
+                header = null;
             }
         }
 

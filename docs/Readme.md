@@ -78,7 +78,8 @@ This file is automatically created by the utility after you call the `create` me
 ## Specifying PowerAuth Protocol Version
 
 Command-line tool supports following PowerAuth protocol versions:
-- Version `3.2` (default)
+- Version `3.3` (default)
+- Version `3.2`
 - Version `3.1`
 - Version `3.0`
 
@@ -297,6 +298,7 @@ Use this method to send encrypted data to the server.
 ```bash
 java -jar powerauth-java-cmd.jar \
     --url "http://localhost:8080/enrollment-server/exchange" \
+    --base-url "http://localhost:8080/enrollment-server" \
     --config-file "config.json" \
     --method "encrypt" \
     --data-file "request.json" \
@@ -304,7 +306,7 @@ java -jar powerauth-java-cmd.jar \
 ```
 
 Uses the `encrypt` method to encrypt data in `request.json` file using ECIES encryption. The encryption uses `application` scope, you can use the `activation` option to switch to activation scope. 
-The encrypted data is sent to specified endpoint URL. The endpoint which receives encrypted data needs to decrypt the data and return encrypted response back to the client. The cmd line tool receives the encrypted response from server, decrypts it and prints it into the command line.
+The encrypted data is sent to specified endpoint URL. The base URL is used for PowerAuth Standard RESTful API requests, e.g. to request temporary encryption keys. The endpoint which receives encrypted data needs to decrypt the data and return encrypted response back to the client. The cmd line tool receives the encrypted response from server, decrypts it and prints it into the command line.
 
 ### Send Signed and Encrypted Data to Server
 
@@ -313,6 +315,7 @@ Use this method to send signed and encrypted data to the server.
 ```bash
 java -jar powerauth-java-cmd.jar \
     --url "http://localhost:8080/enrollment-server/exchange/v3/signed" \
+    --base-url "http://localhost:8080/enrollment-server" \
     --status-file "pa_status.json" \
     --config-file "config.json" \
     --method "sign-encrypt" \
@@ -324,7 +327,7 @@ java -jar powerauth-java-cmd.jar \
 ```
 
 The data in `request.json` file is signed and encrypted using ECIES encryption. See chapter [Validate the Signature](#validate-the-signature) which describes signature parameters.
-The encrypted data is sent to specified endpoint URL. The endpoint which receives encrypted data needs to decrypt the data, verify data signature and return encrypted response back to the client. The cmd line tool receives the encrypted response from server, decrypts it and prints it into the command line.
+The encrypted data is sent to specified endpoint URL.  The base URL is used for PowerAuth Standard RESTful API requests, e.g. to request temporary encryption keys. The endpoint which receives encrypted data needs to decrypt the data, verify data signature and return encrypted response back to the client. The cmd line tool receives the encrypted response from server, decrypts it and prints it into the command line.
 
 ### Send Encrypted Data with Token Validation to Server
 
@@ -333,6 +336,7 @@ Use this method to send encrypted data with token validation to the server.
 ```bash
 java -jar powerauth-java-cmd.jar \
     --url "http://localhost:8080/enrollment-server/exchange/v3/token" \
+    --base-url "http://localhost:8080/enrollment-server" \
     --status-file "pa_status.json" \
     --config-file "config.json" \
     --method "token-encrypt" \
@@ -343,7 +347,7 @@ java -jar powerauth-java-cmd.jar \
 ```
 
 The data in `request.json` file is encrypted using ECIES encryption and token authentication is computed.
-The encrypted data is sent to specified endpoint URL. The endpoint which receives encrypted data needs to decrypt the data, validate the token and return encrypted response back to the client. The cmd line tool receives the encrypted response from server, decrypts it and prints it into the command line.
+The encrypted data is sent to specified endpoint URL. The base URL is used for PowerAuth Standard RESTful API requests, e.g. to request temporary encryption keys. The endpoint which receives encrypted data needs to decrypt the data, validate the token and return encrypted response back to the client. The cmd line tool receives the encrypted response from server, decrypts it and prints it into the command line.
 
 ### Start Upgrade
 
@@ -365,7 +369,7 @@ Use this method to commit upgrade of a version `2` activation to version `3`.
 
 ```
 java -jar powerauth-java-cmd.jar \
-    --url "http://localhost:8080/powerauth-webflow" \
+    --url "http://localhost:8080/enrollment-server" \
     --status-file "pa_status.json" \
     --config-file "config.json" \
     --method "commit-upgrade"
@@ -399,6 +403,7 @@ usage: java -jar powerauth-java-cmd.jar
  -a,--activation-code <arg>          In case a specified method is 'create', this field contains the
                                      activation key (a concatenation of a short activation ID and
                                      activation OTP).
+ -b,--base-url <arg>                 Base URL of the PowerAuth Standard RESTful API.
  -A,--activation-otp <arg>           In case a specified method is 'create', this field contains
                                      additional activation OTP (PA server 0.24+)
  -c,--config-file <arg>              Specifies a path to the config file with Base64 encoded server
@@ -445,7 +450,7 @@ usage: java -jar powerauth-java-cmd.jar
                                      'token-encrypt', this field specifies a HTTP method, as
                                      specified in PowerAuth signature process.
  -T,--token-id <arg>                 Token ID (UUID4), in case of 'token-validate' method.
- -u,--url <arg>                      Base URL of the PowerAuth Standard RESTful API.
+ -u,--url <arg>                      URL used for the request.
  -v,--version <arg>                  PowerAuth protocol version.
  -y,--dry-run                        In case a specified method is 'sign', 'sign-encrypt',
                                      'validate-token' or 'token-encrypt' and this attribute is
