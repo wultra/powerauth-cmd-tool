@@ -27,7 +27,7 @@
 
     <groupId>io.getlime.security</groupId>
     <artifactId>powerauth-cmd-parent</artifactId>
-    <version>1.9.0</version>
+    <version>1.10.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <inceptionYear>2016</inceptionYear>
@@ -88,9 +88,9 @@
         <json-simple.version>1.1.1</json-simple.version>
 
         <!-- Wultra Dependencies -->
-        <powerauth-restful-integration>1.9.0</powerauth-restful-integration>
-        <powerauth-crypto.version>1.9.0</powerauth-crypto.version>
-        <wultra-core.version>1.11.0</wultra-core.version>
+        <powerauth-restful-integration>1.10.0-SNAPSHOT</powerauth-restful-integration>
+        <powerauth-crypto.version>1.10.0-SNAPSHOT</powerauth-crypto.version>
+        <wultra-core.version>1.12.0-SNAPSHOT</wultra-core.version>
     </properties>
 
     <dependencyManagement>
