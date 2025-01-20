@@ -9,8 +9,8 @@
 
     <parent>
         <artifactId>powerauth-cmd-parent</artifactId>
-        <groupId>io.getlime.security</groupId>
-        <version>1.10.0-SNAPSHOT</version>
+        <groupId>com.wultra.security</groupId>
+        <version>2.0.0-SNAPSHOT</version>
     </parent>
 
     <dependencies>
@@ -40,17 +40,17 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>io.getlime.security</groupId>
+            <groupId>com.wultra.security</groupId>
             <artifactId>powerauth-restful-model</artifactId>
             <version>${powerauth-restful-integration}</version>
         </dependency>
         <dependency>
-            <groupId>io.getlime.security</groupId>
+            <groupId>com.wultra.security</groupId>
             <artifactId>powerauth-java-crypto</artifactId>
             <version>${powerauth-crypto.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.getlime.security</groupId>
+            <groupId>com.wultra.security</groupId>
             <artifactId>powerauth-java-http</artifactId>
             <version>${powerauth-crypto.version}</version>
         </dependency>
@@ -75,7 +75,7 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>io.getlime.core</groupId>
+            <groupId>com.wultra.core</groupId>
             <artifactId>rest-client-base</artifactId>
             <version>${wultra-core.version}</version>
         </dependency>
