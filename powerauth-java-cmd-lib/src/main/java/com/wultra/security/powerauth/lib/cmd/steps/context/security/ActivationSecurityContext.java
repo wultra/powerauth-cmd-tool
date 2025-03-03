@@ -18,6 +18,8 @@ package com.wultra.security.powerauth.lib.cmd.steps.context.security;
 
 import com.wultra.security.powerauth.crypto.lib.encryptor.ClientEncryptor;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedRequest;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedResponse;
 import lombok.Builder;
 import lombok.Data;
 
@@ -35,12 +37,12 @@ public class ActivationSecurityContext implements SecurityContext {
     /**
      * Encryptor used on layer 1
      */
-    private ClientEncryptor encryptorL1;
+    private ClientEncryptor<EciesEncryptedRequest, EciesEncryptedResponse> encryptorL1;
 
     /**
      * Encryptor used on layer 2
      */
-    private ClientEncryptor encryptorL2;
+    private ClientEncryptor<EciesEncryptedRequest, EciesEncryptedResponse> encryptorL2;
 
     /**
      * Device key pair

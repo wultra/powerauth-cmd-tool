@@ -16,7 +16,7 @@
  */
 package com.wultra.security.powerauth.lib.cmd.consts;
 
-import com.wultra.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedResponse;
 import org.springframework.core.ParameterizedTypeReference;
 
 import java.nio.charset.StandardCharsets;

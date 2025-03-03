@@ -23,7 +23,10 @@ import com.wultra.security.powerauth.crypto.lib.encryptor.ClientEncryptor;
 import com.wultra.security.powerauth.crypto.lib.encryptor.EncryptorFactory;
 import com.wultra.security.powerauth.crypto.lib.encryptor.ecies.exception.EciesException;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.*;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.ClientEncryptorSecrets;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.ClientEciesSecrets;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedRequest;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedResponse;
+import com.wultra.security.powerauth.crypto.lib.enums.EcCurve;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
@@ -40,8 +43,6 @@ import com.wultra.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
 import com.wultra.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import com.wultra.security.powerauth.lib.cmd.util.*;
-import com.wultra.security.powerauth.rest.api.model.request.EciesEncryptedRequest;
-import com.wultra.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
 import jakarta.annotation.Nullable;
 import lombok.Getter;
 import org.json.simple.JSONObject;
@@ -205,16 +206,16 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
 
         fetchTemporaryKey(stepContext, scope);
 
-        final ClientEncryptor encryptor;
+        final ClientEncryptor<EciesEncryptedRequest, EciesEncryptedResponse> encryptor;
         if (securityContext == null) {
             final String temporaryKeyId = (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID);
             final String temporaryPublicKey = (String) stepContext.getAttributes().get(TEMPORARY_PUBLIC_KEY);
             final PublicKey encryptionPublicKey = temporaryKeyId == null ?
                     resultStatusObject.getServerPublicKeyObject() :
-                    KEY_CONVERTOR.convertBytesToPublicKey(Base64.getDecoder().decode(temporaryPublicKey));
+                    KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, Base64.getDecoder().decode(temporaryPublicKey));
             final byte[] transportMasterKeyBytes = Base64.getDecoder().decode(resultStatusObject.getTransportMasterKey());
             final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), applicationKey, resultStatusObject.getActivationId(), temporaryKeyId);
-            final ClientEncryptorSecrets encryptorSecrets = new ClientEncryptorSecrets(encryptionPublicKey, applicationSecret, transportMasterKeyBytes);
+            final EncryptorSecrets encryptorSecrets = new ClientEciesSecrets(encryptionPublicKey, applicationSecret, transportMasterKeyBytes);
             encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(encryptorId, encryptorParameters, encryptorSecrets);
             stepContext.setSecurityContext(SimpleSecurityContext.builder()
                             .encryptor(encryptor)
@@ -234,7 +235,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @param data              Request data for the encryption
      * @throws Exception when an error during encryption of the request data occurred
      */
-    public void addEncryptedRequest(StepContext<M, R> stepContext, ClientEncryptor encryptor, byte[] data) throws Exception {
+    public void addEncryptedRequest(StepContext<M, R> stepContext, ClientEncryptor<EciesEncryptedRequest, EciesEncryptedResponse> encryptor, byte[] data) throws Exception {
         SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
         if (securityContext == null) {
             stepContext.setSecurityContext(
@@ -247,8 +248,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
         }
 
         final EncryptedRequest encryptedRequest = encryptor.encryptRequest(data);
-        final EciesEncryptedRequest requestObject = SecurityUtil.createEncryptedRequest(encryptedRequest);
-        stepContext.getRequestContext().setRequestObject(requestObject);
+        stepContext.getRequestContext().setRequestObject(encryptedRequest);
     }
 
     /**
@@ -273,7 +273,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
         try {
             final SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
             final EciesEncryptedResponse encryptedResponse = stepContext.getResponseContext().getResponseBodyObject();
-            final byte[] decryptedBytes = securityContext.getEncryptor().decryptResponse(new EncryptedResponse(
+            final byte[] decryptedBytes = securityContext.getEncryptor().decryptResponse(new EciesEncryptedResponse(
                     encryptedResponse.getEncryptedData(),
                     encryptedResponse.getMac(),
                     encryptedResponse.getNonce(),
