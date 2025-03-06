@@ -49,11 +49,6 @@ public enum PowerAuthStep {
     ACTIVATION_REMOVE("activation-remove", "Activation Removal", "remove"),
 
     /**
-     * Recovering an activation
-     */
-    ACTIVATION_RECOVERY("activation-recovery", "Activation With Recovery Code", "create-recovery"),
-
-    /**
      * Status retrieval of an existing activation
      */
     ACTIVATION_STATUS("activation-status", "Activation Status Check", "status"),
@@ -62,11 +57,6 @@ public enum PowerAuthStep {
      * Send and verify an encrypted request
      */
     ENCRYPT("encrypt", "Encrypt Request", "encrypt"),
-
-    /**
-     * Confirming an activation recovery
-     */
-    RECOVERY_CONFIRM("recovery-confirm", "Confirm Recovery Code", "confirm-recovery-code"),
 
     /**
      * Send and verify a signed and encrypted request
