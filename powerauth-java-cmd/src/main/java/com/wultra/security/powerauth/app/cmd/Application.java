@@ -85,7 +85,7 @@ public class Application {
             options.addOption("hv", "help-versions", false, "PowerAuth supported versions and steps.");
             options.addOption("u", "url", true, "URL used for the request.");
             options.addOption("b", "base-url", true, "Base URL of the PowerAuth Standard RESTful API.");
-            options.addOption("m", "method", true, "What API method to call, available names are 'create', 'status', 'remove', 'sign', 'unlock', 'create-custom', 'create-token', 'validate-token', 'remove-token', 'encrypt', 'sign-encrypt', 'token-encrypt', 'start-upgrade', 'commit-upgrade', 'create-recovery' and 'confirm-recovery-code'.");
+            options.addOption("m", "method", true, "What API method to call, available names are 'create', 'status', 'remove', 'sign', 'unlock', 'create-custom', 'create-token', 'validate-token', 'remove-token', 'encrypt', 'sign-encrypt', 'token-encrypt', 'start-upgrade', and 'commit-upgrade'.");
             options.addOption("c", "config-file", true, "Specifies a path to the config file with Base64 encoded server master public key, application ID and application secret.");
             options.addOption("s", "status-file", true, "Path to the file with the activation status, serving as the data persistence.");
             options.addOption("a", "activation-code", true, "In case a specified method is 'create', this field contains the activation key (a concatenation of a short activation ID and activation OTP).");
@@ -104,7 +104,6 @@ public class Application {
             options.addOption("S", "token-secret", true, "Token secret (Base64 encoded bytes), in case of 'token-validate' method.");
             options.addOption("r", "reason", true, "Reason why vault is being unlocked.");
             options.addOption("o", "scope", true, "ECIES encryption scope: 'application' or 'activation'.");
-            options.addOption("R", "recovery-code", true, "Recovery code to be confirmed.");
             options.addOption("P", "platform", true, "User device platform.");
             options.addOption("D", "device-info", true, "Information about user device.");
             options.addOption("q", "qr-code-data", true, "Data for offline signature encoded in QR code.");
@@ -484,46 +483,6 @@ public class Application {
                     model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
                     model.setStatusFileName(statusFileName);
-                    model.setResultStatus(resultStatusObject);
-                    model.setUriString(uriString);
-                    model.setVersion(version);
-
-                    stepExecutionService.execute(powerAuthStep, version, model);
-                }
-                case ACTIVATION_RECOVERY -> {
-                    String identityAttributesFileName = cmd.getOptionValue("I");
-                    Map<String, String> identityAttributes =
-                            FileUtil.readDataFromFile(stepLogger, identityAttributesFileName, HashMap.class, "identity-attributes", "identity attributes");
-
-                    final Map<String, Object> customAttributes = getCustomAttributes(cmd, stepLogger);
-
-                    ActivationRecoveryStepModel model = new ActivationRecoveryStepModel();
-                    model.setActivationName(ConfigurationUtil.getApplicationName(clientConfigObject));
-                    model.setPlatform(platform);
-                    model.setDeviceInfo(deviceInfo);
-                    model.setApplicationKey(applicationKey);
-                    model.setApplicationSecret(applicationSecret);
-                    model.setIdentityAttributes(identityAttributes);
-                    model.setCustomAttributes(customAttributes);
-                    model.setHeaders(httpHeaders);
-                    model.setMasterPublicKey(masterPublicKey);
-                    model.setStatusFileName(statusFileName);
-                    model.setPassword(cmd.getOptionValue("p"));
-                    model.setResultStatus(resultStatusObject);
-                    model.setUriString(uriString);
-                    model.setVersion(version);
-
-                    stepExecutionService.execute(powerAuthStep, version, model);
-                }
-                case RECOVERY_CONFIRM -> {
-
-                    ConfirmRecoveryCodeStepModel model = new ConfirmRecoveryCodeStepModel();
-                    model.setApplicationKey(applicationKey);
-                    model.setApplicationSecret(applicationSecret);
-                    model.setHeaders(httpHeaders);
-                    model.setMasterPublicKey(masterPublicKey);
-                    model.setStatusFileName(statusFileName);
-                    model.setRecoveryCode(cmd.getOptionValue("R"));
                     model.setResultStatus(resultStatusObject);
                     model.setUriString(uriString);
                     model.setVersion(version);

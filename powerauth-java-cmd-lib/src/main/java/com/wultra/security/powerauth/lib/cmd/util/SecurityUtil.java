@@ -18,13 +18,11 @@ package com.wultra.security.powerauth.lib.cmd.util;
 
 import com.wultra.security.powerauth.crypto.lib.encryptor.ClientEncryptor;
 import com.wultra.security.powerauth.crypto.lib.encryptor.exception.EncryptorException;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedRequest;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedResponse;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedRequest;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedResponse;
 import com.wultra.security.powerauth.lib.cmd.steps.context.ResponseContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.security.SimpleSecurityContext;
-import com.wultra.security.powerauth.rest.api.model.request.EciesEncryptedRequest;
-import com.wultra.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -47,29 +45,11 @@ public class SecurityUtil {
      * @throws EncryptorException when an error during object encryption occurred
      * @throws IOException when an error during object encryption occurred
      */
-    public static EncryptedRequest encryptObject(ClientEncryptor encryptor, Object value)
+    public static EciesEncryptedRequest encryptObject(ClientEncryptor<EciesEncryptedRequest, EciesEncryptedResponse> encryptor, Object value)
             throws EncryptorException, IOException {
         ByteArrayOutputStream baosL = new ByteArrayOutputStream();
         RestClientConfiguration.defaultMapper().writeValue(baosL, value);
         return encryptor.encryptRequest(baosL.toByteArray());
-    }
-
-
-    /**
-     * Creates an encrypted request instance
-     *
-     * @param encryptedRequest Ecies payload data to be sent
-     * @return Encrypted request instance
-     */
-    public static EciesEncryptedRequest createEncryptedRequest(EncryptedRequest encryptedRequest) {
-        EciesEncryptedRequest request = new EciesEncryptedRequest();
-        request.setEncryptedData(encryptedRequest.getEncryptedData());
-        request.setEphemeralPublicKey(encryptedRequest.getEphemeralPublicKey());
-        request.setMac(encryptedRequest.getMac());
-        request.setNonce(encryptedRequest.getNonce());
-        request.setTimestamp(encryptedRequest.getTimestamp());
-        request.setTemporaryKeyId(encryptedRequest.getTemporaryKeyId());
-        return request;
     }
 
     /**
@@ -83,7 +63,7 @@ public class SecurityUtil {
         SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
 
         EciesEncryptedResponse responseObject = responseContext.getResponseBodyObject();
-        final byte[] decryptedBytes = securityContext.getEncryptor().decryptResponse(new EncryptedResponse(
+        final byte[] decryptedBytes = securityContext.getEncryptor().decryptResponse(new EciesEncryptedResponse(
                 responseObject.getEncryptedData(),
                 responseObject.getMac(),
                 responseObject.getNonce(),

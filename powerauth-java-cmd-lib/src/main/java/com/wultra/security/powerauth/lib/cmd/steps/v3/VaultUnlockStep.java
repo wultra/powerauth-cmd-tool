@@ -19,6 +19,7 @@ import com.wultra.security.powerauth.crypto.client.keyfactory.PowerAuthClientKey
 import com.wultra.security.powerauth.crypto.client.vault.PowerAuthClientVault;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedResponse;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
 import com.wultra.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthConst;
@@ -35,7 +36,6 @@ import com.wultra.security.powerauth.lib.cmd.steps.model.VaultUnlockStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import com.wultra.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import com.wultra.security.powerauth.rest.api.model.request.VaultUnlockRequestPayload;
-import com.wultra.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
 import com.wultra.security.powerauth.rest.api.model.response.VaultUnlockResponsePayload;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;

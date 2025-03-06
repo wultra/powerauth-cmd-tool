@@ -17,6 +17,8 @@
 package com.wultra.security.powerauth.lib.cmd.util;
 
 import com.wultra.security.powerauth.crypto.lib.generator.HashBasedCounter;
+import com.wultra.security.powerauth.crypto.lib.model.exception.GenericCryptoException;
+import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLogger;
 import com.wultra.security.powerauth.lib.cmd.steps.model.BaseStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
@@ -86,9 +88,9 @@ public class CounterUtil {
      * Increment counter value in step model.
      *
      * @param model Step model.
+     * @throws GenericCryptoException In case counter value could not be incremented.
      */
-    @SuppressWarnings("unchecked")
-    public static void incrementCounter(BaseStepData model) {
+    public static void incrementCounter(BaseStepData model) throws GenericCryptoException {
         // Increment the numeric counter
         ResultStatusObject resultStatusObject = model.getResultStatus();
 
@@ -102,7 +104,7 @@ public class CounterUtil {
             String ctrDataBase64 = resultStatusObject.getCtrData();
             if (!ctrDataBase64.isEmpty()) {
                 final byte[] ctrData = Base64.getDecoder().decode(ctrDataBase64);
-                final byte[] nextCrtData = new HashBasedCounter().next(ctrData);
+                final byte[] nextCrtData = new HashBasedCounter(PowerAuthVersion.V3_3.value()).next(ctrData);
                 Assert.state(nextCrtData != null, "nextCrtData must not be null");
                 resultStatusObject.setCtrData(Base64.getEncoder().encodeToString(nextCrtData));
             }

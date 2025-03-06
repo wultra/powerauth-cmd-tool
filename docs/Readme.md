@@ -433,15 +433,13 @@ usage: java -jar powerauth-java-cmd.jar
  -m,--method <arg>                   What API method to call, available names are 'create',
                                      'status', 'remove', 'sign', 'unlock', 'create-custom',
                                      'create-token', 'validate-token', 'remove-token', 'encrypt',
-                                     'sign-encrypt', 'token-encrypt', 'start-upgrade',
-                                     'commit-upgrade', 'create-recovery' and
-                                     'confirm-recovery-code'.
+                                     'sign-encrypt', 'token-encrypt', 'start-upgrade', and
+                                     'commit-upgrade'.
  -o,--scope <arg>                    ECIES encryption scope: 'application' or 'activation'.
  -p,--password <arg>                 Password used for a knowledge related key encryption. If not
                                      specified, an interactive input is required.
  -P,--platform <arg>                 User device platform.
  -r,--reason <arg>                   Reason why vault is being unlocked.
- -R,--recovery-code <arg>            Recovery code to be confirmed.
  -s,--status-file <arg>              Path to the file with the activation status, serving as the
                                      data persistence.
  -S,--token-secret <arg>             Token secret (Base64 encoded bytes), in case of

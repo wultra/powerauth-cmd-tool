@@ -18,6 +18,8 @@ package com.wultra.security.powerauth.lib.cmd.steps.context.security;
 
 import com.wultra.security.powerauth.crypto.lib.encryptor.ClientEncryptor;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedRequest;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedResponse;
 import lombok.Builder;
 import lombok.Data;
 
@@ -32,7 +34,7 @@ public class SimpleSecurityContext implements SecurityContext {
     /**
      * Encryptor
      */
-    private ClientEncryptor encryptor;
+    private ClientEncryptor<EciesEncryptedRequest, EciesEncryptedResponse> encryptor;
 
     @Override
     public EncryptorScope getEncryptorScope() {

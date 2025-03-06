@@ -17,6 +17,7 @@ package com.wultra.security.powerauth.lib.cmd.steps.v3;
 
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedResponse;
 import com.wultra.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
@@ -29,7 +30,6 @@ import com.wultra.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
-import com.wultra.security.powerauth.rest.api.model.response.EciesEncryptedResponse;
 import com.wultra.security.powerauth.rest.api.model.response.UpgradeResponsePayload;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
