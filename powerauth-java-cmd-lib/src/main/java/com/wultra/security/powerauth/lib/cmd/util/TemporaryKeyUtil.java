@@ -239,7 +239,7 @@ public class TemporaryKeyUtil {
         final SignedJWT decodedJWT = SignedJWT.parse(jwtResponse);
         final ECPublicKey publicKey = switch (scope) {
             case ACTIVATION_SCOPE -> (ECPublicKey) stepContext.getModel().getResultStatus().getServerPublicKeyObject();
-            case APPLICATION_SCOPE ->  (ECPublicKey) stepContext.getModel().toMap().get("MASTER_PUBLIC_KEY");
+            case APPLICATION_SCOPE -> (ECPublicKey) stepContext.getModel().toMap().get("MASTER_PUBLIC_KEY");
         };
         if (scope == EncryptorScope.APPLICATION_SCOPE && model.getVersion().getMajorVersion() == 4) {
             // TODO - signature verification is skipped for crypto4 because master public key is not configured for P-384 curve yet
