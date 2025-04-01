@@ -161,7 +161,7 @@ public class TemporaryKeyUtil {
                 stepContext.getAttributes().put(TEMPORARY_CLIENT_CONTEXT, requestCryptogram.getSharedSecretClientContext());
                 final SharedSecretRequestEcdhe requestEcdhe = (SharedSecretRequestEcdhe) requestCryptogram.getSharedSecretRequest();
                 final SharedSecretRequest sharedSecretRequest = new SharedSecretRequest();
-                sharedSecretRequest.setAlgorithm("EC_P384");
+                sharedSecretRequest.setAlgorithm(algorithm.toString());
                 sharedSecretRequest.setEcdhe(requestEcdhe.getEcClientPublicKey());
                 yield sharedSecretRequest;
             }
@@ -170,7 +170,7 @@ public class TemporaryKeyUtil {
                 stepContext.getAttributes().put(TEMPORARY_CLIENT_CONTEXT, requestCryptogram.getSharedSecretClientContext());
                 final SharedSecretRequestHybrid requestHybrid = (SharedSecretRequestHybrid) requestCryptogram.getSharedSecretRequest();
                 final SharedSecretRequest sharedSecretRequest = new SharedSecretRequest();
-                sharedSecretRequest.setAlgorithm("EC_P384_ML_L3");
+                sharedSecretRequest.setAlgorithm(algorithm.toString());
                 sharedSecretRequest.setEcdhe(requestHybrid.getEcClientPublicKey());
                 sharedSecretRequest.setMlkem(requestHybrid.getPqcEncapsulationKey());
                 yield sharedSecretRequest;
