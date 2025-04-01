@@ -31,6 +31,7 @@ import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.ComputeOfflineSignatureStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
+import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.util.CounterUtil;
 import com.wultra.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,7 +91,7 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
     }
 
     @Override
-    public ParameterizedTypeReference<Void> getResponseTypeReference() {
+    public ParameterizedTypeReference<Void> getResponseTypeReference(PowerAuthVersion version) {
         // No response type, server is not called due to offline nature of the step
         return null;
     }

@@ -27,6 +27,7 @@ import com.wultra.security.powerauth.lib.cmd.status.ResultStatusService;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.util.VerifySignatureUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
@@ -85,7 +86,7 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
     }
 
     @Override
-    public ParameterizedTypeReference<ObjectResponse<Map<String, Object>>> getResponseTypeReference() {
+    public ParameterizedTypeReference<ObjectResponse<Map<String, Object>>> getResponseTypeReference(PowerAuthVersion version) {
         return RESPONSE_TYPE_REFERENCE;
     }
 

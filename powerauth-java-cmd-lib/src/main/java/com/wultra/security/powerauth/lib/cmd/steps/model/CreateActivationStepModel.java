@@ -15,6 +15,7 @@
  */
 package com.wultra.security.powerauth.lib.cmd.steps.model;
 
+import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.ActivationData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
@@ -91,6 +92,11 @@ public class CreateActivationStepModel extends BaseStepModel
     private PublicKey masterPublicKey;
 
     /**
+     * Algorithm used for the shared secret derivation.
+     */
+    private SharedSecretAlgorithm sharedSecretAlgorithm;
+
+    /**
      * Constructor
      */
     public CreateActivationStepModel() {
@@ -112,6 +118,7 @@ public class CreateActivationStepModel extends BaseStepModel
         context.put("DEVICE_INFO", deviceInfo);
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
+        context.put("SHARED_SECRET_ALGORITHM", sharedSecretAlgorithm);
         return context;
     }
 
@@ -130,6 +137,7 @@ public class CreateActivationStepModel extends BaseStepModel
         setDeviceInfo((String) context.get("DEVICE_INFO"));
         setApplicationKey((String) context.get("APPLICATION_KEY"));
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
+        setSharedSecretAlgorithm((SharedSecretAlgorithm) context.get("SHARED_SECRET_ALGORITHM"));
     }
 
 }

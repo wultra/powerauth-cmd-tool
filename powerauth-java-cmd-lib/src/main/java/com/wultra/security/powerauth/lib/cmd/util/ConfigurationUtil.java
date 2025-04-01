@@ -115,6 +115,7 @@ public class ConfigurationUtil {
      * @return Public key
      */
     private static PublicKey convertMasterPublicKey(String masterPublicKey, StepLogger stepLogger) {
+        // TODO - support for crypto4
         if (masterPublicKey != null) {
             try {
                 byte[] masterKeyBytes = Base64.getDecoder().decode(masterPublicKey);

@@ -14,10 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wultra.security.powerauth.lib.cmd.steps.v3;
+package com.wultra.security.powerauth.lib.cmd.steps;
 
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedRequest;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedResponse;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedRequest;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedResponse;
+import com.wultra.security.powerauth.crypto.lib.v4.encryptor.model.request.AeadEncryptedRequest;
 import com.wultra.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
@@ -25,12 +27,11 @@ import com.wultra.security.powerauth.lib.cmd.logging.StepLogger;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import com.wultra.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import com.wultra.security.powerauth.lib.cmd.status.ResultStatusService;
-import com.wultra.security.powerauth.lib.cmd.steps.AbstractActivationStep;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.PrepareActivationStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractActivationStep;
 import com.wultra.security.powerauth.rest.api.model.entity.ActivationType;
-import com.wultra.security.powerauth.rest.api.model.request.ActivationLayer1Request;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -48,12 +49,13 @@ import java.util.regex.Pattern;
  *      <li>3.1</li>
  *      <li>3.2</li>
  *      <li>3.3</li>
+ *      <li>4.0</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-@Component(value = "prepareActivationStepV3")
+@Component("prepareActivationStep")
 public class PrepareActivationStep extends AbstractActivationStep<PrepareActivationStepModel> {
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
@@ -69,7 +71,7 @@ public class PrepareActivationStep extends AbstractActivationStep<PrepareActivat
             PowerAuthHeaderFactory powerAuthHeaderFactory,
             ResultStatusService resultStatusService,
             StepLoggerFactory stepLoggerFactory) {
-        super(PowerAuthStep.ACTIVATION_CREATE, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
+        super(PowerAuthStep.ACTIVATION_CREATE, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
@@ -86,13 +88,13 @@ public class PrepareActivationStep extends AbstractActivationStep<PrepareActivat
     }
 
     @Override
-    public StepContext<PrepareActivationStepModel, EciesEncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        PrepareActivationStepModel model = new PrepareActivationStepModel();
+    public StepContext<PrepareActivationStepModel, EncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+        final PrepareActivationStepModel model = new PrepareActivationStepModel();
         model.fromMap(context);
 
         // Fetch and parse the activation code
-        Pattern p = Pattern.compile("^[A-Z2-7]{5}-[A-Z2-7]{5}-[A-Z2-7]{5}-[A-Z2-7]{5}$");
-        Matcher m = p.matcher(model.getActivationCode());
+        final Pattern p = Pattern.compile("^[A-Z2-7]{5}-[A-Z2-7]{5}-[A-Z2-7]{5}-[A-Z2-7]{5}$");
+        final Matcher m = p.matcher(model.getActivationCode());
         if (!m.find()) {
             stepLogger.writeError("activation-create-activation-code", "Prepare activation step failed", "Activation code has invalid format");
             stepLogger.writeDoneFailed("activation-create-error-activation-code");
@@ -100,7 +102,7 @@ public class PrepareActivationStep extends AbstractActivationStep<PrepareActivat
         }
         final String activationCode = model.getActivationCode();
 
-        Map<String, Object> objectMap = new HashMap<>();
+        final Map<String, Object> objectMap = new HashMap<>();
         objectMap.put("activationCode", activationCode);
         stepLogger.writeItem(
                 getStep().id() + "-activation-code",
@@ -110,11 +112,12 @@ public class PrepareActivationStep extends AbstractActivationStep<PrepareActivat
                 objectMap
         );
 
-        RequestContext requestContext = RequestContext.builder()
-                .uri(model.getUriString() + "/pa/v3/activation/create")
+        final int majorVersion = model.getVersion().getMajorVersion();
+        final RequestContext requestContext = RequestContext.builder()
+                .uri(model.getUriString() + "/pa/v" + majorVersion + "/activation/create")
                 .build();
 
-        StepContext<PrepareActivationStepModel, EciesEncryptedResponse> stepContext =
+        final StepContext<PrepareActivationStepModel, EncryptedResponse> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
         addEncryptedRequest(stepContext);
@@ -124,17 +127,34 @@ public class PrepareActivationStep extends AbstractActivationStep<PrepareActivat
     }
 
     @Override
-    protected ActivationLayer1Request prepareLayer1Request(
-            StepContext<PrepareActivationStepModel, EciesEncryptedResponse> stepContext,
-            EciesEncryptedRequest encryptedRequestL2) {
-        ActivationLayer1Request requestL1 = new ActivationLayer1Request();
-        requestL1.setType(ActivationType.CODE);
-        requestL1.setActivationData(encryptedRequestL2);
-        Map<String, String> identityAttributes = new HashMap<>();
-        identityAttributes.put("code", stepContext.getModel().getActivationCode());
-        requestL1.setIdentityAttributes(identityAttributes);
-        requestL1.setCustomAttributes(stepContext.getModel().getCustomAttributes());
-        return requestL1;
+    protected Object prepareLayer1Request(
+            StepContext<PrepareActivationStepModel, EncryptedResponse> stepContext,
+            EncryptedRequest encryptedRequestL2) {
+        return switch (stepContext.getModel().getVersion().getMajorVersion()) {
+            case 3: {
+                final com.wultra.security.powerauth.rest.api.model.request.v3.ActivationLayer1Request requestL1 = new com.wultra.security.powerauth.rest.api.model.request.v3.ActivationLayer1Request();
+                requestL1.setType(ActivationType.CODE);
+                requestL1.setActivationData((EciesEncryptedRequest) encryptedRequestL2);
+                final Map<String, String> identityAttributes = new HashMap<>();
+                identityAttributes.put("code", stepContext.getModel().getActivationCode());
+                requestL1.setIdentityAttributes(identityAttributes);
+                requestL1.setCustomAttributes(stepContext.getModel().getCustomAttributes());
+                yield requestL1;
+            }
+            case 4: {
+                final com.wultra.security.powerauth.rest.api.model.request.v4.ActivationLayer1Request requestL1 = new com.wultra.security.powerauth.rest.api.model.request.v4.ActivationLayer1Request();
+                requestL1.setType(ActivationType.CODE);
+                requestL1.setActivationData((AeadEncryptedRequest) encryptedRequestL2);
+                final Map<String, String> identityAttributes = new HashMap<>();
+                identityAttributes.put("code", stepContext.getModel().getActivationCode());
+                requestL1.setIdentityAttributes(identityAttributes);
+                requestL1.setCustomAttributes(stepContext.getModel().getCustomAttributes());
+                yield requestL1;
+            }
+            default:
+                throw new IllegalArgumentException("Unsupported version: " + stepContext.getModel().getVersion());
+        };
+
     }
 
 }

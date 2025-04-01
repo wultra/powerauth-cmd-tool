@@ -1,5 +1,4 @@
 /*
- * PowerAuth Command-line utility
  * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,24 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wultra.security.powerauth.lib.cmd.steps.v3;
+package com.wultra.security.powerauth.lib.cmd.steps;
 
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedResponse;
+import com.wultra.core.rest.model.base.response.Response;
 import com.wultra.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
+import com.wultra.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLogger;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLoggerFactory;
-import com.wultra.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import com.wultra.security.powerauth.lib.cmd.status.ResultStatusService;
-import com.wultra.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
-import com.wultra.security.powerauth.lib.cmd.steps.model.CreateTokenStepModel;
-import com.wultra.security.powerauth.rest.api.model.entity.TokenResponsePayload;
+import com.wultra.security.powerauth.lib.cmd.steps.model.CommitUpgradeStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
+import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
@@ -39,7 +36,7 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 /**
- * Helper class with token creation logic.
+ * Step for committing upgrade of PowerAuth protocol.
  *
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
@@ -52,8 +49,10 @@ import java.util.Map;
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-@Component(value = "createTokenStepV3")
-public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, EciesEncryptedResponse> {
+@Component
+public class CommitUpgradeStep extends AbstractBaseStep<CommitUpgradeStepModel, Response> {
+
+    private static final ParameterizedTypeReference<Response> RESPONSE_TYPE_REFERENCE = new ParameterizedTypeReference<>() {};
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
@@ -64,10 +63,11 @@ public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, Ecie
      * @param stepLoggerFactory Step logger factory
      */
     @Autowired
-    public CreateTokenStep(PowerAuthHeaderFactory powerAuthHeaderFactory,
-                           ResultStatusService resultStatusService,
-                           StepLoggerFactory stepLoggerFactory) {
-        super(PowerAuthStep.TOKEN_CREATE, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
+    public CommitUpgradeStep(
+            PowerAuthHeaderFactory powerAuthHeaderFactory,
+            ResultStatusService resultStatusService,
+            StepLoggerFactory stepLoggerFactory) {
+        super(PowerAuthStep.UPGRADE_COMMIT, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
@@ -75,7 +75,7 @@ public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, Ecie
     /**
      * Constructor for backward compatibility
      */
-    public CreateTokenStep() {
+    public CommitUpgradeStep() {
         this(
                 BackwardCompatibilityConst.POWER_AUTH_HEADER_FACTORY,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
@@ -84,44 +84,48 @@ public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, Ecie
     }
 
     @Override
-    protected ParameterizedTypeReference<EciesEncryptedResponse> getResponseTypeReference() {
-        return PowerAuthConst.RESPONSE_TYPE_REFERENCE_V3;
+    protected ParameterizedTypeReference<Response> getResponseTypeReference(PowerAuthVersion version) {
+        return RESPONSE_TYPE_REFERENCE;
     }
 
     @Override
-    public StepContext<CreateTokenStepModel, EciesEncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        CreateTokenStepModel model = new CreateTokenStepModel();
+    public StepContext<CommitUpgradeStepModel, Response> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+        CommitUpgradeStepModel model = new CommitUpgradeStepModel();
         model.fromMap(context);
+
+        ResultStatusObject resultStatusObject = model.getResultStatus();
 
         RequestContext requestContext = RequestContext.builder()
                 .signatureHttpMethod("POST")
-                .signatureRequestUri("/pa/token/create")
-                .uri(model.getUriString() + "/pa/v3/token/create")
+                .signatureRequestUri("/pa/upgrade/commit")
+                .uri(model.getUriString() + "/pa/v3/upgrade/commit")
                 .build();
 
-        StepContext<CreateTokenStepModel, EciesEncryptedResponse> stepContext = buildStepContext(stepLogger, model, requestContext);
+        StepContext<CommitUpgradeStepModel, Response> stepContext =
+                buildStepContext(stepLogger, model, requestContext);
 
-        addEncryptedRequest(stepContext, model.getApplicationKey(), model.getApplicationSecret(), EncryptorId.CREATE_TOKEN, PowerAuthConst.EMPTY_JSON_BYTES, EncryptorScope.ACTIVATION_SCOPE);
+        // Make sure hash based counter is used for calculating the signature, in case of an error the version change is not saved
+        resultStatusObject.setVersion(3L);
 
+        requestContext.setRequestObject(PowerAuthConst.EMPTY_JSON_BYTES);
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
-
-        incrementCounter(model);
 
         return stepContext;
     }
 
     @Override
-    public void processResponse(StepContext<CreateTokenStepModel, EciesEncryptedResponse> stepContext) throws Exception {
+    public void processResponse(StepContext<CommitUpgradeStepModel, Response> stepContext) throws Exception {
+        CommitUpgradeStepModel model = stepContext.getModel();
 
-        final TokenResponsePayload tokenResponsePayload = decryptResponse(stepContext, TokenResponsePayload.class);
+        incrementCounter(model);
 
         stepContext.getStepLogger().writeItem(
-                getStep().id() + "-token-obtained",
-                "Token successfully obtained",
-                "Token was successfully generated and decrypted",
+                getStep().id() + "-upgrade-done",
+                "Upgrade commit successfully completed",
+                "Upgrade commit was successfully completed",
                 "OK",
-                Map.of("tokenId", tokenResponsePayload.getTokenId(),
-                        "tokenSecret",tokenResponsePayload.getTokenSecret())
+                null
+
         );
     }
 

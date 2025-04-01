@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wultra.security.powerauth.lib.cmd.steps.v3;
+package com.wultra.security.powerauth.lib.cmd.steps;
 
 import com.wultra.core.rest.model.base.request.ObjectRequest;
 import com.wultra.core.rest.model.base.response.ObjectResponse;
@@ -25,10 +25,10 @@ import com.wultra.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLogger;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import com.wultra.security.powerauth.lib.cmd.status.ResultStatusService;
-import com.wultra.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.RemoveTokenStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
 import com.wultra.security.powerauth.rest.api.model.request.TokenRemoveRequest;
 import com.wultra.security.powerauth.rest.api.model.response.TokenRemoveResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,7 +52,7 @@ import java.util.Objects;
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-@Component(value = "removeTokenStepV3")
+@Component("removeTokenStep")
 public class RemoveTokenStep extends AbstractBaseStep<RemoveTokenStepModel, ObjectResponse<TokenRemoveResponse>> {
 
     private static final ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>> RESPONSE_TYPE_REFERENCE =
@@ -88,7 +88,7 @@ public class RemoveTokenStep extends AbstractBaseStep<RemoveTokenStepModel, Obje
     }
 
     @Override
-    protected ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>> getResponseTypeReference() {
+    protected ParameterizedTypeReference<ObjectResponse<TokenRemoveResponse>> getResponseTypeReference(PowerAuthVersion version) {
         return RESPONSE_TYPE_REFERENCE;
     }
 

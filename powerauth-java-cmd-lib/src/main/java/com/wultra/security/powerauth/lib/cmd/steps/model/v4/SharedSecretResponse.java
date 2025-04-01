@@ -1,6 +1,6 @@
 /*
  * PowerAuth Server and related software components
- * Copyright (C) 2023 Wultra s.r.o.
+ * Copyright (C) 2025 Wultra s.r.o.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -17,13 +17,19 @@
  *
  */
 
-package com.wultra.security.powerauth.lib.cmd.util.config;
+package com.wultra.security.powerauth.lib.cmd.steps.model.v4;
+
+import lombok.Data;
 
 /**
- * Parameters for configuring PowerAuth Mobile SDK.
+ * Model class for shared secret response.
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public record SdkConfiguration(String appKeyBase64, String appSecretBase64, String masterPublicKeyBase64) {
-    // TODO - update for crypto4
+@Data
+public class SharedSecretResponse {
+
+    private String ecdhe;
+    private String mlkem;
+    
 }

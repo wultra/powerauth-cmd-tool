@@ -51,6 +51,7 @@ public class SdkConfigurationSerializer {
         if (!StringUtils.hasText(masterPublicKeyBase64)) {
             throw new IllegalArgumentException("Invalid public key");
         }
+        // TODO - update deserialization for crypto4
         final SdkDataWriter writer = new SdkDataWriter();
         writer.writeByte(SDK_CONFIGURATION_VERSION);
         writer.writeData(Base64.getDecoder().decode(appKeyBase64));

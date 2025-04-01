@@ -17,6 +17,7 @@
 package com.wultra.security.powerauth.lib.cmd.steps.model;
 
 
+import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
 import lombok.Data;
@@ -61,12 +62,12 @@ public class EncryptStepModel extends BaseStepModel
     private PublicKey masterPublicKey;
 
     /**
+     * Algorithm used for the shared secret derivation.
+     */
+    private SharedSecretAlgorithm sharedSecretAlgorithm;
+
+    /**
      * ECIES encryption scope.
-     *
-     * <p><b>PowerAuth protocol versions:</b>
-     * <ul>
-     *     <li>3.0</li>
-     * </ul>
      */
     private String scope;
 
@@ -79,6 +80,7 @@ public class EncryptStepModel extends BaseStepModel
         context.put("DRY_RUN", dryRun);
         context.put("MASTER_PUBLIC_KEY", masterPublicKey);
         context.put("SCOPE", scope);
+        context.put("SHARED_SECRET_ALGORITHM", sharedSecretAlgorithm);
         return context;
     }
 
@@ -91,6 +93,7 @@ public class EncryptStepModel extends BaseStepModel
         setDryRun((boolean) context.get("DRY_RUN"));
         setMasterPublicKey((PublicKey) context.get("MASTER_PUBLIC_KEY"));
         setScope((String) context.get("SCOPE"));
+        setSharedSecretAlgorithm((SharedSecretAlgorithm) context.get("SHARED_SECRET_ALGORITHM"));
     }
 
 }
