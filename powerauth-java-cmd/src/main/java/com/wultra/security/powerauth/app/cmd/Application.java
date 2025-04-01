@@ -246,7 +246,6 @@ public class Application {
                     model.setApplicationKey(applicationKey);
                     model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
-                    model.setMasterPublicKey(masterPublicKey);
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatus(resultStatusObject);
                     model.setStatusFileName(statusFileName);
@@ -280,7 +279,6 @@ public class Application {
                     model.setApplicationKey(applicationKey);
                     model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
-                    model.setMasterPublicKey(masterPublicKey);
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatus(resultStatusObject);
                     model.setStatusFileName(statusFileName);

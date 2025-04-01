@@ -16,6 +16,7 @@
  */
 package com.wultra.security.powerauth.lib.cmd.steps.model.data;
 
+import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
 import com.wultra.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 
 import java.security.PublicKey;
@@ -72,5 +73,10 @@ public interface ActivationData extends ResultStatusChangeable, BaseStepData {
      * @return User device platform.
      */
     String getPlatform();
+
+    /**
+     * @return Shared secret algorithm.
+     */
+    SharedSecretAlgorithm getSharedSecretAlgorithm();
 
 }

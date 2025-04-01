@@ -27,6 +27,9 @@ import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlg
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.security.SimpleSecurityContext;
+import com.wultra.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.ActivationData;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -117,7 +120,7 @@ public class SecurityUtil {
     public static SharedSecretAlgorithm resolveSharedSecretAlgorithm(StepContext<?, ?> stepContext, EncryptorScope scope) {
         return switch (scope) {
             case APPLICATION_SCOPE -> {
-                SharedSecretAlgorithm sharedSecretAlgorithm = (SharedSecretAlgorithm) stepContext.getModel().toMap().get("SHARED_SECRET_ALGORITHM");
+                SharedSecretAlgorithm sharedSecretAlgorithm = getSharedSecretAlgorithm(stepContext);
                 if (sharedSecretAlgorithm == null) {
                     // No shared secret algorithm is configured for the step, used the default one
                     sharedSecretAlgorithm = SecurityUtil.getDefaultSharedSecretAlgorithm(stepContext.getModel().getVersion());
@@ -143,5 +146,14 @@ public class SecurityUtil {
             default:
                 throw new IllegalArgumentException("Unsupported version: " + version);
         };
+    }
+
+    private static SharedSecretAlgorithm getSharedSecretAlgorithm(StepContext<? extends BaseStepData, ?> stepContext) {
+        if (stepContext.getModel() instanceof ActivationData activationModel) {
+            return activationModel.getSharedSecretAlgorithm();
+        } else if (stepContext.getModel() instanceof EncryptStepModel encryptionModel) {
+            return encryptionModel.getSharedSecretAlgorithm();
+        }
+        throw new IllegalStateException("Invalid model for obtaining shared secret algorithm");
     }
 }

@@ -47,7 +47,11 @@ import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.BaseStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.ActivationData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.v4.SharedSecretRequest;
 import com.wultra.security.powerauth.lib.cmd.steps.model.v4.SharedSecretResponse;
 import com.wultra.security.powerauth.rest.api.model.request.TemporaryKeyRequest;
@@ -139,7 +143,7 @@ public class TemporaryKeyUtil {
         final Instant now = Instant.now();
         final String activationId = scope == EncryptorScope.ACTIVATION_SCOPE ? model.getResultStatus().getActivationId() : null;
         final JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder()
-                .claim("applicationKey", stepContext.getModel().toMap().get("APPLICATION_KEY"))
+                .claim("applicationKey", getApplicationKey(stepContext))
                 .claim("activationId", activationId)
                 .claim("challenge", challenge)
                 .issueTime(Date.from(now))
@@ -180,7 +184,7 @@ public class TemporaryKeyUtil {
     }
 
     private static byte[] getSecretKey(StepContext<? extends BaseStepData, ?> stepContext, BaseStepModel model, EncryptorScope scope) throws Exception {
-        final String appSecret = (String) stepContext.getModel().toMap().get("APPLICATION_SECRET");
+        final String appSecret = getApplicationSecret(stepContext);
         if (scope == EncryptorScope.APPLICATION_SCOPE) {
             return Base64.getDecoder().decode(appSecret);
         } else if (scope == EncryptorScope.ACTIVATION_SCOPE) {
@@ -237,9 +241,9 @@ public class TemporaryKeyUtil {
         final BaseStepModel model = (BaseStepModel) stepContext.getModel();
         final String jwtResponse = response.getResponseObject().getJwt();
         final SignedJWT decodedJWT = SignedJWT.parse(jwtResponse);
-        final ECPublicKey publicKey = switch (scope) {
+        final PublicKey publicKey = switch (scope) {
             case ACTIVATION_SCOPE -> (ECPublicKey) stepContext.getModel().getResultStatus().getServerPublicKeyObject();
-            case APPLICATION_SCOPE -> (ECPublicKey) stepContext.getModel().toMap().get("MASTER_PUBLIC_KEY");
+            case APPLICATION_SCOPE -> getMasterPublicKey(stepContext);
         };
         if (scope == EncryptorScope.APPLICATION_SCOPE && model.getVersion().getMajorVersion() == 4) {
             // TODO - signature verification is skipped for crypto4 because master public key is not configured for P-384 curve yet
@@ -316,6 +320,33 @@ public class TemporaryKeyUtil {
         v.add(new ASN1Integer(r));
         v.add(new ASN1Integer(s));
         return new DLSequence(v).getEncoded();
+    }
+
+    private static String getApplicationKey(StepContext<? extends BaseStepData, ?> stepContext) {
+        if (stepContext.getModel() instanceof SignatureHeaderData signatureModel) {
+            return signatureModel.getApplicationKey();
+        } else if (stepContext.getModel() instanceof EncryptionHeaderData encryptionModel) {
+            return encryptionModel.getApplicationKey();
+        }
+        throw new IllegalStateException("Invalid model for obtaining application key");
+    }
+
+    private static String getApplicationSecret(StepContext<? extends BaseStepData, ?> stepContext) {
+        if (stepContext.getModel() instanceof SignatureHeaderData signatureModel) {
+            return signatureModel.getApplicationSecret();
+        } else if (stepContext.getModel() instanceof EncryptionHeaderData encryptionModel) {
+            return encryptionModel.getApplicationSecret();
+        }
+        throw new IllegalStateException("Invalid model for obtaining application secret");
+    }
+
+    private static PublicKey getMasterPublicKey(StepContext<? extends BaseStepData, ?> stepContext) {
+        if (stepContext.getModel() instanceof ActivationData activationModel) {
+            return activationModel.getMasterPublicKey();
+        } else if (stepContext.getModel() instanceof EncryptStepModel encryptionModel) {
+            return encryptionModel.getMasterPublicKey();
+        }
+        throw new IllegalStateException("Invalid model for obtaining master public key");
     }
 
 }
