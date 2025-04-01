@@ -52,8 +52,11 @@ import com.wultra.security.powerauth.lib.cmd.steps.model.data.ActivationData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
-import com.wultra.security.powerauth.lib.cmd.steps.model.v4.SharedSecretRequest;
-import com.wultra.security.powerauth.lib.cmd.steps.model.v4.SharedSecretResponse;
+import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecret;
+import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecretEcdhe;
+import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecretHybrid;
+import com.wultra.security.powerauth.lib.cmd.steps.model.v4.response.ResponseSharedSecretEcdhe;
+import com.wultra.security.powerauth.lib.cmd.steps.model.v4.response.ResponseSharedSecretHybrid;
 import com.wultra.security.powerauth.rest.api.model.request.TemporaryKeyRequest;
 import com.wultra.security.powerauth.rest.api.model.response.TemporaryKeyResponse;
 import org.bouncycastle.asn1.ASN1EncodableVector;
@@ -149,7 +152,7 @@ public class TemporaryKeyUtil {
                 .issueTime(Date.from(now))
                 .expirationTime(Date.from(now.plus(5, ChronoUnit.MINUTES)));
         if (model.getVersion().getMajorVersion() == 4) {
-            final SharedSecretRequest request = buildSharedSecretRequest(stepContext, algorithm);
+            final RequestSharedSecret request = buildSharedSecretRequest(stepContext, algorithm);
             builder.claim("sharedSecretRequest", request);
             builder.build();
         }
@@ -158,13 +161,13 @@ public class TemporaryKeyUtil {
         return signJwt(jwtClaims, secretKey);
     }
 
-    private static SharedSecretRequest buildSharedSecretRequest(StepContext<? extends BaseStepData, ?> stepContext, SharedSecretAlgorithm algorithm) throws GenericCryptoException {
+    private static RequestSharedSecret buildSharedSecretRequest(StepContext<? extends BaseStepData, ?> stepContext, SharedSecretAlgorithm algorithm) throws GenericCryptoException {
         return switch (algorithm) {
             case EC_P384 -> {
                 final RequestCryptogram requestCryptogram = SHARED_SECRET_ECDHE.generateRequestCryptogram();
                 stepContext.getAttributes().put(TEMPORARY_CLIENT_CONTEXT, requestCryptogram.getSharedSecretClientContext());
                 final SharedSecretRequestEcdhe requestEcdhe = (SharedSecretRequestEcdhe) requestCryptogram.getSharedSecretRequest();
-                final SharedSecretRequest sharedSecretRequest = new SharedSecretRequest();
+                final RequestSharedSecretEcdhe sharedSecretRequest = new RequestSharedSecretEcdhe();
                 sharedSecretRequest.setAlgorithm(algorithm.toString());
                 sharedSecretRequest.setEcdhe(requestEcdhe.getEcClientPublicKey());
                 yield sharedSecretRequest;
@@ -173,7 +176,7 @@ public class TemporaryKeyUtil {
                 final RequestCryptogram requestCryptogram = SHARED_SECRET_HYBRID.generateRequestCryptogram();
                 stepContext.getAttributes().put(TEMPORARY_CLIENT_CONTEXT, requestCryptogram.getSharedSecretClientContext());
                 final SharedSecretRequestHybrid requestHybrid = (SharedSecretRequestHybrid) requestCryptogram.getSharedSecretRequest();
-                final SharedSecretRequest sharedSecretRequest = new SharedSecretRequest();
+                final RequestSharedSecretHybrid sharedSecretRequest = new RequestSharedSecretHybrid();
                 sharedSecretRequest.setAlgorithm(algorithm.toString());
                 sharedSecretRequest.setEcdhe(requestHybrid.getEcClientPublicKey());
                 sharedSecretRequest.setMlkem(requestHybrid.getPqcEncapsulationKey());
@@ -267,16 +270,17 @@ public class TemporaryKeyUtil {
 
     private static void handleSharedSecretResponse(StepContext<? extends BaseStepData, ?> stepContext, SignedJWT decodedJWT, SharedSecretAlgorithm algorithm) throws ParseException, GenericCryptoException {
         final Object claim = decodedJWT.getJWTClaimsSet().getClaim("sharedSecretResponse");
-        final SharedSecretResponse serverResponse = OBJECT_MAPPER.convertValue(claim, SharedSecretResponse.class);
         final SecretKey sharedSecret = switch (algorithm) {
             case EC_P384 -> {
-                SharedSecretClientContextEcdhe clientContext = (SharedSecretClientContextEcdhe) stepContext.getAttributes().get(TEMPORARY_CLIENT_CONTEXT);
+                final ResponseSharedSecretEcdhe serverResponse = OBJECT_MAPPER.convertValue(claim, ResponseSharedSecretEcdhe.class);
+                final SharedSecretClientContextEcdhe clientContext = (SharedSecretClientContextEcdhe) stepContext.getAttributes().get(TEMPORARY_CLIENT_CONTEXT);
                 final SharedSecretResponseEcdhe sharedSecretResponseEcdhe = new SharedSecretResponseEcdhe();
                 sharedSecretResponseEcdhe.setEcServerPublicKey(serverResponse.getEcdhe());
                 yield SHARED_SECRET_ECDHE.computeSharedSecret(clientContext, sharedSecretResponseEcdhe);
             }
             case EC_P384_ML_L3 -> {
-                SharedSecretClientContextHybrid clientContext = (SharedSecretClientContextHybrid) stepContext.getAttributes().get(TEMPORARY_CLIENT_CONTEXT);
+                final ResponseSharedSecretHybrid serverResponse = OBJECT_MAPPER.convertValue(claim, ResponseSharedSecretHybrid.class);
+                final SharedSecretClientContextHybrid clientContext = (SharedSecretClientContextHybrid) stepContext.getAttributes().get(TEMPORARY_CLIENT_CONTEXT);
                 final SharedSecretResponseHybrid sharedSecretResponseHybrid = new SharedSecretResponseHybrid();
                 sharedSecretResponseHybrid.setEcServerPublicKey(serverResponse.getEcdhe());
                 sharedSecretResponseHybrid.setPqcEncapsulation(serverResponse.getMlkem());

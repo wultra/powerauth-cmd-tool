@@ -17,19 +17,20 @@
  *
  */
 
-package com.wultra.security.powerauth.lib.cmd.steps.model.v4;
+package com.wultra.security.powerauth.lib.cmd.steps.model.v4.request;
 
 import lombok.Data;
 
 /**
- * Model class for shared secret response.
+ * Model class for shared secret hybrid request.
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
 @Data
-public class SharedSecretResponse {
+public class RequestSharedSecretHybrid implements RequestSharedSecret {
 
+    private String algorithm;
     private String ecdhe;
     private String mlkem;
-    
+
 }
