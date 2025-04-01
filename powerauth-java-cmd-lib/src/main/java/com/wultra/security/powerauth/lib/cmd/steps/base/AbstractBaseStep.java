@@ -141,19 +141,11 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @return Response type for encrypted responses
      */
     protected ParameterizedTypeReference<EncryptedResponse> getResponseTypeReferenceEncrypted(PowerAuthVersion version) {
-        return toTypeReference(switch (version.getMajorVersion()) {
+        final Class<? extends EncryptedResponse> clazz = switch (version.getMajorVersion()) {
             case 3 -> EciesEncryptedResponse.class;
             case 4 -> AeadEncryptedResponse.class;
             default -> throw new IllegalStateException("Unsupported version: " + version);
-        });
-    }
-
-    /**
-     * Helper method which allows to convert response class to parameterized type reference.
-     * @param clazz Response class.
-     * @return Parameterized type reference.
-     */
-    private ParameterizedTypeReference<EncryptedResponse> toTypeReference(Class<? extends EncryptedResponse> clazz) {
+        };
         return new ParameterizedTypeReference<>() {
             @Override
             @Nonnull
@@ -162,6 +154,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             }
         };
     }
+
     /**
      * Execute this step with given logger and context objects.
      *
