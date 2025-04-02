@@ -16,9 +16,11 @@
  */
 package com.wultra.security.powerauth.lib.cmd.util;
 
+import com.wultra.security.powerauth.crypto.lib.enums.EcCurve;
 import com.wultra.security.powerauth.crypto.lib.model.exception.CryptoProviderException;
 import com.wultra.security.powerauth.crypto.lib.model.exception.GenericCryptoException;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
+import com.wultra.security.powerauth.crypto.lib.util.PqcDsaKeyConvertor;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLogger;
 import com.wultra.security.powerauth.lib.cmd.util.config.SdkConfiguration;
 import org.json.simple.JSONObject;
@@ -35,7 +37,8 @@ import java.util.Base64;
  */
 public class ConfigurationUtil {
 
-    private static final KeyConvertor keyConvertor = new KeyConvertor();
+    private static final KeyConvertor KEY_CONVERTOR_EC = new KeyConvertor();
+    private static final PqcDsaKeyConvertor KEY_CONVERTOR_PQC_DSA = new PqcDsaKeyConvertor();
 
     /**
      * Get application key value that is set in dictionary, or a default value.
@@ -74,27 +77,35 @@ public class ConfigurationUtil {
     }
 
     /**
-     * Get master public key from the configuration object
-     * @param clientConfigObject Object with configuration.
-     * @param stepLogger Step logger instance.
-     * @return Master public key.
-     */
-    public static PublicKey getMasterPublicKey(JSONObject clientConfigObject, StepLogger stepLogger) {
-        if (clientConfigObject != null && clientConfigObject.get("masterPublicKey") != null) {
-            return convertMasterPublicKey((String) clientConfigObject.get("masterPublicKey"), stepLogger);
-        }
-        return null;
-    }
-
-    /**
-     * Extract master public key from mobile SDK configuration
+     * Extract master public key for P-256 curve from mobile SDK configuration
      * @param config Mobile SDK configuration.
      * @param stepLogger Step logger instance.
      * @return Master public key.
      */
-    public static PublicKey getMasterPublicKey(SdkConfiguration config, StepLogger stepLogger) {
-        return convertMasterPublicKey(config.masterPublicKeyBase64(), stepLogger);
+    public static PublicKey getMasterPublicKeyP256(SdkConfiguration config, StepLogger stepLogger) {
+        return convertMasterPublicKeyP256(config.masterPublicKeyP256(), stepLogger);
     }
+
+    /**
+     * Extract master public key for P-384 curve from mobile SDK configuration
+     * @param config Mobile SDK configuration.
+     * @param stepLogger Step logger instance.
+     * @return Master public key.
+     */
+    public static PublicKey getMasterPublicKeyP384(SdkConfiguration config, StepLogger stepLogger) {
+        return convertMasterPublicKeyP384(config.masterPublicKeyP384(), stepLogger);
+    }
+
+    /**
+     * Extract master public key for ML-DSA-65 from mobile SDK configuration
+     * @param config Mobile SDK configuration.
+     * @param stepLogger Step logger instance.
+     * @return Master public key.
+     */
+    public static PublicKey getMasterPublicKeyMlDsa65(SdkConfiguration config, StepLogger stepLogger) {
+        return convertMasterPublicKeyMlDsa65(config.masterPublicKeyMlDsa65(), stepLogger);
+    }
+
 
     /**
      * Get mobile SDK configuration.
@@ -109,17 +120,36 @@ public class ConfigurationUtil {
     }
 
     /**
-     * Convert master public key from String to PublicKey
+     * Convert master public key for curve P-256 from String to PublicKey
      * @param masterPublicKey Master public key
      * @param stepLogger Step logger
      * @return Public key
      */
-    private static PublicKey convertMasterPublicKey(String masterPublicKey, StepLogger stepLogger) {
-        // TODO - support for crypto4
+    private static PublicKey convertMasterPublicKeyP256(String masterPublicKey, StepLogger stepLogger) {
+        return convertMasterPublicKeyEC(EcCurve.P256, masterPublicKey, stepLogger);
+    }
+
+    /**
+     * Convert master public key for curve P-384 from String to PublicKey
+     * @param masterPublicKey Master public key
+     * @param stepLogger Step logger
+     * @return Public key
+     */
+    private static PublicKey convertMasterPublicKeyP384(String masterPublicKey, StepLogger stepLogger) {
+        return convertMasterPublicKeyEC(EcCurve.P384, masterPublicKey, stepLogger);
+    }
+
+    /**
+     * Convert master public key for EC from String to PublicKey
+     * @param masterPublicKey Master public key
+     * @param stepLogger Step logger
+     * @return Public key
+     */
+    private static PublicKey convertMasterPublicKeyEC(EcCurve ecCurve, String masterPublicKey, StepLogger stepLogger) {
         if (masterPublicKey != null) {
             try {
                 byte[] masterKeyBytes = Base64.getDecoder().decode(masterPublicKey);
-                return keyConvertor.convertBytesToPublicKey(masterKeyBytes);
+                return KEY_CONVERTOR_EC.convertBytesToPublicKey(ecCurve, masterKeyBytes);
             } catch (IllegalArgumentException e) {
                 stepLogger.writeError("master-key-error-encoding", "Invalid Master Server Public Key", "Master Server Public Key must be stored in a valid Base64 encoding", e);
                 stepLogger.writeDoneFailed("master-key-failed");
@@ -130,6 +160,34 @@ public class ConfigurationUtil {
                 System.exit(1);
             } catch (CryptoProviderException e) {
                 stepLogger.writeError("master-key-error-cryptography-provider", "Cryptography Provider Error", "Cryptography provider is initialized incorrectly", e);
+                stepLogger.writeDoneFailed("master-key-failed");
+                System.exit(1);
+            } catch (GenericCryptoException e) {
+                stepLogger.writeError("master-key-error-cryptography-generic", "Cryptography Generic Error", "Cryptography error occurred", e);
+                stepLogger.writeDoneFailed("master-key-failed");
+                System.exit(1);
+            }
+        } else {
+            stepLogger.writeError("master-key-error-public-key-missing", "Invalid Master Server Public Key", "Master Server Public Key not found in the config file");
+            stepLogger.writeDoneFailed("master-key-failed");
+            System.exit(1);
+        }
+        return null;
+    }
+
+    /**
+     * Convert master public key for ML-DSA-65 from String to PublicKey
+     * @param masterPublicKey Master public key
+     * @param stepLogger Step logger
+     * @return Public key
+     */
+    private static PublicKey convertMasterPublicKeyMlDsa65(String masterPublicKey, StepLogger stepLogger) {
+        if (masterPublicKey != null) {
+            try {
+                byte[] masterKeyBytes = Base64.getDecoder().decode(masterPublicKey);
+                return KEY_CONVERTOR_PQC_DSA.convertBytesToPublicKey(masterKeyBytes);
+            } catch (IllegalArgumentException e) {
+                stepLogger.writeError("master-key-error-encoding", "Invalid Master Server Public Key", "Master Server Public Key must be stored in a valid Base64 encoding", e);
                 stepLogger.writeDoneFailed("master-key-failed");
                 System.exit(1);
             } catch (GenericCryptoException e) {

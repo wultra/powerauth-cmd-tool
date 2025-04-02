@@ -60,9 +60,19 @@ public interface ActivationData extends ResultStatusChangeable, BaseStepData {
     Map<String, String> getIdentityAttributes();
 
     /**
-     * @return Base64 encoded master public key.
+     * @return Base64 encoded master public key for P-256.
      */
-    PublicKey getMasterPublicKey();
+    PublicKey getMasterPublicKeyP256();
+
+    /**
+     * @return Base64 encoded master public key for P-384.
+     */
+    PublicKey getMasterPublicKeyP384();
+
+    /**
+     * @return Base64 encoded master public key for P-384.
+     */
+    PublicKey getMasterPublicKeyMlDsa65();
 
     /**
      * @return Knowledge key password.

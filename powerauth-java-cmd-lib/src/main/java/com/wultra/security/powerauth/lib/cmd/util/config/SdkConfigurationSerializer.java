@@ -19,49 +19,24 @@
 
 package com.wultra.security.powerauth.lib.cmd.util.config;
 
-import org.springframework.util.StringUtils;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Base64;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Writer for serialized PowerAuth mobile SDK configuration.
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
+@Slf4j
 public class SdkConfigurationSerializer {
 
     private static final byte SDK_CONFIGURATION_VERSION = 0x01;
-    private static final byte MASTER_PUBLIC_KEY_CRYPTO_V3 = 0x01;
-
-    /**
-     * Serialize SDK configuration into a single Base-64 encoded string.
-     * @param config SDK configuration.
-     * @return Base-64 encoded string.
-     */
-    public static String serialize(SdkConfiguration config) {
-        final String appKeyBase64 = config.appKeyBase64();
-        final String appSecretBase64 = config.appSecretBase64();
-        final String masterPublicKeyBase64 = config.masterPublicKeyBase64();
-        if (!StringUtils.hasText(appKeyBase64)) {
-            throw new IllegalArgumentException("Invalid application key");
-        }
-        if (!StringUtils.hasText(appSecretBase64)) {
-            throw new IllegalArgumentException("Invalid application secret");
-        }
-        if (!StringUtils.hasText(masterPublicKeyBase64)) {
-            throw new IllegalArgumentException("Invalid public key");
-        }
-        // TODO - update deserialization for crypto4
-        final SdkDataWriter writer = new SdkDataWriter();
-        writer.writeByte(SDK_CONFIGURATION_VERSION);
-        writer.writeData(Base64.getDecoder().decode(appKeyBase64));
-        writer.writeData(Base64.getDecoder().decode(appSecretBase64));
-        writer.writeCount(1);
-        writer.writeByte(MASTER_PUBLIC_KEY_CRYPTO_V3);
-        final byte[] publicKeyBytes = Base64.getDecoder().decode(masterPublicKeyBase64);
-        writer.writeData(publicKeyBytes);
-        return Base64.getEncoder().encodeToString(writer.getSerializedData());
-    }
+    private static final byte KEY_MASTER_ECDSA_P256_PUBLIC = 0x01;
+    private static final byte KEY_MASTER_ECDSA_P384_PUBLIC = 0x02;
+    private static final byte KEY_MASTER_MLDSA65_PUBLIC = 0x03;
 
     /**
      * Deserialize SDK configuration from a Base-64 encoded string.
@@ -77,21 +52,32 @@ public class SdkConfigurationSerializer {
         }
         final byte[] appKey = reader.readData(16);
         final byte[] appSecret = reader.readData(16);
-        final Integer keyCount = reader.readCount();
-        if (appKey == null || appSecret == null || keyCount != 1) {
+        if (appKey == null || appSecret == null) {
             // Unexpected data
             return null;
         }
-        final Byte keyId = reader.readByte();
-        if (keyId != 0x01) {
-            // Invalid key ID
-            return null;
-        }
-        final byte[] masterPublicKey = reader.readData(0);
+        final Map<Byte, String> publicKeys = deserializeKeys(reader);
+        final String publicKeyP256 = publicKeys.get(KEY_MASTER_ECDSA_P256_PUBLIC);
+        final String publicKeyP384 = publicKeys.get(KEY_MASTER_ECDSA_P384_PUBLIC);
+        final String publicKeyMlDsa65 = publicKeys.get(KEY_MASTER_MLDSA65_PUBLIC);
         final String appKeyBase64 = Base64.getEncoder().encodeToString(appKey);
         final String appSecretBase64 = Base64.getEncoder().encodeToString(appSecret);
-        final String masterPublicKeyBase64 = Base64.getEncoder().encodeToString(masterPublicKey);
-        return new SdkConfiguration(appKeyBase64, appSecretBase64, masterPublicKeyBase64);
+        return new SdkConfiguration(appKeyBase64, appSecretBase64, publicKeyP256, publicKeyP384, publicKeyMlDsa65);
     }
 
+    /**
+     * Deserialize public keys using reader.
+     * @param reader SDK data reader.
+     * @return Map of public key ID to public key in Base-64 format.
+     */
+    private static Map<Byte, String> deserializeKeys(SdkDataReader reader) {
+        final Map<Byte, String> publicKeys = new LinkedHashMap<>();
+        final Integer keyCount = reader.readCount();
+        for (int i = 0; i < keyCount; i++) {
+            final Byte keyId = reader.readByte();
+            final byte[] publicKey = reader.readData(0);
+            publicKeys.put(keyId, Base64.getEncoder().encodeToString(publicKey));
+        }
+        return publicKeys;
+    }
 }

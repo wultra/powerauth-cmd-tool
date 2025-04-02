@@ -24,6 +24,6 @@ package com.wultra.security.powerauth.lib.cmd.util.config;
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public record SdkConfiguration(String appKeyBase64, String appSecretBase64, String masterPublicKeyBase64) {
-    // TODO - update for crypto4
+public record SdkConfiguration(String appKey, String appSecret, String masterPublicKeyP256, String masterPublicKeyP384, String masterPublicKeyMlDsa65) {
+
 }

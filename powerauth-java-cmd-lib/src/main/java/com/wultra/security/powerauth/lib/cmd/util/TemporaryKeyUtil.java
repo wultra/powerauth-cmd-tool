@@ -246,11 +246,9 @@ public class TemporaryKeyUtil {
         final SignedJWT decodedJWT = SignedJWT.parse(jwtResponse);
         final PublicKey publicKey = switch (scope) {
             case ACTIVATION_SCOPE -> (ECPublicKey) stepContext.getModel().getResultStatus().getServerPublicKeyObject();
-            case APPLICATION_SCOPE -> getMasterPublicKey(stepContext);
+            case APPLICATION_SCOPE -> getEcMasterPublicKey(stepContext, algorithm);
         };
-        if (scope == EncryptorScope.APPLICATION_SCOPE && model.getVersion().getMajorVersion() == 4) {
-            // TODO - signature verification is skipped for crypto4 because master public key is not configured for P-384 curve yet
-        } else if (!validateJwtSignature(decodedJWT, publicKey, model.getVersion())) {
+        if (!validateJwtSignature(decodedJWT, publicKey, algorithm)) {
             stepContext.getStepLogger().writeError(step.id() + "-error-signature-invalid", "JWT signature is invalid");
             return;
         }
@@ -292,20 +290,16 @@ public class TemporaryKeyUtil {
         stepContext.getAttributes().remove(TEMPORARY_CLIENT_CONTEXT);
     }
 
-    private static boolean validateJwtSignature(SignedJWT jwt, PublicKey publicKey, PowerAuthVersion version) throws Exception {
+    private static boolean validateJwtSignature(SignedJWT jwt, PublicKey publicKey, SharedSecretAlgorithm algorithm) throws Exception {
         final Base64URL[] jwtParts = jwt.getParsedParts();
         final Base64URL encodedHeader = jwtParts[0];
         final Base64URL encodedPayload = jwtParts[1];
         final Base64URL encodedSignature = jwtParts[2];
         final String signingInput = encodedHeader + "." + encodedPayload;
         final byte[] signatureBytes = convertRawSignatureToDER(encodedSignature.decode());
-        return switch (version.getMajorVersion()) {
-            case 3:
-                yield SIGNATURE_UTILS.validateECDSASignature(EcCurve.P256, signingInput.getBytes(StandardCharsets.UTF_8), signatureBytes, publicKey);
-            case 4:
-                yield SIGNATURE_UTILS.validateECDSASignature(EcCurve.P384, signingInput.getBytes(StandardCharsets.UTF_8), signatureBytes, publicKey);
-            default:
-                throw new IllegalStateException("Unsupported version: " + version);
+        return switch (algorithm) {
+            case EC_P256 -> SIGNATURE_UTILS.validateECDSASignature(EcCurve.P256, signingInput.getBytes(StandardCharsets.UTF_8), signatureBytes, publicKey);
+            case EC_P384, EC_P384_ML_L3 -> SIGNATURE_UTILS.validateECDSASignature(EcCurve.P384, signingInput.getBytes(StandardCharsets.UTF_8), signatureBytes, publicKey);
         };
     }
 
@@ -344,11 +338,17 @@ public class TemporaryKeyUtil {
         throw new IllegalStateException("Invalid model for obtaining application secret");
     }
 
-    private static PublicKey getMasterPublicKey(StepContext<? extends BaseStepData, ?> stepContext) {
+    private static PublicKey getEcMasterPublicKey(StepContext<? extends BaseStepData, ?> stepContext, SharedSecretAlgorithm algorithm) {
         if (stepContext.getModel() instanceof ActivationData activationModel) {
-            return activationModel.getMasterPublicKey();
+            return switch (algorithm) {
+                case EC_P256 -> activationModel.getMasterPublicKeyP256();
+                case EC_P384, EC_P384_ML_L3 -> activationModel.getMasterPublicKeyP384();
+            };
         } else if (stepContext.getModel() instanceof EncryptStepModel encryptionModel) {
-            return encryptionModel.getMasterPublicKey();
+            return switch (algorithm) {
+                case EC_P256 -> encryptionModel.getMasterPublicKeyP256();
+                case EC_P384, EC_P384_ML_L3 -> encryptionModel.getMasterPublicKeyP384();
+            };
         }
         throw new IllegalStateException("Invalid model for obtaining master public key");
     }

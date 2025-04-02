@@ -294,7 +294,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
                 deviceKeyPair = ACTIVATION.generateDeviceKeyPair();
                 final String temporaryPublicKey = (String) stepContext.getAttributes().get(TEMPORARY_PUBLIC_KEY);
                 final PublicKey encryptionPublicKey = temporaryPublicKey == null ?
-                        model.getMasterPublicKey() :
+                        model.getMasterPublicKeyP256() :
                         KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, Base64.getDecoder().decode(temporaryPublicKey));
                 encryptorL1 = ENCRYPTOR_FACTORY.getClientEncryptor(
                         EncryptorId.APPLICATION_SCOPE_GENERIC,

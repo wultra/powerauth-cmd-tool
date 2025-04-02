@@ -152,7 +152,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EncryptedRes
                     case 3 -> {
                         final String temporaryPublicKey = (String) stepContext.getAttributes().get(TEMPORARY_PUBLIC_KEY);
                         final PublicKey encryptionPublicKey = temporaryPublicKey == null ?
-                                model.getMasterPublicKey() :
+                                model.getMasterPublicKeyP256() :
                                 KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, java.util.Base64.getDecoder().decode(temporaryPublicKey));
                         encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, temporaryKeyId);
                         encryptorSecrets = new ClientEciesSecrets(encryptionPublicKey, model.getApplicationSecret());

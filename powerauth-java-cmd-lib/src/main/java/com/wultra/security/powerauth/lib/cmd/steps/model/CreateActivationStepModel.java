@@ -87,9 +87,19 @@ public class CreateActivationStepModel extends BaseStepModel
     private String password;
 
     /**
-     * Master Server Public Key, a value specific for given application.
+     * Master Server Public Key for P-256, a value specific for given application.
      */
-    private PublicKey masterPublicKey;
+    private PublicKey masterPublicKeyP256;
+
+    /**
+     * Master Server Public Key for P-384, a value specific for given application.
+     */
+    private PublicKey masterPublicKeyP384;
+
+    /**
+     * Master Server Public Key for ML-DSA-65, a value specific for given application.
+     */
+    private PublicKey masterPublicKeyMlDsa65;
 
     /**
      * Algorithm used for the shared secret derivation.
@@ -110,7 +120,9 @@ public class CreateActivationStepModel extends BaseStepModel
         context.put("IDENTITY_ATTRIBUTES", identityAttributes);
         context.put("CUSTOM_ATTRIBUTES", customAttributes);
         context.put("ACTIVATION_OTP", activationOtp);
-        context.put("MASTER_PUBLIC_KEY", masterPublicKey);
+        context.put("MASTER_PUBLIC_KEY_P256", masterPublicKeyP256);
+        context.put("MASTER_PUBLIC_KEY_P384", masterPublicKeyP384);
+        context.put("MASTER_PUBLIC_KEY_MLDSA65", masterPublicKeyMlDsa65);
         context.put("STATUS_FILENAME", statusFileName);
         context.put("PASSWORD", password);
         context.put("ACTIVATION_NAME", activationName);
@@ -129,7 +141,9 @@ public class CreateActivationStepModel extends BaseStepModel
         setIdentityAttributes((Map<String, String>) context.get("IDENTITY_ATTRIBUTES"));
         setCustomAttributes((Map<String, Object>) context.get("CUSTOM_ATTRIBUTES"));
         setActivationOtp((String) context.get("ACTIVATION_OTP"));
-        setMasterPublicKey((PublicKey) context.get("MASTER_PUBLIC_KEY"));
+        setMasterPublicKeyP256((PublicKey) context.get("MASTER_PUBLIC_KEY_P256"));
+        setMasterPublicKeyP384((PublicKey) context.get("MASTER_PUBLIC_KEY_P384"));
+        setMasterPublicKeyMlDsa65((PublicKey) context.get("MASTER_PUBLIC_KEY_MLDSA65"));
         setStatusFileName((String) context.get("STATUS_FILENAME"));
         setPassword((String) context.get("PASSWORD"));
         setActivationName((String) context.get("ACTIVATION_NAME"));

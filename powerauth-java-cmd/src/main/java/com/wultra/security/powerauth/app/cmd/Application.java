@@ -202,7 +202,9 @@ public class Application {
             final String mobileSdkConfig = ConfigurationUtil.getMobileSdkConfig(clientConfigObject);
             final String applicationKey;
             final String applicationSecret;
-            final PublicKey masterPublicKey;
+            final PublicKey masterPublicKeyP256;
+            final PublicKey masterPublicKeyP384;
+            final PublicKey masterPublicKeyMlDsa65;
             if (mobileSdkConfig != null) {
                 // Extract simplified mobile SDK configuration
                 final SdkConfiguration config = SdkConfigurationSerializer.deserialize(mobileSdkConfig);
@@ -210,15 +212,19 @@ public class Application {
                     stepLogger.writeError("invalid-sdk-config", "Invalid Mobile SDK Config", "Mobile SDK Config is not valid");
                     stepLogger.writeDoneFailed("sdk-config-failed");
                     System.exit(1);
+                    return;
                 }
-                applicationKey = config.appKeyBase64();
-                applicationSecret = config.appSecretBase64();
-                masterPublicKey = ConfigurationUtil.getMasterPublicKey(config, stepLogger);
+                applicationKey = config.appKey();
+                applicationSecret = config.appSecret();
+                masterPublicKeyP256 = ConfigurationUtil.getMasterPublicKeyP256(config, stepLogger);
+                masterPublicKeyP384 = ConfigurationUtil.getMasterPublicKeyP384(config, stepLogger);
+                masterPublicKeyMlDsa65 = ConfigurationUtil.getMasterPublicKeyMlDsa65(config, stepLogger);
             } else {
                 // Fallback to traditional mobile SDK configuration
-                applicationKey = ConfigurationUtil.getApplicationKey(clientConfigObject);
-                applicationSecret = ConfigurationUtil.getApplicationSecret(clientConfigObject);
-                masterPublicKey = ConfigurationUtil.getMasterPublicKey(clientConfigObject, stepLogger);
+                stepLogger.writeError("invalid-sdk-config", "Invalid Mobile SDK Config", "Mobile SDK Config is not valid");
+                stepLogger.writeDoneFailed("sdk-config-failed");
+                System.exit(1);
+                return;
             }
 
             // Read current activation state from the activation state file or create an empty state
@@ -301,7 +307,9 @@ public class Application {
                     model.setApplicationSecret(applicationSecret);
                     model.setCustomAttributes(customAttributes);
                     model.setHeaders(httpHeaders);
-                    model.setMasterPublicKey(masterPublicKey);
+                    model.setMasterPublicKeyP256(masterPublicKeyP256);
+                    model.setMasterPublicKeyP384(masterPublicKeyP384);
+                    model.setMasterPublicKeyMlDsa65(masterPublicKeyMlDsa65);
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatus(resultStatusObject);
                     model.setStatusFileName(statusFileName);
@@ -387,7 +395,9 @@ public class Application {
                     model.setCustomAttributes(customAttributes);
                     model.setHeaders(httpHeaders);
                     model.setIdentityAttributes(identityAttributes);
-                    model.setMasterPublicKey(masterPublicKey);
+                    model.setMasterPublicKeyP256(masterPublicKeyP256);
+                    model.setMasterPublicKeyP384(masterPublicKeyP384);
+                    model.setMasterPublicKeyMlDsa65(masterPublicKeyMlDsa65);
                     model.setStatusFileName(statusFileName);
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatus(resultStatusObject);
@@ -403,7 +413,9 @@ public class Application {
                     model.setApplicationSecret(applicationSecret);
                     model.setDryRun(cmd.hasOption("dry-run"));
                     model.setHeaders(httpHeaders);
-                    model.setMasterPublicKey(masterPublicKey);
+                    model.setMasterPublicKeyP256(masterPublicKeyP256);
+                    model.setMasterPublicKeyP384(masterPublicKeyP384);
+                    model.setMasterPublicKeyMlDsa65(masterPublicKeyMlDsa65);
                     model.setResultStatus(resultStatusObject);
                     model.setScope(cmd.getOptionValue("o"));
                     model.setUriString(uriString);
