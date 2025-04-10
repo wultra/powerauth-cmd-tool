@@ -237,7 +237,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             final String temporaryKeyId = (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID);
             final String temporaryPublicKey = (String) stepContext.getAttributes().get(TEMPORARY_PUBLIC_KEY);
             final PublicKey encryptionPublicKey = temporaryKeyId == null ?
-                    resultStatusObject.getServerPublicKeyObject() :
+                    resultStatusObject.getEcServerPublicKeyObject() :
                     KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, Base64.getDecoder().decode(temporaryPublicKey));
             final byte[] transportMasterKeyBytes = Base64.getDecoder().decode(resultStatusObject.getTransportMasterKey());
             final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), applicationKey, resultStatusObject.getActivationId(), temporaryKeyId);

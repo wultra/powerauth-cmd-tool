@@ -18,6 +18,7 @@ package com.wultra.security.powerauth.lib.cmd.steps.pojo;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.wultra.security.powerauth.crypto.lib.enums.EcCurve;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
+import com.wultra.security.powerauth.crypto.lib.util.PqcDsaKeyConvertor;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -37,6 +38,7 @@ import java.util.Base64;
  * </p>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
+ * @author Roman Strobl, roman.strobl@wultra.com
  */
 @SuppressWarnings("unchecked")
 @Data
@@ -46,7 +48,8 @@ public class ResultStatusObject {
 
     private static final Logger logger = LoggerFactory.getLogger(ResultStatusObject.class);
 
-    private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
+    private static final KeyConvertor KEY_CONVERTOR_EC = new KeyConvertor();
+    private static final PqcDsaKeyConvertor KEY_CONVERTOR_PQC_DSA = new PqcDsaKeyConvertor();
 
     /**
      * Backward compatibility, sync all modifications to the JSON object
@@ -149,48 +152,105 @@ public class ResultStatusObject {
     }
 
     /**
-     * @return Server public key
+     * @return Server EC public key
      * @throws Exception when the public key cannot be decoded
      */
     @JsonIgnore
-    public PublicKey getServerPublicKeyObject() throws Exception {
-        // TODO - add PQC key once it is available
+    public PublicKey getEcServerPublicKeyObject() throws Exception {
         int version = getVersion().intValue();
-        EcCurve ecCurve = switch (version) {
-            case 3 -> EcCurve.P256;
-            case 4 -> EcCurve.P384;
+        return switch (version) {
+            case 3 -> {
+                String serverPublicKey = (String) jsonObject.get("serverPublicKey");
+                yield KEY_CONVERTOR_EC.convertBytesToPublicKey(EcCurve.P256, Base64.getDecoder().decode(serverPublicKey));
+            }
+            case 4 -> {
+                String serverPublicKey = (String) jsonObject.get("ecServerPublicKey");
+                yield KEY_CONVERTOR_EC.convertBytesToPublicKey(EcCurve.P384, Base64.getDecoder().decode(serverPublicKey));
+            }
             default -> throw new IllegalStateException("Unsupported version: " + version);
         };
-        String serverPublicKey = (String) jsonObject.get("serverPublicKey");
-        return KEY_CONVERTOR.convertBytesToPublicKey(ecCurve, Base64.getDecoder().decode(serverPublicKey));
     }
 
     /**
-     * Sets server public key object
-     * @param ecCurve EC curve for conversion
+     * Sets EC server public key object
      * @param serverPublicKeyObject Public key object
      * @throws Exception when the public key cannot be encoded
      */
     @JsonIgnore
-    public void setServerPublicKeyObject(EcCurve ecCurve, PublicKey serverPublicKeyObject) throws Exception {
-        // TODO - add PQC key once it is available
-        String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertPublicKeyToBytes(ecCurve, serverPublicKeyObject));
-        jsonObject.put("serverPublicKey", serverPublicKey);
+    public void setEcServerPublicKeyObject(PublicKey serverPublicKeyObject) throws Exception {
+        int version = getVersion().intValue();
+        switch (version) {
+            case 3 -> {
+                String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(EcCurve.P256, serverPublicKeyObject));
+                jsonObject.put("serverPublicKey", serverPublicKey);
+            }
+            case 4 -> {
+                String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(EcCurve.P256, serverPublicKeyObject));
+                jsonObject.put("ecServerPublicKey", serverPublicKey);
+            }
+            default -> throw new IllegalStateException("Unsupported version: " + version);
+        }
     }
 
     /**
-     * @return Base64 encoded byte representation of the server public key
+     * @return Base64 encoded byte representation of the EC server public key
      */
-    public String getServerPublicKey() {
-        return (String) jsonObject.get("serverPublicKey");
+    public String getEcServerPublicKey() {
+        int version = getVersion().intValue();
+        return switch (version) {
+            case 3 -> (String) jsonObject.get("serverPublicKey");
+            case 4 -> (String) jsonObject.get("ecServerPublicKey");
+            default -> throw new IllegalStateException("Unsupported version: " + version);
+        };
     }
 
     /**
-     * Sets server public key
+     * Sets EC server public key
      * @param serverPublicKey Public key as base64
      */
-    public void setServerPublicKey(String serverPublicKey) {
-        jsonObject.put("serverPublicKey", serverPublicKey);
+    public void setEcServerPublicKey(String serverPublicKey) {
+        int version = getVersion().intValue();
+        switch (version) {
+            case 3 -> jsonObject.put("serverPublicKey", serverPublicKey);
+            case 4 -> jsonObject.put("ecServerPublicKey", serverPublicKey);
+            default -> throw new IllegalStateException("Unsupported version: " + version);
+        }
+    }
+
+    /**
+     * @return Server PQC public key
+     * @throws Exception when the public key cannot be decoded
+     */
+    @JsonIgnore
+    public PublicKey getPqcServerPublicKeyObject() throws Exception {
+        String serverPublicKey = (String) jsonObject.get("pqcServerPublicKey");
+        return KEY_CONVERTOR_PQC_DSA.convertBytesToPublicKey(Base64.getDecoder().decode(serverPublicKey));
+    }
+
+    /**
+     * Sets PQC server public key object
+     * @param serverPublicKeyObject Public key object
+     * @throws Exception when the public key cannot be encoded
+     */
+    @JsonIgnore
+    public void setPQCServerPublicKeyObject(PublicKey serverPublicKeyObject) throws Exception {
+        String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_PQC_DSA.convertPublicKeyToBytes(serverPublicKeyObject));
+        jsonObject.put("pqcServerPublicKey", serverPublicKey);
+    }
+
+    /**
+     * @return Base64 encoded byte representation of the PQC server public key
+     */
+    public String getPqcServerPublicKey() {
+        return (String) jsonObject.get("pqcServerPublicKey");
+    }
+
+    /**
+     * Sets PQC server public key
+     * @param serverPublicKey Public key as base64
+     */
+    public void setPqcServerPublicKey(String serverPublicKey) {
+        jsonObject.put("pqcServerPublicKey", serverPublicKey);
     }
 
     /**
@@ -202,7 +262,7 @@ public class ResultStatusObject {
         if (signatureBiometryKey == null) {
             return null;
         }
-        return KEY_CONVERTOR.convertBytesToSharedSecretKey(Base64.getDecoder().decode(signatureBiometryKey));
+        return KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(Base64.getDecoder().decode(signatureBiometryKey));
     }
 
     /**
@@ -211,7 +271,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setSignatureBiometryKeyObject(SecretKey signatureBiometryKeyObject) {
-        String signatureBiometryKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertSharedSecretKeyToBytes(signatureBiometryKeyObject));
+        String signatureBiometryKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(signatureBiometryKeyObject));
         jsonObject.put("signatureBiometryKey", signatureBiometryKey);
     }
 
@@ -307,7 +367,7 @@ public class ResultStatusObject {
         if (signaturePossessionKey == null) {
             return null;
         }
-        return KEY_CONVERTOR.convertBytesToSharedSecretKey(Base64.getDecoder().decode(signaturePossessionKey));
+        return KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(Base64.getDecoder().decode(signaturePossessionKey));
     }
 
     /**
@@ -316,7 +376,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setSignaturePossessionKeyObject(SecretKey signaturePossessionKeyObject) {
-        String signaturePossessionKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertSharedSecretKeyToBytes(signaturePossessionKeyObject));
+        String signaturePossessionKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(signaturePossessionKeyObject));
         jsonObject.put("signaturePossessionKey", signaturePossessionKey);
     }
 
@@ -336,7 +396,7 @@ public class ResultStatusObject {
     }
 
     /**
-     * @return Transport master key object value
+     * @return Transport master key object value (V3)
      */
     @JsonIgnore
     public SecretKey getTransportMasterKeyObject() {
@@ -344,28 +404,28 @@ public class ResultStatusObject {
         if (transportMasterKey == null) {
             return null;
         }
-        return KEY_CONVERTOR.convertBytesToSharedSecretKey(Base64.getDecoder().decode(transportMasterKey));
+        return KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(Base64.getDecoder().decode(transportMasterKey));
     }
 
     /**
-     * Sets transport master key object
+     * Sets transport master key object (V3)
      * @param transportMasterKeyObject Transport master key object value
      */
     @JsonIgnore
     public void setTransportMasterKeyObject(SecretKey transportMasterKeyObject) {
-        String transportMasterKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertSharedSecretKeyToBytes(transportMasterKeyObject));
+        String transportMasterKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(transportMasterKeyObject));
         jsonObject.put("transportMasterKey", transportMasterKey);
     }
 
     /**
-     * @return Base64 encoded byte representation of the transport master key
+     * @return Base64 encoded byte representation of the transport master key (V3)
      */
     public String getTransportMasterKey() {
         return (String) jsonObject.get("transportMasterKey");
     }
 
     /**
-     * Sets transport master key value
+     * Sets transport master key value (V3)
      * @param transportMasterKey Base64 encoded byte representation of the transport master key
      */
     public void setTransportMasterKey(String transportMasterKey) {
@@ -373,18 +433,92 @@ public class ResultStatusObject {
     }
 
     /**
-     * @return Shared secret algorithm
+     * @return Shared secret algorithm (V4)
      */
     public String getSharedSecretAlgorithm() {
         return (String) jsonObject.get("sharedSecretAlgorithm");
     }
 
     /**
-     * Sets shared secret algorithm
+     * Sets shared secret algorithm (V4)
      * @param sharedSecretAlgorithm Shared secret algorithm
      */
     public void setSharedSecretAlgorithm(String sharedSecretAlgorithm) {
         jsonObject.put("sharedSecretAlgorithm", sharedSecretAlgorithm);
+    }
+
+    /**
+     * @return Key for signing payload in getting temporary key request in activation scope (V4)
+     */
+    @JsonIgnore
+    public SecretKey getTemporaryKeyActSignRequestKeyObject() {
+        final String temporaryKeyActSignRequestKey = getTemporaryKeyActSignRequestKey();
+        if (temporaryKeyActSignRequestKey == null) {
+            return null;
+        }
+        return KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(Base64.getDecoder().decode(temporaryKeyActSignRequestKey));
+    }
+
+    /**
+     * @return Key for signing payload in getting temporary key request in activation scope (V4)
+     */
+    public String getTemporaryKeyActSignRequestKey() {
+        return (String) jsonObject.get("temporaryKeyActSignRequestKey");
+    }
+
+    /**
+     * Sets key for signing payload in getting temporary key request in activation scope (V4)
+     * @param temporaryKeyActSignRequestKey Key for signing payload in getting temporary key request in activation scope
+     */
+    @JsonIgnore
+    public void setTemporaryKeyActSignRequestKeyObject(SecretKey temporaryKeyActSignRequestKey) {
+        String temporaryKeyActSignRequestKeyBase64 = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(temporaryKeyActSignRequestKey));
+        jsonObject.put("temporaryKeyActSignRequestKey", temporaryKeyActSignRequestKeyBase64);
+    }
+
+    /**
+     * Sets key for signing payload in getting temporary key request in activation scope (V4)
+     * @param temporaryKeyActSignRequestKey Key for signing payload in getting temporary key request in activation scope
+     */
+    public void setTemporaryKeyActSignRequestKey(String temporaryKeyActSignRequestKey) {
+        jsonObject.put("temporaryKeyActSignRequestKey", temporaryKeyActSignRequestKey);
+    }
+
+    /**
+     * @return Key for sharedInfo2 calculation for end-to-end encryption (V4)
+     */
+    @JsonIgnore
+    public SecretKey getSharedInfo2KeyObject() {
+        final String sharedInfo2Key = getSharedInfo2Key();
+        if (sharedInfo2Key == null) {
+            return null;
+        }
+        return KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(Base64.getDecoder().decode(sharedInfo2Key));
+    }
+
+    /**
+     * @return Key for sharedInfo2 calculation for end-to-end encryption (V4)
+     */
+    public String getSharedInfo2Key() {
+        return (String) jsonObject.get("sharedInfo2Key");
+    }
+
+    /**
+     * Sets key for sharedInfo2 calculation for end-to-end encryption (V4)
+     * @param sharedInfo2Key Key for sharedInfo2 calculation for end-to-end encryption
+     */
+    @JsonIgnore
+    public void setSharedInfo2KeyObject(SecretKey sharedInfo2Key) {
+        String sharedInfo2KeyBase64 = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(sharedInfo2Key));
+        jsonObject.put("sharedInfo2Key", sharedInfo2KeyBase64);
+    }
+
+    /**
+     * Sets key for sharedInfo2 calculation for end-to-end encryption (V4)
+     * @param sharedInfo2Key Key for sharedInfo2 calculation for end-to-end encryption
+     */
+    public void setSharedInfo2Key(String sharedInfo2Key) {
+        jsonObject.put("sharedInfo2Key", sharedInfo2Key);
     }
 
     /**

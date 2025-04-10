@@ -33,6 +33,7 @@ import com.wultra.security.powerauth.crypto.lib.model.exception.GenericCryptoExc
 import com.wultra.security.powerauth.crypto.lib.util.HMACHashUtilities;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
 import com.wultra.security.powerauth.crypto.lib.util.SignatureUtils;
+import com.wultra.security.powerauth.crypto.lib.v4.kdf.KeyFactory;
 import com.wultra.security.powerauth.crypto.lib.v4.model.SharedSecretClientContextEcdhe;
 import com.wultra.security.powerauth.crypto.lib.v4.model.SharedSecretClientContextHybrid;
 import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
@@ -157,8 +158,8 @@ public class TemporaryKeyUtil {
             builder.build();
         }
         final JWTClaimsSet jwtClaims = builder.build();
-        final byte[] secretKey = getSecretKey(stepContext, model, scope);
-        return signJwt(jwtClaims, secretKey);
+        final byte[] signingKey = getSigningKey(stepContext, model, scope);
+        return signJwt(jwtClaims, signingKey);
     }
 
     private static RequestSharedSecret buildSharedSecretRequest(StepContext<? extends BaseStepData, ?> stepContext, SharedSecretAlgorithm algorithm) throws GenericCryptoException {
@@ -186,22 +187,36 @@ public class TemporaryKeyUtil {
         };
     }
 
-    private static byte[] getSecretKey(StepContext<? extends BaseStepData, ?> stepContext, BaseStepModel model, EncryptorScope scope) throws Exception {
+    private static byte[] getSigningKey(StepContext<? extends BaseStepData, ?> stepContext, BaseStepModel model, EncryptorScope scope) throws Exception {
         final String appSecret = getApplicationSecret(stepContext);
-        if (scope == EncryptorScope.APPLICATION_SCOPE) {
-            return Base64.getDecoder().decode(appSecret);
-        } else if (scope == EncryptorScope.ACTIVATION_SCOPE) {
-            // TODO - change key derivation for crypto4
-            final byte[] appSecretBytes = Base64.getDecoder().decode(appSecret);
-            final SecretKey transportMasterKey = model.getResultStatus().getTransportMasterKeyObject();
-            final SecretKey secretKeyBytes = KEY_GENERATOR.deriveSecretKeyHmac(transportMasterKey, appSecretBytes);
-            return KEY_CONVERTOR.convertSharedSecretKeyToBytes(secretKeyBytes);
-        }
-        return null;
+        final byte[] appSecretBytes = Base64.getDecoder().decode(appSecret);
+        return switch (model.getVersion().getMajorVersion()) {
+            case 3 -> switch (scope) {
+                case APPLICATION_SCOPE -> appSecretBytes;
+                case ACTIVATION_SCOPE -> {
+                    final SecretKey transportMasterKey = model.getResultStatus().getTransportMasterKeyObject();
+                    final SecretKey secretKeyBytes = KEY_GENERATOR.deriveSecretKeyHmac(transportMasterKey, appSecretBytes);
+                    yield KEY_CONVERTOR.convertSharedSecretKeyToBytes(secretKeyBytes);
+                }
+            };
+            case 4 -> switch (scope) {
+                case APPLICATION_SCOPE -> {
+                    final SecretKey sourceKey = KEY_CONVERTOR.convertBytesToSharedSecretKey(appSecretBytes);
+                    final SecretKey secretKey = KeyFactory.deriveKeyMacGetAppTempKey(sourceKey);
+                    yield KEY_CONVERTOR.convertSharedSecretKeyToBytes(secretKey);
+                }
+                case ACTIVATION_SCOPE -> {
+                    final String tempKeyActSignBase64 = model.getResultStatus().getTemporaryKeyActSignRequestKey();
+                    final byte[] tempKeyActSignBytes = Base64.getDecoder().decode(tempKeyActSignBase64);
+                    final SecretKey secretKey = KEY_CONVERTOR.convertBytesToSharedSecretKey(tempKeyActSignBytes);
+                    yield KEY_CONVERTOR.convertSharedSecretKeyToBytes(secretKey);
+                }
+            };
+            default -> throw new IllegalStateException("Unsupported version: " + model.getVersion());
+        };
     }
 
     private static String signJwt(JWTClaimsSet jwtClaims, byte[] secretKey) throws Exception {
-        // TODO - change to KMAC for crypto4
         final JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS256);
         final byte[] payloadBytes = jwtClaims.toPayload().toBytes();
         final Base64URL encodedHeader = jwsHeader.toBase64URL();
@@ -245,7 +260,7 @@ public class TemporaryKeyUtil {
         final String jwtResponse = response.getResponseObject().getJwt();
         final SignedJWT decodedJWT = SignedJWT.parse(jwtResponse);
         final PublicKey publicKey = switch (scope) {
-            case ACTIVATION_SCOPE -> (ECPublicKey) stepContext.getModel().getResultStatus().getServerPublicKeyObject();
+            case ACTIVATION_SCOPE -> (ECPublicKey) stepContext.getModel().getResultStatus().getEcServerPublicKeyObject();
             case APPLICATION_SCOPE -> getEcMasterPublicKey(stepContext, algorithm);
         };
         if (!validateJwtSignature(decodedJWT, publicKey, algorithm)) {
