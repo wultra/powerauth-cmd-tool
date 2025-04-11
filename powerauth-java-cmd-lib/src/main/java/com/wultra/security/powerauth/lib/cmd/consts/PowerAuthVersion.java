@@ -16,6 +16,8 @@
  */
 package com.wultra.security.powerauth.lib.cmd.consts;
 
+import lombok.Getter;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -44,7 +46,12 @@ public enum PowerAuthVersion {
     /**
      * Version 3.3
      */
-    V3_3(3, "3.3");
+    V3_3(3, "3.3"),
+
+    /**
+     * Version 4.0
+     */
+    V4_0(4, "4.0");
 
     /**
      * All supported versions
@@ -54,7 +61,7 @@ public enum PowerAuthVersion {
     /**
      * Default version
      */
-    public static final PowerAuthVersion DEFAULT = V3_3;
+    public static final PowerAuthVersion DEFAULT = V4_0;
 
     /**
      * All versions belonging to major version 3
@@ -62,12 +69,18 @@ public enum PowerAuthVersion {
     public static final List<PowerAuthVersion> VERSION_3 = List.of(V3_0, V3_1, V3_2, V3_3);
 
     /**
+     * All versions belonging to major version 4
+     */
+    public static final List<PowerAuthVersion> VERSION_4 = List.of(V4_0);
+
+    /**
      * Major version value
      */
+    @Getter
     private final int majorVersion;
 
     /**
-     * Version string value ("3.0", "3.1", "3.2", "3.3", ...)
+     * Version string value ("3.0", "3.1", "3.2", "3.3", "4.0", ...)
      */
     private final String value;
 

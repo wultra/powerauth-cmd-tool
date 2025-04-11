@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.wultra.security.powerauth.lib.cmd.steps;
+package com.wultra.security.powerauth.lib.cmd.steps.base;
 
 import com.wultra.core.rest.client.base.RestClient;
 import com.wultra.core.rest.client.base.RestClientException;
@@ -24,10 +24,11 @@ import com.wultra.security.powerauth.crypto.lib.encryptor.EncryptorFactory;
 import com.wultra.security.powerauth.crypto.lib.encryptor.ecies.exception.EciesException;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.*;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.ClientEciesSecrets;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedRequest;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedResponse;
 import com.wultra.security.powerauth.crypto.lib.enums.EcCurve;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
+import com.wultra.security.powerauth.crypto.lib.v4.encryptor.model.response.AeadEncryptedResponse;
+import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import com.wultra.security.powerauth.lib.cmd.logging.DisabledStepLogger;
@@ -43,6 +44,7 @@ import com.wultra.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
 import com.wultra.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import com.wultra.security.powerauth.lib.cmd.util.*;
+import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import lombok.Getter;
 import org.json.simple.JSONObject;
@@ -54,6 +56,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
+import java.lang.reflect.Type;
 import java.security.PublicKey;
 import java.util.*;
 
@@ -126,9 +129,31 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     public abstract StepContext<M, R> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception;
 
     /**
+     * Get response type reference.
+     * @param version PowerAuth protocol version.
      * @return Type reference of the response object
      */
-    protected abstract ParameterizedTypeReference<R> getResponseTypeReference();
+    protected abstract ParameterizedTypeReference<R> getResponseTypeReference(PowerAuthVersion version);
+
+    /**
+     * Resolve response type for encrypted responses.
+     * @param version PowerAuth protocol version.
+     * @return Response type for encrypted responses
+     */
+    protected ParameterizedTypeReference<EncryptedResponse> getResponseTypeReferenceEncrypted(PowerAuthVersion version) {
+        final Class<? extends EncryptedResponse> clazz = switch (version.getMajorVersion()) {
+            case 3 -> EciesEncryptedResponse.class;
+            case 4 -> AeadEncryptedResponse.class;
+            default -> throw new IllegalStateException("Unsupported version: " + version);
+        };
+        return new ParameterizedTypeReference<>() {
+            @Override
+            @Nonnull
+            public Type getType() {
+                return clazz;
+            }
+        };
+    }
 
     /**
      * Execute this step with given logger and context objects.
@@ -165,7 +190,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
         }
 
         try {
-            ResponseContext<R> responseContext = callServer(stepContext);
+            final ResponseContext<R> responseContext = callServer(stepContext);
             if (responseContext != null) {
                 stepContext.setResponseContext(responseContext);
                 processResponse(stepContext);
@@ -200,13 +225,14 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @throws Exception when an error during encryption of the request data occurred
      */
     public void addEncryptedRequest(StepContext<M, R> stepContext, String applicationKey, String applicationSecret, EncryptorId encryptorId, byte[] data, EncryptorScope scope) throws Exception {
-        M model = stepContext.getModel();
+        final M model = stepContext.getModel();
         final SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
         final ResultStatusObject resultStatusObject = model.getResultStatus();
 
-        fetchTemporaryKey(stepContext, scope);
+        final SharedSecretAlgorithm sharedSecretAlgorithm = SecurityUtil.resolveSharedSecretAlgorithm(stepContext, scope);
+        fetchTemporaryKey(stepContext, scope, sharedSecretAlgorithm);
 
-        final ClientEncryptor<EciesEncryptedRequest, EciesEncryptedResponse> encryptor;
+        final ClientEncryptor<EncryptedRequest, EncryptedResponse> encryptor;
         if (securityContext == null) {
             final String temporaryKeyId = (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID);
             final String temporaryPublicKey = (String) stepContext.getAttributes().get(TEMPORARY_PUBLIC_KEY);
@@ -223,7 +249,8 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
         } else {
             encryptor = securityContext.getEncryptor();
         }
-        addEncryptedRequest(stepContext, encryptor, data);
+        final EncryptedRequest encryptedRequest = encryptor.encryptRequest(data);
+        stepContext.getRequestContext().setRequestObject(encryptedRequest);
     }
 
     /**
@@ -235,8 +262,8 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @param data              Request data for the encryption
      * @throws Exception when an error during encryption of the request data occurred
      */
-    public void addEncryptedRequest(StepContext<M, R> stepContext, ClientEncryptor<EciesEncryptedRequest, EciesEncryptedResponse> encryptor, byte[] data) throws Exception {
-        SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
+    public void addEncryptedRequest(StepContext<M, R> stepContext, ClientEncryptor<EncryptedRequest, EncryptedResponse> encryptor, byte[] data) throws Exception {
+        final SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
         if (securityContext == null) {
             stepContext.setSecurityContext(
                     SimpleSecurityContext.builder()
@@ -246,7 +273,6 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
         } else if (securityContext.getEncryptor() != encryptor) {
             throw new Exception("Different encryptor is already set to security context");
         }
-
         final EncryptedRequest encryptedRequest = encryptor.encryptRequest(data);
         stepContext.getRequestContext().setRequestObject(encryptedRequest);
     }
@@ -255,31 +281,26 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * Fetch temporary key for current request, if applicable.
      * @param stepContext Step context.
      * @param scope ECIES scope.
+     * @param algorithm Shared secret algorithm.
      * @throws Exception In case request fails.
      */
-    public void fetchTemporaryKey(StepContext<M, R> stepContext, EncryptorScope scope) throws Exception {
-        TemporaryKeyUtil.fetchTemporaryKey(getStep(), stepContext, scope);
+    public void fetchTemporaryKey(StepContext<M, R> stepContext, EncryptorScope scope, SharedSecretAlgorithm algorithm) throws Exception {
+        TemporaryKeyUtil.fetchTemporaryKey(getStep(), stepContext, scope, algorithm);
     }
 
     /**
      * Decrypts an object from a response
      *
      * @param stepContext       Step context
-     * @param cls               Class type of the decrypted object
+     * @param clazz             Class type of the decrypted object
      * @param <T>               Class of the decrypted object
      * @return Decrypted object from the provided response
      */
-    public <T> T decryptResponse(StepContext<?, EciesEncryptedResponse> stepContext, Class<T> cls) {
+    public <T> T decryptResponse(StepContext<?, EncryptedResponse> stepContext, Class<T> clazz) {
         try {
             final SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
-            final EciesEncryptedResponse encryptedResponse = stepContext.getResponseContext().getResponseBodyObject();
-            final byte[] decryptedBytes = securityContext.getEncryptor().decryptResponse(new EciesEncryptedResponse(
-                    encryptedResponse.getEncryptedData(),
-                    encryptedResponse.getMac(),
-                    encryptedResponse.getNonce(),
-                    encryptedResponse.getTimestamp()
-            ));
-            final T responsePayload = RestClientConfiguration.defaultMapper().readValue(decryptedBytes, cls);
+            final byte[] decryptedBytes = SecurityUtil.decryptResponseData(stepContext, securityContext);
+            final T responsePayload = RestClientConfiguration.defaultMapper().readValue(decryptedBytes, clazz);
             stepContext.getResponseContext().setResponsePayloadDecrypted(responsePayload);
 
             stepContext.getStepLogger().writeItem(
@@ -329,7 +350,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @return Step context instance
      */
     protected final StepContext<M, R> buildStepContext(StepLogger stepLogger, M model, RequestContext requestContext) {
-        StepContext<M, R> context = new StepContext<>();
+        final StepContext<M, R> context = new StepContext<>();
         context.setModel(model);
         context.setRequestContext(requestContext);
         context.setStep(getStep());
@@ -365,21 +386,24 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
 
     /**
      * Calls the server and prepares response context with the response data
+     *
+     * @param stepContext Step context.
+     * @return Response context.
      */
     private @Nullable ResponseContext<R> callServer(StepContext<M, R> stepContext) throws Exception {
         if (stepContext == null) {
             return null;
         }
 
-        final ParameterizedTypeReference<R> responseTypeReference = getResponseTypeReference();
+        final ParameterizedTypeReference<R> responseTypeReference = getResponseTypeReference(stepContext.getModel().getVersion());
         if (responseTypeReference == null) {
             return null;
         }
 
-        M model = stepContext.getModel();
-        RequestContext requestContext = stepContext.getRequestContext();
+        final M model = stepContext.getModel();
+        final RequestContext requestContext = stepContext.getRequestContext();
 
-        Map<String, String> headers = new HashMap<>();
+        final Map<String, String> headers = new HashMap<>();
         headers.put(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
         headers.put(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
         // put all headers from request context (includes e.g. authorization header)
@@ -388,7 +412,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             headers.putAll(model.getHeaders());
         }
 
-        byte[] requestBytes = HttpUtil.toRequestBytes(requestContext.getRequestObject());
+        final byte[] requestBytes = HttpUtil.toRequestBytes(requestContext.getRequestObject());
 
         stepContext.getStepLogger().writeServerCall(step.id() + "-request-sent", requestContext.getUri(), requestContext.getHttpMethod().name(), requestContext.getRequestObject(), requestBytes, headers);
 
@@ -399,13 +423,13 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             return null;
         }
 
-        RestClient restClient = RestClientFactory.getRestClient();
+        final RestClient restClient = RestClientFactory.getRestClient();
         if (restClient == null) {
             stepContext.getStepLogger().writeError(step.id() + "-error-rest-client", "Unable to prepare a REST client");
             return null;
         }
 
-        ResponseEntity<R> responseEntity;
+        final ResponseEntity<R> responseEntity;
         try {
             // Call the right method with the REST client
             if (HttpMethod.GET.equals(requestContext.getHttpMethod())) {
@@ -422,10 +446,10 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     }
 
     private ResponseContext<R> addResponseContext(StepContext<M,R> stepContext, ResponseEntity<R> responseEntity) {
-        R responseBodyObject = Objects.requireNonNull(responseEntity.getBody());
+        final R responseBodyObject = Objects.requireNonNull(responseEntity.getBody());
         stepContext.getStepLogger().writeServerCallOK(step.id() + "-response-received", responseBodyObject, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
 
-        ResponseContext<R> responseContext = ResponseContext.<R>builder()
+        final ResponseContext<R> responseContext = ResponseContext.<R>builder()
                 .responseBodyObject(responseBodyObject)
                 .responseEntity(responseEntity)
                 .build();

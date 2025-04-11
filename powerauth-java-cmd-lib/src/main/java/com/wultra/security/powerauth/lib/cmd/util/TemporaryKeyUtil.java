@@ -16,6 +16,7 @@
  */
 package com.wultra.security.powerauth.lib.cmd.util;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.util.Base64URL;
@@ -26,15 +27,36 @@ import com.wultra.core.rest.client.base.RestClientException;
 import com.wultra.core.rest.model.base.request.ObjectRequest;
 import com.wultra.core.rest.model.base.response.ObjectResponse;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
+import com.wultra.security.powerauth.crypto.lib.enums.EcCurve;
 import com.wultra.security.powerauth.crypto.lib.generator.KeyGenerator;
+import com.wultra.security.powerauth.crypto.lib.model.exception.GenericCryptoException;
 import com.wultra.security.powerauth.crypto.lib.util.HMACHashUtilities;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
 import com.wultra.security.powerauth.crypto.lib.util.SignatureUtils;
+import com.wultra.security.powerauth.crypto.lib.v4.model.SharedSecretClientContextEcdhe;
+import com.wultra.security.powerauth.crypto.lib.v4.model.SharedSecretClientContextHybrid;
+import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
+import com.wultra.security.powerauth.crypto.lib.v4.model.request.RequestCryptogram;
+import com.wultra.security.powerauth.crypto.lib.v4.model.request.SharedSecretRequestEcdhe;
+import com.wultra.security.powerauth.crypto.lib.v4.model.request.SharedSecretRequestHybrid;
+import com.wultra.security.powerauth.crypto.lib.v4.model.response.SharedSecretResponseEcdhe;
+import com.wultra.security.powerauth.crypto.lib.v4.model.response.SharedSecretResponseHybrid;
+import com.wultra.security.powerauth.crypto.lib.v4.sharedsecret.SharedSecretEcdhe;
+import com.wultra.security.powerauth.crypto.lib.v4.sharedsecret.SharedSecretHybrid;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.BaseStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.ActivationData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecret;
+import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecretEcdhe;
+import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecretHybrid;
+import com.wultra.security.powerauth.lib.cmd.steps.model.v4.response.ResponseSharedSecretEcdhe;
+import com.wultra.security.powerauth.lib.cmd.steps.model.v4.response.ResponseSharedSecretHybrid;
 import com.wultra.security.powerauth.rest.api.model.request.TemporaryKeyRequest;
 import com.wultra.security.powerauth.rest.api.model.response.TemporaryKeyResponse;
 import org.bouncycastle.asn1.ASN1EncodableVector;
@@ -49,6 +71,7 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.PublicKey;
 import java.security.interfaces.ECPublicKey;
+import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -67,23 +90,39 @@ public class TemporaryKeyUtil {
      * Temporary key ID constant.
      */
     public static final String TEMPORARY_KEY_ID = "temporaryKeyId";
+
     /**
      * Temporary public key constant.
      */
     public static final String TEMPORARY_PUBLIC_KEY = "temporaryPublicKey";
 
+    /**
+     * Temporary client context for shared secret derivation.
+     */
+    public static final String TEMPORARY_CLIENT_CONTEXT = "temporaryClientContext";
+
+    /**
+     * Temporary shared secret constant.
+     */
+    public static final String TEMPORARY_SHARED_SECRET = "temporarySharedSecret";
+
     private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
     private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
     private static final SignatureUtils SIGNATURE_UTILS = new SignatureUtils();
+
+    private static final SharedSecretEcdhe SHARED_SECRET_ECDHE = new SharedSecretEcdhe();
+    private static final SharedSecretHybrid SHARED_SECRET_HYBRID = new SharedSecretHybrid();
+    private static final ObjectMapper OBJECT_MAPPER = RestClientConfiguration.defaultMapper();
 
     /**
      * Fetch temporary key for encryption from the server and store it into the step context.
      * @param step Current step.
      * @param stepContext Step context.
      * @param scope Encryption scope.
+     * @param algorithm Shared secret algorithm to use.
      * @throws Exception Thrown in case temporary key fetch fails.
      */
-    public static void fetchTemporaryKey(PowerAuthStep step, StepContext<? extends BaseStepData, ?> stepContext, EncryptorScope scope) throws Exception {
+    public static void fetchTemporaryKey(PowerAuthStep step, StepContext<? extends BaseStepData, ?> stepContext, EncryptorScope scope, SharedSecretAlgorithm algorithm) throws Exception {
         final PowerAuthVersion version = stepContext.getModel().getVersion();
         if (!version.useTemporaryKeys() || stepContext.getAttributes().containsKey(TEMPORARY_KEY_ID)) {
             return;
@@ -93,7 +132,7 @@ public class TemporaryKeyUtil {
             stepContext.getStepLogger().writeError(step.id() + "-error-rest-client", "Unable to prepare a REST client");
             return;
         }
-        sendTemporaryKeyRequest(step, stepContext, scope);
+        sendTemporaryKeyRequest(step, stepContext, scope, algorithm);
     }
 
     private static Map<String, String> prepareHeaders() {
@@ -103,25 +142,56 @@ public class TemporaryKeyUtil {
         return headers;
     }
 
-    private static String createJwtRequest(StepContext<? extends BaseStepData, ?> stepContext, BaseStepModel model, EncryptorScope scope, String challenge) throws Exception {
+    private static String createJwtRequest(StepContext<? extends BaseStepData, ?> stepContext, BaseStepModel model, EncryptorScope scope, String challenge, SharedSecretAlgorithm algorithm) throws Exception {
         final Instant now = Instant.now();
         final String activationId = scope == EncryptorScope.ACTIVATION_SCOPE ? model.getResultStatus().getActivationId() : null;
-        final JWTClaimsSet jwtClaims = new JWTClaimsSet.Builder()
-                .claim("applicationKey", stepContext.getModel().toMap().get("APPLICATION_KEY"))
+        final JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder()
+                .claim("applicationKey", getApplicationKey(stepContext))
                 .claim("activationId", activationId)
                 .claim("challenge", challenge)
                 .issueTime(Date.from(now))
-                .expirationTime(Date.from(now.plus(5, ChronoUnit.MINUTES)))
-                .build();
+                .expirationTime(Date.from(now.plus(5, ChronoUnit.MINUTES)));
+        if (model.getVersion().getMajorVersion() == 4) {
+            final RequestSharedSecret request = buildSharedSecretRequest(stepContext, algorithm);
+            builder.claim("sharedSecretRequest", request);
+            builder.build();
+        }
+        final JWTClaimsSet jwtClaims = builder.build();
         final byte[] secretKey = getSecretKey(stepContext, model, scope);
         return signJwt(jwtClaims, secretKey);
     }
 
+    private static RequestSharedSecret buildSharedSecretRequest(StepContext<? extends BaseStepData, ?> stepContext, SharedSecretAlgorithm algorithm) throws GenericCryptoException {
+        return switch (algorithm) {
+            case EC_P384 -> {
+                final RequestCryptogram requestCryptogram = SHARED_SECRET_ECDHE.generateRequestCryptogram();
+                stepContext.getAttributes().put(TEMPORARY_CLIENT_CONTEXT, requestCryptogram.getSharedSecretClientContext());
+                final SharedSecretRequestEcdhe requestEcdhe = (SharedSecretRequestEcdhe) requestCryptogram.getSharedSecretRequest();
+                final RequestSharedSecretEcdhe sharedSecretRequest = new RequestSharedSecretEcdhe();
+                sharedSecretRequest.setAlgorithm(algorithm.toString());
+                sharedSecretRequest.setEcdhe(requestEcdhe.getEcClientPublicKey());
+                yield sharedSecretRequest;
+            }
+            case EC_P384_ML_L3 -> {
+                final RequestCryptogram requestCryptogram = SHARED_SECRET_HYBRID.generateRequestCryptogram();
+                stepContext.getAttributes().put(TEMPORARY_CLIENT_CONTEXT, requestCryptogram.getSharedSecretClientContext());
+                final SharedSecretRequestHybrid requestHybrid = (SharedSecretRequestHybrid) requestCryptogram.getSharedSecretRequest();
+                final RequestSharedSecretHybrid sharedSecretRequest = new RequestSharedSecretHybrid();
+                sharedSecretRequest.setAlgorithm(algorithm.toString());
+                sharedSecretRequest.setEcdhe(requestHybrid.getEcClientPublicKey());
+                sharedSecretRequest.setMlkem(requestHybrid.getPqcEncapsulationKey());
+                yield sharedSecretRequest;
+            }
+            default -> throw new IllegalStateException("Unsupported algorithm for version 4: " + algorithm);
+        };
+    }
+
     private static byte[] getSecretKey(StepContext<? extends BaseStepData, ?> stepContext, BaseStepModel model, EncryptorScope scope) throws Exception {
-        final String appSecret = (String) stepContext.getModel().toMap().get("APPLICATION_SECRET");
+        final String appSecret = getApplicationSecret(stepContext);
         if (scope == EncryptorScope.APPLICATION_SCOPE) {
             return Base64.getDecoder().decode(appSecret);
         } else if (scope == EncryptorScope.ACTIVATION_SCOPE) {
+            // TODO - change key derivation for crypto4
             final byte[] appSecretBytes = Base64.getDecoder().decode(appSecret);
             final SecretKey transportMasterKey = model.getResultStatus().getTransportMasterKeyObject();
             final SecretKey secretKeyBytes = KEY_GENERATOR.deriveSecretKeyHmac(transportMasterKey, appSecretBytes);
@@ -131,6 +201,7 @@ public class TemporaryKeyUtil {
     }
 
     private static String signJwt(JWTClaimsSet jwtClaims, byte[] secretKey) throws Exception {
+        // TODO - change to KMAC for crypto4
         final JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS256);
         final byte[] payloadBytes = jwtClaims.toPayload().toBytes();
         final Base64URL encodedHeader = jwsHeader.toBase64URL();
@@ -141,7 +212,7 @@ public class TemporaryKeyUtil {
         return encodedHeader + "." + encodedPayload + "." + signature;
     }
 
-    private static void sendTemporaryKeyRequest(PowerAuthStep step, StepContext<? extends BaseStepData, ?> stepContext, EncryptorScope scope) throws Exception {
+    private static void sendTemporaryKeyRequest(PowerAuthStep step, StepContext<? extends BaseStepData, ?> stepContext, EncryptorScope scope, SharedSecretAlgorithm algorithm) throws Exception {
         final BaseStepModel model = (BaseStepModel) stepContext.getModel();
         final Map<String, String> headers = prepareHeaders();
         String baseUri = model.getBaseUriString();
@@ -152,10 +223,10 @@ public class TemporaryKeyUtil {
                 return;
             }
         }
-        final String uri = baseUri + "/pa/v3/keystore/create";
+        String uri = baseUri + "/pa/v" + model.getVersion().getMajorVersion() + "/keystore/create";
         final byte[] challengeBytes = KEY_GENERATOR.generateRandomBytes(18);
         final String challenge = Base64.getEncoder().encodeToString(challengeBytes);
-        final String requestData = createJwtRequest(stepContext, model, scope, challenge);
+        final String requestData = createJwtRequest(stepContext, model, scope, challenge, algorithm);
         final TemporaryKeyRequest jwtData = new TemporaryKeyRequest();
         jwtData.setJwt(requestData);
         final ObjectRequest<TemporaryKeyRequest> request = new ObjectRequest<>(jwtData);
@@ -163,37 +234,73 @@ public class TemporaryKeyUtil {
         try {
             final ObjectResponse<TemporaryKeyResponse> response = Objects.requireNonNull(restClient).postObject(uri, request, null, MapUtil.toMultiValueMap(headers), TemporaryKeyResponse.class);
             stepContext.getStepLogger().writeItem(step.id() + "-temporary-key-fetched", "Temporary key fetched", "Temporary key was fetched from the server", "OK", null);
-            handleTemporaryKeyResponse(step, stepContext, response, scope);
+            handleTemporaryKeyResponse(step, stepContext, response, scope, algorithm);
         } catch (RestClientException ex) {
             stepContext.getStepLogger().writeServerCallError(step.id() + "-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
         }
     }
 
-    private static void handleTemporaryKeyResponse(PowerAuthStep step, StepContext<? extends BaseStepData, ?> stepContext, ObjectResponse<TemporaryKeyResponse> response, EncryptorScope scope) throws Exception {
+    private static void handleTemporaryKeyResponse(PowerAuthStep step, StepContext<? extends BaseStepData, ?> stepContext, ObjectResponse<TemporaryKeyResponse> response, EncryptorScope scope, SharedSecretAlgorithm algorithm) throws Exception {
+        final BaseStepModel model = (BaseStepModel) stepContext.getModel();
         final String jwtResponse = response.getResponseObject().getJwt();
         final SignedJWT decodedJWT = SignedJWT.parse(jwtResponse);
-        final ECPublicKey publicKey = switch (scope) {
+        final PublicKey publicKey = switch (scope) {
             case ACTIVATION_SCOPE -> (ECPublicKey) stepContext.getModel().getResultStatus().getServerPublicKeyObject();
-            case APPLICATION_SCOPE -> (ECPublicKey) stepContext.getModel().toMap().get("MASTER_PUBLIC_KEY");
+            case APPLICATION_SCOPE -> getEcMasterPublicKey(stepContext, algorithm);
         };
-        if (!validateJwtSignature(decodedJWT, publicKey)) {
+        if (!validateJwtSignature(decodedJWT, publicKey, algorithm)) {
             stepContext.getStepLogger().writeError(step.id() + "-error-signature-invalid", "JWT signature is invalid");
             return;
         }
         final String temporaryKeyId = (String) decodedJWT.getJWTClaimsSet().getClaim("sub");
-        final String temporaryPublicKey = (String) decodedJWT.getJWTClaimsSet().getClaim("publicKey");
         stepContext.getAttributes().put(TEMPORARY_KEY_ID, temporaryKeyId);
+        switch (model.getVersion().getMajorVersion()) {
+            case 3 -> handlePublicKeyResponse(stepContext, decodedJWT);
+            case 4 -> handleSharedSecretResponse(stepContext, decodedJWT, algorithm);
+            default -> throw new IllegalStateException("Unsupported version" + model.getVersion());
+        }
+    }
+
+    private static void handlePublicKeyResponse(StepContext<? extends BaseStepData, ?> stepContext, SignedJWT decodedJWT) throws ParseException {
+        final String temporaryPublicKey = (String) decodedJWT.getJWTClaimsSet().getClaim("publicKey");
         stepContext.getAttributes().put(TEMPORARY_PUBLIC_KEY, temporaryPublicKey);
     }
 
-    private static boolean validateJwtSignature(SignedJWT jwt, PublicKey publicKey) throws Exception {
+    private static void handleSharedSecretResponse(StepContext<? extends BaseStepData, ?> stepContext, SignedJWT decodedJWT, SharedSecretAlgorithm algorithm) throws ParseException, GenericCryptoException {
+        final Object claim = decodedJWT.getJWTClaimsSet().getClaim("sharedSecretResponse");
+        final SecretKey sharedSecret = switch (algorithm) {
+            case EC_P384 -> {
+                final ResponseSharedSecretEcdhe serverResponse = OBJECT_MAPPER.convertValue(claim, ResponseSharedSecretEcdhe.class);
+                final SharedSecretClientContextEcdhe clientContext = (SharedSecretClientContextEcdhe) stepContext.getAttributes().get(TEMPORARY_CLIENT_CONTEXT);
+                final SharedSecretResponseEcdhe sharedSecretResponseEcdhe = new SharedSecretResponseEcdhe();
+                sharedSecretResponseEcdhe.setEcServerPublicKey(serverResponse.getEcdhe());
+                yield SHARED_SECRET_ECDHE.computeSharedSecret(clientContext, sharedSecretResponseEcdhe);
+            }
+            case EC_P384_ML_L3 -> {
+                final ResponseSharedSecretHybrid serverResponse = OBJECT_MAPPER.convertValue(claim, ResponseSharedSecretHybrid.class);
+                final SharedSecretClientContextHybrid clientContext = (SharedSecretClientContextHybrid) stepContext.getAttributes().get(TEMPORARY_CLIENT_CONTEXT);
+                final SharedSecretResponseHybrid sharedSecretResponseHybrid = new SharedSecretResponseHybrid();
+                sharedSecretResponseHybrid.setEcServerPublicKey(serverResponse.getEcdhe());
+                sharedSecretResponseHybrid.setPqcEncapsulation(serverResponse.getMlkem());
+                yield SHARED_SECRET_HYBRID.computeSharedSecret(clientContext, sharedSecretResponseHybrid);
+            }
+            default -> throw new IllegalStateException("Unsupported algorithm for version 4: " + algorithm);
+        };
+        stepContext.getAttributes().put(TEMPORARY_SHARED_SECRET, sharedSecret);
+        stepContext.getAttributes().remove(TEMPORARY_CLIENT_CONTEXT);
+    }
+
+    private static boolean validateJwtSignature(SignedJWT jwt, PublicKey publicKey, SharedSecretAlgorithm algorithm) throws Exception {
         final Base64URL[] jwtParts = jwt.getParsedParts();
         final Base64URL encodedHeader = jwtParts[0];
         final Base64URL encodedPayload = jwtParts[1];
         final Base64URL encodedSignature = jwtParts[2];
         final String signingInput = encodedHeader + "." + encodedPayload;
         final byte[] signatureBytes = convertRawSignatureToDER(encodedSignature.decode());
-        return SIGNATURE_UTILS.validateECDSASignature(signingInput.getBytes(StandardCharsets.UTF_8), signatureBytes, publicKey);
+        return switch (algorithm) {
+            case EC_P256 -> SIGNATURE_UTILS.validateECDSASignature(EcCurve.P256, signingInput.getBytes(StandardCharsets.UTF_8), signatureBytes, publicKey);
+            case EC_P384, EC_P384_ML_L3 -> SIGNATURE_UTILS.validateECDSASignature(EcCurve.P384, signingInput.getBytes(StandardCharsets.UTF_8), signatureBytes, publicKey);
+        };
     }
 
     private static byte[] convertRawSignatureToDER(byte[] rawSignature) throws Exception {
@@ -211,6 +318,39 @@ public class TemporaryKeyUtil {
         v.add(new ASN1Integer(r));
         v.add(new ASN1Integer(s));
         return new DLSequence(v).getEncoded();
+    }
+
+    private static String getApplicationKey(StepContext<? extends BaseStepData, ?> stepContext) {
+        if (stepContext.getModel() instanceof SignatureHeaderData signatureModel) {
+            return signatureModel.getApplicationKey();
+        } else if (stepContext.getModel() instanceof EncryptionHeaderData encryptionModel) {
+            return encryptionModel.getApplicationKey();
+        }
+        throw new IllegalStateException("Invalid model for obtaining application key");
+    }
+
+    private static String getApplicationSecret(StepContext<? extends BaseStepData, ?> stepContext) {
+        if (stepContext.getModel() instanceof SignatureHeaderData signatureModel) {
+            return signatureModel.getApplicationSecret();
+        } else if (stepContext.getModel() instanceof EncryptionHeaderData encryptionModel) {
+            return encryptionModel.getApplicationSecret();
+        }
+        throw new IllegalStateException("Invalid model for obtaining application secret");
+    }
+
+    private static PublicKey getEcMasterPublicKey(StepContext<? extends BaseStepData, ?> stepContext, SharedSecretAlgorithm algorithm) {
+        if (stepContext.getModel() instanceof ActivationData activationModel) {
+            return switch (algorithm) {
+                case EC_P256 -> activationModel.getMasterPublicKeyP256();
+                case EC_P384, EC_P384_ML_L3 -> activationModel.getMasterPublicKeyP384();
+            };
+        } else if (stepContext.getModel() instanceof EncryptStepModel encryptionModel) {
+            return switch (algorithm) {
+                case EC_P256 -> encryptionModel.getMasterPublicKeyP256();
+                case EC_P384, EC_P384_ML_L3 -> encryptionModel.getMasterPublicKeyP384();
+            };
+        }
+        throw new IllegalStateException("Invalid model for obtaining master public key");
     }
 
 }

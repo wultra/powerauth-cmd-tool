@@ -14,23 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wultra.security.powerauth.lib.cmd.steps.v3;
+package com.wultra.security.powerauth.lib.cmd.steps;
 
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedResponse;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedResponse;
 import com.wultra.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
-import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import com.wultra.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLogger;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import com.wultra.security.powerauth.lib.cmd.status.ResultStatusService;
-import com.wultra.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.TokenAndEncryptStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.util.SecurityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
@@ -53,7 +52,7 @@ import java.util.Map;
  *  @author Roman Strobl, roman.strobl@wultra.com
  */
 @Component
-public class TokenAndEncryptStep extends AbstractBaseStep<TokenAndEncryptStepModel, EciesEncryptedResponse> {
+public class TokenAndEncryptStep extends AbstractBaseStep<TokenAndEncryptStepModel, EncryptedResponse> {
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
@@ -85,12 +84,12 @@ public class TokenAndEncryptStep extends AbstractBaseStep<TokenAndEncryptStepMod
     }
 
     @Override
-    protected ParameterizedTypeReference<EciesEncryptedResponse> getResponseTypeReference() {
-        return PowerAuthConst.RESPONSE_TYPE_REFERENCE_V3;
+    protected ParameterizedTypeReference<EncryptedResponse> getResponseTypeReference(PowerAuthVersion version) {
+        return getResponseTypeReferenceEncrypted(version);
     }
 
     @Override
-    public StepContext<TokenAndEncryptStepModel, EciesEncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public StepContext<TokenAndEncryptStepModel, EncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         TokenAndEncryptStepModel model = new TokenAndEncryptStepModel();
         model.fromMap(context);
 
@@ -99,7 +98,7 @@ public class TokenAndEncryptStep extends AbstractBaseStep<TokenAndEncryptStepMod
                 .uri(model.getUriString())
                 .build();
 
-        StepContext<TokenAndEncryptStepModel, EciesEncryptedResponse> stepContext =
+        StepContext<TokenAndEncryptStepModel, EncryptedResponse> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
         // Verify that HTTP method is set
@@ -149,7 +148,7 @@ public class TokenAndEncryptStep extends AbstractBaseStep<TokenAndEncryptStepMod
     }
 
     @Override
-    public void processResponse(StepContext<TokenAndEncryptStepModel, EciesEncryptedResponse> stepContext) throws Exception {
+    public void processResponse(StepContext<TokenAndEncryptStepModel, EncryptedResponse> stepContext) throws Exception {
         SecurityUtil.processEncryptedResponse(stepContext, getStep().id());
     }
 

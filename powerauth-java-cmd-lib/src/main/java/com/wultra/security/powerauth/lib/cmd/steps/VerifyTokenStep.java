@@ -26,6 +26,7 @@ import com.wultra.security.powerauth.lib.cmd.status.ResultStatusService;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.VerifyTokenStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
@@ -83,7 +84,7 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
     }
 
     @Override
-    public ParameterizedTypeReference<Map<String, Object>> getResponseTypeReference() {
+    public ParameterizedTypeReference<Map<String, Object>> getResponseTypeReference(PowerAuthVersion version) {
         return RESPONSE_TYPE_REFERENCE;
     }
 

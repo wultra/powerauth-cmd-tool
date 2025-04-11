@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wultra.security.powerauth.lib.cmd.steps;
+package com.wultra.security.powerauth.lib.cmd.steps.base;
 
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
@@ -60,10 +60,10 @@ public class StepProvider {
     }
 
     private void registerPowerAuthSteps(List<BaseStep> steps) {
-        Map<PowerAuthStep, Map<PowerAuthVersion, BaseStep>> mappingStepVersion = new HashMap<>();
+        final Map<PowerAuthStep, Map<PowerAuthVersion, BaseStep>> mappingStepVersion = new HashMap<>();
 
         steps.forEach(step -> {
-            Map<PowerAuthVersion, BaseStep> mappingVersion =
+            final Map<PowerAuthVersion, BaseStep> mappingVersion =
                     mappingStepVersion.computeIfAbsent(step.getStep(), value -> new HashMap<>());
 
             step.getSupportedVersions().forEach(supportedVersion ->
@@ -111,7 +111,7 @@ public class StepProvider {
      * @return Supported versions
      */
     public Set<PowerAuthStep> getAvailableSteps(PowerAuthVersion version) {
-        Set<PowerAuthStep> steps = new HashSet<>();
+        final Set<PowerAuthStep> steps = new HashSet<>();
         for (PowerAuthStep step : mappingStepVersion.keySet()) {
             if (mappingStepVersion.get(step).containsKey(version)) {
                 steps.add(step);

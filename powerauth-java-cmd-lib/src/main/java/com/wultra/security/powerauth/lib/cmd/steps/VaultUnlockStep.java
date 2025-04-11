@@ -13,27 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wultra.security.powerauth.lib.cmd.steps.v3;
+package com.wultra.security.powerauth.lib.cmd.steps;
 
 import com.wultra.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
 import com.wultra.security.powerauth.crypto.client.vault.PowerAuthClientVault;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedResponse;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedResponse;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
 import com.wultra.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
-import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import com.wultra.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLogger;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import com.wultra.security.powerauth.lib.cmd.status.ResultStatusService;
-import com.wultra.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.VaultUnlockStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
+import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import com.wultra.security.powerauth.rest.api.model.request.VaultUnlockRequestPayload;
 import com.wultra.security.powerauth.rest.api.model.response.VaultUnlockResponsePayload;
@@ -62,8 +61,8 @@ import java.util.Map;
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-@Component(value = "vaultUnlockStepV3")
-public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, EciesEncryptedResponse> {
+@Component("vaultUnlockStep")
+public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, EncryptedResponse> {
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
@@ -99,12 +98,12 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Ecie
     }
 
     @Override
-    protected ParameterizedTypeReference<EciesEncryptedResponse> getResponseTypeReference() {
-        return PowerAuthConst.RESPONSE_TYPE_REFERENCE_V3;
+    protected ParameterizedTypeReference<EncryptedResponse> getResponseTypeReference(PowerAuthVersion version) {
+        return getResponseTypeReferenceEncrypted(version);
     }
 
     @Override
-    public StepContext<VaultUnlockStepModel, EciesEncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public StepContext<VaultUnlockStepModel, EncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         VaultUnlockStepModel model = new VaultUnlockStepModel();
         model.fromMap(context);
 
@@ -114,7 +113,7 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Ecie
                 .uri(model.getUriString() + "/pa/v3/vault/unlock")
                 .build();
 
-        StepContext<VaultUnlockStepModel, EciesEncryptedResponse> stepContext =
+        StepContext<VaultUnlockStepModel, EncryptedResponse> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
         // Prepare vault unlock request payload
@@ -133,7 +132,7 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Ecie
     }
 
     @Override
-    public void processResponse(StepContext<VaultUnlockStepModel, EciesEncryptedResponse> stepContext) throws Exception {
+    public void processResponse(StepContext<VaultUnlockStepModel, EncryptedResponse> stepContext) throws Exception {
         final VaultUnlockResponsePayload responsePayload = decryptResponse(stepContext, VaultUnlockResponsePayload.class);
 
         ResultStatusObject resultStatusObject = stepContext.getModel().getResultStatus();

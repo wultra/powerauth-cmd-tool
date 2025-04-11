@@ -13,22 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wultra.security.powerauth.lib.cmd.steps.v3;
+package com.wultra.security.powerauth.lib.cmd.steps;
 
-import com.wultra.core.rest.model.base.response.Response;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedResponse;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
 import com.wultra.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
-import com.wultra.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLogger;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLoggerFactory;
+import com.wultra.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import com.wultra.security.powerauth.lib.cmd.status.ResultStatusService;
-import com.wultra.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
-import com.wultra.security.powerauth.lib.cmd.steps.model.CommitUpgradeStepModel;
-import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
+import com.wultra.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
+import com.wultra.security.powerauth.rest.api.model.response.UpgradeResponsePayload;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
@@ -36,7 +38,7 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 /**
- * Step for committing upgrade to PowerAuth protocol version 3.0.
+ * Step for starting upgrade to PowerAuth protocol version 3.0.
  *
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
@@ -50,9 +52,7 @@ import java.util.Map;
  * @author Roman Strobl, roman.strobl@wultra.com
  */
 @Component
-public class CommitUpgradeStep extends AbstractBaseStep<CommitUpgradeStepModel, Response> {
-
-    private static final ParameterizedTypeReference<Response> RESPONSE_TYPE_REFERENCE = new ParameterizedTypeReference<>() {};
+public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, EncryptedResponse> {
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
@@ -63,11 +63,10 @@ public class CommitUpgradeStep extends AbstractBaseStep<CommitUpgradeStepModel, 
      * @param stepLoggerFactory Step logger factory
      */
     @Autowired
-    public CommitUpgradeStep(
-            PowerAuthHeaderFactory powerAuthHeaderFactory,
-            ResultStatusService resultStatusService,
-            StepLoggerFactory stepLoggerFactory) {
-        super(PowerAuthStep.UPGRADE_COMMIT, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
+    public StartUpgradeStep(PowerAuthHeaderFactory powerAuthHeaderFactory,
+                            ResultStatusService resultStatusService,
+                            StepLoggerFactory stepLoggerFactory) {
+        super(PowerAuthStep.UPGRADE_START, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
@@ -75,7 +74,7 @@ public class CommitUpgradeStep extends AbstractBaseStep<CommitUpgradeStepModel, 
     /**
      * Constructor for backward compatibility
      */
-    public CommitUpgradeStep() {
+    public StartUpgradeStep() {
         this(
                 BackwardCompatibilityConst.POWER_AUTH_HEADER_FACTORY,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
@@ -84,48 +83,44 @@ public class CommitUpgradeStep extends AbstractBaseStep<CommitUpgradeStepModel, 
     }
 
     @Override
-    protected ParameterizedTypeReference<Response> getResponseTypeReference() {
-        return RESPONSE_TYPE_REFERENCE;
+    protected ParameterizedTypeReference<EncryptedResponse> getResponseTypeReference(PowerAuthVersion version) {
+        return getResponseTypeReferenceEncrypted(version);
     }
 
     @Override
-    public StepContext<CommitUpgradeStepModel, Response> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        CommitUpgradeStepModel model = new CommitUpgradeStepModel();
+    public StepContext<StartUpgradeStepModel, EncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+        StartUpgradeStepModel model = new StartUpgradeStepModel();
         model.fromMap(context);
 
-        ResultStatusObject resultStatusObject = model.getResultStatus();
-
         RequestContext requestContext = RequestContext.builder()
-                .signatureHttpMethod("POST")
-                .signatureRequestUri("/pa/upgrade/commit")
-                .uri(model.getUriString() + "/pa/v3/upgrade/commit")
+                .uri(model.getUriString() + "/pa/v3/upgrade/start")
                 .build();
 
-        StepContext<CommitUpgradeStepModel, Response> stepContext =
+        StepContext<StartUpgradeStepModel, EncryptedResponse> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
-        // Make sure hash based counter is used for calculating the signature, in case of an error the version change is not saved
-        resultStatusObject.setVersion(3L);
+        addEncryptedRequest(stepContext, model.getApplicationKey(), model.getApplicationSecret(), EncryptorId.UPGRADE, PowerAuthConst.EMPTY_JSON_BYTES, EncryptorScope.ACTIVATION_SCOPE);
 
-        requestContext.setRequestObject(PowerAuthConst.EMPTY_JSON_BYTES);
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
         return stepContext;
     }
 
     @Override
-    public void processResponse(StepContext<CommitUpgradeStepModel, Response> stepContext) throws Exception {
-        CommitUpgradeStepModel model = stepContext.getModel();
+    public void processResponse(StepContext<StartUpgradeStepModel, EncryptedResponse> stepContext) throws Exception {
+        final StartUpgradeStepModel model = stepContext.getModel();
+        final UpgradeResponsePayload responsePayload = decryptResponse(stepContext, UpgradeResponsePayload.class);
 
-        incrementCounter(model);
+        // Store the activation status (updated counter)
+        model.getResultStatus().setCtrData(responsePayload.getCtrData());
+        resultStatusService.save(model);
 
         stepContext.getStepLogger().writeItem(
-                getStep().id() + "-upgrade-done",
-                "Upgrade commit successfully completed",
-                "Upgrade commit was successfully completed",
+                getStep().id() + "-completed",
+                "Upgrade start step successfully completed",
+                "Upgrade start step was successfully completed",
                 "OK",
-                null
-
+                Map.of("ctrData", responsePayload.getCtrData())
         );
     }
 

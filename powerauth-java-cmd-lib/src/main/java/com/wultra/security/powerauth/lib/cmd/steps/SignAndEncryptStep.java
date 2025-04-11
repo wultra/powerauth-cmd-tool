@@ -14,23 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wultra.security.powerauth.lib.cmd.steps.v3;
+package com.wultra.security.powerauth.lib.cmd.steps;
 
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedResponse;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedResponse;
 import com.wultra.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
-import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import com.wultra.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLogger;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import com.wultra.security.powerauth.lib.cmd.status.ResultStatusService;
-import com.wultra.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.util.SecurityUtil;
 import com.wultra.security.powerauth.lib.cmd.util.VerifySignatureUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,7 +54,7 @@ import java.util.Map;
  *  @author Roman Strobl, roman.strobl@wultra.com
  */
 @Component
-public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepModel, EciesEncryptedResponse> {
+public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepModel, EncryptedResponse> {
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
@@ -87,12 +86,12 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
     }
 
     @Override
-    protected ParameterizedTypeReference<EciesEncryptedResponse> getResponseTypeReference() {
-        return PowerAuthConst.RESPONSE_TYPE_REFERENCE_V3;
+    protected ParameterizedTypeReference<EncryptedResponse> getResponseTypeReference(PowerAuthVersion version) {
+        return getResponseTypeReferenceEncrypted(version);
     }
 
     @Override
-    public StepContext<VerifySignatureStepModel, EciesEncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+    public StepContext<VerifySignatureStepModel, EncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
         VerifySignatureStepModel model = new VerifySignatureStepModel();
         model.fromMap(context);
 
@@ -102,7 +101,7 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
                 .uri(model.getUriString())
                 .build();
 
-        StepContext<VerifySignatureStepModel, EciesEncryptedResponse> stepContext =
+        StepContext<VerifySignatureStepModel, EncryptedResponse> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
         // Verify that HTTP method is set
@@ -150,7 +149,7 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
     }
 
     @Override
-    public void processResponse(StepContext<VerifySignatureStepModel, EciesEncryptedResponse> stepContext) throws Exception {
+    public void processResponse(StepContext<VerifySignatureStepModel, EncryptedResponse> stepContext) throws Exception {
         SecurityUtil.processEncryptedResponse(stepContext, getStep().id());
     }
 

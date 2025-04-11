@@ -17,6 +17,7 @@
 package com.wultra.security.powerauth.lib.cmd.steps.model;
 
 
+import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
 import lombok.Data;
@@ -56,17 +57,27 @@ public class EncryptStepModel extends BaseStepModel
     private boolean dryRun;
 
     /**
-     * Master Server Public Key, a value specific for given application.
+     * Master Server Public Key for P-256, a value specific for given application.
      */
-    private PublicKey masterPublicKey;
+    private PublicKey masterPublicKeyP256;
+
+    /**
+     * Master Server Public Key for P-384, a value specific for given application.
+     */
+    private PublicKey masterPublicKeyP384;
+
+    /**
+     * Master Server Public Key for ML-DSA-65, a value specific for given application.
+     */
+    private PublicKey masterPublicKeyMlDsa65;
+
+    /**
+     * Algorithm used for the shared secret derivation.
+     */
+    private SharedSecretAlgorithm sharedSecretAlgorithm;
 
     /**
      * ECIES encryption scope.
-     *
-     * <p><b>PowerAuth protocol versions:</b>
-     * <ul>
-     *     <li>3.0</li>
-     * </ul>
      */
     private String scope;
 
@@ -77,8 +88,11 @@ public class EncryptStepModel extends BaseStepModel
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
         context.put("DRY_RUN", dryRun);
-        context.put("MASTER_PUBLIC_KEY", masterPublicKey);
+        context.put("MASTER_PUBLIC_KEY_P256", masterPublicKeyP256);
+        context.put("MASTER_PUBLIC_KEY_P384", masterPublicKeyP384);
+        context.put("MASTER_PUBLIC_KEY_MLDSA65", masterPublicKeyMlDsa65);
         context.put("SCOPE", scope);
+        context.put("SHARED_SECRET_ALGORITHM", sharedSecretAlgorithm);
         return context;
     }
 
@@ -89,8 +103,11 @@ public class EncryptStepModel extends BaseStepModel
         setApplicationKey((String) context.get("APPLICATION_KEY"));
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
         setDryRun((boolean) context.get("DRY_RUN"));
-        setMasterPublicKey((PublicKey) context.get("MASTER_PUBLIC_KEY"));
+        setMasterPublicKeyP256((PublicKey) context.get("MASTER_PUBLIC_KEY_P256"));
+        setMasterPublicKeyP384((PublicKey) context.get("MASTER_PUBLIC_KEY_P384"));
+        setMasterPublicKeyMlDsa65((PublicKey) context.get("MASTER_PUBLIC_KEY_MLDSA65"));
         setScope((String) context.get("SCOPE"));
+        setSharedSecretAlgorithm((SharedSecretAlgorithm) context.get("SHARED_SECRET_ALGORITHM"));
     }
 
 }

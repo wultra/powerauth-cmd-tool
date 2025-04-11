@@ -16,6 +16,7 @@
 package com.wultra.security.powerauth.lib.cmd.steps.pojo;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.wultra.security.powerauth.crypto.lib.enums.EcCurve;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -153,18 +154,27 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public PublicKey getServerPublicKeyObject() throws Exception {
+        // TODO - add PQC key once it is available
+        int version = getVersion().intValue();
+        EcCurve ecCurve = switch (version) {
+            case 3 -> EcCurve.P256;
+            case 4 -> EcCurve.P384;
+            default -> throw new IllegalStateException("Unsupported version: " + version);
+        };
         String serverPublicKey = (String) jsonObject.get("serverPublicKey");
-        return KEY_CONVERTOR.convertBytesToPublicKey(Base64.getDecoder().decode(serverPublicKey));
+        return KEY_CONVERTOR.convertBytesToPublicKey(ecCurve, Base64.getDecoder().decode(serverPublicKey));
     }
 
     /**
      * Sets server public key object
+     * @param ecCurve EC curve for conversion
      * @param serverPublicKeyObject Public key object
      * @throws Exception when the public key cannot be encoded
      */
     @JsonIgnore
-    public void setServerPublicKeyObject(PublicKey serverPublicKeyObject) throws Exception {
-        String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertPublicKeyToBytes(serverPublicKeyObject));
+    public void setServerPublicKeyObject(EcCurve ecCurve, PublicKey serverPublicKeyObject) throws Exception {
+        // TODO - add PQC key once it is available
+        String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertPublicKeyToBytes(ecCurve, serverPublicKeyObject));
         jsonObject.put("serverPublicKey", serverPublicKey);
     }
 
@@ -360,6 +370,21 @@ public class ResultStatusObject {
      */
     public void setTransportMasterKey(String transportMasterKey) {
         jsonObject.put("transportMasterKey", transportMasterKey);
+    }
+
+    /**
+     * @return Shared secret algorithm
+     */
+    public String getSharedSecretAlgorithm() {
+        return (String) jsonObject.get("sharedSecretAlgorithm");
+    }
+
+    /**
+     * Sets shared secret algorithm
+     * @param sharedSecretAlgorithm Shared secret algorithm
+     */
+    public void setSharedSecretAlgorithm(String sharedSecretAlgorithm) {
+        jsonObject.put("sharedSecretAlgorithm", sharedSecretAlgorithm);
     }
 
     /**

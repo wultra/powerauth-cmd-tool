@@ -1,4 +1,5 @@
 /*
+ * PowerAuth Command-line utility
  * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,30 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wultra.security.powerauth.lib.cmd.steps.v3;
+package com.wultra.security.powerauth.lib.cmd.steps;
 
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedResponse;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedResponse;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
 import com.wultra.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
+import com.wultra.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLogger;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLoggerFactory;
-import com.wultra.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import com.wultra.security.powerauth.lib.cmd.status.ResultStatusService;
-import com.wultra.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
-import com.wultra.security.powerauth.lib.cmd.steps.model.RemoveStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.model.CreateTokenStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
+import com.wultra.security.powerauth.rest.api.model.entity.TokenResponsePayload;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Helper class with activation remove logic.
+ * Helper class with token creation logic.
  *
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
@@ -44,13 +47,14 @@ import java.util.Map;
  *      <li>3.1</li>
  *      <li>3.2</li>
  *      <li>3.3</li>
+ *      <li>4.0</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-@Component(value = "removeStepV3")
-public class RemoveStep extends AbstractBaseStep<RemoveStepModel, EciesEncryptedResponse> {
+@Component("createTokenStep")
+public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, EncryptedResponse> {
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
@@ -61,10 +65,10 @@ public class RemoveStep extends AbstractBaseStep<RemoveStepModel, EciesEncrypted
      * @param stepLoggerFactory Step logger factory
      */
     @Autowired
-    public RemoveStep(PowerAuthHeaderFactory powerAuthHeaderFactory,
-                      ResultStatusService resultStatusService,
-                      StepLoggerFactory stepLoggerFactory) {
-        super(PowerAuthStep.ACTIVATION_REMOVE, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
+    public CreateTokenStep(PowerAuthHeaderFactory powerAuthHeaderFactory,
+                           ResultStatusService resultStatusService,
+                           StepLoggerFactory stepLoggerFactory) {
+        super(PowerAuthStep.TOKEN_CREATE, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
@@ -72,7 +76,7 @@ public class RemoveStep extends AbstractBaseStep<RemoveStepModel, EciesEncrypted
     /**
      * Constructor for backward compatibility
      */
-    public RemoveStep() {
+    public CreateTokenStep() {
         this(
                 BackwardCompatibilityConst.POWER_AUTH_HEADER_FACTORY,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
@@ -81,23 +85,24 @@ public class RemoveStep extends AbstractBaseStep<RemoveStepModel, EciesEncrypted
     }
 
     @Override
-    protected ParameterizedTypeReference<EciesEncryptedResponse> getResponseTypeReference() {
-        return PowerAuthConst.RESPONSE_TYPE_REFERENCE_V3;
+    protected ParameterizedTypeReference<EncryptedResponse> getResponseTypeReference(PowerAuthVersion version) {
+        return getResponseTypeReferenceEncrypted(version);
     }
 
     @Override
-    public StepContext<RemoveStepModel, EciesEncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        RemoveStepModel model = new RemoveStepModel();
+    public StepContext<CreateTokenStepModel, EncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+        final CreateTokenStepModel model = new CreateTokenStepModel();
         model.fromMap(context);
 
-        RequestContext requestContext = RequestContext.builder()
+        final RequestContext requestContext = RequestContext.builder()
                 .signatureHttpMethod("POST")
-                .signatureRequestUri("/pa/activation/remove")
-                .uri(model.getUriString() + "/pa/v3/activation/remove")
+                .signatureRequestUri("/pa/token/create")
+                .uri(model.getUriString() + "/pa/v3/token/create")
                 .build();
 
-        StepContext<RemoveStepModel, EciesEncryptedResponse> stepContext =
-                buildStepContext(stepLogger, model, requestContext);
+        final StepContext<CreateTokenStepModel, EncryptedResponse> stepContext = buildStepContext(stepLogger, model, requestContext);
+
+        addEncryptedRequest(stepContext, model.getApplicationKey(), model.getApplicationSecret(), EncryptorId.CREATE_TOKEN, PowerAuthConst.EMPTY_JSON_BYTES, EncryptorScope.ACTIVATION_SCOPE);
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
@@ -107,18 +112,17 @@ public class RemoveStep extends AbstractBaseStep<RemoveStepModel, EciesEncrypted
     }
 
     @Override
-    public void processResponse(StepContext<RemoveStepModel, EciesEncryptedResponse> stepContext) {
-        String activationId = stepContext.getModel().getResultStatus().getActivationId();
-        Map<String, Object> objectMap = new HashMap<>();
-        objectMap.put("activationId", activationId);
+    public void processResponse(StepContext<CreateTokenStepModel, EncryptedResponse> stepContext) throws Exception {
+
+        final TokenResponsePayload tokenResponsePayload = decryptResponse(stepContext, TokenResponsePayload.class);
 
         stepContext.getStepLogger().writeItem(
-                getStep().id() + "-removal-done",
-                "Activation Removed",
-                "Activation was successfully removed from the server",
+                getStep().id() + "-token-obtained",
+                "Token successfully obtained",
+                "Token was successfully generated and decrypted",
                 "OK",
-                objectMap
-
+                Map.of("tokenId", tokenResponsePayload.getTokenId(),
+                        "tokenSecret",tokenResponsePayload.getTokenSecret())
         );
     }
 

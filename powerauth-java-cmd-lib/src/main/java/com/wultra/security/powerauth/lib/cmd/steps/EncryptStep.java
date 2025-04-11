@@ -14,43 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wultra.security.powerauth.lib.cmd.steps.v3;
+package com.wultra.security.powerauth.lib.cmd.steps;
 
 import com.wultra.security.powerauth.crypto.lib.encryptor.ClientEncryptor;
 import com.wultra.security.powerauth.crypto.lib.encryptor.EncryptorFactory;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorParameters;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorSecrets;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.*;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.ClientEciesSecrets;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedRequest;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedResponse;
 import com.wultra.security.powerauth.crypto.lib.enums.EcCurve;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
+import com.wultra.security.powerauth.crypto.lib.v4.encryptor.model.context.AeadSecrets;
+import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
 import com.wultra.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import com.wultra.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
-import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLogger;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import com.wultra.security.powerauth.lib.cmd.status.ResultStatusService;
-import com.wultra.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
+import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.util.SecurityUtil;
 import org.bouncycastle.util.encoders.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
 import java.security.PublicKey;
 import java.util.Map;
 
-import static com.wultra.security.powerauth.lib.cmd.util.TemporaryKeyUtil.TEMPORARY_KEY_ID;
-import static com.wultra.security.powerauth.lib.cmd.util.TemporaryKeyUtil.TEMPORARY_PUBLIC_KEY;
+import static com.wultra.security.powerauth.lib.cmd.util.TemporaryKeyUtil.*;
 
 /**
  * Encrypt step encrypts request data using ECIES encryption in application or activation scope.
@@ -61,13 +57,14 @@ import static com.wultra.security.powerauth.lib.cmd.util.TemporaryKeyUtil.TEMPOR
  *     <li>3.1</li>
  *     <li>3.2</li>
  *     <li>3.3</li>
+ *     <li>4.0</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-@Component(value = "encryptStepV3")
-public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncryptedResponse> {
+@Component("encryptStep")
+public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EncryptedResponse> {
 
     private static final EncryptorFactory ENCRYPTOR_FACTORY = new EncryptorFactory();
     private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
@@ -79,7 +76,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
      */
     @Autowired
     public EncryptStep(ResultStatusService resultStatusService, StepLoggerFactory stepLoggerFactory) {
-        super(PowerAuthStep.ENCRYPT, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
+        super(PowerAuthStep.ENCRYPT, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLoggerFactory);
     }
 
     /**
@@ -93,20 +90,20 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
     }
 
     @Override
-    protected ParameterizedTypeReference<EciesEncryptedResponse> getResponseTypeReference() {
-        return PowerAuthConst.RESPONSE_TYPE_REFERENCE_V3;
+    protected ParameterizedTypeReference<EncryptedResponse> getResponseTypeReference(PowerAuthVersion version) {
+        return getResponseTypeReferenceEncrypted(version);
     }
 
     @Override
-    public StepContext<EncryptStepModel, EciesEncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        EncryptStepModel model = new EncryptStepModel();
+    public StepContext<EncryptStepModel, EncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+        final EncryptStepModel model = new EncryptStepModel();
         model.fromMap(context);
 
-        RequestContext requestContext = RequestContext.builder()
+        final RequestContext requestContext = RequestContext.builder()
                 .uri(model.getUriString())
                 .build();
 
-        StepContext<EncryptStepModel, EciesEncryptedResponse> stepContext = buildStepContext(stepLogger, model, requestContext);
+        final StepContext<EncryptStepModel, EncryptedResponse> stepContext = buildStepContext(stepLogger, model, requestContext);
 
         // Read data which needs to be encrypted
         final byte[] requestDataBytes = model.getData();
@@ -137,38 +134,69 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
             stepLogger.writeDoneFailed("encrypt-failed");
             return null;
         }
-        fetchTemporaryKey(stepContext, scope);
-        final String temporaryKeyId =  (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID);
-        final String temporaryPublicKey = (String) stepContext.getAttributes().get(TEMPORARY_PUBLIC_KEY);
+        final SharedSecretAlgorithm sharedSecretAlgorithm = SecurityUtil.resolveSharedSecretAlgorithm(stepContext, scope);
+        fetchTemporaryKey(stepContext, scope, sharedSecretAlgorithm);
+        final String temporaryKeyId = (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID);
+        final ResultStatusObject resultStatusObject = model.getResultStatus();
 
         // Prepare the encryption header
         final EncryptorId encryptorId;
-        final ClientEncryptor<EciesEncryptedRequest, EciesEncryptedResponse> encryptor;
+        final ClientEncryptor<EncryptedRequest, EncryptedResponse> encryptor;
         final PowerAuthEncryptionHttpHeader header;
+        final EncryptorParameters encryptorParameters;
+        final EncryptorSecrets encryptorSecrets;
+
         switch (scope) {
             case APPLICATION_SCOPE -> {
-                final PublicKey encryptionPublicKey = temporaryPublicKey == null ?
-                        model.getMasterPublicKey() :
-                        KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, java.util.Base64.getDecoder().decode(temporaryPublicKey));
+                switch (model.getVersion().getMajorVersion()) {
+                    case 3 -> {
+                        final String temporaryPublicKey = (String) stepContext.getAttributes().get(TEMPORARY_PUBLIC_KEY);
+                        final PublicKey encryptionPublicKey = temporaryPublicKey == null ?
+                                model.getMasterPublicKeyP256() :
+                                KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, java.util.Base64.getDecoder().decode(temporaryPublicKey));
+                        encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, temporaryKeyId);
+                        encryptorSecrets = new ClientEciesSecrets(encryptionPublicKey, model.getApplicationSecret());
+                    }
+                    case 4 -> {
+                        final SecretKey temporarySharedSecret = (SecretKey) stepContext.getAttributes().get(TEMPORARY_SHARED_SECRET);
+                        encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, temporaryKeyId);
+                        encryptorSecrets = new AeadSecrets(temporarySharedSecret.getEncoded(), model.getApplicationSecret());
+                    }
+                    default -> {
+                        stepLogger.writeError("encrypt-error-scope", "Encrypt Request Failed", "Unsupported version: " + model.getVersion());
+                        stepLogger.writeDoneFailed("encrypt-failed");
+                        return null;
+                    }
+                }
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/application
                 encryptorId = EncryptorId.APPLICATION_SCOPE_GENERIC;
-                final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, temporaryKeyId);
-                final EncryptorSecrets encryptorSecrets = new ClientEciesSecrets(encryptionPublicKey, model.getApplicationSecret());
                 encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(encryptorId, encryptorParameters, encryptorSecrets);
                 header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), model.getVersion().value());
             }
             case ACTIVATION_SCOPE -> {
-                final ResultStatusObject resultStatusObject = model.getResultStatus();
-                final PublicKey encryptionPublicKey = temporaryPublicKey == null ?
-                        resultStatusObject.getServerPublicKeyObject() :
-                        KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, java.util.Base64.getDecoder().decode(temporaryPublicKey));
-                encryptorId = EncryptorId.ACTIVATION_SCOPE_GENERIC;
-                encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(
-                        encryptorId,
-                        new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), resultStatusObject.getActivationId(), temporaryKeyId),
-                        new ClientEciesSecrets(encryptionPublicKey, model.getApplicationSecret(), Base64.decode(resultStatusObject.getTransportMasterKey()))
-                );
+                switch (model.getVersion().getMajorVersion()) {
+                    case 3 -> {
+                        final String temporaryPublicKey = (String) stepContext.getAttributes().get(TEMPORARY_PUBLIC_KEY);
+                        final PublicKey encryptionPublicKey = temporaryPublicKey == null ?
+                                resultStatusObject.getServerPublicKeyObject() :
+                                KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, java.util.Base64.getDecoder().decode(temporaryPublicKey));
+                        encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), resultStatusObject.getActivationId(), temporaryKeyId);
+                        encryptorSecrets = new ClientEciesSecrets(encryptionPublicKey, model.getApplicationSecret(), Base64.decode(resultStatusObject.getTransportMasterKey()));
+                    }
+                    case 4 -> {
+                        final SecretKey temporarySharedSecret = (SecretKey) stepContext.getAttributes().get(TEMPORARY_SHARED_SECRET);
+                        encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), resultStatusObject.getActivationId(), temporaryKeyId);
+                        encryptorSecrets = new AeadSecrets(temporarySharedSecret.getEncoded(), model.getApplicationSecret(), Base64.decode(resultStatusObject.getTransportMasterKey()));
+                    }
+                    default -> {
+                        stepLogger.writeError("encrypt-error-scope", "Encrypt Request Failed", "Unsupported version: " + model.getVersion());
+                        stepLogger.writeDoneFailed("encrypt-failed");
+                        return null;
+                    }
+                }
                 // Prepare ECIES encryptor with sharedInfo1 = /pa/generic/activation
+                encryptorId = EncryptorId.ACTIVATION_SCOPE_GENERIC;
+                encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(encryptorId, encryptorParameters, encryptorSecrets);
                 final String activationId = model.getResultStatus().getActivationId();
                 header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), activationId, model.getVersion().value());
             }
@@ -180,7 +208,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
 
         addEncryptedRequest(stepContext, encryptor, requestDataBytes);
 
-        String headerValue = header.buildHttpHeader();
+        final String headerValue = header.buildHttpHeader();
         requestContext.setAuthorizationHeader(headerValue);
         requestContext.getHttpHeaders().put(PowerAuthEncryptionHttpHeader.HEADER_NAME, headerValue);
 
@@ -196,7 +224,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EciesEncrypt
     }
 
     @Override
-    public void processResponse(StepContext<EncryptStepModel, EciesEncryptedResponse> stepContext) throws Exception {
+    public void processResponse(StepContext<EncryptStepModel, EncryptedResponse> stepContext) throws Exception {
         SecurityUtil.processEncryptedResponse(stepContext, getStep().id());
     }
 }

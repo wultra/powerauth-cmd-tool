@@ -65,11 +65,6 @@ public class RemoveTokenStepModel extends BaseStepModel
      */
     private PowerAuthSignatureTypes signatureType;
 
-    /**
-     * Master public key
-     */
-    private PublicKey masterPublicKey;
-
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> context = super.toMap();
@@ -79,7 +74,6 @@ public class RemoveTokenStepModel extends BaseStepModel
         context.put("APPLICATION_SECRET", applicationSecret);
         context.put("PASSWORD", password);
         context.put("SIGNATURE_TYPE", signatureType.toString());
-        context.put("MASTER_PUBLIC_KEY", masterPublicKey);
         return context;
     }
 
@@ -92,7 +86,6 @@ public class RemoveTokenStepModel extends BaseStepModel
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
         setPassword((String) context.get("PASSWORD"));
         setSignatureType(PowerAuthSignatureTypes.getEnumFromString((String) context.get("SIGNATURE_TYPE")));
-        setMasterPublicKey((PublicKey) context.get("MASTER_PUBLIC_KEY"));
     }
 
 }

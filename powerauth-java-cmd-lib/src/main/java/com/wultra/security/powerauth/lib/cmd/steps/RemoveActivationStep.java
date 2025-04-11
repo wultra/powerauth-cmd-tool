@@ -13,32 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wultra.security.powerauth.lib.cmd.steps.v3;
+package com.wultra.security.powerauth.lib.cmd.steps;
 
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedResponse;
+import com.wultra.core.rest.model.base.response.ObjectResponse;
 import com.wultra.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
-import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLogger;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import com.wultra.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import com.wultra.security.powerauth.lib.cmd.status.ResultStatusService;
-import com.wultra.security.powerauth.lib.cmd.steps.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
-import com.wultra.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
-import com.wultra.security.powerauth.rest.api.model.response.UpgradeResponsePayload;
+import com.wultra.security.powerauth.lib.cmd.steps.model.RemoveStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
+import com.wultra.security.powerauth.rest.api.model.response.ActivationRemoveResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Step for starting upgrade to PowerAuth protocol version 3.0.
+ * Helper class with activation remove logic.
  *
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
@@ -51,8 +49,11 @@ import java.util.Map;
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-@Component
-public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, EciesEncryptedResponse> {
+@Component("removeActivationStep")
+public class RemoveActivationStep extends AbstractBaseStep<RemoveStepModel, ObjectResponse<ActivationRemoveResponse>> {
+
+    private static final ParameterizedTypeReference<ObjectResponse<ActivationRemoveResponse>> RESPONSE_TYPE_REFERENCE =
+            new ParameterizedTypeReference<>() {};
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
@@ -63,10 +64,10 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, Ec
      * @param stepLoggerFactory Step logger factory
      */
     @Autowired
-    public StartUpgradeStep(PowerAuthHeaderFactory powerAuthHeaderFactory,
-                            ResultStatusService resultStatusService,
-                            StepLoggerFactory stepLoggerFactory) {
-        super(PowerAuthStep.UPGRADE_START, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
+    public RemoveActivationStep(PowerAuthHeaderFactory powerAuthHeaderFactory,
+                                ResultStatusService resultStatusService,
+                                StepLoggerFactory stepLoggerFactory) {
+        super(PowerAuthStep.ACTIVATION_REMOVE, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
@@ -74,7 +75,7 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, Ec
     /**
      * Constructor for backward compatibility
      */
-    public StartUpgradeStep() {
+    public RemoveActivationStep() {
         this(
                 BackwardCompatibilityConst.POWER_AUTH_HEADER_FACTORY,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
@@ -83,44 +84,44 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, Ec
     }
 
     @Override
-    protected ParameterizedTypeReference<EciesEncryptedResponse> getResponseTypeReference() {
-        return PowerAuthConst.RESPONSE_TYPE_REFERENCE_V3;
+    protected ParameterizedTypeReference<ObjectResponse<ActivationRemoveResponse>> getResponseTypeReference(PowerAuthVersion version) {
+        return RESPONSE_TYPE_REFERENCE;
     }
 
     @Override
-    public StepContext<StartUpgradeStepModel, EciesEncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        StartUpgradeStepModel model = new StartUpgradeStepModel();
+    public StepContext<RemoveStepModel, ObjectResponse<ActivationRemoveResponse>> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+        final RemoveStepModel model = new RemoveStepModel();
         model.fromMap(context);
 
-        RequestContext requestContext = RequestContext.builder()
-                .uri(model.getUriString() + "/pa/v3/upgrade/start")
+        final RequestContext requestContext = RequestContext.builder()
+                .signatureHttpMethod("POST")
+                .signatureRequestUri("/pa/activation/remove")
+                .uri(model.getUriString() + "/pa/v3/activation/remove")
                 .build();
 
-        StepContext<StartUpgradeStepModel, EciesEncryptedResponse> stepContext =
+        final StepContext<RemoveStepModel, ObjectResponse<ActivationRemoveResponse>> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
-        addEncryptedRequest(stepContext, model.getApplicationKey(), model.getApplicationSecret(), EncryptorId.UPGRADE, PowerAuthConst.EMPTY_JSON_BYTES, EncryptorScope.ACTIVATION_SCOPE);
-
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
+
+        incrementCounter(model);
 
         return stepContext;
     }
 
     @Override
-    public void processResponse(StepContext<StartUpgradeStepModel, EciesEncryptedResponse> stepContext) throws Exception {
-        final StartUpgradeStepModel model = stepContext.getModel();
-        final UpgradeResponsePayload responsePayload = decryptResponse(stepContext, UpgradeResponsePayload.class);
-
-        // Store the activation status (updated counter)
-        model.getResultStatus().setCtrData(responsePayload.getCtrData());
-        resultStatusService.save(model);
+    public void processResponse(StepContext<RemoveStepModel, ObjectResponse<ActivationRemoveResponse>> stepContext) {
+        final String activationId = stepContext.getModel().getResultStatus().getActivationId();
+        final Map<String, Object> objectMap = new HashMap<>();
+        objectMap.put("activationId", activationId);
 
         stepContext.getStepLogger().writeItem(
-                getStep().id() + "-completed",
-                "Upgrade start step successfully completed",
-                "Upgrade start step was successfully completed",
+                getStep().id() + "-removal-done",
+                "Activation Removed",
+                "Activation was successfully removed from the server",
                 "OK",
-                Map.of("ctrData", responsePayload.getCtrData())
+                objectMap
+
         );
     }
 

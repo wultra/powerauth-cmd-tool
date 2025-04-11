@@ -17,9 +17,10 @@
 package com.wultra.security.powerauth.lib.cmd.steps.context.security;
 
 import com.wultra.security.powerauth.crypto.lib.encryptor.ClientEncryptor;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedRequest;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedResponse;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedRequest;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedResponse;
+import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
 import lombok.Builder;
 import lombok.Data;
 
@@ -37,20 +38,26 @@ public class ActivationSecurityContext implements SecurityContext {
     /**
      * Encryptor used on layer 1
      */
-    private ClientEncryptor<EciesEncryptedRequest, EciesEncryptedResponse> encryptorL1;
+    private ClientEncryptor<EncryptedRequest, EncryptedResponse> encryptorL1;
 
     /**
      * Encryptor used on layer 2
      */
-    private ClientEncryptor<EciesEncryptedRequest, EciesEncryptedResponse> encryptorL2;
+    private ClientEncryptor<EncryptedRequest, EncryptedResponse> encryptorL2;
 
     /**
      * Device key pair
      */
     private KeyPair deviceKeyPair;
 
+    /**
+     * Shared secret algorithm
+     */
+    private SharedSecretAlgorithm sharedSecretAlgorithm;
+
     @Override
     public EncryptorScope getEncryptorScope() {
         return EncryptorScope.APPLICATION_SCOPE;
     }
+
 }
