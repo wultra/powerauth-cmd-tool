@@ -244,8 +244,8 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             final EncryptorSecrets encryptorSecrets = new ClientEciesSecrets(encryptionPublicKey, applicationSecret, transportMasterKeyBytes);
             encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(encryptorId, encryptorParameters, encryptorSecrets);
             stepContext.setSecurityContext(SimpleSecurityContext.builder()
-                            .encryptor(encryptor)
-                            .build());
+                    .encryptor(encryptor)
+                    .build());
         } else {
             encryptor = securityContext.getEncryptor();
         }
