@@ -53,6 +53,7 @@ public class EncryptedStorageUtil {
         // Encrypt the knowledge related key using the password derived key
         AESEncryptionUtils aes = new AESEncryptionUtils();
         byte[] signatureKnowledgeSecretKeyBytes = keyConvertor.convertSharedSecretKeyToBytes(signatureKnowledgeSecretKey);
+        // TODO - empty IV is an antipattern for AES/CBC, improve for crypto4, reconsider PBKDF algorithm as well
         byte[] iv = new byte[16];
         return aes.encrypt(signatureKnowledgeSecretKeyBytes, iv, encryptionSignatureKnowledgeKey, "AES/CBC/NoPadding");
     }
@@ -74,6 +75,7 @@ public class EncryptedStorageUtil {
 
         // Encrypt the knowledge related key using the password derived key
         AESEncryptionUtils aes = new AESEncryptionUtils();
+        // TODO - empty IV is an antipattern for AES/CBC, improve for crypto4, reconsider PBKDF algorithm as well
         byte[] iv = new byte[16];
         byte[] signatureKnowledgeSecretKeyBytes = aes.decrypt(cSignatureKnowledgeSecretKeyBytes, iv, encryptionSignatureKnowledgeKey, "AES/CBC/NoPadding");
         return keyConvertor.convertBytesToSharedSecretKey(signatureKnowledgeSecretKeyBytes);

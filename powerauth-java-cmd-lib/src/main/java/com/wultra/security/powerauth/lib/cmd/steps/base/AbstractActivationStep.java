@@ -28,9 +28,22 @@ import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncrypte
 import com.wultra.security.powerauth.crypto.lib.enums.EcCurve;
 import com.wultra.security.powerauth.crypto.lib.generator.KeyGenerator;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
+import com.wultra.security.powerauth.crypto.lib.util.PqcDsaKeyConvertor;
+import com.wultra.security.powerauth.crypto.lib.v4.PqcDsa;
+import com.wultra.security.powerauth.crypto.lib.v4.api.SharedSecretClientContext;
 import com.wultra.security.powerauth.crypto.lib.v4.encryptor.model.context.AeadSecrets;
 import com.wultra.security.powerauth.crypto.lib.v4.encryptor.model.response.AeadEncryptedResponse;
+import com.wultra.security.powerauth.crypto.lib.v4.kdf.KeyFactory;
+import com.wultra.security.powerauth.crypto.lib.v4.model.SharedSecretClientContextEcdhe;
+import com.wultra.security.powerauth.crypto.lib.v4.model.SharedSecretClientContextHybrid;
 import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
+import com.wultra.security.powerauth.crypto.lib.v4.model.request.RequestCryptogram;
+import com.wultra.security.powerauth.crypto.lib.v4.model.request.SharedSecretRequestEcdhe;
+import com.wultra.security.powerauth.crypto.lib.v4.model.request.SharedSecretRequestHybrid;
+import com.wultra.security.powerauth.crypto.lib.v4.model.response.SharedSecretResponseEcdhe;
+import com.wultra.security.powerauth.crypto.lib.v4.model.response.SharedSecretResponseHybrid;
+import com.wultra.security.powerauth.crypto.lib.v4.sharedsecret.SharedSecretEcdhe;
+import com.wultra.security.powerauth.crypto.lib.v4.sharedsecret.SharedSecretHybrid;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLoggerFactory;
@@ -43,8 +56,10 @@ import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import com.wultra.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import com.wultra.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import com.wultra.security.powerauth.lib.cmd.util.SecurityUtil;
-import com.wultra.security.powerauth.rest.api.model.request.ActivationLayer2Request;
-import com.wultra.security.powerauth.rest.api.model.response.ActivationLayer2Response;
+import com.wultra.security.powerauth.rest.api.model.request.v4.DevicePublicKeys;
+import com.wultra.security.powerauth.rest.api.model.request.v4.SharedSecretRequest;
+import com.wultra.security.powerauth.rest.api.model.response.v4.ServerPublicKeys;
+import com.wultra.security.powerauth.rest.api.model.response.v4.SharedSecretResponse;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.util.Assert;
 
@@ -60,6 +75,7 @@ import static com.wultra.security.powerauth.lib.cmd.util.TemporaryKeyUtil.*;
  * Abstract step with common parts used in activations steps
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
+ * @author Roman Strobl, roman.strobl@wultra.com
  */
 public abstract class AbstractActivationStep<M extends ActivationData> extends AbstractBaseStep<M, EncryptedResponse> {
 
@@ -68,14 +84,19 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
     private static final EncryptorFactory ENCRYPTOR_FACTORY = new EncryptorFactory();
 
     private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
+    private static final PqcDsaKeyConvertor KEY_CONVERTOR_PQC_DSA = new PqcDsaKeyConvertor();
 
     private static final PowerAuthClientKeyFactory KEY_FACTORY = new PowerAuthClientKeyFactory();
 
     private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
+    private static final PqcDsa PQC_DSA = new PqcDsa();
 
     private static final PowerAuthClientVault VAULT = new PowerAuthClientVault();
 
     private static final ObjectMapper MAPPER = RestClientConfiguration.defaultMapper();
+
+    private static final SharedSecretEcdhe SHARED_SECRET_ECDHE = new SharedSecretEcdhe();
+    private static final SharedSecretHybrid SHARED_SECRET_HYBRID = new SharedSecretHybrid();
 
     /**
      * Constructor
@@ -113,9 +134,9 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         objectMap.put("activationId", resultStatusObject.getActivationId());
         objectMap.put("activationStatusFile", model.getStatusFileName());
         objectMap.put("activationStatusFileContent", model.getResultStatus());
-        objectMap.put("deviceKeyFingerprint", ACTIVATION.computeActivationFingerprint(securityContext.getDeviceKeyPair().getPublic(), resultStatusObject.getServerPublicKeyObject(), resultStatusObject.getActivationId()));
+        objectMap.put("deviceKeyFingerprint", ACTIVATION.computeActivationFingerprint(securityContext.getEcDeviceKeyPair().getPublic(), resultStatusObject.getEcServerPublicKeyObject(), resultStatusObject.getActivationId()));
         stepContext.getStepLogger().writeItem(
-                getStep().id() + "-custom-activation-done",
+                getStep().id() + "-activation-done",
                 "Activation Done",
                 "Public key exchange was successfully completed, commit the activation on server if required",
                 "OK",
@@ -131,64 +152,42 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
      * @return Activation status object
      * @throws Exception when an error during response processing occurred
      */
-    public ResultStatusObject processResponse(EncryptedResponse encryptedResponseL1,
-                                              StepContext<M, EncryptedResponse> context) throws Exception {
+    public ResultStatusObject processResponse(EncryptedResponse encryptedResponseL1, StepContext<M, EncryptedResponse> context) throws Exception {
+        return switch (context.getModel().getVersion().getMajorVersion()) {
+            case 3 -> processActivationResponseV3(encryptedResponseL1, context);
+            case 4 -> processActivationResponseV4(encryptedResponseL1, context);
+            default -> throw new IllegalStateException("Unsupported version: " + context.getModel().getVersion());
+        };
+    }
+
+    private ResultStatusObject processActivationResponseV3(EncryptedResponse encryptedResponseL1, StepContext<M, EncryptedResponse> context) throws Exception {
         final M model = context.getModel();
         final ActivationSecurityContext securityContext = (ActivationSecurityContext) context.getSecurityContext();
-
-        // Decrypt activation layer 1 response
-        final byte[] decryptedDataL1;
-        final byte[] decryptedDataL2;
-        switch (model.getVersion().getMajorVersion()) {
-            case 3 -> {
-                final EciesEncryptedResponse eciesResponseL1 = (EciesEncryptedResponse) encryptedResponseL1;
-                decryptedDataL1 = securityContext.getEncryptorL1().decryptResponse(new EciesEncryptedResponse(
-                        eciesResponseL1.getEncryptedData(),
-                        eciesResponseL1.getMac(),
-                        eciesResponseL1.getNonce(),
-                        eciesResponseL1.getTimestamp()
-                ));
-                final com.wultra.security.powerauth.rest.api.model.response.v3.ActivationLayer1Response responseL1V3 = MAPPER.readValue(decryptedDataL1, com.wultra.security.powerauth.rest.api.model.response.v3.ActivationLayer1Response.class);
-                context.getStepLogger().writeItem(
-                        getStep().id() + "-response-decrypt",
-                        "Decrypted Layer 1 Response",
-                        "Following layer 1 activation data were decrypted",
-                        "OK",
-                        responseL1V3
-                );
-                final EciesEncryptedResponse eciesResponseL2 = responseL1V3.getActivationData();
-                decryptedDataL2 = securityContext.getEncryptorL2().decryptResponse(new EciesEncryptedResponse(
-                        eciesResponseL2.getEncryptedData(),
-                        eciesResponseL2.getMac(),
-                        eciesResponseL2.getNonce(),
-                        eciesResponseL2.getTimestamp()
-                ));
-            }
-            case 4 -> {
-                final AeadEncryptedResponse aeadResponseL1 = (AeadEncryptedResponse) encryptedResponseL1;
-                decryptedDataL1 = securityContext.getEncryptorL1().decryptResponse(new AeadEncryptedResponse(
-                        aeadResponseL1.getEncryptedData(),
-                        aeadResponseL1.getTimestamp()
-                ));
-                final com.wultra.security.powerauth.rest.api.model.response.v4.ActivationLayer1Response responseL1V4 = MAPPER.readValue(decryptedDataL1, com.wultra.security.powerauth.rest.api.model.response.v4.ActivationLayer1Response.class);
-                context.getStepLogger().writeItem(
-                        getStep().id() + "-response-decrypt",
-                        "Decrypted Layer 1 Response",
-                        "Following layer 1 activation data were decrypted",
-                        "OK",
-                        responseL1V4
-                );
-                final AeadEncryptedResponse aeadResponseL2 = responseL1V4.getActivationData();
-                decryptedDataL2 = securityContext.getEncryptorL2().decryptResponse(new AeadEncryptedResponse(
-                        aeadResponseL2.getEncryptedData(),
-                        aeadResponseL2.getTimestamp()
-                ));
-            }
-            default -> throw new IllegalStateException("Unsupported version: " + model.getVersion());
-        }
-
+        final EciesEncryptedResponse eciesResponseL1 = (EciesEncryptedResponse) encryptedResponseL1;
+        final ResultStatusObject resultStatusObject = model.getResultStatus();
+        final byte[] decryptedDataL1 = securityContext.getEncryptorL1().decryptResponse(new EciesEncryptedResponse(
+                eciesResponseL1.getEncryptedData(),
+                eciesResponseL1.getMac(),
+                eciesResponseL1.getNonce(),
+                eciesResponseL1.getTimestamp()
+        ));
+        final com.wultra.security.powerauth.rest.api.model.response.v3.ActivationLayer1Response responseL1V3 = MAPPER.readValue(decryptedDataL1, com.wultra.security.powerauth.rest.api.model.response.v3.ActivationLayer1Response.class);
+        context.getStepLogger().writeItem(
+                getStep().id() + "-response-decrypt",
+                "Decrypted Layer 1 Response",
+                "Following layer 1 activation data were decrypted",
+                "OK",
+                responseL1V3
+        );
+        final EciesEncryptedResponse eciesResponseL2 = responseL1V3.getActivationData();
+        final byte[] decryptedDataL2 = securityContext.getEncryptorL2().decryptResponse(new EciesEncryptedResponse(
+                eciesResponseL2.getEncryptedData(),
+                eciesResponseL2.getMac(),
+                eciesResponseL2.getNonce(),
+                eciesResponseL2.getTimestamp()
+        ));
         // Convert activation layer 2 response from JSON to object and extract activation parameters
-        final ActivationLayer2Response responseL2 = MAPPER.readValue(decryptedDataL2, ActivationLayer2Response.class);
+        final com.wultra.security.powerauth.rest.api.model.response.v3.ActivationLayer2Response responseL2 = MAPPER.readValue(decryptedDataL2, com.wultra.security.powerauth.rest.api.model.response.v3.ActivationLayer2Response.class);
 
         context.getStepLogger().writeItem(
                 getStep().id() + "-response-decrypt-inner",
@@ -201,18 +200,10 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         final String activationId = responseL2.getActivationId();
         final String ctrDataBase64 = responseL2.getCtrData();
         final String serverPublicKeyBase64 = responseL2.getServerPublicKey();
-
-        final EcCurve ecCurve = switch (model.getVersion().getMajorVersion()) {
-            case 3 -> EcCurve.P256;
-            case 4 -> EcCurve.P384;
-            default -> throw new IllegalStateException("Unsupported version: " + model.getVersion());
-        };
-
-        final PublicKey serverPublicKey = KEY_CONVERTOR.convertBytesToPublicKey(ecCurve, Base64.getDecoder().decode(serverPublicKeyBase64));
+        final PublicKey serverPublicKey = KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, Base64.getDecoder().decode(serverPublicKeyBase64));
 
         // Compute master secret key
-        // TODO - update key derivation for crypto4
-        final SecretKey masterSecretKey = KEY_FACTORY.generateClientMasterSecretKey(securityContext.getDeviceKeyPair().getPrivate(), serverPublicKey);
+        final SecretKey masterSecretKey = KEY_FACTORY.generateClientMasterSecretKey(securityContext.getEcDeviceKeyPair().getPrivate(), serverPublicKey);
 
         // Derive PowerAuth keys from master secret key
         final SecretKey signaturePossessionSecretKey = KEY_FACTORY.generateClientSignaturePossessionKey(masterSecretKey);
@@ -223,7 +214,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         final SecretKey vaultUnlockMasterKey = KEY_FACTORY.generateServerEncryptedVaultKey(masterSecretKey);
 
         // Encrypt the original device private key using the vault unlock key
-        final byte[] encryptedDevicePrivateKey = VAULT.encryptDevicePrivateKey(securityContext.getDeviceKeyPair().getPrivate(), vaultUnlockMasterKey);
+        final byte[] encryptedDevicePrivateKey = VAULT.encryptDevicePrivateKey(securityContext.getEcDeviceKeyPair().getPrivate(), vaultUnlockMasterKey);
 
         final char[] password;
         if (model.getPassword() == null) {
@@ -237,21 +228,101 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         final byte[] salt = KEY_GENERATOR.generateRandomBytes(16);
         final byte[] cSignatureKnowledgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, signatureKnowledgeSecretKey, salt, KEY_GENERATOR);
 
-        final ResultStatusObject resultStatusObject = model.getResultStatus();
-
+        resultStatusObject.setVersion((long) model.getVersion().getMajorVersion());
         resultStatusObject.setActivationId(activationId);
         resultStatusObject.setCounter(0L);
         resultStatusObject.setCtrData(ctrDataBase64);
         resultStatusObject.setEncryptedDevicePrivateKeyBytes(encryptedDevicePrivateKey);
-        resultStatusObject.setServerPublicKeyObject(ecCurve, serverPublicKey);
+        resultStatusObject.setEcServerPublicKeyObject(serverPublicKey);
         resultStatusObject.setSignatureBiometryKeyObject(signatureBiometrySecretKey);
         resultStatusObject.setSignatureKnowledgeKeyEncryptedBytes(cSignatureKnowledgeSecretKey);
         resultStatusObject.setSignatureKnowledgeKeySaltBytes(salt);
         resultStatusObject.setSignaturePossessionKeyObject(signaturePossessionSecretKey);
         resultStatusObject.setTransportMasterKeyObject(transportMasterKey);
-        resultStatusObject.setSharedSecretAlgorithm(securityContext.getSharedSecretAlgorithm().toString());
-        resultStatusObject.setVersion((long) model.getVersion().getMajorVersion());
 
+        resultStatusObject.setSharedSecretAlgorithm(securityContext.getSharedSecretAlgorithm().toString());
+        return resultStatusObject;
+    }
+
+    private ResultStatusObject processActivationResponseV4(EncryptedResponse encryptedResponseL1, StepContext<M, EncryptedResponse> context) throws Exception {
+        final M model = context.getModel();
+        final ActivationSecurityContext securityContext = (ActivationSecurityContext) context.getSecurityContext();
+        final ResultStatusObject resultStatusObject = model.getResultStatus();
+        final AeadEncryptedResponse aeadResponseL1 = (AeadEncryptedResponse) encryptedResponseL1;
+        final byte[] decryptedDataL1 = securityContext.getEncryptorL1().decryptResponse(new AeadEncryptedResponse(
+                aeadResponseL1.getEncryptedData(),
+                aeadResponseL1.getTimestamp()
+        ));
+        final com.wultra.security.powerauth.rest.api.model.response.v4.ActivationLayer1Response responseL1V4 = MAPPER.readValue(decryptedDataL1, com.wultra.security.powerauth.rest.api.model.response.v4.ActivationLayer1Response.class);
+        context.getStepLogger().writeItem(
+                getStep().id() + "-response-decrypt",
+                "Decrypted Layer 1 Response",
+                "Following layer 1 activation data were decrypted",
+                "OK",
+                responseL1V4
+        );
+        final AeadEncryptedResponse aeadResponseL2 = responseL1V4.getActivationData();
+        final byte[] decryptedDataL2 = securityContext.getEncryptorL2().decryptResponse(new AeadEncryptedResponse(
+                aeadResponseL2.getEncryptedData(),
+                aeadResponseL2.getTimestamp()
+        ));
+        final SharedSecretClientContext clientContext = securityContext.getSharedSecretClientContext();
+        final com.wultra.security.powerauth.rest.api.model.response.v4.ActivationLayer2Response responseL2 = MAPPER.readValue(decryptedDataL2, com.wultra.security.powerauth.rest.api.model.response.v4.ActivationLayer2Response.class);
+        final String activationId = responseL2.getActivationId();
+        final String ctrDataBase64 = responseL2.getCtrData();
+        final ServerPublicKeys serverPublicKeys = responseL2.getServerPublicKeys();
+        final SharedSecretResponse sharedSecretResponse = responseL2.getSharedSecretResponse();
+        final SecretKey activationSharedSecret;
+
+        switch (model.getSharedSecretAlgorithm()) {
+            case EC_P384 -> {
+                final SharedSecretResponseEcdhe sharedSecretResponseEcdhe = new SharedSecretResponseEcdhe();
+                sharedSecretResponseEcdhe.setEcServerPublicKey(sharedSecretResponse.getEcdhe());
+                activationSharedSecret = SHARED_SECRET_ECDHE.computeSharedSecret((SharedSecretClientContextEcdhe) clientContext, sharedSecretResponseEcdhe);
+            }
+            case EC_P384_ML_L3 -> {
+                final SharedSecretResponseHybrid sharedSecretResponseHybrid = new SharedSecretResponseHybrid();
+                sharedSecretResponseHybrid.setEcServerPublicKey(sharedSecretResponse.getEcdhe());
+                sharedSecretResponseHybrid.setPqcEncapsulation(sharedSecretResponse.getMlkem());
+                activationSharedSecret = SHARED_SECRET_HYBRID.computeSharedSecret((SharedSecretClientContextHybrid) clientContext, sharedSecretResponseHybrid);
+            }
+            default -> throw new IllegalStateException("Unsupported shared secret algorithm: " + model.getSharedSecretAlgorithm());
+        }
+
+        // Derive keys
+        final SecretKey tempKeyActSign = KeyFactory.deriveKeyMacGetActTempKey(activationSharedSecret);
+        final SecretKey sharedInfo2Key = KeyFactory.deriveKeyE2eeSharedInfo2(activationSharedSecret);
+        final SecretKey authenticationCodePossessionSecretKey = KeyFactory.deriveKeyAuthenticationCodePossession(activationSharedSecret);
+        final SecretKey authenticationCodeKnowledgeSecretKey = KeyFactory.deriveKeyAuthenticationCodeKnowledge(activationSharedSecret);
+        final SecretKey authenticationCodeBiometrySecretKey = KeyFactory.deriveKeyAuthenticationCodeBiometry(activationSharedSecret);
+
+        final char[] password;
+        if (model.getPassword() == null) {
+            final Console console = System.console();
+            password = console.readPassword("Select a password to encrypt the knowledge related key: ");
+            Assert.state(password != null, "Not able to read a password from the console");
+        } else {
+            password = model.getPassword().toCharArray();
+        }
+
+        // Encrypt knowledge factor key
+        final byte[] salt = KEY_GENERATOR.generateRandomBytes(16);
+        final byte[] encryptedKnowledgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, authenticationCodeKnowledgeSecretKey, salt, KEY_GENERATOR);
+
+        resultStatusObject.setVersion((long) model.getVersion().getMajorVersion());
+        resultStatusObject.setActivationId(activationId);
+        resultStatusObject.setCounter(0L);
+        resultStatusObject.setCtrData(ctrDataBase64);
+        resultStatusObject.setTemporaryKeyActSignRequestKeyObject(tempKeyActSign);
+        resultStatusObject.setSharedInfo2KeyObject(sharedInfo2Key);
+        resultStatusObject.setEcServerPublicKey(serverPublicKeys.getEcdsa());
+        resultStatusObject.setPqcServerPublicKey(serverPublicKeys.getMldsa());
+        // TODO - store encrypted crypto 4 private keys using updated vault mechanism
+        resultStatusObject.setSignatureBiometryKeyObject(authenticationCodeBiometrySecretKey);
+        resultStatusObject.setSignatureKnowledgeKeyEncryptedBytes(encryptedKnowledgeSecretKey);
+        resultStatusObject.setSignatureKnowledgeKeySaltBytes(salt);
+        resultStatusObject.setSignaturePossessionKeyObject(authenticationCodePossessionSecretKey);
+        resultStatusObject.setSharedSecretAlgorithm(securityContext.getSharedSecretAlgorithm().toString());
         return resultStatusObject;
     }
 
@@ -289,6 +360,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         final ClientEncryptor<EncryptedRequest, EncryptedResponse> encryptorL1;
         final ClientEncryptor<EncryptedRequest, EncryptedResponse> encryptorL2;
         final byte[] devicePublicKeyBytes;
+        final Object requestL2Object;
         switch (model.getVersion().getMajorVersion()) {
             case 3 -> {
                 deviceKeyPair = ACTIVATION.generateDeviceKeyPair();
@@ -309,14 +381,22 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
                 securityContext = ActivationSecurityContext.builder()
                         .encryptorL1(encryptorL1)
                         .encryptorL2(encryptorL2)
-                        .deviceKeyPair(deviceKeyPair)
+                        .ecDeviceKeyPair(deviceKeyPair)
                         .sharedSecretAlgorithm(sharedSecretAlgorithm)
                         .build();
-                devicePublicKeyBytes = KEY_CONVERTOR.convertPublicKeyToBytes(EcCurve.P256, securityContext.getDeviceKeyPair().getPublic());
+                devicePublicKeyBytes = KEY_CONVERTOR.convertPublicKeyToBytes(EcCurve.P256, securityContext.getEcDeviceKeyPair().getPublic());
+                final String devicePublicKeyBase64 = Base64.getEncoder().encodeToString(devicePublicKeyBytes);
+                com.wultra.security.powerauth.rest.api.model.request.v3.ActivationLayer2Request requestL2 = new com.wultra.security.powerauth.rest.api.model.request.v3.ActivationLayer2Request();
+                requestL2.setActivationName(model.getActivationName());
+                if (model instanceof PrepareActivationStepModel) {
+                    requestL2.setActivationOtp(((PrepareActivationStepModel) model).getAdditionalActivationOtp());
+                }
+                requestL2.setDevicePublicKey(devicePublicKeyBase64);
+                requestL2.setPlatform(model.getPlatform());
+                requestL2.setDeviceInfo(model.getDeviceInfo());
+                requestL2Object = requestL2;
             }
             case 4 -> {
-                // TODO - update activation process for crypto4
-                deviceKeyPair = KEY_GENERATOR.generateKeyPair(EcCurve.P384);
                 final SecretKey sharedSecret = (SecretKey) stepContext.getAttributes().get(TEMPORARY_SHARED_SECRET);
                 encryptorL1 = ENCRYPTOR_FACTORY.getClientEncryptor(
                         EncryptorId.APPLICATION_SCOPE_GENERIC,
@@ -328,13 +408,58 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
                         new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID)),
                         new AeadSecrets(sharedSecret.getEncoded(), model.getApplicationSecret())
                 );
+                final SharedSecretClientContext clientContext;
+                final SharedSecretRequest sharedSecretRequest = new SharedSecretRequest();
+                sharedSecretRequest.setAlgorithm(model.getSharedSecretAlgorithm().toString());
+                final DevicePublicKeys devicePublicKeys = new DevicePublicKeys();
+                final KeyPair ecDeviceKeyPair = KEY_GENERATOR.generateKeyPair(EcCurve.P384);
+                final KeyPair pqcDeviceKeyPair;
+                switch (model.getSharedSecretAlgorithm()) {
+                    case EC_P384 -> {
+                        final byte[] ecPublicKeyBytes = KEY_CONVERTOR.convertPublicKeyToBytes(EcCurve.P384, ecDeviceKeyPair.getPublic());
+                        final String ecPublicKeyBase64 = Base64.getEncoder().encodeToString(ecPublicKeyBytes);
+                        devicePublicKeys.setEcdsa(ecPublicKeyBase64);
+                        pqcDeviceKeyPair = null;
+                        final RequestCryptogram requestCryptogram = SHARED_SECRET_ECDHE.generateRequestCryptogram();
+                        clientContext = requestCryptogram.getSharedSecretClientContext();
+                        sharedSecretRequest.setEcdhe(((SharedSecretRequestEcdhe)requestCryptogram.getSharedSecretRequest()).getEcClientPublicKey());
+                    }
+                    case EC_P384_ML_L3 -> {
+                        final byte[] ecPublicKeyBytes = KEY_CONVERTOR.convertPublicKeyToBytes(EcCurve.P384, ecDeviceKeyPair.getPublic());
+                        final String ecPublicKeyBase64 = Base64.getEncoder().encodeToString(ecPublicKeyBytes);
+                        devicePublicKeys.setEcdsa(ecPublicKeyBase64);
+
+                        pqcDeviceKeyPair= PQC_DSA.generateKeyPair();
+                        final byte[] pqcPublicKeyBytes = KEY_CONVERTOR_PQC_DSA.convertPublicKeyToBytes(pqcDeviceKeyPair.getPublic());
+                        final String pqcPublicKeyBase64 = Base64.getEncoder().encodeToString(pqcPublicKeyBytes);
+                        devicePublicKeys.setMldsa(pqcPublicKeyBase64);
+
+                        final RequestCryptogram requestCryptogram = SHARED_SECRET_HYBRID.generateRequestCryptogram();
+                        clientContext = requestCryptogram.getSharedSecretClientContext();
+                        sharedSecretRequest.setEcdhe(((SharedSecretRequestHybrid)requestCryptogram.getSharedSecretRequest()).getEcClientPublicKey());
+                        sharedSecretRequest.setMlkem(((SharedSecretRequestHybrid)requestCryptogram.getSharedSecretRequest()).getPqcEncapsulationKey());
+                    }
+                    default -> throw new IllegalStateException("Unsupported shared secret algorithm: " + model.getSharedSecretAlgorithm());
+                }
                 securityContext = ActivationSecurityContext.builder()
                         .encryptorL1(encryptorL1)
                         .encryptorL2(encryptorL2)
-                        .deviceKeyPair(deviceKeyPair)
+                        .ecDeviceKeyPair(ecDeviceKeyPair)
+                        .pqcDeviceKeyPair(pqcDeviceKeyPair)
                         .sharedSecretAlgorithm(sharedSecretAlgorithm)
+                        .sharedSecretClientContext(clientContext)
                         .build();
-                devicePublicKeyBytes = KEY_CONVERTOR.convertPublicKeyToBytes(EcCurve.P384, securityContext.getDeviceKeyPair().getPublic());
+
+                com.wultra.security.powerauth.rest.api.model.request.v4.ActivationLayer2Request requestL2 = new com.wultra.security.powerauth.rest.api.model.request.v4.ActivationLayer2Request();
+                requestL2.setActivationName(model.getActivationName());
+                if (model instanceof PrepareActivationStepModel) {
+                    requestL2.setActivationOtp(((PrepareActivationStepModel) model).getAdditionalActivationOtp());
+                }
+                requestL2.setSharedSecretRequest(sharedSecretRequest);
+                requestL2.setDevicePublicKeys(devicePublicKeys);
+                requestL2.setPlatform(model.getPlatform());
+                requestL2.setDeviceInfo(model.getDeviceInfo());
+                requestL2Object = requestL2;
             }
             default -> throw new IllegalStateException("Unsupported version: " + model.getVersion());
         }
@@ -364,19 +489,8 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
             );
         }
 
-        // Create activation layer 2 request which is decryptable only on PowerAuth server
-        final String devicePublicKeyBase64 = Base64.getEncoder().encodeToString(devicePublicKeyBytes);
-        final ActivationLayer2Request requestL2 = new ActivationLayer2Request();
-        requestL2.setActivationName(model.getActivationName());
-        if (model instanceof PrepareActivationStepModel) {
-            requestL2.setActivationOtp(((PrepareActivationStepModel) model).getAdditionalActivationOtp());
-        }
-        requestL2.setDevicePublicKey(devicePublicKeyBase64);
-        requestL2.setPlatform(model.getPlatform());
-        requestL2.setDeviceInfo(model.getDeviceInfo());
-
         // Encrypt request in application scope with sharedInfo1 = /pa/activation
-        final EncryptedRequest encryptedRequestL2 = SecurityUtil.encryptObject(encryptorL2, requestL2);
+        final EncryptedRequest encryptedRequestL2 = SecurityUtil.encryptObject(encryptorL2, requestL2Object);
 
         // Prepare activation layer 1 request which is decryptable on intermediate server
         final Object requestL1 = prepareLayer1Request(stepContext, encryptedRequestL2);

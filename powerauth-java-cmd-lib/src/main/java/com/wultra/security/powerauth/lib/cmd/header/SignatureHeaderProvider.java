@@ -106,7 +106,7 @@ public class SignatureHeaderProvider implements PowerAuthHeaderProvider<Signatur
             lowLevelData.put("activationId", resultStatusObject.getActivationId());
             lowLevelData.put("applicationKey", model.getApplicationKey());
             lowLevelData.put("resourceId", ((VerifySignatureStepModel) model).getResourceId());
-            lowLevelData.put("serverPublicKey", resultStatusObject.getServerPublicKey());
+            lowLevelData.put("serverPublicKey", resultStatusObject.getEcServerPublicKey());
             lowLevelData.put("transportKey", resultStatusObject.getTransportMasterKey());
         }
 

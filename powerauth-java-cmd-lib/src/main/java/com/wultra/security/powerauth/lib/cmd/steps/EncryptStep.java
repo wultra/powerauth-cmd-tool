@@ -37,13 +37,13 @@ import com.wultra.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.util.SecurityUtil;
-import org.bouncycastle.util.encoders.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.security.PublicKey;
+import java.util.Base64;
 import java.util.Map;
 
 import static com.wultra.security.powerauth.lib.cmd.util.TemporaryKeyUtil.*;
@@ -163,7 +163,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EncryptedRes
                         encryptorSecrets = new AeadSecrets(temporarySharedSecret.getEncoded(), model.getApplicationSecret());
                     }
                     default -> {
-                        stepLogger.writeError("encrypt-error-scope", "Encrypt Request Failed", "Unsupported version: " + model.getVersion());
+                        stepLogger.writeError("encrypt-error-version", "Encrypt Request Failed", "Unsupported version: " + model.getVersion());
                         stepLogger.writeDoneFailed("encrypt-failed");
                         return null;
                     }
@@ -178,18 +178,23 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EncryptedRes
                     case 3 -> {
                         final String temporaryPublicKey = (String) stepContext.getAttributes().get(TEMPORARY_PUBLIC_KEY);
                         final PublicKey encryptionPublicKey = temporaryPublicKey == null ?
-                                resultStatusObject.getServerPublicKeyObject() :
+                                resultStatusObject.getEcServerPublicKeyObject() :
                                 KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, java.util.Base64.getDecoder().decode(temporaryPublicKey));
                         encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), resultStatusObject.getActivationId(), temporaryKeyId);
-                        encryptorSecrets = new ClientEciesSecrets(encryptionPublicKey, model.getApplicationSecret(), Base64.decode(resultStatusObject.getTransportMasterKey()));
+                        encryptorSecrets = new ClientEciesSecrets(encryptionPublicKey, model.getApplicationSecret(), Base64.getDecoder().decode(resultStatusObject.getTransportMasterKey()));
                     }
                     case 4 -> {
                         final SecretKey temporarySharedSecret = (SecretKey) stepContext.getAttributes().get(TEMPORARY_SHARED_SECRET);
+                        if (temporarySharedSecret == null) {
+                            stepLogger.writeError("encrypt-error-temporary-key", "Encrypt Request Failed", "Temporary key retrieval failed");
+                            stepLogger.writeDoneFailed("encrypt-failed");
+                            return null;
+                        }
                         encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), resultStatusObject.getActivationId(), temporaryKeyId);
-                        encryptorSecrets = new AeadSecrets(temporarySharedSecret.getEncoded(), model.getApplicationSecret(), Base64.decode(resultStatusObject.getTransportMasterKey()));
+                        encryptorSecrets = new AeadSecrets(temporarySharedSecret.getEncoded(), model.getApplicationSecret(), Base64.getDecoder().decode(model.getResultStatus().getSharedInfo2Key()));
                     }
                     default -> {
-                        stepLogger.writeError("encrypt-error-scope", "Encrypt Request Failed", "Unsupported version: " + model.getVersion());
+                        stepLogger.writeError("encrypt-error-version", "Encrypt Request Failed", "Unsupported version: " + model.getVersion());
                         stepLogger.writeDoneFailed("encrypt-failed");
                         return null;
                     }

@@ -187,7 +187,7 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
         try {
             // Verify ECDSA signature from the offline data, return error in case of invalid signature
             final String ecdsaSignature = signatureLine.substring(1);
-            final byte[] serverPublicKeyBytes = Base64.getDecoder().decode(resultStatusObject.getServerPublicKey());
+            final byte[] serverPublicKeyBytes = Base64.getDecoder().decode(resultStatusObject.getEcServerPublicKey());
             final ECPublicKey serverPublicKey = (ECPublicKey) KEY_CONVERTOR.convertBytesToPublicKey(serverPublicKeyBytes);
             final String offlineDataWithoutSignature = offlineData.substring(0, offlineData.length() - ecdsaSignature.length());
             final boolean dataSignatureValid = SIGNATURE_UTILS.validateECDSASignature(

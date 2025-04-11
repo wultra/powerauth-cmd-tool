@@ -153,7 +153,7 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Encr
         PowerAuthClientVault vault = new PowerAuthClientVault();
         SecretKey vaultEncryptionKey = vault.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey);
         PrivateKey devicePrivateKey = vault.decryptDevicePrivateKey(encryptedDevicePrivateKeyBytes, vaultEncryptionKey);
-        PublicKey serverPublicKey = resultStatusObject.getServerPublicKeyObject();
+        PublicKey serverPublicKey = resultStatusObject.getEcServerPublicKeyObject();
 
         SecretKey masterSecretKey = KEY_FACTORY.generateClientMasterSecretKey(devicePrivateKey, serverPublicKey);
         SecretKey transportKeyDeduced = KEY_FACTORY.generateServerTransportKey(masterSecretKey);
