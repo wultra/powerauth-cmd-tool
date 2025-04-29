@@ -324,6 +324,8 @@ public class Application {
                     model.setHeaders(httpHeaders);
                     model.setResultStatus(resultStatusObject);
                     model.setUriString(uriString);
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);

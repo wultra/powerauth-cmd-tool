@@ -27,6 +27,7 @@ import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.ClientEciesSe
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncryptedResponse;
 import com.wultra.security.powerauth.crypto.lib.enums.EcCurve;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
+import com.wultra.security.powerauth.crypto.lib.v4.encryptor.model.context.AeadSecrets;
 import com.wultra.security.powerauth.crypto.lib.v4.encryptor.model.response.AeadEncryptedResponse;
 import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
@@ -56,12 +57,12 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
+import javax.crypto.SecretKey;
 import java.lang.reflect.Type;
 import java.security.PublicKey;
 import java.util.*;
 
-import static com.wultra.security.powerauth.lib.cmd.util.TemporaryKeyUtil.TEMPORARY_KEY_ID;
-import static com.wultra.security.powerauth.lib.cmd.util.TemporaryKeyUtil.TEMPORARY_PUBLIC_KEY;
+import static com.wultra.security.powerauth.lib.cmd.util.TemporaryKeyUtil.*;
 
 /**
  * Abstract step with common execution patterns and methods
@@ -234,15 +235,27 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
 
         final ClientEncryptor<EncryptedRequest, EncryptedResponse> encryptor;
         if (securityContext == null) {
-            final String temporaryKeyId = (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID);
-            final String temporaryPublicKey = (String) stepContext.getAttributes().get(TEMPORARY_PUBLIC_KEY);
-            final PublicKey encryptionPublicKey = temporaryKeyId == null ?
-                    resultStatusObject.getEcServerPublicKeyObject() :
-                    KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, Base64.getDecoder().decode(temporaryPublicKey));
-            final byte[] transportMasterKeyBytes = Base64.getDecoder().decode(resultStatusObject.getTransportMasterKey());
-            final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), applicationKey, resultStatusObject.getActivationId(), temporaryKeyId);
-            final EncryptorSecrets encryptorSecrets = new ClientEciesSecrets(encryptionPublicKey, applicationSecret, transportMasterKeyBytes);
-            encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(encryptorId, encryptorParameters, encryptorSecrets);
+            switch (stepContext.getModel().getVersion().getMajorVersion()) {
+                case 3 -> {
+                    final String temporaryKeyId = (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID);
+                    final String temporaryPublicKey = (String) stepContext.getAttributes().get(TEMPORARY_PUBLIC_KEY);
+                    final PublicKey encryptionPublicKey = temporaryKeyId == null ?
+                            resultStatusObject.getEcServerPublicKeyObject() :
+                            KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, Base64.getDecoder().decode(temporaryPublicKey));
+                    final byte[] transportMasterKeyBytes = Base64.getDecoder().decode(resultStatusObject.getTransportMasterKey());
+                    final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), applicationKey, resultStatusObject.getActivationId(), temporaryKeyId);
+                    final EncryptorSecrets encryptorSecrets = new ClientEciesSecrets(encryptionPublicKey, applicationSecret, transportMasterKeyBytes);
+                    encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(encryptorId, encryptorParameters, encryptorSecrets);
+                }
+                case 4 -> {
+                    final String temporaryKeyId = (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID);
+                    final SecretKey sharedSecret = (SecretKey) stepContext.getAttributes().get(TEMPORARY_SHARED_SECRET);
+                    final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), applicationKey, resultStatusObject.getActivationId(), temporaryKeyId);
+                    final EncryptorSecrets encryptorSecrets = new AeadSecrets(sharedSecret.getEncoded(), applicationSecret, Base64.getDecoder().decode(model.getResultStatus().getSharedInfo2Key()));
+                    encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(encryptorId, encryptorParameters, encryptorSecrets);
+                }
+                default -> throw new IllegalStateException("Unsupported version: " + stepContext.getModel().getVersion());
+            }
             stepContext.setSecurityContext(SimpleSecurityContext.builder()
                     .encryptor(encryptor)
                     .build());
