@@ -213,7 +213,7 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, Object> 
                             "Failed MAC verification for status blob");
                     return;
                 }
-                final ActivationStatusBlobInfo statusBlobRaw = ACTIVATION.getStatusFromBlob(statusBlob);
+                final ActivationStatusBlobInfo statusBlobRaw = ACTIVATION.getStatusFromBlob(statusBlobData);
                 statusBlobInfo = ExtendedActivationStatusBlobInfo.copy(statusBlobRaw);
                 customObject = statusResponse.getCustomObject();
             }
