@@ -485,6 +485,43 @@ public class ResultStatusObject {
     }
 
     /**
+     * @return Key for for verifying MAC for status blob (V4)
+     */
+    @JsonIgnore
+    public SecretKey getStatusBlobMacKeyObject() {
+        final String statusBlobMacKey = getStatusBlobMacKey();
+        if (statusBlobMacKey == null) {
+            return null;
+        }
+        return KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(Base64.getDecoder().decode(statusBlobMacKey));
+    }
+
+    /**
+     * @return Key for verifying MAC for status blob (V4)
+     */
+    public String getStatusBlobMacKey() {
+        return (String) jsonObject.get("statusBlobMacKey");
+    }
+
+    /**
+     * Sets key for verifying MAC for status blob
+     * @param statusBlobMacKey Key for verifying MAC for status blob
+     */
+    @JsonIgnore
+    public void setStatusBlobMacKeyObject(SecretKey statusBlobMacKey) {
+        String statusBlobMacKeyBase64 = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(statusBlobMacKey));
+        jsonObject.put("statusBlobMacKey", statusBlobMacKeyBase64);
+    }
+
+    /**
+     * Sets key for verifying MAC for status blob
+     * @param statusBlobMacKey Key for key for verifying MAC for status blob
+     */
+    public void setStatusBlobMacKey(String statusBlobMacKey) {
+        jsonObject.put("statusBlobMacKey", statusBlobMacKey);
+    }
+
+    /**
      * @return Key for sharedInfo2 calculation for end-to-end encryption (V4)
      */
     @JsonIgnore

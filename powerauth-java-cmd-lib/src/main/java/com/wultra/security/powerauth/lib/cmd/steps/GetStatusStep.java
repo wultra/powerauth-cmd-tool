@@ -21,6 +21,7 @@ import com.wultra.core.rest.model.base.response.ObjectResponse;
 import com.wultra.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
+import com.wultra.security.powerauth.crypto.lib.enums.ProtocolVersion;
 import com.wultra.security.powerauth.crypto.lib.generator.KeyGenerator;
 import com.wultra.security.powerauth.crypto.lib.model.ActivationStatusBlobInfo;
 import com.wultra.security.powerauth.crypto.lib.v4.encryptor.model.response.AeadEncryptedResponse;
@@ -45,6 +46,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -185,7 +187,7 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, Object> 
                     stepContext.getStepLogger().writeError(
                             getStep().id() + "-failed",
                             "Get Status Failed",
-                            "transportMasterKey is null");
+                            "The transportMasterKey is null");
                     return;
                 }
 
@@ -201,6 +203,16 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, Object> 
                 ));
                 final com.wultra.security.powerauth.rest.api.model.response.v4.ActivationStatusResponse statusResponse = OBJECT_MAPPER.readValue(decryptedBytes, com.wultra.security.powerauth.rest.api.model.response.v4.ActivationStatusResponse.class);
                 final byte[] statusBlob = Base64.getDecoder().decode(statusResponse.getActivationStatus());
+                final byte[] statusBlobData = Arrays.copyOfRange(statusBlob, 0, 48);
+                final byte[] statusBlobMac = Arrays.copyOfRange(statusBlob, 48, 80);
+                // Verify MAC
+                if (!ACTIVATION.verifyStatusMac(statusBlobData, statusBlobMac, resultStatusObject.getStatusBlobMacKeyObject(), ProtocolVersion.fromValue(stepContext.getModel().getVersion().value()))) {
+                    stepContext.getStepLogger().writeError(
+                            getStep().id() + "-failed",
+                            "MAC verification failed",
+                            "Failed MAC verification for status blob");
+                    return;
+                }
                 final ActivationStatusBlobInfo statusBlobRaw = ACTIVATION.getStatusFromBlob(statusBlob);
                 statusBlobInfo = ExtendedActivationStatusBlobInfo.copy(statusBlobRaw);
                 customObject = statusResponse.getCustomObject();
