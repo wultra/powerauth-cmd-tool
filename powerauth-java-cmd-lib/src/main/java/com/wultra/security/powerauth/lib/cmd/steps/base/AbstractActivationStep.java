@@ -291,6 +291,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
 
         // Derive keys
         final SecretKey tempKeyActSign = KeyFactory.deriveKeyMacGetActTempKey(activationSharedSecret);
+        final SecretKey keyStatusMac = KeyFactory.deriveKeyMacStatus(activationSharedSecret);
         final SecretKey sharedInfo2Key = KeyFactory.deriveKeyE2eeSharedInfo2(activationSharedSecret);
         final SecretKey authenticationCodePossessionSecretKey = KeyFactory.deriveKeyAuthenticationCodePossession(activationSharedSecret);
         final SecretKey authenticationCodeKnowledgeSecretKey = KeyFactory.deriveKeyAuthenticationCodeKnowledge(activationSharedSecret);
@@ -314,6 +315,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         resultStatusObject.setCounter(0L);
         resultStatusObject.setCtrData(ctrDataBase64);
         resultStatusObject.setTemporaryKeyActSignRequestKeyObject(tempKeyActSign);
+        resultStatusObject.setStatusBlobMacKeyObject(keyStatusMac);
         resultStatusObject.setSharedInfo2KeyObject(sharedInfo2Key);
         resultStatusObject.setEcServerPublicKey(serverPublicKeys.getEcdsa());
         resultStatusObject.setPqcServerPublicKey(serverPublicKeys.getMldsa());
