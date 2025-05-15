@@ -17,7 +17,7 @@
 package com.wultra.security.powerauth.app.cmd;
 
 import com.wultra.security.powerauth.app.cmd.exception.ExecutionException;
-import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
+import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthCodeType;
 import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
 import com.wultra.security.powerauth.lib.cmd.CmdLibApplication;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
@@ -256,7 +256,7 @@ public class Application {
                     model.setResultStatus(resultStatusObject);
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
-                    model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
+                    model.setAuthenticationCodeType(PowerAuthCodeType.getEnumFromString(cmd.getOptionValue("l")));
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
@@ -289,7 +289,7 @@ public class Application {
                     model.setResultStatus(resultStatusObject);
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
-                    model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
+                    model.setAuthenticationCodeType(PowerAuthCodeType.getEnumFromString(cmd.getOptionValue("l")));
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
@@ -343,8 +343,8 @@ public class Application {
 
                     stepExecutionService.execute(powerAuthStep, version, model);
                 }
-                case SIGNATURE_VERIFY -> {
-                    final VerifySignatureStepModel model = new VerifySignatureStepModel();
+                case AUTHENTICATION_VERIFY -> {
+                    final VerifyAuthenticationStepModel model = new VerifyAuthenticationStepModel();
                     model.setApplicationKey(applicationKey);
                     model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
@@ -352,7 +352,7 @@ public class Application {
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResourceId(cmd.getOptionValue("E", cmd.getOptionValue("e")));
                     model.setResultStatus(resultStatusObject);
-                    model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
+                    model.setAuthenticationCodeType(PowerAuthCodeType.getEnumFromString(cmd.getOptionValue("l")));
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
                     model.setVersion(version);
@@ -373,7 +373,7 @@ public class Application {
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatus(resultStatusObject);
                     model.setStatusFileName(statusFileName);
-                    model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
+                    model.setAuthenticationCodeType(PowerAuthCodeType.getEnumFromString(cmd.getOptionValue("l")));
                     model.setUriString(uriString);
                     model.setReason(reason);
                     model.setVersion(version);
@@ -433,7 +433,7 @@ public class Application {
                     stepExecutionService.execute(powerAuthStep, version, model);
                 }
                 case SIGN_ENCRYPT -> {
-                    final VerifySignatureStepModel model = new VerifySignatureStepModel();
+                    final VerifyAuthenticationStepModel model = new VerifyAuthenticationStepModel();
                     model.setApplicationKey(applicationKey);
                     model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
@@ -441,7 +441,7 @@ public class Application {
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResourceId(cmd.getOptionValue("E", cmd.getOptionValue("e")));
                     model.setResultStatus(resultStatusObject);
-                    model.setSignatureType(PowerAuthSignatureTypes.getEnumFromString(cmd.getOptionValue("l")));
+                    model.setAuthenticationCodeType(PowerAuthCodeType.getEnumFromString(cmd.getOptionValue("l")));
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
                     model.setBaseUriString(baseUriString);
@@ -499,8 +499,8 @@ public class Application {
 
                     stepExecutionService.execute(powerAuthStep, version, model);
                 }
-                case SIGNATURE_OFFLINE_COMPUTE -> {
-                    final ComputeOfflineSignatureStepModel model = new ComputeOfflineSignatureStepModel();
+                case AUTHENTICATION_OFFLINE_COMPUTE -> {
+                    final ComputeOfflineAuthenticationStepModel model = new ComputeOfflineAuthenticationStepModel();
                     model.setStatusFileName(statusFileName);
                     model.setQrCodeData(qrCodeData);
                     model.setPassword(cmd.getOptionValue("p"));

@@ -98,8 +98,8 @@ public class RemoveTokenStep extends AbstractBaseStep<RemoveTokenStepModel, Obje
         model.fromMap(context);
 
         RequestContext requestContext = RequestContext.builder()
-                .signatureHttpMethod("POST")
-                .signatureRequestUri("/pa/token/remove")
+                .authenticationHttpMethod("POST")
+                .authenticationRequestUri("/pa/token/remove")
                 .uri(model.getUriString() + "/pa/v3/token/remove")
                 .build();
 

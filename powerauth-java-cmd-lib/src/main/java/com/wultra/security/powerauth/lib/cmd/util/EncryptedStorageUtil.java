@@ -36,49 +36,49 @@ public class EncryptedStorageUtil {
     private static final KeyConvertor keyConvertor = new KeyConvertor();
 
     /**
-     * Encrypt the KEY_SIGNATURE_KNOWLEDGE key using a provided password.
+     * Encrypt the KEY_KNOWLEDGE_FACTOR key using a provided password.
      * @param password Password to be used for encryption.
-     * @param signatureKnowledgeSecretKey Original KEY_SIGNATURE_KNOWLEDGE key.
+     * @param knowledgeFactorSecretKey Original KEY_KNOWLEDGE_FACTOR key.
      * @param salt Random salt.
      * @param keyGenerator Key generator instance.
-     * @return Encrypted KEY_SIGNATURE_KNOWLEDGE using password and random salt.
+     * @return Encrypted KEY_KNOWLEDGE_FACTOR using password and random salt.
      * @throws InvalidKeyException In case invalid key is provided.
      * @throws CryptoProviderException In case cryptography provider is initialized incorrectly.
      * @throws GenericCryptoException In case any other cryptography error occurs.
      */
-    public static byte[] storeSignatureKnowledgeKey(char[] password, SecretKey signatureKnowledgeSecretKey, byte[] salt, KeyGenerator keyGenerator) throws InvalidKeyException, GenericCryptoException, CryptoProviderException {
+    public static byte[] storeKnowledgeFactorKey(char[] password, SecretKey knowledgeFactorSecretKey, byte[] salt, KeyGenerator keyGenerator) throws InvalidKeyException, GenericCryptoException, CryptoProviderException {
         // Ask for the password and generate storage key
-        SecretKey encryptionSignatureKnowledgeKey = keyGenerator.deriveSecretKeyFromPassword(new String(password), salt);
+        SecretKey encryptionKnowledgeFactorKey = keyGenerator.deriveSecretKeyFromPassword(new String(password), salt);
 
         // Encrypt the knowledge related key using the password derived key
         AESEncryptionUtils aes = new AESEncryptionUtils();
-        byte[] signatureKnowledgeSecretKeyBytes = keyConvertor.convertSharedSecretKeyToBytes(signatureKnowledgeSecretKey);
+        byte[] knowledgeFactorSecretKeyBytes = keyConvertor.convertSharedSecretKeyToBytes(knowledgeFactorSecretKey);
         // TODO - empty IV is an antipattern for AES/CBC, improve for crypto4, reconsider PBKDF algorithm as well
         byte[] iv = new byte[16];
-        return aes.encrypt(signatureKnowledgeSecretKeyBytes, iv, encryptionSignatureKnowledgeKey, "AES/CBC/NoPadding");
+        return aes.encrypt(knowledgeFactorSecretKeyBytes, iv, encryptionKnowledgeFactorKey, "AES/CBC/NoPadding");
     }
 
     /**
-     * Decrypt the KEY_SIGNATURE_KNOWLEDGE key using a provided password.
+     * Decrypt the KEY_KNOWLEDGE_FACTOR key using a provided password.
      * @param password Password to be used for decryption.
-     * @param cSignatureKnowledgeSecretKeyBytes Encrypted KEY_SIGNATURE_KNOWLEDGE key.
+     * @param cKnowledgeFactorSecretKeyBytes Encrypted KEY_KNOWLEDGE_FACTOR key.
      * @param salt Salt that was used for encryption.
      * @param keyGenerator Key generator instance.
-     * @return Original KEY_SIGNATURE_KNOWLEDGE key.
+     * @return Original KEY_KNOWLEDGE_FACTOR key.
      * @throws InvalidKeyException In case invalid key is provided.
      * @throws CryptoProviderException In case cryptography provider is initialized incorrectly.
      * @throws GenericCryptoException In case any other cryptography error occurs.
      */
-    public static SecretKey getSignatureKnowledgeKey(char[] password, byte[] cSignatureKnowledgeSecretKeyBytes, byte[] salt, KeyGenerator keyGenerator) throws InvalidKeyException, GenericCryptoException, CryptoProviderException {
+    public static SecretKey getKnowledgeFactorKey(char[] password, byte[] cKnowledgeFactorSecretKeyBytes, byte[] salt, KeyGenerator keyGenerator) throws InvalidKeyException, GenericCryptoException, CryptoProviderException {
         // Ask for the password and generate storage key
-        SecretKey encryptionSignatureKnowledgeKey = keyGenerator.deriveSecretKeyFromPassword(new String(password), salt);
+        SecretKey encryptionKnowledgeFactorKey = keyGenerator.deriveSecretKeyFromPassword(new String(password), salt);
 
         // Encrypt the knowledge related key using the password derived key
         AESEncryptionUtils aes = new AESEncryptionUtils();
         // TODO - empty IV is an antipattern for AES/CBC, improve for crypto4, reconsider PBKDF algorithm as well
         byte[] iv = new byte[16];
-        byte[] signatureKnowledgeSecretKeyBytes = aes.decrypt(cSignatureKnowledgeSecretKeyBytes, iv, encryptionSignatureKnowledgeKey, "AES/CBC/NoPadding");
-        return keyConvertor.convertBytesToSharedSecretKey(signatureKnowledgeSecretKeyBytes);
+        byte[] knowledgeFactorSecretKeyBytes = aes.decrypt(cKnowledgeFactorSecretKeyBytes, iv, encryptionKnowledgeFactorKey, "AES/CBC/NoPadding");
+        return keyConvertor.convertBytesToSharedSecretKey(knowledgeFactorSecretKeyBytes);
     }
 
 }

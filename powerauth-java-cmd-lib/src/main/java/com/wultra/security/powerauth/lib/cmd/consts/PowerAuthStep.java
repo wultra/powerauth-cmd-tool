@@ -64,14 +64,14 @@ public enum PowerAuthStep {
     SIGN_ENCRYPT("sign-encrypt", "Sign and Encrypt Request", "sign-encrypt"),
 
     /**
-     * Compute an offline signature
+     * Compute an offline authentication code
      */
-    SIGNATURE_OFFLINE_COMPUTE("signature-offline-compute", "Compute Offline Signature", "compute-offline-signature"),
+    AUTHENTICATION_OFFLINE_COMPUTE("authentication-offline-compute", "Compute Offline Authentication Code", "compute-offline-auth-code"),
 
     /**
-     * Verifying a signed request
+     * Verifying an authentication request
      */
-    SIGNATURE_VERIFY("signature-verify", "Signature Validation", "sign"),
+    AUTHENTICATION_VERIFY("authentication-verify", "Authentication Code Validation", "authenticate"),
 
     /**
      * Creating new token

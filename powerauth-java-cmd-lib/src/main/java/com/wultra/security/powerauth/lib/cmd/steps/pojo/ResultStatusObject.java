@@ -254,145 +254,212 @@ public class ResultStatusObject {
     }
 
     /**
-     * @return Signature biometry key
+     * @return Biometry factor key
      */
     @JsonIgnore
-    public SecretKey getSignatureBiometryKeyObject() {
-        final String signatureBiometryKey = (String) jsonObject.get("signatureBiometryKey");
-        if (signatureBiometryKey == null) {
+    public SecretKey getBiometryFactorKeyObject() {
+        final String biometryFactorKey;
+        switch (getVersion().intValue()) {
+            case 3 -> biometryFactorKey = (String) jsonObject.get("signatureBiometryKey");
+            case 4 -> biometryFactorKey = (String) jsonObject.get("biometryFactorKey");
+            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
+        }
+        if (biometryFactorKey == null) {
             return null;
         }
-        return KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(Base64.getDecoder().decode(signatureBiometryKey));
+        return KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(Base64.getDecoder().decode(biometryFactorKey));
     }
 
     /**
-     * Sets signature biometry key object
-     * @param signatureBiometryKeyObject Signature biometry key object
+     * Sets biometry factor key object
+     * @param biometryFactorKeyObject Biometry factor key object
      */
     @JsonIgnore
-    public void setSignatureBiometryKeyObject(SecretKey signatureBiometryKeyObject) {
-        String signatureBiometryKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(signatureBiometryKeyObject));
-        jsonObject.put("signatureBiometryKey", signatureBiometryKey);
+    public void setBiometryFactorKeyObject(SecretKey biometryFactorKeyObject) {
+        String biometryFactorKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(biometryFactorKeyObject));
+        switch (getVersion().intValue()) {
+            case 3 -> jsonObject.put("signatureBiometryKey", biometryFactorKey);
+            case 4 -> jsonObject.put("biometryFactorKey", biometryFactorKey);
+        }
     }
 
     /**
-     * @return Base64 encoded byte representation of the signature biometry key
+     * @return Base64 encoded byte representation of the biometry factor key
      */
-    public String getSignatureBiometryKey() {
-        return (String) jsonObject.get("signatureBiometryKey");
+    public String getBiometryFactorKey() {
+        return switch (getVersion().intValue()) {
+            case 3 -> (String) jsonObject.get("signatureBiometryKey");
+            case 4 -> (String) jsonObject.get("biometryFactorKey");
+            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
+        };
     }
 
     /**
-     * Sets signature biometry key
-     * @param signatureBiometryKey Signature biometry key
+     * Sets biometry factor key
+     * @param biometryFactorKey Biometry factor key
      */
-    public void setSignatureBiometryKey(String signatureBiometryKey) {
-        jsonObject.put("signatureBiometryKey", signatureBiometryKey);
+    public void setBiometryFactorKey(String biometryFactorKey) {
+        switch (getVersion().intValue()) {
+            case 3 -> jsonObject.put("signatureBiometryKey", biometryFactorKey);
+            case 4 -> jsonObject.put("biometryFactorKey", biometryFactorKey);
+            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
+        }
     }
 
     /**
-     * @return Byte representation of the signature knowledge key
-     */
-    @JsonIgnore
-    public byte[] getSignatureKnowledgeKeyEncryptedBytes() {
-        String signatureKnowledgeKeyEncrypted = (String) jsonObject.get("signatureKnowledgeKeyEncrypted");
-        return Base64.getDecoder().decode(signatureKnowledgeKeyEncrypted);
-    }
-
-    /**
-     * Sets signature knowledge key encrypted bytes
-     * @param signatureKnowledgeKeyEncryptedBytes Signature knowledge key encrypted bytes
-     */
-    @JsonIgnore
-    public void setSignatureKnowledgeKeyEncryptedBytes(byte[] signatureKnowledgeKeyEncryptedBytes) {
-        String signatureKnowledgeKeyEncrypted = Base64.getEncoder().encodeToString(signatureKnowledgeKeyEncryptedBytes);
-        jsonObject.put("signatureKnowledgeKeyEncrypted", signatureKnowledgeKeyEncrypted);
-    }
-
-    /**
-     * @return Base64 encoded byte representation of the signature knowledge key
-     */
-    public String getSignatureKnowledgeKeyEncrypted() {
-        return (String) jsonObject.get("signatureKnowledgeKeyEncrypted");
-    }
-
-    /**
-     * Sets signature knowledge key encrypted values
-     * @param signatureKnowledgeKeyEncrypted Signature knowledge key encrypted value
-     */
-    public void setSignatureKnowledgeKeyEncrypted(String signatureKnowledgeKeyEncrypted) {
-        jsonObject.put("signatureKnowledgeKeyEncrypted", signatureKnowledgeKeyEncrypted);
-    }
-
-    /**
-     * @return Signature knowledge key salt bytes
+     * @return Byte representation of the knowledge factor key
      */
     @JsonIgnore
-    public byte[] getSignatureKnowledgeKeySaltBytes() {
-        String signatureKnowledgeKeySalt = (String) jsonObject.get("signatureKnowledgeKeySalt");
-        return Base64.getDecoder().decode(signatureKnowledgeKeySalt);
+    public byte[] getKnowledgeFactorKeyEncryptedBytes() {
+        String knowledgeFactorKeyEncrypted;
+        switch (getVersion().intValue()) {
+            case 3 -> knowledgeFactorKeyEncrypted = (String) jsonObject.get("signatureKnowledgeKeyEncrypted");
+            case 4 -> knowledgeFactorKeyEncrypted = (String) jsonObject.get("knowledgeFactorKeyEncrypted");
+            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
+        }
+        return Base64.getDecoder().decode(knowledgeFactorKeyEncrypted);
     }
 
     /**
-     * Sets signature knowledge key salt bytes
-     * @param signatureKnowledgeKeySaltBytes Signature knowledge key salt bytes
+     * Sets knowledge factor key encrypted bytes
+     * @param knowledgeFactorKeyEncryptedBytes Knowledge factor key encrypted bytes
      */
     @JsonIgnore
-    public void setSignatureKnowledgeKeySaltBytes(byte[] signatureKnowledgeKeySaltBytes) {
-        String signatureKnowledgeKeySalt = Base64.getEncoder().encodeToString(signatureKnowledgeKeySaltBytes);
-        jsonObject.put("signatureKnowledgeKeySalt", signatureKnowledgeKeySalt);
+    public void setKnowledgeFactorKeyEncryptedBytes(byte[] knowledgeFactorKeyEncryptedBytes) {
+        String knowledgeFactorKeyEncrypted = Base64.getEncoder().encodeToString(knowledgeFactorKeyEncryptedBytes);
+        switch (getVersion().intValue()) {
+            case 3 -> jsonObject.put("signatureKnowledgeKeyEncrypted", knowledgeFactorKeyEncrypted);
+            case 4 -> jsonObject.put("knowledgeFactorKeyEncrypted", knowledgeFactorKeyEncrypted);
+            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
+        }
     }
 
     /**
-     * @return Signature knowledge salt
+     * @return Base64 encoded byte representation of the knowledge factor key
      */
-    public String getSignatureKnowledgeKeySalt() {
-        return (String) jsonObject.get("signatureKnowledgeKeySalt");
+    public String getKnowledgeFactorKeyEncrypted() {
+        return switch (getVersion().intValue()) {
+            case 3 -> (String) jsonObject.get("signatureKnowledgeKeyEncrypted");
+            case 4 -> (String) jsonObject.get("knowledgeFactorKeyEncrypted");
+            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
+        };
     }
 
     /**
-     * Sets signature knowledge key salt
-     * @param signatureKnowledgeKeySalt Signature knowledge key salt value
+     * Sets knowledge factor key encrypted values
+     * @param knowledgeFactorKeyEncrypted Knowledge factor key encrypted value
      */
-    public void setSignatureKnowledgeKeySalt(String signatureKnowledgeKeySalt) {
-        jsonObject.put("signatureKnowledgeKeySalt", signatureKnowledgeKeySalt);
+    public void setKnowledgeFactorKeyEncrypted(String knowledgeFactorKeyEncrypted) {
+        switch (getVersion().intValue()) {
+            case 3 -> jsonObject.put("signatureKnowledgeKeyEncrypted", knowledgeFactorKeyEncrypted);
+            case 4 -> jsonObject.put("knowledgeFactorKeyEncrypted", knowledgeFactorKeyEncrypted);
+            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
+        }
     }
 
     /**
-     * @return Signature possession key
+     * @return Knowledge factor key salt bytes
      */
     @JsonIgnore
-    public SecretKey getSignaturePossessionKeyObject() {
-        final String signaturePossessionKey = (String) jsonObject.get("signaturePossessionKey");
-        if (signaturePossessionKey == null) {
+    public byte[] getKnowledgeFactorKeySaltBytes() {
+        String knowledgeFactorKeySalt;
+        switch (getVersion().intValue()) {
+            case 3 -> knowledgeFactorKeySalt = (String) jsonObject.get("signatureKnowledgeKeySalt");
+            case 4 -> knowledgeFactorKeySalt = (String) jsonObject.get("knowledgeFactorKeySalt");
+            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
+        }
+        return Base64.getDecoder().decode(knowledgeFactorKeySalt);
+    }
+
+    /**
+     * Sets knowledge factor key salt bytes
+     * @param knowledgeFactorKeySaltBytes Knowledge factor key salt bytes
+     */
+    @JsonIgnore
+    public void setKnowledgeFactorKeySaltBytes(byte[] knowledgeFactorKeySaltBytes) {
+        String knowledgeFactorKeySalt = Base64.getEncoder().encodeToString(knowledgeFactorKeySaltBytes);
+        switch (getVersion().intValue()) {
+            case 3 -> jsonObject.put("signatureKnowledgeKeySalt", knowledgeFactorKeySalt);
+            case 4 -> jsonObject.put("knowledgeFactorKeySalt", knowledgeFactorKeySalt);
+            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
+        }
+    }
+
+    /**
+     * @return Knowledge factor salt
+     */
+    public String getKnowledgeFactorKeySalt() {
+        return switch (getVersion().intValue()) {
+            case 3 -> (String) jsonObject.get("signatureKnowledgeKeySalt");
+            case 4 -> (String) jsonObject.get("knowledgeFactorKeySalt");
+            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
+        };
+    }
+
+    /**
+     * Sets knowledge factor key salt
+     * @param knowledgeFactorKeySalt Knowledge factor key salt value
+     */
+    public void setKnowledgeFactorKeySalt(String knowledgeFactorKeySalt) {
+        switch (getVersion().intValue()) {
+            case 3 -> jsonObject.put("signatureKnowledgeKeySalt", knowledgeFactorKeySalt);
+            case 4 -> jsonObject.put("knowledgeFactorKeySalt", knowledgeFactorKeySalt);
+            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
+        }
+    }
+
+    /**
+     * @return Possession factor key
+     */
+    @JsonIgnore
+    public SecretKey getPossessionFactorKeyObject() {
+        final String possessionFactorKey;
+        switch (getVersion().intValue()) {
+            case 3 -> possessionFactorKey = (String) jsonObject.get("signaturePossessionKey");
+            case 4 -> possessionFactorKey = (String) jsonObject.get("possessionFactorKey");
+            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
+        }
+        if (possessionFactorKey == null) {
             return null;
         }
-        return KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(Base64.getDecoder().decode(signaturePossessionKey));
+        return KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(Base64.getDecoder().decode(possessionFactorKey));
     }
 
     /**
-     * Sets signature possession key object
-     * @param signaturePossessionKeyObject Signature possession key object value
+     * Sets possession factor key object
+     * @param possessionFactorKeyObject Possession factor key object value
      */
     @JsonIgnore
-    public void setSignaturePossessionKeyObject(SecretKey signaturePossessionKeyObject) {
-        String signaturePossessionKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(signaturePossessionKeyObject));
-        jsonObject.put("signaturePossessionKey", signaturePossessionKey);
+    public void setPossessionFactorKeyObject(SecretKey possessionFactorKeyObject) {
+        String possessionFactorKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(possessionFactorKeyObject));
+        switch (getVersion().intValue()) {
+            case 3 -> jsonObject.put("signaturePossessionKey", possessionFactorKey);
+            case 4 -> jsonObject.put("possessionFactorKey", possessionFactorKey);
+            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
+        }
     }
 
     /**
-     * @return Base64 encoded byte representation of the signature possession key
+     * @return Base64 encoded byte representation of the possession factor key
      */
-    public String getSignaturePossessionKey() {
-        return (String) jsonObject.get("signaturePossessionKey");
+    public String getPossessionFactorKey() {
+        return switch (getVersion().intValue()) {
+            case 3 -> (String) jsonObject.get("signaturePossessionKey");
+            case 4 -> (String) jsonObject.get("possessionFactorKey");
+            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
+        };
     }
 
     /**
-     * Sets signature possession key
-     * @param signaturePossessionKey Base64 encoded byte representation of the signature possession key
+     * Sets possession factor key
+     * @param possessionFactorKey Base64 encoded byte representation of the possession factor key
      */
-    public void setSignaturePossessionKey(String signaturePossessionKey) {
-        jsonObject.put("signaturePossessionKey", signaturePossessionKey);
+    public void setPossessionFactorKey(String possessionFactorKey) {
+        switch (getVersion().intValue()) {
+            case 3 -> jsonObject.put("signaturePossessionKey", possessionFactorKey);
+            case 4 -> jsonObject.put("possessionFactorKey", possessionFactorKey);
+            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
+        }
     }
 
     /**

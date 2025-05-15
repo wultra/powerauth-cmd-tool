@@ -16,8 +16,8 @@
  */
 package com.wultra.security.powerauth.lib.cmd.steps.model;
 
-import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
-import com.wultra.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthCodeType;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.AuthenticationHeaderData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
 import com.wultra.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import lombok.Data;
@@ -28,16 +28,16 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 
 /**
- * Model representing parameters of the step for verifying data signature.
+ * Model representing parameters of the step for verifying authentication code.
  *
  * @author Petr Dvorak, petr@wultra.com
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class VerifySignatureStepModel extends BaseStepModel
-        implements ResultStatusChangeable, DryRunCapable, SignatureHeaderData {
+public class VerifyAuthenticationStepModel extends BaseStepModel
+        implements ResultStatusChangeable, DryRunCapable, AuthenticationHeaderData {
 
-    private static final Logger logger = LoggerFactory.getLogger(VerifySignatureStepModel.class);
+    private static final Logger logger = LoggerFactory.getLogger(VerifyAuthenticationStepModel.class);
 
     /**
      * File name of the file with stored activation status.
@@ -65,9 +65,9 @@ public class VerifySignatureStepModel extends BaseStepModel
     private String resourceId;
 
     /**
-     * PowerAuth signature type.
+     * PowerAuth authentication code type.
      */
-    private PowerAuthSignatureTypes signatureType;
+    private PowerAuthCodeType authenticationCodeType;
 
     /**
      * The request data, used for POST, PUT and DELETE methods.
@@ -92,7 +92,7 @@ public class VerifySignatureStepModel extends BaseStepModel
         context.put("APPLICATION_SECRET", applicationSecret);
         context.put("HTTP_METHOD", httpMethod);
         context.put("RESOURCE_ID", resourceId);
-        context.put("SIGNATURE_TYPE", signatureType.toString());
+        context.put("AUTHENTICATION_CODE_TYPE", authenticationCodeType.toString());
         context.put("DATA", data);
         context.put("PASSWORD", password);
         context.put("DRY_RUN", dryRun);
@@ -108,11 +108,11 @@ public class VerifySignatureStepModel extends BaseStepModel
         setHttpMethod((String) context.get("HTTP_METHOD"));
         if ((context.containsKey("ENDPOINT") && context.get("ENDPOINT") != null) &&
             (!context.containsKey("RESOURCE_ID") || context.get("RESOURCE_ID") == null)) {
-            logger.warn("Usage of deprecated 'ENDPOINT' key in the context map of VerifySignatureStepModel, use the 'RESOURCE_ID' key instead.");
+            logger.warn("Usage of deprecated 'ENDPOINT' key in the context map of VerifyAuthenticationStepModel, use the 'RESOURCE_ID' key instead.");
             context.put("RESOURCE_ID", context.get("ENDPOINT"));
         }
         setResourceId((String) context.get("RESOURCE_ID"));
-        setSignatureType(PowerAuthSignatureTypes.getEnumFromString((String) context.get("SIGNATURE_TYPE")));
+        setAuthenticationCodeType(PowerAuthCodeType.getEnumFromString((String) context.get("AUTHENTICATION_CODE_TYPE")));
         setData((byte[]) context.get("DATA"));
         setPassword((String) context.get("PASSWORD"));
         setDryRun((boolean) context.get("DRY_RUN"));

@@ -62,14 +62,14 @@ public class RequestContext {
     private Object requestObject;
 
     /**
-     * HTTP method used for a signature computation
+     * HTTP method used for an authentication computation
      */
-    private String signatureHttpMethod;
+    private String authenticationHttpMethod;
 
     /**
-     * URI used for a signature computation
+     * URI used for an authentication computation
      */
-    private String signatureRequestUri;
+    private String authenticationRequestUri;
 
     /**
      * Server uri

@@ -120,7 +120,7 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
             return null;
         }
 
-        // Construct the signature base string data part based on HTTP method (GET requires different code).
+        // Construct the authentication base string data part based on HTTP method (GET requires different code).
         byte[] requestDataBytes = null;
         if (!HttpMethod.GET.name().equals(model.getHttpMethod().toUpperCase())) {
             // Read data input file
@@ -130,7 +130,7 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
                 stepLogger.writeItem(
                         "token-validate-warning-empty-data",
                         "Empty data",
-                        "Data file was not found, signature will contain no data",
+                        "Data file was not found, request will contain no data",
                         "WARNING",
                         null
                 );

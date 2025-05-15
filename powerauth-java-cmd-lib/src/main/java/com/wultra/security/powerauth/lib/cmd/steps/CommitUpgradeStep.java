@@ -96,15 +96,15 @@ public class CommitUpgradeStep extends AbstractBaseStep<CommitUpgradeStepModel, 
         ResultStatusObject resultStatusObject = model.getResultStatus();
 
         RequestContext requestContext = RequestContext.builder()
-                .signatureHttpMethod("POST")
-                .signatureRequestUri("/pa/upgrade/commit")
+                .authenticationHttpMethod("POST")
+                .authenticationRequestUri("/pa/upgrade/commit")
                 .uri(model.getUriString() + "/pa/v3/upgrade/commit")
                 .build();
 
         StepContext<CommitUpgradeStepModel, Response> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
-        // Make sure hash based counter is used for calculating the signature, in case of an error the version change is not saved
+        // Make sure hash based counter is used for calculating the authentication code, in case of an error the version change is not saved
         resultStatusObject.setVersion(3L);
 
         requestContext.setRequestObject(PowerAuthConst.EMPTY_JSON_BYTES);

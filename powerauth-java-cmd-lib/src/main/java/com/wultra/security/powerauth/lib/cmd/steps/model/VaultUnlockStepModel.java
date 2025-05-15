@@ -16,8 +16,8 @@
  */
 package com.wultra.security.powerauth.lib.cmd.steps.model;
 
-import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
-import com.wultra.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthCodeType;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.AuthenticationHeaderData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -32,7 +32,7 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class VaultUnlockStepModel extends BaseStepModel
-        implements ResultStatusChangeable, SignatureHeaderData {
+        implements ResultStatusChangeable, AuthenticationHeaderData {
 
     /**
      * Application key.
@@ -50,9 +50,9 @@ public class VaultUnlockStepModel extends BaseStepModel
     private String statusFileName;
 
     /**
-     * PowerAuth signature type
+     * PowerAuth authentication code type
      */
-    private PowerAuthSignatureTypes signatureType;
+    private PowerAuthCodeType authenticationCodeType;
 
     /**
      * Password for the password related key encryption.
@@ -70,7 +70,7 @@ public class VaultUnlockStepModel extends BaseStepModel
         context.put("STATUS_FILENAME", statusFileName);
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
-        context.put("SIGNATURE_TYPE", signatureType.toString());
+        context.put("AUTHENTICATION_CODE_TYPE", authenticationCodeType.toString());
         context.put("PASSWORD", password);
         context.put("REASON", reason);
         return context;
@@ -82,7 +82,7 @@ public class VaultUnlockStepModel extends BaseStepModel
         setStatusFileName((String) context.get("STATUS_FILENAME"));
         setApplicationKey((String) context.get("APPLICATION_KEY"));
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
-        setSignatureType(PowerAuthSignatureTypes.getEnumFromString((String) context.get("SIGNATURE_TYPE")));
+        setAuthenticationCodeType(PowerAuthCodeType.getEnumFromString((String) context.get("AUTHENTICATION_CODE_TYPE")));
         setPassword((String) context.get("PASSWORD"));
         setReason((String) context.get("REASON"));
     }

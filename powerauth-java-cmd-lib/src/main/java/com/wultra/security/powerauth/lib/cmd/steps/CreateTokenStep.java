@@ -95,8 +95,8 @@ public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, Encr
         model.fromMap(context);
 
         final RequestContext requestContext = RequestContext.builder()
-                .signatureHttpMethod("POST")
-                .signatureRequestUri("/pa/token/create")
+                .authenticationHttpMethod("POST")
+                .authenticationRequestUri("/pa/token/create")
                 .uri(model.getUriString() + "/pa/v3/token/create")
                 .build();
 

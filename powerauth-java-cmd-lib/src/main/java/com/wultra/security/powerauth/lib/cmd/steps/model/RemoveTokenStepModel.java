@@ -16,13 +16,12 @@
  */
 package com.wultra.security.powerauth.lib.cmd.steps.model;
 
-import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
-import com.wultra.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthCodeType;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.AuthenticationHeaderData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.security.PublicKey;
 import java.util.Map;
 
 /**
@@ -33,7 +32,7 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class RemoveTokenStepModel extends BaseStepModel
-        implements ResultStatusChangeable, SignatureHeaderData {
+        implements ResultStatusChangeable, AuthenticationHeaderData {
 
     /**
      * Token ID.
@@ -61,9 +60,9 @@ public class RemoveTokenStepModel extends BaseStepModel
     private String password;
 
     /**
-     * PowerAuth signature type
+     * PowerAuth authentication code type
      */
-    private PowerAuthSignatureTypes signatureType;
+    private PowerAuthCodeType authenticationCodeType;
 
     @Override
     public Map<String, Object> toMap() {
@@ -73,7 +72,7 @@ public class RemoveTokenStepModel extends BaseStepModel
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
         context.put("PASSWORD", password);
-        context.put("SIGNATURE_TYPE", signatureType.toString());
+        context.put("AUTHENTICATION_CODE_TYPE", authenticationCodeType.toString());
         return context;
     }
 
@@ -85,7 +84,7 @@ public class RemoveTokenStepModel extends BaseStepModel
         setApplicationKey((String) context.get("APPLICATION_KEY"));
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
         setPassword((String) context.get("PASSWORD"));
-        setSignatureType(PowerAuthSignatureTypes.getEnumFromString((String) context.get("SIGNATURE_TYPE")));
+        setAuthenticationCodeType(PowerAuthCodeType.getEnumFromString((String) context.get("AUTHENTICATION_CODE_TYPE")));
     }
 
 }

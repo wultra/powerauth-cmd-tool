@@ -108,8 +108,8 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Encr
         model.fromMap(context);
 
         RequestContext requestContext = RequestContext.builder()
-                .signatureHttpMethod("POST")
-                .signatureRequestUri("/pa/vault/unlock")
+                .authenticationHttpMethod("POST")
+                .authenticationRequestUri("/pa/vault/unlock")
                 .uri(model.getUriString() + "/pa/v3/vault/unlock")
                 .build();
 

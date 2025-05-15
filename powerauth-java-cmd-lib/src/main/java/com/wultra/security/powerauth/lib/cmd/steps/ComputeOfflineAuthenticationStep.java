@@ -16,8 +16,11 @@
  */
 package com.wultra.security.powerauth.lib.cmd.steps;
 
-import com.wultra.security.powerauth.crypto.lib.config.SignatureConfiguration;
+import com.wultra.security.powerauth.crypto.lib.config.AuthenticationCodeConfiguration;
+import com.wultra.security.powerauth.crypto.lib.enums.EcCurve;
 import com.wultra.security.powerauth.crypto.lib.generator.KeyGenerator;
+import com.wultra.security.powerauth.crypto.lib.util.AuthenticationCodeLegacyUtils;
+import com.wultra.security.powerauth.crypto.lib.util.AuthenticationCodeUtils;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
 import com.wultra.security.powerauth.crypto.lib.util.SignatureUtils;
 import com.wultra.security.powerauth.http.PowerAuthHttpBody;
@@ -29,7 +32,7 @@ import com.wultra.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import com.wultra.security.powerauth.lib.cmd.status.ResultStatusService;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
-import com.wultra.security.powerauth.lib.cmd.steps.model.ComputeOfflineSignatureStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.model.ComputeOfflineAuthenticationStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.util.CounterUtil;
@@ -49,7 +52,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Step for computing offline PowerAuth signature.
+ * Step for computing offline PowerAuth authentication code.
  *
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
@@ -62,11 +65,13 @@ import java.util.stream.Stream;
  * @author Roman Strobl, roman.strobl@wultra.com
  */
 @Component
-public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOfflineSignatureStepModel, Void> {
+public class ComputeOfflineAuthenticationStep extends AbstractBaseStep<ComputeOfflineAuthenticationStepModel, Void> {
 
     private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
     private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
     private static final SignatureUtils SIGNATURE_UTILS = new SignatureUtils();
+    private static final AuthenticationCodeUtils AUTHENTICATION_CODE_UTILS = new AuthenticationCodeUtils();
+    private static final AuthenticationCodeLegacyUtils AUTHENTICATION_CODE_LEGACY_UTILS = new AuthenticationCodeLegacyUtils();
 
     /**
      * Constructor
@@ -74,16 +79,16 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
      * @param stepLoggerFactory Step logger factory
      */
     @Autowired
-    public ComputeOfflineSignatureStep(
+    public ComputeOfflineAuthenticationStep(
             ResultStatusService resultStatusService,
             StepLoggerFactory stepLoggerFactory) {
-        super(PowerAuthStep.SIGNATURE_OFFLINE_COMPUTE, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLoggerFactory);
+        super(PowerAuthStep.AUTHENTICATION_OFFLINE_COMPUTE, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLoggerFactory);
     }
 
     /**
      * Constructor for backward compatibility
      */
-    public ComputeOfflineSignatureStep() {
+    public ComputeOfflineAuthenticationStep() {
         this(
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
                 BackwardCompatibilityConst.STEP_LOGGER_FACTORY
@@ -97,19 +102,19 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
     }
 
     @Override
-    public StepContext<ComputeOfflineSignatureStepModel, Void> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        final ComputeOfflineSignatureStepModel model = new ComputeOfflineSignatureStepModel();
+    public StepContext<ComputeOfflineAuthenticationStepModel, Void> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+        final ComputeOfflineAuthenticationStepModel model = new ComputeOfflineAuthenticationStepModel();
         model.fromMap(context);
 
         final RequestContext requestContext = RequestContext.builder()
                 .uri(model.getUriString())
                 .build();
 
-        final StepContext<ComputeOfflineSignatureStepModel, Void> stepContext =
+        final StepContext<ComputeOfflineAuthenticationStepModel, Void> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
         if (model.getQrCodeData() == null) {
-            stepLogger.writeError(getStep().id() + "-error-missing-qr-code-data", "Missing offline signature data", "Specify offline signature data which is encoded in QR code");
+            stepLogger.writeError(getStep().id() + "-error-missing-qr-code-data", "Missing offline authentication data", "Specify offline authentication data which is encoded in QR code");
             stepLogger.writeDoneFailed(getStep().id() + "-failed");
             return null;
         }
@@ -120,7 +125,7 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
 
         stepLogger.writeItem(
                 getStep().id() + "-start",
-                "Offline Signature Computation Started",
+                "Offline Authentication Computation Started",
                 null,
                 "OK",
                 inputMap
@@ -136,17 +141,17 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
             password = model.getPassword().toCharArray();
         }
 
-        final String offlineSignature = calculateOfflineSignature(offlineData, stepLogger, model.getResultStatus(), password);
-        if (offlineSignature == null) {
+        final String offlineAuth = calculateOfflineAuthentication(offlineData, stepLogger, model.getResultStatus(), password);
+        if (offlineAuth == null) {
             return null;
         }
 
         final Map<String, String> resultMap = new HashMap<>();
-        resultMap.put("offlineSignature", offlineSignature);
+        resultMap.put("offlineAuthentication", offlineAuth);
 
         stepLogger.writeItem(
                 getStep().id() + "-finished",
-                "Offline Signature Computation Finished",
+                "Offline Authentication Computation Finished",
                 null,
                 "OK",
                 resultMap
@@ -161,8 +166,8 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
         return text.replace("\\n", "\n");
     }
 
-    private String calculateOfflineSignature(final String offlineData, final StepLogger stepLogger,
-                                             final ResultStatusObject resultStatusObject, final char[] password) {
+    private String calculateOfflineAuthentication(final String offlineData, final StepLogger stepLogger,
+                                                  final ResultStatusObject resultStatusObject, final char[] password) {
         // Split the offline data into individual lines, see: https://github.com/wultra/powerauth-webflow/blob/develop/docs/Off-line-Signatures-QR-Code.md
         final String[] parts = offlineData.split("\n");
         if (parts.length < 7) {
@@ -188,12 +193,28 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
             // Verify ECDSA signature from the offline data, return error in case of invalid signature
             final String ecdsaSignature = signatureLine.substring(1);
             final byte[] serverPublicKeyBytes = Base64.getDecoder().decode(resultStatusObject.getEcServerPublicKey());
-            final ECPublicKey serverPublicKey = (ECPublicKey) KEY_CONVERTOR.convertBytesToPublicKey(serverPublicKeyBytes);
-            final String offlineDataWithoutSignature = offlineData.substring(0, offlineData.length() - ecdsaSignature.length());
-            final boolean dataSignatureValid = SIGNATURE_UTILS.validateECDSASignature(
-                    offlineDataWithoutSignature.getBytes(StandardCharsets.UTF_8),
-                    Base64.getDecoder().decode(ecdsaSignature),
-                    serverPublicKey);
+            final boolean dataSignatureValid;
+            switch (resultStatusObject.getVersion().intValue()) {
+                case 3 -> {
+                    final ECPublicKey serverPublicKey = (ECPublicKey) KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, serverPublicKeyBytes);
+                    final String offlineDataWithoutSignature = offlineData.substring(0, offlineData.length() - ecdsaSignature.length());
+                    dataSignatureValid = SIGNATURE_UTILS.validateECDSASignature(
+                            EcCurve.P256,
+                            offlineDataWithoutSignature.getBytes(StandardCharsets.UTF_8),
+                            Base64.getDecoder().decode(ecdsaSignature),
+                            serverPublicKey);
+                }
+                case 4 -> {
+                    final ECPublicKey serverPublicKey = (ECPublicKey) KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P384, serverPublicKeyBytes);
+                    final String offlineDataWithoutSignature = offlineData.substring(0, offlineData.length() - ecdsaSignature.length());
+                    dataSignatureValid = SIGNATURE_UTILS.validateECDSASignature(
+                            EcCurve.P384,
+                            offlineDataWithoutSignature.getBytes(StandardCharsets.UTF_8),
+                            Base64.getDecoder().decode(ecdsaSignature),
+                            serverPublicKey);
+                }
+                default -> throw new IllegalArgumentException("Unsupported version: " + resultStatusObject.getVersion());
+            }
             if (!dataSignatureValid) {
                 stepLogger.writeError(getStep().id() + "-error-invalid-signature", "Invalid signature", "Invalid signature of offline data");
                 stepLogger.writeDoneFailed(getStep().id() + "-failed");
@@ -204,18 +225,18 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
             final String dataForSignature = Stream.of(operationId, operationData, totp)
                     .filter(StringUtils::hasText)
                     .collect(Collectors.joining("&"));
-            final String signatureBaseString = PowerAuthHttpBody.getSignatureBaseString(
+            final String signatureBaseString = PowerAuthHttpBody.getAuthenticationBaseString(
                     "POST",
                     "/operation/authorize/offline",
                     Base64.getDecoder().decode(nonce),
                     dataForSignature.getBytes(StandardCharsets.UTF_8));
 
             // Prepare keys for PowerAuth offline signature calculation
-            final byte[] signaturePossessionKeyBytes = Base64.getDecoder().decode(resultStatusObject.getSignaturePossessionKey());
-            final byte[] signatureKnowledgeKeySalt = Base64.getDecoder().decode(resultStatusObject.getSignatureKnowledgeKeySalt());
-            final byte[] signatureKnowledgeKeyEncryptedBytes = Base64.getDecoder().decode(resultStatusObject.getSignatureKnowledgeKeyEncrypted());
+            final byte[] signaturePossessionKeyBytes = Base64.getDecoder().decode(resultStatusObject.getPossessionFactorKey());
+            final byte[] signatureKnowledgeKeySalt = Base64.getDecoder().decode(resultStatusObject.getKnowledgeFactorKeySalt());
+            final byte[] signatureKnowledgeKeyEncryptedBytes = Base64.getDecoder().decode(resultStatusObject.getKnowledgeFactorKeyEncrypted());
             final SecretKey signaturePossessionKey = KEY_CONVERTOR.convertBytesToSharedSecretKey(signaturePossessionKeyBytes);
-            final SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getSignatureKnowledgeKey(
+            final SecretKey signatureKnowledgeKey = EncryptedStorageUtil.getKnowledgeFactorKey(
                     password,
                     signatureKnowledgeKeyEncryptedBytes,
                     signatureKnowledgeKeySalt,
@@ -225,10 +246,17 @@ public class ComputeOfflineSignatureStep extends AbstractBaseStep<ComputeOffline
             signatureKeys.add(signatureKnowledgeKey);
 
             // Calculate signature of normalized signature base string with 'offline' constant used as application secret
-            return SIGNATURE_UTILS.computePowerAuthSignature((signatureBaseString + "&offline").getBytes(StandardCharsets.UTF_8),
-                    signatureKeys,
-                    CounterUtil.getCtrData(resultStatusObject, stepLogger),
-                    SignatureConfiguration.decimal());
+            return switch (resultStatusObject.getVersion().intValue()) {
+                case 3 -> AUTHENTICATION_CODE_LEGACY_UTILS.computePowerAuthCode((signatureBaseString + "&offline").getBytes(StandardCharsets.UTF_8),
+                        signatureKeys,
+                        CounterUtil.getCtrData(resultStatusObject, stepLogger),
+                        AuthenticationCodeConfiguration.decimal());
+                case 4 -> AUTHENTICATION_CODE_UTILS.computeAuthCode((signatureBaseString + "&offline").getBytes(StandardCharsets.UTF_8),
+                        signatureKeys,
+                        CounterUtil.getCtrData(resultStatusObject, stepLogger),
+                        AuthenticationCodeConfiguration.decimal());
+                default -> throw new IllegalStateException("Unsupported version: " + resultStatusObject.getVersion());
+            };
         } catch (Exception ex) {
             stepLogger.writeError(getStep().id() + "-error-cryptography", "Cryptography error", ex.getMessage());
             stepLogger.writeDoneFailed(getStep().id() + "-failed");

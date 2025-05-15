@@ -94,7 +94,7 @@ public class TokenAndEncryptStep extends AbstractBaseStep<TokenAndEncryptStepMod
         model.fromMap(context);
 
         RequestContext requestContext = RequestContext.builder()
-                .signatureHttpMethod(model.getHttpMethod())
+                .authenticationHttpMethod(model.getHttpMethod())
                 .uri(model.getUriString())
                 .build();
 
@@ -122,7 +122,7 @@ public class TokenAndEncryptStep extends AbstractBaseStep<TokenAndEncryptStepMod
             stepLogger.writeItem(
                     getStep().id() + "-warning-empty-data",
                     "Empty data",
-                    "Data file was not found, signature will contain no data",
+                    "Data file was not found, request will contain no data",
                     "WARNING",
                     null
             );
