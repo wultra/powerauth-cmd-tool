@@ -17,11 +17,11 @@
 package com.wultra.security.powerauth.lib.cmd.header;
 
 import com.wultra.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
-import com.wultra.security.powerauth.crypto.client.authentication.PowerAuthClientAuthentication;
 import com.wultra.security.powerauth.crypto.lib.config.AuthenticationCodeConfiguration;
 import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthAuthenticationCodeFormat;
 import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthCodeType;
 import com.wultra.security.powerauth.crypto.lib.generator.KeyGenerator;
+import com.wultra.security.powerauth.crypto.lib.util.AuthenticationCodeLegacyUtils;
 import com.wultra.security.powerauth.crypto.lib.util.AuthenticationCodeUtils;
 import com.wultra.security.powerauth.http.PowerAuthHttpBody;
 import com.wultra.security.powerauth.http.PowerAuthAuthorizationHttpHeader;
@@ -51,8 +51,8 @@ public class AuthenticationHeaderProvider implements PowerAuthHeaderProvider<Aut
 
     private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
 
-    private static final PowerAuthClientAuthentication AUTHENTICATION = new PowerAuthClientAuthentication();
     private static final AuthenticationCodeUtils AUTHENTICATION_CODE_UTILS = new AuthenticationCodeUtils();
+    private static final AuthenticationCodeLegacyUtils AUTHENTICATION_CODE_LEGACY_UTILS = new AuthenticationCodeLegacyUtils();
 
     /**
      * Adds an authentication header to the request context
@@ -92,7 +92,7 @@ public class AuthenticationHeaderProvider implements PowerAuthHeaderProvider<Aut
         }
 
         String authCodeValue = switch (model.getVersion().getMajorVersion()) {
-            case 3 -> AUTHENTICATION.authenticateCodeForData(authBaseString.getBytes(StandardCharsets.UTF_8), authSecretKeys, ctrData, config);
+            case 3 -> AUTHENTICATION_CODE_LEGACY_UTILS.computePowerAuthCode(authBaseString.getBytes(StandardCharsets.UTF_8), authSecretKeys, ctrData, config);
             case 4 -> AUTHENTICATION_CODE_UTILS.computeAuthCode(authBaseString.getBytes(StandardCharsets.UTF_8), authSecretKeys, ctrData, config);
             default -> throw new IllegalStateException("Unsupported version: " + stepContext.getModel().getVersion());
         };
