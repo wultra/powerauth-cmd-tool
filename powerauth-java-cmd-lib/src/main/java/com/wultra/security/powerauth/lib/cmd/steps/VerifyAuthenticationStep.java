@@ -26,9 +26,9 @@ import com.wultra.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import com.wultra.security.powerauth.lib.cmd.status.ResultStatusService;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
-import com.wultra.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.model.VerifyAuthenticationStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
-import com.wultra.security.powerauth.lib.cmd.util.VerifySignatureUtil;
+import com.wultra.security.powerauth.lib.cmd.util.VerifyAuthenticationCodeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
@@ -37,7 +37,7 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 /**
- * Helper class with signature verification logic.
+ * Helper class with authentication code verification logic.
  *
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
@@ -51,7 +51,7 @@ import java.util.Map;
  * @author Petr Dvorak
  */
 @Component
-public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepModel, ObjectResponse<Map<String, Object>>> {
+public class VerifyAuthenticationStep extends AbstractBaseStep<VerifyAuthenticationStepModel, ObjectResponse<Map<String, Object>>> {
 
     private static final ParameterizedTypeReference<ObjectResponse<Map<String, Object>>> RESPONSE_TYPE_REFERENCE =
             new ParameterizedTypeReference<>() {};
@@ -65,11 +65,11 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
      * @param stepLoggerFactory Step logger factory
      */
     @Autowired
-    public VerifySignatureStep(
+    public VerifyAuthenticationStep(
             PowerAuthHeaderFactory powerAuthHeaderFactory,
             ResultStatusService resultStatusService,
             StepLoggerFactory stepLoggerFactory) {
-        super(PowerAuthStep.SIGNATURE_VERIFY, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLoggerFactory);
+        super(PowerAuthStep.AUTHENTICATION_VERIFY, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
@@ -77,7 +77,7 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
     /**
      * Constructor for backward compatibility
      */
-    public VerifySignatureStep() {
+    public VerifyAuthenticationStep() {
         this(
                 BackwardCompatibilityConst.POWER_AUTH_HEADER_FACTORY,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
@@ -91,21 +91,21 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
     }
 
     @Override
-    public StepContext<VerifySignatureStepModel, ObjectResponse<Map<String, Object>>> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        VerifySignatureStepModel model = new VerifySignatureStepModel();
+    public StepContext<VerifyAuthenticationStepModel, ObjectResponse<Map<String, Object>>> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+        VerifyAuthenticationStepModel model = new VerifyAuthenticationStepModel();
         model.fromMap(context);
 
-        byte[] dataFileBytes = VerifySignatureUtil.extractRequestDataBytes(model, stepLogger);
+        byte[] dataFileBytes = VerifyAuthenticationCodeUtil.extractRequestDataBytes(model, stepLogger);
 
         RequestContext requestContext = RequestContext.builder()
                 .httpMethod(HttpMethod.valueOf(model.getHttpMethod()))
                 .requestObject(dataFileBytes)
-                .signatureHttpMethod(model.getHttpMethod())
-                .signatureRequestUri(model.getResourceId())
+                .authenticationHttpMethod(model.getHttpMethod())
+                .authenticationRequestUri(model.getResourceId())
                 .uri(model.getUriString())
                 .build();
 
-        StepContext<VerifySignatureStepModel, ObjectResponse<Map<String, Object>>> stepContext =
+        StepContext<VerifyAuthenticationStepModel, ObjectResponse<Map<String, Object>>> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
@@ -116,14 +116,14 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
     }
 
     /**
-     * Log that the signature was successfully completed.
+     * Log that the authentication code was successfully completed.
      */
     @Override
     public void logDryRun(StepLogger stepLogger) {
         stepLogger.writeItem(
-                getStep().id() + "-signature-computed",
-                "Signature computed",
-                "Activation signature header was computed successfully",
+                getStep().id() + "-authentication-code-computed",
+                "Authentication code computed",
+                "Activation authorization header was computed successfully",
                 "OK",
                 null
 
@@ -131,11 +131,11 @@ public class VerifySignatureStep extends AbstractBaseStep<VerifySignatureStepMod
     }
 
     @Override
-    public void processResponse(StepContext<VerifySignatureStepModel, ObjectResponse<Map<String, Object>>> stepContext) {
+    public void processResponse(StepContext<VerifyAuthenticationStepModel, ObjectResponse<Map<String, Object>>> stepContext) {
         stepContext.getStepLogger().writeItem(
-                getStep().id() + "-signature-verified",
-                "Signature verified",
-                "Activation signature was verified successfully",
+                getStep().id() + "-authentication-code-verified",
+                "Authentication code verified",
+                "Authentication code was verified successfully",
                 "OK",
                 null
         );

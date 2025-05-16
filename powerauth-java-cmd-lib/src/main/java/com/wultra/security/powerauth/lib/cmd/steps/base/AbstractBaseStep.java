@@ -372,7 +372,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     }
 
     /**
-     * Increments the counter (the signature already used hash based counter)
+     * Increments the counter
      * @param model Model
      * @param <RS> Type of the model with result status
      * @throws Exception when an error during saving the model occurred

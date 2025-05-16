@@ -28,10 +28,10 @@ import com.wultra.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import com.wultra.security.powerauth.lib.cmd.status.ResultStatusService;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
-import com.wultra.security.powerauth.lib.cmd.steps.model.VerifySignatureStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.model.VerifyAuthenticationStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.util.SecurityUtil;
-import com.wultra.security.powerauth.lib.cmd.util.VerifySignatureUtil;
+import com.wultra.security.powerauth.lib.cmd.util.VerifyAuthenticationCodeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
@@ -54,7 +54,7 @@ import java.util.Map;
  *  @author Roman Strobl, roman.strobl@wultra.com
  */
 @Component
-public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepModel, EncryptedResponse> {
+public class SignAndEncryptStep extends AbstractBaseStep<VerifyAuthenticationStepModel, EncryptedResponse> {
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
@@ -91,17 +91,17 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
     }
 
     @Override
-    public StepContext<VerifySignatureStepModel, EncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        VerifySignatureStepModel model = new VerifySignatureStepModel();
+    public StepContext<VerifyAuthenticationStepModel, EncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+        VerifyAuthenticationStepModel model = new VerifyAuthenticationStepModel();
         model.fromMap(context);
 
         RequestContext requestContext = RequestContext.builder()
-                .signatureHttpMethod(model.getHttpMethod())
-                .signatureRequestUri(model.getResourceId())
+                .authenticationHttpMethod(model.getHttpMethod())
+                .authenticationRequestUri(model.getResourceId())
                 .uri(model.getUriString())
                 .build();
 
-        StepContext<VerifySignatureStepModel, EncryptedResponse> stepContext =
+        StepContext<VerifyAuthenticationStepModel, EncryptedResponse> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
         // Verify that HTTP method is set
@@ -134,8 +134,8 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
                 requestDataBytes
         );
 
-        // Construct the signature base string data
-        byte[] dataFileBytes = VerifySignatureUtil.extractRequestDataBytes(model, stepLogger);
+        // Construct the authentication base string data
+        byte[] dataFileBytes = VerifyAuthenticationCodeUtil.extractRequestDataBytes(model, stepLogger);
         requestContext.setRequestObject(dataFileBytes);
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
@@ -149,7 +149,7 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifySignatureStepMode
     }
 
     @Override
-    public void processResponse(StepContext<VerifySignatureStepModel, EncryptedResponse> stepContext) throws Exception {
+    public void processResponse(StepContext<VerifyAuthenticationStepModel, EncryptedResponse> stepContext) throws Exception {
         SecurityUtil.processEncryptedResponse(stepContext, getStep().id());
     }
 

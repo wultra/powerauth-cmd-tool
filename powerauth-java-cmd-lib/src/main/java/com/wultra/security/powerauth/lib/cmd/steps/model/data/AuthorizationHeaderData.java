@@ -16,14 +16,14 @@
  */
 package com.wultra.security.powerauth.lib.cmd.steps.model.data;
 
-import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
+import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthCodeType;
 
 /**
- * Data used for computing a signature header value
+ * Data used for computing an authorization header value
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  */
-public interface SignatureHeaderData extends BaseStepData {
+public interface AuthorizationHeaderData extends BaseStepData {
 
     /**
      * @return Application key
@@ -41,8 +41,8 @@ public interface SignatureHeaderData extends BaseStepData {
     String getPassword();
 
     /**
-     * @return Signature type
+     * @return Authentication code type
      */
-    PowerAuthSignatureTypes getSignatureType();
+    PowerAuthCodeType getAuthenticationCodeType();
 
 }

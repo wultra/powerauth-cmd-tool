@@ -206,9 +206,9 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         final SecretKey masterSecretKey = KEY_FACTORY.generateClientMasterSecretKey(securityContext.getEcDeviceKeyPair().getPrivate(), serverPublicKey);
 
         // Derive PowerAuth keys from master secret key
-        final SecretKey signaturePossessionSecretKey = KEY_FACTORY.generateClientSignaturePossessionKey(masterSecretKey);
-        final SecretKey signatureKnowledgeSecretKey = KEY_FACTORY.generateClientSignatureKnowledgeKey(masterSecretKey);
-        final SecretKey signatureBiometrySecretKey = KEY_FACTORY.generateClientSignatureBiometryKey(masterSecretKey);
+        final SecretKey possessionFactorKey = KEY_FACTORY.generateClientPossessionFactorKey(masterSecretKey);
+        final SecretKey knowledgeFactorKey = KEY_FACTORY.generateClientKnowledgeFactorKey(masterSecretKey);
+        final SecretKey biometryFactorKey = KEY_FACTORY.generateClientBiometryFactorKey(masterSecretKey);
         final SecretKey transportMasterKey = KEY_FACTORY.generateServerTransportKey(masterSecretKey);
         // DO NOT EVER STORE ...
         final SecretKey vaultUnlockMasterKey = KEY_FACTORY.generateServerEncryptedVaultKey(masterSecretKey);
@@ -226,7 +226,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         }
 
         final byte[] salt = KEY_GENERATOR.generateRandomBytes(16);
-        final byte[] cSignatureKnowledgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, signatureKnowledgeSecretKey, salt, KEY_GENERATOR);
+        final byte[] cKnowledgeFactorSecretKey = EncryptedStorageUtil.storeKnowledgeFactorKey(password, knowledgeFactorKey, salt, KEY_GENERATOR);
 
         resultStatusObject.setVersion((long) model.getVersion().getMajorVersion());
         resultStatusObject.setActivationId(activationId);
@@ -234,10 +234,10 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         resultStatusObject.setCtrData(ctrDataBase64);
         resultStatusObject.setEncryptedDevicePrivateKeyBytes(encryptedDevicePrivateKey);
         resultStatusObject.setEcServerPublicKeyObject(serverPublicKey);
-        resultStatusObject.setSignatureBiometryKeyObject(signatureBiometrySecretKey);
-        resultStatusObject.setSignatureKnowledgeKeyEncryptedBytes(cSignatureKnowledgeSecretKey);
-        resultStatusObject.setSignatureKnowledgeKeySaltBytes(salt);
-        resultStatusObject.setSignaturePossessionKeyObject(signaturePossessionSecretKey);
+        resultStatusObject.setBiometryFactorKeyObject(biometryFactorKey);
+        resultStatusObject.setKnowledgeFactorKeyEncryptedBytes(cKnowledgeFactorSecretKey);
+        resultStatusObject.setKnowledgeFactorKeySaltBytes(salt);
+        resultStatusObject.setPossessionFactorKeyObject(possessionFactorKey);
         resultStatusObject.setTransportMasterKeyObject(transportMasterKey);
 
         resultStatusObject.setSharedSecretAlgorithm(securityContext.getSharedSecretAlgorithm().toString());
@@ -308,7 +308,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
 
         // Encrypt knowledge factor key
         final byte[] salt = KEY_GENERATOR.generateRandomBytes(16);
-        final byte[] encryptedKnowledgeSecretKey = EncryptedStorageUtil.storeSignatureKnowledgeKey(password, authenticationCodeKnowledgeSecretKey, salt, KEY_GENERATOR);
+        final byte[] encryptedKnowledgeSecretKey = EncryptedStorageUtil.storeKnowledgeFactorKey(password, authenticationCodeKnowledgeSecretKey, salt, KEY_GENERATOR);
 
         resultStatusObject.setVersion((long) model.getVersion().getMajorVersion());
         resultStatusObject.setActivationId(activationId);
@@ -320,10 +320,10 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         resultStatusObject.setEcServerPublicKey(serverPublicKeys.getEcdsa());
         resultStatusObject.setPqcServerPublicKey(serverPublicKeys.getMldsa());
         // TODO - store encrypted crypto 4 private keys using updated vault mechanism
-        resultStatusObject.setSignatureBiometryKeyObject(authenticationCodeBiometrySecretKey);
-        resultStatusObject.setSignatureKnowledgeKeyEncryptedBytes(encryptedKnowledgeSecretKey);
-        resultStatusObject.setSignatureKnowledgeKeySaltBytes(salt);
-        resultStatusObject.setSignaturePossessionKeyObject(authenticationCodePossessionSecretKey);
+        resultStatusObject.setBiometryFactorKeyObject(authenticationCodeBiometrySecretKey);
+        resultStatusObject.setKnowledgeFactorKeyEncryptedBytes(encryptedKnowledgeSecretKey);
+        resultStatusObject.setKnowledgeFactorKeySaltBytes(salt);
+        resultStatusObject.setPossessionFactorKeyObject(authenticationCodePossessionSecretKey);
         resultStatusObject.setSharedSecretAlgorithm(securityContext.getSharedSecretAlgorithm().toString());
         return resultStatusObject;
     }

@@ -25,7 +25,6 @@ import com.wultra.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import org.springframework.util.Assert;
 
-import java.nio.ByteBuffer;
 import java.util.Base64;
 
 /**
@@ -62,8 +61,7 @@ public class CounterUtil {
         long counter = resultStatusObject.getCounter();
         int version = resultStatusObject.getVersion().intValue();
         switch (version) {
-            case 2 -> ctrData = ByteBuffer.allocate(16).putLong(8, counter).array();
-            case 3 -> {
+            case 3, 4 -> {
                 String ctrDataBase64 = resultStatusObject.getCtrData();
                 if (!ctrDataBase64.isEmpty()) {
                     ctrData = Base64.getDecoder().decode(ctrDataBase64);
@@ -98,16 +96,17 @@ public class CounterUtil {
         counter += 1;
         resultStatusObject.setCounter(counter);
 
-        // Increment the hash based counter in case activation version is 3.
-        int version = resultStatusObject.getVersion().intValue();
-        if (version == 3) {
-            String ctrDataBase64 = resultStatusObject.getCtrData();
-            if (!ctrDataBase64.isEmpty()) {
-                final byte[] ctrData = Base64.getDecoder().decode(ctrDataBase64);
-                final byte[] nextCrtData = new HashBasedCounter(PowerAuthVersion.V3_3.value()).next(ctrData);
-                Assert.state(nextCrtData != null, "nextCrtData must not be null");
-                resultStatusObject.setCtrData(Base64.getEncoder().encodeToString(nextCrtData));
-            }
+        // Increment the hash based counter
+        String ctrDataBase64 = resultStatusObject.getCtrData();
+        if (!ctrDataBase64.isEmpty()) {
+            final byte[] ctrData = Base64.getDecoder().decode(ctrDataBase64);
+            final byte[] nextCrtData = switch (resultStatusObject.getVersion().intValue()) {
+                case 3 -> new HashBasedCounter(PowerAuthVersion.V3_3.value()).next(ctrData);
+                case 4 -> new HashBasedCounter(PowerAuthVersion.V4_0.value()).next(ctrData);
+                default -> throw new IllegalStateException("Unsupported version: " + resultStatusObject.getVersion());
+            };
+            Assert.state(nextCrtData != null, "nextCrtData must not be null");
+            resultStatusObject.setCtrData(Base64.getEncoder().encodeToString(nextCrtData));
         }
     }
 

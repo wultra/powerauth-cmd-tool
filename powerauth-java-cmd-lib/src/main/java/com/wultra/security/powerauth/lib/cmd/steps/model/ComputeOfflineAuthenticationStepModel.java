@@ -24,13 +24,13 @@ import lombok.EqualsAndHashCode;
 import java.util.Map;
 
 /**
- * Model representing parameters of the step for computing offline signatures.
+ * Model representing parameters of the step for computing offline authentication codes.
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ComputeOfflineSignatureStepModel extends BaseStepModel implements ResultStatusChangeable, DryRunCapable {
+public class ComputeOfflineAuthenticationStepModel extends BaseStepModel implements ResultStatusChangeable, DryRunCapable {
 
     /**
      * File name of the file with stored activation status.

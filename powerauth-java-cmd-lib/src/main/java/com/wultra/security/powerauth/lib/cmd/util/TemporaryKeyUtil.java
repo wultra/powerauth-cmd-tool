@@ -52,7 +52,7 @@ import com.wultra.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.ActivationData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
-import com.wultra.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.AuthorizationHeaderData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecret;
 import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecretEcdhe;
 import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecretHybrid;
@@ -336,8 +336,8 @@ public class TemporaryKeyUtil {
     }
 
     private static String getApplicationKey(StepContext<? extends BaseStepData, ?> stepContext) {
-        if (stepContext.getModel() instanceof SignatureHeaderData signatureModel) {
-            return signatureModel.getApplicationKey();
+        if (stepContext.getModel() instanceof AuthorizationHeaderData authenticationModel) {
+            return authenticationModel.getApplicationKey();
         } else if (stepContext.getModel() instanceof EncryptionHeaderData encryptionModel) {
             return encryptionModel.getApplicationKey();
         }
@@ -345,7 +345,7 @@ public class TemporaryKeyUtil {
     }
 
     private static String getApplicationSecret(StepContext<? extends BaseStepData, ?> stepContext) {
-        if (stepContext.getModel() instanceof SignatureHeaderData signatureModel) {
+        if (stepContext.getModel() instanceof AuthorizationHeaderData signatureModel) {
             return signatureModel.getApplicationSecret();
         } else if (stepContext.getModel() instanceof EncryptionHeaderData encryptionModel) {
             return encryptionModel.getApplicationSecret();

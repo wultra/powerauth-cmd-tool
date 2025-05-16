@@ -94,8 +94,8 @@ public class RemoveActivationStep extends AbstractBaseStep<RemoveStepModel, Obje
         model.fromMap(context);
 
         final RequestContext requestContext = RequestContext.builder()
-                .signatureHttpMethod("POST")
-                .signatureRequestUri("/pa/activation/remove")
+                .authenticationHttpMethod("POST")
+                .authenticationRequestUri("/pa/activation/remove")
                 .uri(model.getUriString() + "/pa/v3/activation/remove")
                 .build();
 
