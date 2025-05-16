@@ -123,7 +123,7 @@ public class VerifyAuthenticationStep extends AbstractBaseStep<VerifyAuthenticat
         stepLogger.writeItem(
                 getStep().id() + "-authentication-code-computed",
                 "Authentication code computed",
-                "Activation authentication header was computed successfully",
+                "Activation authorization header was computed successfully",
                 "OK",
                 null
 

@@ -28,7 +28,7 @@ import com.wultra.security.powerauth.http.PowerAuthAuthorizationHttpHeader;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.VerifyAuthenticationStepModel;
-import com.wultra.security.powerauth.lib.cmd.steps.model.data.AuthenticationHeaderData;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.AuthorizationHeaderData;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import com.wultra.security.powerauth.lib.cmd.util.CounterUtil;
 import com.wultra.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
@@ -41,11 +41,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
- * Authentication header provider
+ * Authorization header provider
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  */
-public class AuthenticationHeaderProvider implements PowerAuthHeaderProvider<AuthenticationHeaderData> {
+public class AuthorizationHeaderProvider implements PowerAuthHeaderProvider<AuthorizationHeaderData> {
 
     private static final PowerAuthClientKeyFactory KEY_FACTORY = new PowerAuthClientKeyFactory();
 
@@ -55,13 +55,13 @@ public class AuthenticationHeaderProvider implements PowerAuthHeaderProvider<Aut
     private static final AuthenticationCodeLegacyUtils AUTHENTICATION_CODE_LEGACY_UTILS = new AuthenticationCodeLegacyUtils();
 
     /**
-     * Adds an authentication header to the request context
+     * Adds an authorization header to the request context
      * @param stepContext Step context
-     * @throws Exception when an error during adding of an authentication header occurred
+     * @throws Exception when an error during adding of an authorization header occurred
      */
     @Override
-    public void addHeader(StepContext<? extends AuthenticationHeaderData, ?> stepContext) throws Exception {
-        AuthenticationHeaderData model = stepContext.getModel();
+    public void addHeader(StepContext<? extends AuthorizationHeaderData, ?> stepContext) throws Exception {
+        AuthorizationHeaderData model = stepContext.getModel();
         RequestContext requestContext = stepContext.getRequestContext();
         ResultStatusObject resultStatusObject = model.getResultStatus();
 
@@ -131,7 +131,7 @@ public class AuthenticationHeaderProvider implements PowerAuthHeaderProvider<Aut
         requestContext.getHttpHeaders().put(PowerAuthAuthorizationHttpHeader.HEADER_NAME, headerValue);
     }
 
-    private <M extends AuthenticationHeaderData> SecretKey getKnowledgeKeyFactor(M model) throws Exception {
+    private <M extends AuthorizationHeaderData> SecretKey getKnowledgeKeyFactor(M model) throws Exception {
         byte[] knowledgeKeyFactorSalt = model.getResultStatus().getKnowledgeFactorKeySaltBytes();
         byte[] knowledgeKeyFactorEncryptedBytes = model.getResultStatus().getKnowledgeFactorKeyEncryptedBytes();
 

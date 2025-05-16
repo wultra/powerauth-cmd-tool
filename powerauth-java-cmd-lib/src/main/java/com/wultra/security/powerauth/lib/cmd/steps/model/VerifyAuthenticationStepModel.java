@@ -17,7 +17,7 @@
 package com.wultra.security.powerauth.lib.cmd.steps.model;
 
 import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthCodeType;
-import com.wultra.security.powerauth.lib.cmd.steps.model.data.AuthenticationHeaderData;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.AuthorizationHeaderData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
 import com.wultra.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import lombok.Data;
@@ -35,7 +35,7 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class VerifyAuthenticationStepModel extends BaseStepModel
-        implements ResultStatusChangeable, DryRunCapable, AuthenticationHeaderData {
+        implements ResultStatusChangeable, DryRunCapable, AuthorizationHeaderData {
 
     private static final Logger logger = LoggerFactory.getLogger(VerifyAuthenticationStepModel.class);
 

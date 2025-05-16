@@ -17,7 +17,7 @@
 package com.wultra.security.powerauth.lib.cmd.header;
 
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
-import com.wultra.security.powerauth.lib.cmd.steps.model.data.AuthenticationHeaderData;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.AuthorizationHeaderData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.TokenAndEncryptionHeaderData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.TokenHeaderData;
 import org.springframework.stereotype.Component;
@@ -41,13 +41,13 @@ public class PowerAuthHeaderFactory {
     }
 
     /**
-     * Creates an authentication header provider instance
+     * Creates an authorization header provider instance
      * @param model Step model
-     * @param <M> Model class based on {@link AuthenticationHeaderData}
-     * @return New authentication header provider instance
+     * @param <M> Model class based on {@link AuthorizationHeaderData}
+     * @return New authorization header provider instance
      */
-    public <M extends AuthenticationHeaderData> AuthenticationHeaderProvider getHeaderProvider(M model) {
-        return new AuthenticationHeaderProvider();
+    public <M extends AuthorizationHeaderData> AuthorizationHeaderProvider getHeaderProvider(M model) {
+        return new AuthorizationHeaderProvider();
     }
 
     /**

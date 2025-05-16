@@ -19,11 +19,11 @@ package com.wultra.security.powerauth.lib.cmd.steps.model.data;
 import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthCodeType;
 
 /**
- * Data used for computing an authentication header value
+ * Data used for computing an authorization header value
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  */
-public interface AuthenticationHeaderData extends BaseStepData {
+public interface AuthorizationHeaderData extends BaseStepData {
 
     /**
      * @return Application key
