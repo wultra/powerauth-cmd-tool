@@ -296,7 +296,7 @@ public class TemporaryKeyUtil {
                 final SharedSecretClientContextHybrid clientContext = (SharedSecretClientContextHybrid) stepContext.getAttributes().get(TEMPORARY_CLIENT_CONTEXT);
                 final SharedSecretResponseHybrid sharedSecretResponseHybrid = new SharedSecretResponseHybrid();
                 sharedSecretResponseHybrid.setEcServerPublicKey(serverResponse.getEcdhe());
-                sharedSecretResponseHybrid.setPqcEncapsulation(serverResponse.getMlkem());
+                sharedSecretResponseHybrid.setPqcCiphertext(serverResponse.getMlkem());
                 yield SHARED_SECRET_HYBRID.computeSharedSecret(clientContext, sharedSecretResponseHybrid);
             }
             default -> throw new IllegalStateException("Unsupported algorithm for version 4: " + algorithm);

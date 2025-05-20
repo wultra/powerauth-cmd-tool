@@ -283,7 +283,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
             case EC_P384_ML_L3 -> {
                 final SharedSecretResponseHybrid sharedSecretResponseHybrid = new SharedSecretResponseHybrid();
                 sharedSecretResponseHybrid.setEcServerPublicKey(sharedSecretResponse.getEcdhe());
-                sharedSecretResponseHybrid.setPqcEncapsulation(sharedSecretResponse.getMlkem());
+                sharedSecretResponseHybrid.setPqcCiphertext(sharedSecretResponse.getMlkem());
                 activationSharedSecret = SHARED_SECRET_HYBRID.computeSharedSecret((SharedSecretClientContextHybrid) clientContext, sharedSecretResponseHybrid);
             }
             default -> throw new IllegalStateException("Unsupported shared secret algorithm: " + model.getSharedSecretAlgorithm());
