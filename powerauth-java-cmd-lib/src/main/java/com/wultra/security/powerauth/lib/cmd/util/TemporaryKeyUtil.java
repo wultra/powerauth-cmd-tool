@@ -124,6 +124,13 @@ public class TemporaryKeyUtil {
         } else if (scope == EncryptorScope.ACTIVATION_SCOPE) {
             final byte[] appSecretBytes = Base64.getDecoder().decode(appSecret);
             final SecretKey transportMasterKey = model.getResultStatus().getTransportMasterKeyObject();
+            if (transportMasterKey == null) {
+                stepContext.getStepLogger().writeError(
+                        stepContext.getStep().id() + "-failed",
+                        "Get Transport Master Key Failed",
+                        "transportMasterKey is null");
+                return null;
+            }
             final SecretKey secretKeyBytes = KEY_GENERATOR.deriveSecretKeyHmac(transportMasterKey, appSecretBytes);
             return KEY_CONVERTOR.convertSharedSecretKeyToBytes(secretKeyBytes);
         }
