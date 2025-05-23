@@ -127,7 +127,7 @@ public class TemporaryKeyUtil {
             if (transportMasterKey == null) {
                 stepContext.getStepLogger().writeError(
                         stepContext.getStep().id() + "-failed",
-                        "Get Secret Key Failed",
+                        "Get Transport Master Key Failed",
                         "transportMasterKey is null");
                 return null;
             }
