@@ -19,8 +19,6 @@ package com.wultra.security.powerauth.lib.cmd.steps;
 import com.wultra.security.powerauth.crypto.lib.config.AuthenticationCodeConfiguration;
 import com.wultra.security.powerauth.crypto.lib.enums.EcCurve;
 import com.wultra.security.powerauth.crypto.lib.generator.KeyGenerator;
-import com.wultra.security.powerauth.crypto.lib.util.AuthenticationCodeLegacyUtils;
-import com.wultra.security.powerauth.crypto.lib.util.AuthenticationCodeUtils;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
 import com.wultra.security.powerauth.crypto.lib.util.SignatureUtils;
 import com.wultra.security.powerauth.http.PowerAuthHttpBody;
@@ -70,8 +68,8 @@ public class ComputeOfflineAuthenticationStep extends AbstractBaseStep<ComputeOf
     private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
     private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
     private static final SignatureUtils SIGNATURE_UTILS = new SignatureUtils();
-    private static final AuthenticationCodeUtils AUTHENTICATION_CODE_UTILS = new AuthenticationCodeUtils();
-    private static final AuthenticationCodeLegacyUtils AUTHENTICATION_CODE_LEGACY_UTILS = new AuthenticationCodeLegacyUtils();
+    private static final com.wultra.security.powerauth.crypto.client.authentication.PowerAuthClientAuthentication CLIENT_AUTHENTICATION_V3 = new  com.wultra.security.powerauth.crypto.client.authentication.PowerAuthClientAuthentication();
+    private static final com.wultra.security.powerauth.crypto.client.v4.authentication.PowerAuthClientAuthentication CLIENT_AUTHENTICATION_V4 = new  com.wultra.security.powerauth.crypto.client.v4.authentication.PowerAuthClientAuthentication();
 
     /**
      * Constructor
@@ -247,11 +245,11 @@ public class ComputeOfflineAuthenticationStep extends AbstractBaseStep<ComputeOf
 
             // Calculate signature of normalized signature base string with 'offline' constant used as application secret
             return switch (resultStatusObject.getVersion().intValue()) {
-                case 3 -> AUTHENTICATION_CODE_LEGACY_UTILS.computePowerAuthCode((signatureBaseString + "&offline").getBytes(StandardCharsets.UTF_8),
+                case 3 -> CLIENT_AUTHENTICATION_V3.computeAuthCode((signatureBaseString + "&offline").getBytes(StandardCharsets.UTF_8),
                         signatureKeys,
                         CounterUtil.getCtrData(resultStatusObject, stepLogger),
                         AuthenticationCodeConfiguration.decimal());
-                case 4 -> AUTHENTICATION_CODE_UTILS.computeAuthCode((signatureBaseString + "&offline").getBytes(StandardCharsets.UTF_8),
+                case 4 -> CLIENT_AUTHENTICATION_V4.computeAuthCode((signatureBaseString + "&offline").getBytes(StandardCharsets.UTF_8),
                         signatureKeys,
                         CounterUtil.getCtrData(resultStatusObject, stepLogger),
                         AuthenticationCodeConfiguration.decimal());

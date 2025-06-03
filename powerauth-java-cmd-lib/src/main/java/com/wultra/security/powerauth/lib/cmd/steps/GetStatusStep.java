@@ -18,7 +18,6 @@ package com.wultra.security.powerauth.lib.cmd.steps;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wultra.core.rest.model.base.request.ObjectRequest;
 import com.wultra.core.rest.model.base.response.ObjectResponse;
-import com.wultra.security.powerauth.crypto.client.activation.PowerAuthClientActivation;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
 import com.wultra.security.powerauth.crypto.lib.enums.ProtocolVersion;
@@ -81,7 +80,8 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, Object> 
     private static final ParameterizedTypeReference<ObjectResponse<com.wultra.security.powerauth.rest.api.model.response.v3.ActivationStatusResponse>> RESPONSE_TYPE_REFERENCE_V3 =
             new ParameterizedTypeReference<>() {};
 
-    private static final PowerAuthClientActivation ACTIVATION = new PowerAuthClientActivation();
+    private static final com.wultra.security.powerauth.crypto.client.activation.PowerAuthClientActivation CLIENT_ACTIVATION_V3 = new com.wultra.security.powerauth.crypto.client.activation.PowerAuthClientActivation();
+    private static final com.wultra.security.powerauth.crypto.client.v4.activation.PowerAuthClientActivation CLIENT_ACTIVATION_V4 = new com.wultra.security.powerauth.crypto.client.v4.activation.PowerAuthClientActivation();
 
     private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
 
@@ -191,7 +191,7 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, Object> 
                     return;
                 }
 
-                final ActivationStatusBlobInfo statusBlobRaw = ACTIVATION.getStatusFromEncryptedBlob(cStatusBlob, challenge, cStatusBlobNonce, transportMasterKey);
+                final ActivationStatusBlobInfo statusBlobRaw = CLIENT_ACTIVATION_V3.getStatusFromEncryptedBlob(cStatusBlob, challenge, cStatusBlobNonce, transportMasterKey);
                 statusBlobInfo = ExtendedActivationStatusBlobInfo.copy(statusBlobRaw);
             }
             case 4 -> {
@@ -206,14 +206,14 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, Object> 
                 final byte[] statusBlobData = Arrays.copyOfRange(statusBlob, 0, 48);
                 final byte[] statusBlobMac = Arrays.copyOfRange(statusBlob, 48, 80);
                 // Verify MAC
-                if (!ACTIVATION.verifyStatusMac(statusBlobData, statusBlobMac, resultStatusObject.getStatusBlobMacKeyObject(), ProtocolVersion.fromValue(stepContext.getModel().getVersion().value()))) {
+                if (!CLIENT_ACTIVATION_V4.verifyStatusMac(statusBlobData, statusBlobMac, resultStatusObject.getStatusBlobMacKeyObject(), ProtocolVersion.fromValue(stepContext.getModel().getVersion().value()))) {
                     stepContext.getStepLogger().writeError(
                             getStep().id() + "-failed",
                             "MAC verification failed",
                             "Failed MAC verification for status blob");
                     return;
                 }
-                final ActivationStatusBlobInfo statusBlobRaw = ACTIVATION.getStatusFromBlob(statusBlobData);
+                final ActivationStatusBlobInfo statusBlobRaw = CLIENT_ACTIVATION_V4.getStatusFromBlob(statusBlobData);
                 statusBlobInfo = ExtendedActivationStatusBlobInfo.copy(statusBlobRaw);
                 customObject = statusResponse.getCustomObject();
             }

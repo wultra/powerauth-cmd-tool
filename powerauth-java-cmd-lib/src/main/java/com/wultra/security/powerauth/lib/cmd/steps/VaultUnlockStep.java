@@ -151,6 +151,7 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Encr
         byte[] encryptedVaultEncryptionKey = Base64.getDecoder().decode(responsePayload.getEncryptedVaultEncryptionKey());
 
         PowerAuthClientVault vault = new PowerAuthClientVault();
+        // TODO - support for crypto4
         SecretKey vaultEncryptionKey = vault.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey);
         PrivateKey devicePrivateKey = vault.decryptDevicePrivateKey(encryptedDevicePrivateKeyBytes, vaultEncryptionKey);
         PublicKey serverPublicKey = resultStatusObject.getEcServerPublicKeyObject();

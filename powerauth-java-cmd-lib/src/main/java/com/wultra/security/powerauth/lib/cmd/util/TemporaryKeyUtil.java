@@ -26,6 +26,7 @@ import com.wultra.core.rest.client.base.RestClient;
 import com.wultra.core.rest.client.base.RestClientException;
 import com.wultra.core.rest.model.base.request.ObjectRequest;
 import com.wultra.core.rest.model.base.response.ObjectResponse;
+import com.wultra.security.powerauth.crypto.client.v4.keyfactory.PowerAuthClientKeyFactory;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
 import com.wultra.security.powerauth.crypto.lib.enums.EcCurve;
 import com.wultra.security.powerauth.crypto.lib.generator.KeyGenerator;
@@ -124,6 +125,7 @@ public class TemporaryKeyUtil {
     private static final SharedSecretHybrid SHARED_SECRET_HYBRID = new SharedSecretHybrid();
     private static final ObjectMapper OBJECT_MAPPER = RestClientConfiguration.defaultMapper();
 
+    private static final PowerAuthClientKeyFactory CLIENT_KEY_FACTORY = new PowerAuthClientKeyFactory();
     private static final JSONParser JSON_PARSER = new JSONParser();
 
     /**
@@ -213,7 +215,7 @@ public class TemporaryKeyUtil {
             case 4 -> switch (scope) {
                 case APPLICATION_SCOPE -> {
                     final SecretKey sourceKey = KEY_CONVERTOR.convertBytesToSharedSecretKey(appSecretBytes);
-                    final SecretKey secretKey = KeyFactory.deriveKeyMacGetAppTempKey(sourceKey);
+                    final SecretKey secretKey = CLIENT_KEY_FACTORY.generateKeyMacGetAppTempKey(sourceKey);
                     yield KEY_CONVERTOR.convertSharedSecretKeyToBytes(secretKey);
                 }
                 case ACTIVATION_SCOPE -> {
