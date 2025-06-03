@@ -36,6 +36,7 @@ import com.wultra.security.powerauth.crypto.lib.util.HMACHashUtilities;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
 import com.wultra.security.powerauth.crypto.lib.util.SignatureUtils;
 import com.wultra.security.powerauth.crypto.lib.v4.PqcDsa;
+import com.wultra.security.powerauth.crypto.lib.v4.kdf.KeyFactory;
 import com.wultra.security.powerauth.crypto.lib.v4.model.SharedSecretClientContextEcdhe;
 import com.wultra.security.powerauth.crypto.lib.v4.model.SharedSecretClientContextHybrid;
 import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
@@ -124,9 +125,8 @@ public class TemporaryKeyUtil {
     private static final SharedSecretHybrid SHARED_SECRET_HYBRID = new SharedSecretHybrid();
     private static final ObjectMapper OBJECT_MAPPER = RestClientConfiguration.defaultMapper();
 
-    private static final JSONParser JSON_PARSER = new JSONParser();
-
     private static final PowerAuthClientKeyFactory CLIENT_KEY_FACTORY = new PowerAuthClientKeyFactory();
+    private static final JSONParser JSON_PARSER = new JSONParser();
 
     /**
      * Fetch temporary key for encryption from the server and store it into the step context.
