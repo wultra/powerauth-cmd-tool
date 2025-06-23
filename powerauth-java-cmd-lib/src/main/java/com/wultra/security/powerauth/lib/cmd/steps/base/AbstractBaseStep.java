@@ -458,8 +458,8 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
         return addResponseContext(stepContext, responseEntity);
     }
 
-    private ResponseContext<R> addResponseContext(StepContext<M,R> stepContext, ResponseEntity<R> responseEntity) {
-        final R responseBodyObject = Objects.requireNonNull(responseEntity.getBody());
+    private ResponseContext<R> addResponseContext(StepContext<M, R> stepContext, ResponseEntity<R> responseEntity) {
+        final R responseBodyObject = responseEntity.getBody();
         stepContext.getStepLogger().writeServerCallOK(step.id() + "-response-received", responseBodyObject, HttpUtil.flattenHttpHeaders(responseEntity.getHeaders()));
 
         final ResponseContext<R> responseContext = ResponseContext.<R>builder()
