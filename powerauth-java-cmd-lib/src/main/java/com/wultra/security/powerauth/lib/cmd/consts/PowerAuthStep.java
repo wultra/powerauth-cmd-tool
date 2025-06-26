@@ -54,16 +54,6 @@ public enum PowerAuthStep {
     ACTIVATION_STATUS("activation-status", "Activation Status Check", "status"),
 
     /**
-     * Send and verify an encrypted request
-     */
-    ENCRYPT("encrypt", "Encrypt Request", "encrypt"),
-
-    /**
-     * Send and verify a signed and encrypted request
-     */
-    SIGN_ENCRYPT("sign-encrypt", "Sign and Encrypt Request", "sign-encrypt"),
-
-    /**
      * Compute an offline authentication code
      */
     AUTHENTICATION_OFFLINE_COMPUTE("authentication-offline-compute", "Compute Offline Authentication Code", "compute-offline-auth-code"),
@@ -74,6 +64,31 @@ public enum PowerAuthStep {
     AUTHENTICATION_VERIFY("authentication-verify", "Authentication Code Validation", "authenticate"),
 
     /**
+     * Set up biometry
+     */
+    BIOMETRY_SETUP("biometry-setup", "Setup Biometry", "setup-biometry"),
+
+    /**
+     * Remove biometry
+     */
+    BIOMETRY_REMOVE("biometry-remove", "Remove Biometry", "remove-biometry"),
+
+    /**
+     * Send and verify an encrypted request
+     */
+    ENCRYPT("encrypt", "Encrypt Request", "encrypt"),
+
+    /**
+     * Change password for the knowledge factor
+     */
+    PASSWORD_CHANGE("password-change", "Change Password", "change-password"),
+
+    /**
+     * Send and verify a signed and encrypted request
+     */
+    SIGN_ENCRYPT("sign-encrypt", "Sign and Encrypt Request", "sign-encrypt"),
+
+    /**
      * Creating new token
      */
     TOKEN_CREATE("token-create", "Token Create", "create-token"),
@@ -81,7 +96,7 @@ public enum PowerAuthStep {
     /**
      * Send an encrypted request with token-based authentication
      */
-    TOKEN_ENCRYPT("token-encrypt", "Encrypt Request and Validate Token Digest", "token-encrypt"),
+    TOKEN_ENCRYPT("token-encrypt", "Encrypt Request and Validate Token Digest", "encrypt-token"),
 
     /**
      * Removing a previously created token

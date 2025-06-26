@@ -100,7 +100,7 @@ public class AuthorizationHeaderProvider implements PowerAuthHeaderProvider<Auth
         Map<String, String> lowLevelData = new HashMap<>();
         lowLevelData.put("counter", String.valueOf(resultStatusObject.getCounter()));
         int version = resultStatusObject.getVersion().intValue();
-        if (version == 3) {
+        if (version >= 3) {
             lowLevelData.put("ctrData", Base64.getEncoder().encodeToString(ctrData));
         }
         lowLevelData.put("authenticationBaseString", authBaseString);
@@ -111,8 +111,6 @@ public class AuthorizationHeaderProvider implements PowerAuthHeaderProvider<Auth
             lowLevelData.put("activationId", resultStatusObject.getActivationId());
             lowLevelData.put("applicationKey", model.getApplicationKey());
             lowLevelData.put("resourceId", ((VerifyAuthenticationStepModel) model).getResourceId());
-            lowLevelData.put("serverPublicKey", resultStatusObject.getEcServerPublicKey());
-            lowLevelData.put("transportKey", resultStatusObject.getTransportMasterKey());
         }
 
         stepContext.getStepLogger().writeItem(

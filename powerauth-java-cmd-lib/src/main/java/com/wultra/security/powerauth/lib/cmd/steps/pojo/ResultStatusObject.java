@@ -276,7 +276,9 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setBiometryFactorKeyObject(SecretKey biometryFactorKeyObject) {
-        String biometryFactorKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(biometryFactorKeyObject));
+        final String biometryFactorKey = biometryFactorKeyObject != null
+                ? Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(biometryFactorKeyObject))
+                : null;
         switch (getVersion().intValue()) {
             case 3 -> jsonObject.put("signatureBiometryKey", biometryFactorKey);
             case 4 -> jsonObject.put("biometryFactorKey", biometryFactorKey);

@@ -419,6 +419,7 @@ public class TemporaryKeyUtil {
         return switch (algorithm) {
             case EC_P256 -> SIGNATURE_UTILS.validateECDSASignature(EcCurve.P256, signingInput, signatureBytes, publicKey);
             case EC_P384, EC_P384_ML_L3 -> SIGNATURE_UTILS.validateECDSASignature(EcCurve.P384, signingInput, signatureBytes, publicKey);
+            default -> throw new IllegalArgumentException("Unsupported algorithm: " + algorithm);
         };
     }
 
@@ -462,11 +463,13 @@ public class TemporaryKeyUtil {
             return switch (algorithm) {
                 case EC_P256 -> activationModel.getMasterPublicKeyP256();
                 case EC_P384, EC_P384_ML_L3 -> activationModel.getMasterPublicKeyP384();
+                default -> throw new IllegalArgumentException("Unsupported algorithm: " + algorithm);
             };
         } else if (stepContext.getModel() instanceof EncryptStepModel encryptionModel) {
             return switch (algorithm) {
                 case EC_P256 -> encryptionModel.getMasterPublicKeyP256();
                 case EC_P384, EC_P384_ML_L3 -> encryptionModel.getMasterPublicKeyP384();
+                default -> throw new IllegalArgumentException("Unsupported algorithm: " + algorithm);
             };
         }
         throw new IllegalStateException("Invalid model for obtaining ECDSA master public key");
