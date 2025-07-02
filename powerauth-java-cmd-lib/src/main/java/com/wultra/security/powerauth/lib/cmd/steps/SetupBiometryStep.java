@@ -154,8 +154,7 @@ public class SetupBiometryStep extends AbstractBaseStep<SetupBiometryStepModel, 
                 "Biometry was setup successfully",
                 "Biometry was successfully setup and new biometry factor key was saved",
                 "OK",
-                Map.of("ecdhe", responsePayload.getEcdhe(),
-                        "mlkem", responsePayload.getMlkem()));
+                responsePayload);
     }
 
     private static RequestSharedSecret buildSharedSecretRequest(StepContext<? extends BaseStepData, ?> stepContext, SharedSecretAlgorithm algorithm) throws GenericCryptoException {
