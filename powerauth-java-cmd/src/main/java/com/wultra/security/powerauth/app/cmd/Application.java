@@ -95,6 +95,7 @@ public class Application {
             options.addOption("d", "data-file", true, "In case a specified method is 'sign', 'sign-encrypt' or 'token-encrypt', this field specifies a file with the input data to be signed and verified with the server, as specified in PowerAuth signature process or MAC token based authentication.");
             options.addOption("y", "dry-run", false, "In case a specified method is 'sign', 'sign-encrypt', 'validate-token' or 'token-encrypt' and this attribute is specified, the step is stopped right after signing the request body and preparing appropriate headers.");
             options.addOption("p", "password", true, "Password used for a knowledge related key encryption. If not specified, an interactive input is required.");
+            options.addOption("n", "password-new", true, "New password used for a knowledge related key encryption. If not specified, an interactive input is required.");
             options.addOption("I", "identity-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with identity attributes.");
             options.addOption("C", "custom-attributes-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with custom attributes.");
             options.addOption("i", "invalidSsl", false, "Client may accept invalid SSL certificate in HTTPS communication.");
@@ -509,6 +510,50 @@ public class Application {
 
                     stepExecutionService.execute(powerAuthStep, version, model);
                 }
+                case PASSWORD_CHANGE -> {
+                    final ChangePasswordStepModel model = new ChangePasswordStepModel();
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
+                    model.setHeaders(httpHeaders);
+                    model.setPassword(cmd.getOptionValue("p"));
+                    model.setPasswordNew(cmd.getOptionValue("n"));
+                    model.setResultStatus(resultStatusObject);
+                    model.setStatusFileName(statusFileName);
+                    model.setUriString(uriString);
+                    model.setAuthenticationCodeType(PowerAuthCodeType.getEnumFromString(cmd.getOptionValue("l")));
+                    model.setVersion(version);
+
+                    stepExecutionService.execute(powerAuthStep, version, model);
+                }
+                case BIOMETRY_SETUP -> {
+                    final SetupBiometryStepModel model = new SetupBiometryStepModel();
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
+                    model.setHeaders(httpHeaders);
+                    model.setPassword(cmd.getOptionValue("p"));
+                    model.setResultStatus(resultStatusObject);
+                    model.setStatusFileName(statusFileName);
+                    model.setUriString(uriString);
+                    model.setAuthenticationCodeType(PowerAuthCodeType.getEnumFromString(cmd.getOptionValue("l")));
+                    model.setVersion(version);
+
+                    stepExecutionService.execute(powerAuthStep, version, model);
+                }
+                case BIOMETRY_REMOVE -> {
+                    final RemoveBiometryStepModel model = new RemoveBiometryStepModel();
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
+                    model.setHeaders(httpHeaders);
+                    model.setPassword(cmd.getOptionValue("p"));
+                    model.setResultStatus(resultStatusObject);
+                    model.setStatusFileName(statusFileName);
+                    model.setUriString(uriString);
+                    model.setAuthenticationCodeType(PowerAuthCodeType.getEnumFromString(cmd.getOptionValue("l")));
+                    model.setVersion(version);
+
+                    stepExecutionService.execute(powerAuthStep, version, model);
+                }
+
                 default -> {
                     System.err.println("Not recognized PowerAuth step: " + powerAuthStep);
                     printPowerAuthStepsHelp(stepProvider);
