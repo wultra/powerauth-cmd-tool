@@ -108,6 +108,7 @@ public class Application {
             options.addOption("q", "qr-code-data", true, "Data for offline signature encoded in QR code.");
             options.addOption("v", "version", true, "PowerAuth protocol version.");
             options.addOption("g", "algorithm", true, "SharedSecret algorithm name.");
+            options.addOption("k", "key-identifier", true, "Key identifier for vault unlock, use 'KEK_DEVICE_PRIVATE', 'KDK_APP_VAULT_KNOWLEDGE', or 'KDK_APP_VAULT_2FA'.");
 
             final Option httpHeaderOption = Option.builder("H")
                     .argName("key=value")
@@ -377,6 +378,7 @@ public class Application {
                     model.setAuthenticationCodeType(PowerAuthCodeType.getEnumFromString(cmd.getOptionValue("l")));
                     model.setUriString(uriString);
                     model.setReason(reason);
+                    model.setKeyIdentifier(cmd.getOptionValue("k"));
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
