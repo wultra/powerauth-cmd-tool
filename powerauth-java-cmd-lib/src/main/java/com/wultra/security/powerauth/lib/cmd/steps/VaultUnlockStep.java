@@ -34,8 +34,6 @@ import com.wultra.security.powerauth.lib.cmd.steps.model.VaultUnlockStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.util.RestClientConfiguration;
-import com.wultra.security.powerauth.rest.api.model.request.VaultUnlockRequestPayload;
-import com.wultra.security.powerauth.rest.api.model.response.VaultUnlockResponsePayload;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
@@ -56,6 +54,7 @@ import java.util.Map;
  *      <li>3.1</li>
  *      <li>3.2</li>
  *      <li>3.3</li>
+ *      <li>4.0</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
@@ -81,7 +80,7 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Encr
             PowerAuthHeaderFactory powerAuthHeaderFactory,
             ResultStatusService resultStatusService,
             StepLoggerFactory stepLoggerFactory) {
-        super(PowerAuthStep.VAULT_UNLOCK, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
+        super(PowerAuthStep.VAULT_UNLOCK, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
@@ -104,23 +103,54 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Encr
 
     @Override
     public StepContext<VaultUnlockStepModel, EncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        VaultUnlockStepModel model = new VaultUnlockStepModel();
+        final VaultUnlockStepModel model = new VaultUnlockStepModel();
         model.fromMap(context);
 
-        RequestContext requestContext = RequestContext.builder()
+        final int majorVersion = model.getVersion().getMajorVersion();
+        final RequestContext requestContext = RequestContext.builder()
                 .authenticationHttpMethod("POST")
                 .authenticationRequestUri("/pa/vault/unlock")
-                .uri(model.getUriString() + "/pa/v3/vault/unlock")
+                .uri(model.getUriString() + "/pa/v" + majorVersion + "/vault/unlock")
                 .build();
 
-        StepContext<VaultUnlockStepModel, EncryptedResponse> stepContext =
+        final StepContext<VaultUnlockStepModel, EncryptedResponse> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
         // Prepare vault unlock request payload
-        VaultUnlockRequestPayload requestPayload = new VaultUnlockRequestPayload();
-        requestPayload.setReason(model.getReason());
+        final byte[] requestBytesPayload = switch (majorVersion) {
+            case 3 -> {
+                final com.wultra.security.powerauth.rest.api.model.request.v3.VaultUnlockRequestPayload requestPayload = new com.wultra.security.powerauth.rest.api.model.request.v3.VaultUnlockRequestPayload();
+                requestPayload.setReason(model.getReason());
+                yield RestClientConfiguration.defaultMapper().writeValueAsBytes(requestPayload);
+            }
+            case 4 -> {
+                if (model.getKeyIdentifier() == null) {
+                    stepContext.getStepLogger().writeError(
+                            getStep().id() + "-vault-unlock-failed",
+                            "Vault Unlock Failed",
+                            "Key identifier is not specified");
+                    yield null;
+                }
+                if (!model.getKeyIdentifier().equals("KEK_DEVICE_PRIVATE")
+                        && !model.getKeyIdentifier().equals("KDK_APP_VAULT_KNOWLEDGE")
+                        && !model.getKeyIdentifier().equals("KDK_APP_VAULT_2FA")) {
+                    stepContext.getStepLogger().writeError(
+                            getStep().id() + "-vault-unlock-failed",
+                            "Vault Unlock Failed",
+                            "Key identifier is not valid");
+                    yield null;
+                }
+                final com.wultra.security.powerauth.rest.api.model.request.v4.VaultUnlockRequestPayload requestPayload = new com.wultra.security.powerauth.rest.api.model.request.v4.VaultUnlockRequestPayload();
+                requestPayload.setKeyIdentifier(model.getKeyIdentifier());
+                requestPayload.setReason(model.getReason());
+                yield RestClientConfiguration.defaultMapper().writeValueAsBytes(requestPayload);
+            }
+            default -> throw new IllegalArgumentException("Unsupported version: " + stepContext.getModel().getVersion());
+        };
 
-        final byte[] requestBytesPayload = RestClientConfiguration.defaultMapper().writeValueAsBytes(requestPayload);
+        if (requestBytesPayload == null) {
+            return null;
+        }
 
         addEncryptedRequest(stepContext, model.getApplicationKey(), model.getApplicationSecret(), EncryptorId.VAULT_UNLOCK, requestBytesPayload, EncryptorScope.ACTIVATION_SCOPE);
 
@@ -133,41 +163,49 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Encr
 
     @Override
     public void processResponse(StepContext<VaultUnlockStepModel, EncryptedResponse> stepContext) throws Exception {
-        final VaultUnlockResponsePayload responsePayload = decryptResponse(stepContext, VaultUnlockResponsePayload.class);
+        final int majorVersion = stepContext.getModel().getVersion().getMajorVersion();
 
-        ResultStatusObject resultStatusObject = stepContext.getModel().getResultStatus();
+        final Map<String, Object> objectMap = new HashMap<>();
+        switch (majorVersion) {
+            case 3 -> {
+                final com.wultra.security.powerauth.rest.api.model.response.v3.VaultUnlockResponsePayload responsePayload = decryptResponse(stepContext, com.wultra.security.powerauth.rest.api.model.response.v3.VaultUnlockResponsePayload.class);
+                final ResultStatusObject resultStatusObject = stepContext.getModel().getResultStatus();
 
-        final SecretKey transportMasterKey = resultStatusObject.getTransportMasterKeyObject();
-        if (transportMasterKey == null) {
-            stepContext.getStepLogger().writeError(
-                    getStep().id() + "-vault-unlock-failed",
-                    "Vault Unlock Failed",
-                    "transportMasterKey is null");
-            return;
+                final SecretKey transportMasterKey = resultStatusObject.getTransportMasterKeyObject();
+                if (transportMasterKey == null) {
+                    stepContext.getStepLogger().writeError(
+                            getStep().id() + "-vault-unlock-failed",
+                            "Vault Unlock Failed",
+                            "The transportMasterKey is null");
+                    return;
+                }
+
+                final byte[] encryptedDevicePrivateKeyBytes = resultStatusObject.getEncryptedDevicePrivateKeyBytes();
+                final byte[] encryptedVaultEncryptionKey = Base64.getDecoder().decode(responsePayload.getEncryptedVaultEncryptionKey());
+
+                final PowerAuthClientVault vault = new PowerAuthClientVault();
+                final SecretKey vaultEncryptionKey = vault.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey);
+                final PrivateKey devicePrivateKey = vault.decryptDevicePrivateKey(encryptedDevicePrivateKeyBytes, vaultEncryptionKey);
+                final PublicKey serverPublicKey = resultStatusObject.getEcServerPublicKeyObject();
+
+                final SecretKey masterSecretKey = KEY_FACTORY.generateClientMasterSecretKey(devicePrivateKey, serverPublicKey);
+                final SecretKey transportKeyDeduced = KEY_FACTORY.generateServerTransportKey(masterSecretKey);
+                final boolean equal = transportKeyDeduced.equals(transportMasterKey);
+                objectMap.put("activationId", resultStatusObject.getActivationId());
+                objectMap.put("encryptedVaultEncryptionKey", Base64.getEncoder().encodeToString(encryptedVaultEncryptionKey));
+                objectMap.put("transportMasterKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertSharedSecretKeyToBytes(transportMasterKey)));
+                objectMap.put("vaultEncryptionKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertSharedSecretKeyToBytes(vaultEncryptionKey)));
+                objectMap.put("devicePrivateKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertPrivateKeyToBytes(devicePrivateKey)));
+                objectMap.put("privateKeyDecryptionSuccessful", (equal ? "true" : "false"));
+            }
+            case 4 -> {
+                final com.wultra.security.powerauth.rest.api.model.response.v4.VaultUnlockResponsePayload responsePayload = decryptResponse(stepContext, com.wultra.security.powerauth.rest.api.model.response.v4.VaultUnlockResponsePayload.class);
+                final ResultStatusObject resultStatusObject = stepContext.getModel().getResultStatus();
+                objectMap.put("activationId", resultStatusObject.getActivationId());
+                objectMap.put("vaultEncryptionKey", responsePayload.getVaultEncryptionKey());
+            }
+            default -> throw new IllegalArgumentException("Unsupported version: " + stepContext.getModel().getVersion());
         }
-
-        byte[] encryptedDevicePrivateKeyBytes = resultStatusObject.getEncryptedDevicePrivateKeyBytes();
-
-        byte[] encryptedVaultEncryptionKey = Base64.getDecoder().decode(responsePayload.getEncryptedVaultEncryptionKey());
-
-        PowerAuthClientVault vault = new PowerAuthClientVault();
-        // TODO - support for crypto4
-        SecretKey vaultEncryptionKey = vault.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey);
-        PrivateKey devicePrivateKey = vault.decryptDevicePrivateKey(encryptedDevicePrivateKeyBytes, vaultEncryptionKey);
-        PublicKey serverPublicKey = resultStatusObject.getEcServerPublicKeyObject();
-
-        SecretKey masterSecretKey = KEY_FACTORY.generateClientMasterSecretKey(devicePrivateKey, serverPublicKey);
-        SecretKey transportKeyDeduced = KEY_FACTORY.generateServerTransportKey(masterSecretKey);
-        boolean equal = transportKeyDeduced.equals(transportMasterKey);
-
-        // Print the results
-        Map<String, Object> objectMap = new HashMap<>();
-        objectMap.put("activationId", resultStatusObject.getActivationId());
-        objectMap.put("encryptedVaultEncryptionKey", Base64.getEncoder().encodeToString(encryptedVaultEncryptionKey));
-        objectMap.put("transportMasterKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertSharedSecretKeyToBytes(transportMasterKey)));
-        objectMap.put("vaultEncryptionKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertSharedSecretKeyToBytes(vaultEncryptionKey)));
-        objectMap.put("devicePrivateKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertPrivateKeyToBytes(devicePrivateKey)));
-        objectMap.put("privateKeyDecryptionSuccessful", (equal ? "true" : "false"));
 
         stepContext.getStepLogger().writeItem(
                 getStep().id() + "-vault-unlocked",
