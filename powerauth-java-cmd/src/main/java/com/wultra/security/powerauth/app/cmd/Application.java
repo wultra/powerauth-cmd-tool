@@ -86,18 +86,18 @@ public class Application {
             options.addOption("m", "method", true, "What API method to call, available names are 'create', 'status', 'remove', 'sign', 'unlock', 'create-custom', 'create-token', 'validate-token', 'remove-token', 'encrypt', 'sign-encrypt', 'token-encrypt', 'start-upgrade', and 'commit-upgrade'.");
             options.addOption("c", "config-file", true, "Specifies a path to the config file with Base64 encoded server master public key, application ID and application secret.");
             options.addOption("s", "status-file", true, "Path to the file with the activation status, serving as the data persistence.");
-            options.addOption("a", "activation-code", true, "In case a specified method is 'create', this field contains the activation key (a concatenation of a short activation ID and activation OTP).");
-            options.addOption("A", "activation-otp", true, "In case a specified method is 'create', this field contains additional activation OTP (PA server 0.24+)");
-            options.addOption("t", "http-method", true, "In case a specified method is 'sign', 'sign-encrypt' or 'token-encrypt', this field specifies a HTTP method, as specified in PowerAuth signature process.");
+            options.addOption("a", "activation-code", true, "In case the specified method is 'create', this field contains the activation key (a concatenation of a short activation ID and activation OTP).");
+            options.addOption("A", "activation-otp", true, "In case the specified method is 'create', this field contains additional activation OTP (PA server 0.24+)");
+            options.addOption("t", "http-method", true, "In case the specified method is 'sign', 'sign-encrypt' or 'token-encrypt', this field specifies a HTTP method, as specified in PowerAuth signature process.");
             options.addOption("e", "endpoint", true, "Deprecated option, use the resource-id option instead.");
-            options.addOption("E", "resource-id", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a URI identifier, as specified in PowerAuth signature process.");
-            options.addOption("l", "signature-type", true, "In case a specified method is 'sign' or 'sign-encrypt', this field specifies a signature type, as specified in PowerAuth signature process.");
-            options.addOption("d", "data-file", true, "In case a specified method is 'sign', 'sign-encrypt' or 'token-encrypt', this field specifies a file with the input data to be signed and verified with the server, as specified in PowerAuth signature process or MAC token based authentication.");
-            options.addOption("y", "dry-run", false, "In case a specified method is 'sign', 'sign-encrypt', 'validate-token' or 'token-encrypt' and this attribute is specified, the step is stopped right after signing the request body and preparing appropriate headers.");
+            options.addOption("E", "resource-id", true, "In case the specified method is 'sign' or 'sign-encrypt', this field specifies a URI identifier, as specified in PowerAuth signature process.");
+            options.addOption("l", "signature-type", true, "In case the specified method is 'sign' or 'sign-encrypt', this field specifies a signature type, as specified in PowerAuth signature process.");
+            options.addOption("d", "data-file", true, "In case the specified method is 'sign', 'sign-encrypt' or 'token-encrypt', this field specifies a file with the input data to be signed and verified with the server, as specified in PowerAuth signature process or MAC token based authentication.");
+            options.addOption("y", "dry-run", false, "In case the specified method is 'sign', 'sign-encrypt', 'validate-token' or 'token-encrypt' and this attribute is specified, the step is stopped right after signing the request body and preparing appropriate headers.");
             options.addOption("p", "password", true, "Password used for a knowledge related key encryption. If not specified, an interactive input is required.");
             options.addOption("n", "password-new", true, "New password used for a knowledge related key encryption. If not specified, an interactive input is required.");
-            options.addOption("I", "identity-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with identity attributes.");
-            options.addOption("C", "custom-attributes-file", true, "In case a specified method is 'create-custom', this field specifies the path to the file with custom attributes.");
+            options.addOption("I", "identity-file", true, "In case the specified method is 'create-custom', this field specifies the path to the file with identity attributes.");
+            options.addOption("C", "custom-attributes-file", true, "In case the specified method is 'create-custom', this field specifies the path to the file with custom attributes.");
             options.addOption("i", "invalidSsl", false, "Client may accept invalid SSL certificate in HTTPS communication.");
             options.addOption("T", "token-id", true, "Token ID (UUID4), in case of 'token-validate' method.");
             options.addOption("S", "token-secret", true, "Token secret (Base64 encoded bytes), in case of 'token-validate' method.");
@@ -108,6 +108,7 @@ public class Application {
             options.addOption("q", "qr-code-data", true, "Data for offline signature encoded in QR code.");
             options.addOption("v", "version", true, "PowerAuth protocol version.");
             options.addOption("g", "algorithm", true, "SharedSecret algorithm name.");
+            options.addOption("eb", "enable-biometry", false, "In case the specified method is 'confirm', this field specifies whether biometric factor should be enabled.");
 
             final Option httpHeaderOption = Option.builder("H")
                     .argName("key=value")
@@ -327,6 +328,20 @@ public class Application {
                     model.setUriString(uriString);
                     model.setApplicationKey(applicationKey);
                     model.setApplicationSecret(applicationSecret);
+                    model.setVersion(version);
+
+                    stepExecutionService.execute(powerAuthStep, version, model);
+                }
+                case ACTIVATION_CONFIRM -> {
+                    final ConfirmActivationStepModel model = new ConfirmActivationStepModel();
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
+                    model.setHeaders(httpHeaders);
+                    model.setPassword(cmd.getOptionValue("p"));
+                    model.setEnableBiometry(cmd.hasOption("enable-biometry"));
+                    model.setResultStatus(resultStatusObject);
+                    model.setStatusFileName(statusFileName);
+                    model.setUriString(uriString);
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
