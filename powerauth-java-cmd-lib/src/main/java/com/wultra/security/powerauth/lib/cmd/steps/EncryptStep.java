@@ -206,8 +206,9 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EncryptedRes
                 header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), activationId, model.getVersion().value());
             }
             default -> {
-                encryptor = null;
-                header = null;
+                stepLogger.writeError("encrypt-error-scope", "Encrypt Request Failed", "Unsupported encryption scope: " + model.getScope());
+                stepLogger.writeDoneFailed("encrypt-failed");
+                return null;
             }
         }
 
