@@ -28,6 +28,11 @@ import java.util.stream.Collectors;
 public enum PowerAuthStep {
 
     /**
+     * Confirmation of an activation
+     */
+    ACTIVATION_CONFIRM("activation-confirm", "Activation Confirm", "confirm"),
+
+    /**
      * Creation of new activation
      */
     ACTIVATION_CREATE_CUSTOM("activation-create-custom", "Activation With Custom Attributes", "create-custom"),
