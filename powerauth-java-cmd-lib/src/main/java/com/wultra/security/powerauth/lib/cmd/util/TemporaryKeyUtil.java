@@ -172,6 +172,13 @@ public class TemporaryKeyUtil {
         }
         final JWTClaimsSet jwtClaims = builder.build();
         final byte[] signingKey = getSigningKey(stepContext, model, scope);
+        if (signingKey == null) {
+            stepContext.getStepLogger().writeError(
+                    stepContext.getStep().id() + "-failed",
+                    "Get Signing Key Failed",
+                    "The signing key is null");
+            return null;
+        }
         return signJwt(jwtClaims, signingKey);
     }
 

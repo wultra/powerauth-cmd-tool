@@ -64,6 +64,11 @@ public class VaultUnlockStepModel extends BaseStepModel
      */
     private String reason;
 
+    /**
+     * Key identifier for vault unlock in V4.
+     */
+    private String keyIdentifier;
+
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> context = super.toMap();
@@ -73,6 +78,7 @@ public class VaultUnlockStepModel extends BaseStepModel
         context.put("AUTHENTICATION_CODE_TYPE", authenticationCodeType.toString());
         context.put("PASSWORD", password);
         context.put("REASON", reason);
+        context.put("KEY_IDENTIFIER", keyIdentifier);
         return context;
     }
 
@@ -85,6 +91,7 @@ public class VaultUnlockStepModel extends BaseStepModel
         setAuthenticationCodeType(PowerAuthCodeType.getEnumFromString((String) context.get("AUTHENTICATION_CODE_TYPE")));
         setPassword((String) context.get("PASSWORD"));
         setReason((String) context.get("REASON"));
+        setKeyIdentifier((String) context.get("KEY_IDENTIFIER"));
     }
 
 }

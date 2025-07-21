@@ -109,6 +109,7 @@ public class Application {
             options.addOption("v", "version", true, "PowerAuth protocol version.");
             options.addOption("g", "algorithm", true, "SharedSecret algorithm name.");
             options.addOption("eb", "enable-biometry", false, "In case the specified method is 'confirm', this field specifies whether biometric factor should be enabled.");
+            options.addOption("k", "key-identifier", true, "Key identifier for vault unlock, use 'KEK_DEVICE_PRIVATE', 'KDK_APP_VAULT_KNOWLEDGE', or 'KDK_APP_VAULT_2FA'.");
 
             final Option httpHeaderOption = Option.builder("H")
                     .argName("key=value")
@@ -392,6 +393,7 @@ public class Application {
                     model.setAuthenticationCodeType(PowerAuthCodeType.getEnumFromString(cmd.getOptionValue("l")));
                     model.setUriString(uriString);
                     model.setReason(reason);
+                    model.setKeyIdentifier(cmd.getOptionValue("k"));
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
