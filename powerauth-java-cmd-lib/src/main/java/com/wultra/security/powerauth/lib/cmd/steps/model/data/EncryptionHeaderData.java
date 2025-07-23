@@ -28,4 +28,9 @@ public interface EncryptionHeaderData extends BaseStepData {
      */
     String getApplicationKey();
 
+    /**
+     * @return Application secret
+     */
+    String getApplicationSecret();
+
 }

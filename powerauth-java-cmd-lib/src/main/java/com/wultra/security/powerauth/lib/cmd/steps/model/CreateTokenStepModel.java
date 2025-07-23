@@ -16,13 +16,12 @@
  */
 package com.wultra.security.powerauth.lib.cmd.steps.model;
 
-import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
-import com.wultra.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthCodeType;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.AuthorizationHeaderData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.security.PublicKey;
 import java.util.Map;
 
 /**
@@ -33,7 +32,7 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class CreateTokenStepModel extends BaseStepModel
-        implements SignatureHeaderData, ResultStatusChangeable {
+        implements AuthorizationHeaderData, ResultStatusChangeable {
 
     /**
      * File name of the file with stored activation status.
@@ -56,14 +55,9 @@ public class CreateTokenStepModel extends BaseStepModel
     private String password;
 
     /**
-     * PowerAuth signature type.
+     * PowerAuth authentication code type.
      */
-    private PowerAuthSignatureTypes signatureType;
-
-    /**
-     * Master Server Public Key, a value specific for given application.
-     */
-    private PublicKey masterPublicKey;
+    private PowerAuthCodeType authenticationCodeType;
 
     @Override
     public Map<String, Object> toMap() {
@@ -72,8 +66,7 @@ public class CreateTokenStepModel extends BaseStepModel
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
         context.put("PASSWORD", password);
-        context.put("SIGNATURE_TYPE", signatureType.toString());
-        context.put("MASTER_PUBLIC_KEY", masterPublicKey);
+        context.put("AUTHENTICATION_CODE_TYPE", authenticationCodeType.toString());
         return context;
     }
 
@@ -84,8 +77,7 @@ public class CreateTokenStepModel extends BaseStepModel
         setApplicationKey((String) context.get("APPLICATION_KEY"));
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
         setPassword((String) context.get("PASSWORD"));
-        setSignatureType(PowerAuthSignatureTypes.getEnumFromString((String) context.get("SIGNATURE_TYPE")));
-        setMasterPublicKey((PublicKey) context.get("MASTER_PUBLIC_KEY"));
+        setAuthenticationCodeType(PowerAuthCodeType.getEnumFromString((String) context.get("AUTHENTICATION_CODE_TYPE")));
     }
 
 }

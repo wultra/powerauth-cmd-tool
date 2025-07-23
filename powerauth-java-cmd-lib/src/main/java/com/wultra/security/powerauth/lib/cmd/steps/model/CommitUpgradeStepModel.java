@@ -15,8 +15,8 @@
  */
 package com.wultra.security.powerauth.lib.cmd.steps.model;
 
-import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
-import com.wultra.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthCodeType;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.AuthorizationHeaderData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -31,7 +31,7 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class CommitUpgradeStepModel extends BaseStepModel
-        implements ResultStatusChangeable, SignatureHeaderData {
+        implements ResultStatusChangeable, AuthorizationHeaderData {
 
     /**
      * File name of the file with stored activation status.
@@ -49,13 +49,13 @@ public class CommitUpgradeStepModel extends BaseStepModel
     private String applicationSecret;
 
     @Override
-    public PowerAuthSignatureTypes getSignatureType() {
-        return PowerAuthSignatureTypes.POSSESSION;
+    public PowerAuthCodeType getAuthenticationCodeType() {
+        return PowerAuthCodeType.POSSESSION;
     }
 
     @Override
     public String getPassword() {
-        throw new IllegalStateException("Not supported password value for possession signature type");
+        throw new IllegalStateException("Not supported password value for possession factor type");
     }
 
     @Override

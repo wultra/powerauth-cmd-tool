@@ -16,8 +16,8 @@
  */
 package com.wultra.security.powerauth.lib.cmd.steps.model;
 
-import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthSignatureTypes;
-import com.wultra.security.powerauth.lib.cmd.steps.model.data.SignatureHeaderData;
+import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthCodeType;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.AuthorizationHeaderData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -32,7 +32,7 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class RemoveStepModel extends BaseStepModel
-        implements ResultStatusChangeable, SignatureHeaderData {
+        implements ResultStatusChangeable, AuthorizationHeaderData {
 
     /**
      * File name of the file with stored activation status.
@@ -55,8 +55,8 @@ public class RemoveStepModel extends BaseStepModel
     private String password;
 
     @Override
-    public PowerAuthSignatureTypes getSignatureType() {
-        return PowerAuthSignatureTypes.POSSESSION_KNOWLEDGE;
+    public PowerAuthCodeType getAuthenticationCodeType() {
+        return PowerAuthCodeType.POSSESSION_KNOWLEDGE;
     }
 
     @Override

@@ -28,6 +28,11 @@ import java.util.stream.Collectors;
 public enum PowerAuthStep {
 
     /**
+     * Confirmation of an activation
+     */
+    ACTIVATION_CONFIRM("activation-confirm", "Activation Confirm", "confirm"),
+
+    /**
      * Creation of new activation
      */
     ACTIVATION_CREATE_CUSTOM("activation-create-custom", "Activation With Custom Attributes", "create-custom"),
@@ -49,14 +54,29 @@ public enum PowerAuthStep {
     ACTIVATION_REMOVE("activation-remove", "Activation Removal", "remove"),
 
     /**
-     * Recovering an activation
-     */
-    ACTIVATION_RECOVERY("activation-recovery", "Activation With Recovery Code", "create-recovery"),
-
-    /**
      * Status retrieval of an existing activation
      */
     ACTIVATION_STATUS("activation-status", "Activation Status Check", "status"),
+
+    /**
+     * Compute an offline authentication code
+     */
+    AUTHENTICATION_OFFLINE_COMPUTE("authentication-offline-compute", "Compute Offline Authentication Code", "compute-offline-auth-code"),
+
+    /**
+     * Verifying an authentication request
+     */
+    AUTHENTICATION_VERIFY("authentication-verify", "Authentication Code Validation", "authenticate"),
+
+    /**
+     * Set up biometry
+     */
+    BIOMETRY_SETUP("biometry-setup", "Setup Biometry", "setup-biometry"),
+
+    /**
+     * Remove biometry
+     */
+    BIOMETRY_REMOVE("biometry-remove", "Remove Biometry", "remove-biometry"),
 
     /**
      * Send and verify an encrypted request
@@ -64,24 +84,14 @@ public enum PowerAuthStep {
     ENCRYPT("encrypt", "Encrypt Request", "encrypt"),
 
     /**
-     * Confirming an activation recovery
+     * Change password for the knowledge factor
      */
-    RECOVERY_CONFIRM("recovery-confirm", "Confirm Recovery Code", "confirm-recovery-code"),
+    PASSWORD_CHANGE("password-change", "Change Password", "change-password"),
 
     /**
      * Send and verify a signed and encrypted request
      */
     SIGN_ENCRYPT("sign-encrypt", "Sign and Encrypt Request", "sign-encrypt"),
-
-    /**
-     * Compute an offline signature
-     */
-    SIGNATURE_OFFLINE_COMPUTE("signature-offline-compute", "Compute Offline Signature", "compute-offline-signature"),
-
-    /**
-     * Verifying a signed request
-     */
-    SIGNATURE_VERIFY("signature-verify", "Signature Validation", "sign"),
 
     /**
      * Creating new token
@@ -91,7 +101,7 @@ public enum PowerAuthStep {
     /**
      * Send an encrypted request with token-based authentication
      */
-    TOKEN_ENCRYPT("token-encrypt", "Encrypt Request and Validate Token Digest", "token-encrypt"),
+    TOKEN_ENCRYPT("token-encrypt", "Encrypt Request and Validate Token Digest", "encrypt-token"),
 
     /**
      * Removing a previously created token

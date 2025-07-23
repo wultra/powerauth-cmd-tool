@@ -17,6 +17,8 @@
 package com.wultra.security.powerauth.lib.cmd.steps.context.security;
 
 import com.wultra.security.powerauth.crypto.lib.encryptor.ClientEncryptor;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedRequest;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedResponse;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
 import lombok.Builder;
 import lombok.Data;
@@ -29,10 +31,11 @@ import lombok.Data;
 @Data
 @Builder
 public class SimpleSecurityContext implements SecurityContext {
+
     /**
      * Encryptor
      */
-    private ClientEncryptor encryptor;
+    private ClientEncryptor<EncryptedRequest, EncryptedResponse> encryptor;
 
     @Override
     public EncryptorScope getEncryptorScope() {

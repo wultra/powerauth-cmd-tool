@@ -17,7 +17,12 @@
 package com.wultra.security.powerauth.lib.cmd.steps.context.security;
 
 import com.wultra.security.powerauth.crypto.lib.encryptor.ClientEncryptor;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedRequest;
+import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedResponse;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
+import com.wultra.security.powerauth.crypto.lib.v4.api.SharedSecretClientContext;
+import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
+import com.wultra.security.powerauth.rest.api.model.request.v4.DevicePublicKeys;
 import lombok.Builder;
 import lombok.Data;
 
@@ -35,20 +40,41 @@ public class ActivationSecurityContext implements SecurityContext {
     /**
      * Encryptor used on layer 1
      */
-    private ClientEncryptor encryptorL1;
+    private ClientEncryptor<EncryptedRequest, EncryptedResponse> encryptorL1;
 
     /**
      * Encryptor used on layer 2
      */
-    private ClientEncryptor encryptorL2;
+    private ClientEncryptor<EncryptedRequest, EncryptedResponse> encryptorL2;
 
     /**
-     * Device key pair
+     * EC device key pair (ECDH + ECDSA for V3, ECDSA only for V4)
      */
-    private KeyPair deviceKeyPair;
+    private KeyPair ecDeviceKeyPair;
+
+    /**
+     * PQC device key pair (ML-DSA)
+     */
+    private KeyPair pqcDeviceKeyPair;
+
+    /**
+     * Device public keys (V4)
+     */
+    private DevicePublicKeys devicePublicKeys;
+
+    /**
+     * Shared secret algorithm (V4)
+     */
+    private SharedSecretAlgorithm sharedSecretAlgorithm;
+
+    /**
+     * Shared secret client context for shared secret derivation (V4)
+     */
+    private SharedSecretClientContext sharedSecretClientContext;
 
     @Override
     public EncryptorScope getEncryptorScope() {
         return EncryptorScope.APPLICATION_SCOPE;
     }
+
 }

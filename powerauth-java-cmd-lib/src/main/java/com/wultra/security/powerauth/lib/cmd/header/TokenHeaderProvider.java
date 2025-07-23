@@ -16,8 +16,8 @@
  */
 package com.wultra.security.powerauth.lib.cmd.header;
 
-import com.wultra.security.powerauth.crypto.client.token.ClientTokenGenerator;
 import com.wultra.security.powerauth.http.PowerAuthTokenHttpHeader;
+import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.TokenHeaderData;
@@ -44,11 +44,26 @@ public class TokenHeaderProvider implements PowerAuthHeaderProvider<TokenHeaderD
         String tokenId = model.getTokenId();
         byte[] tokenSecret = Base64.getDecoder().decode(model.getTokenSecret());
 
-        final ClientTokenGenerator tokenGenerator = new ClientTokenGenerator();
         final String version = model.getVersion().value();
-        final byte[] tokenNonce = tokenGenerator.generateTokenNonce();
-        final byte[] tokenTimestamp = tokenGenerator.generateTokenTimestamp();
-        final byte[] tokenDigest = tokenGenerator.computeTokenDigest(tokenNonce, tokenTimestamp, version, tokenSecret);
+        final PowerAuthVersion powerAuthVersion = PowerAuthVersion.fromValue(version);
+        final byte[] tokenNonce;
+        final byte[] tokenTimestamp;
+        final byte[] tokenDigest;
+        switch (powerAuthVersion.getMajorVersion()) {
+            case 3 -> {
+                final com.wultra.security.powerauth.crypto.client.token.ClientTokenGenerator tokenGenerator = new com.wultra.security.powerauth.crypto.client.token.ClientTokenGenerator();
+                tokenNonce = tokenGenerator.generateTokenNonce();
+                tokenTimestamp = tokenGenerator.generateTokenTimestamp();
+                tokenDigest = tokenGenerator.computeTokenDigest(tokenNonce, tokenTimestamp, version, tokenSecret);
+            }
+            case 4 -> {
+                final com.wultra.security.powerauth.crypto.client.v4.token.ClientTokenGenerator tokenGenerator = new com.wultra.security.powerauth.crypto.client.v4.token.ClientTokenGenerator();
+                tokenNonce = tokenGenerator.generateTokenNonce();
+                tokenTimestamp = tokenGenerator.generateTokenTimestamp();
+                tokenDigest = tokenGenerator.computeTokenDigest(tokenNonce, tokenTimestamp, version, tokenSecret);
+            }
+            default -> throw new IllegalArgumentException("Unsupported version: " + stepContext.getModel().getVersion());
+        }
 
         PowerAuthTokenHttpHeader header = new PowerAuthTokenHttpHeader(
                 tokenId,

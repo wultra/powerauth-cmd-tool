@@ -26,6 +26,7 @@ import com.wultra.security.powerauth.lib.cmd.status.ResultStatusService;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.VerifyTokenStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
@@ -83,7 +84,7 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
     }
 
     @Override
-    public ParameterizedTypeReference<Map<String, Object>> getResponseTypeReference() {
+    public ParameterizedTypeReference<Map<String, Object>> getResponseTypeReference(PowerAuthVersion version) {
         return RESPONSE_TYPE_REFERENCE;
     }
 
@@ -119,7 +120,7 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
             return null;
         }
 
-        // Construct the signature base string data part based on HTTP method (GET requires different code).
+        // Construct the authentication base string data part based on HTTP method (GET requires different code).
         byte[] requestDataBytes = null;
         if (!HttpMethod.GET.name().equals(model.getHttpMethod().toUpperCase())) {
             // Read data input file
@@ -129,7 +130,7 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
                 stepLogger.writeItem(
                         "token-validate-warning-empty-data",
                         "Empty data",
-                        "Data file was not found, signature will contain no data",
+                        "Data file was not found, request will contain no data",
                         "WARNING",
                         null
                 );

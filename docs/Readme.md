@@ -403,9 +403,9 @@ usage: java -jar powerauth-java-cmd.jar
  -a,--activation-code <arg>          In case a specified method is 'create', this field contains the
                                      activation key (a concatenation of a short activation ID and
                                      activation OTP).
- -b,--base-url <arg>                 Base URL of the PowerAuth Standard RESTful API.
  -A,--activation-otp <arg>           In case a specified method is 'create', this field contains
                                      additional activation OTP (PA server 0.24+)
+ -b,--base-url <arg>                 Base URL of the PowerAuth Standard RESTful API.
  -c,--config-file <arg>              Specifies a path to the config file with Base64 encoded server
                                      master public key, application ID and application secret.
  -C,--custom-attributes-file <arg>   In case a specified method is 'create-custom', this field
@@ -419,6 +419,7 @@ usage: java -jar powerauth-java-cmd.jar
  -E,--resource-id <arg>              In case a specified method is 'sign' or 'sign-encrypt', this
                                      field specifies a URI identifier, as specified in PowerAuth
                                      signature process.
+ -g,--algorithm <arg>                SharedSecret algorithm name.
  -h,--help                           Print this help manual.
  -H,--http-header <key=value>        Use provided HTTP header for communication
  -hs,--help-steps                    PowerAuth supported steps and versions.
@@ -433,15 +434,14 @@ usage: java -jar powerauth-java-cmd.jar
  -m,--method <arg>                   What API method to call, available names are 'create',
                                      'status', 'remove', 'sign', 'unlock', 'create-custom',
                                      'create-token', 'validate-token', 'remove-token', 'encrypt',
-                                     'sign-encrypt', 'token-encrypt', 'start-upgrade',
-                                     'commit-upgrade', 'create-recovery' and
-                                     'confirm-recovery-code'.
+                                     'sign-encrypt', 'token-encrypt', 'start-upgrade', and
+                                     'commit-upgrade'.
  -o,--scope <arg>                    ECIES encryption scope: 'application' or 'activation'.
  -p,--password <arg>                 Password used for a knowledge related key encryption. If not
                                      specified, an interactive input is required.
  -P,--platform <arg>                 User device platform.
+ -q,--qr-code-data <arg>             Data for offline signature encoded in QR code.
  -r,--reason <arg>                   Reason why vault is being unlocked.
- -R,--recovery-code <arg>            Recovery code to be confirmed.
  -s,--status-file <arg>              Path to the file with the activation status, serving as the
                                      data persistence.
  -S,--token-secret <arg>             Token secret (Base64 encoded bytes), in case of

@@ -16,6 +16,7 @@
  */
 package com.wultra.security.powerauth.lib.cmd.steps.model;
 
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -28,11 +29,31 @@ import java.util.Map;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class GetStatusStepModel extends BaseStepModel {
+public class GetStatusStepModel extends BaseStepModel implements EncryptionHeaderData {
+
+    /**
+     * Application key.
+     */
+    private String applicationKey;
+
+    /**
+     * Application secret.
+     */
+    private String applicationSecret;
+
+    @Override
+    public Map<String, Object> toMap() {
+        Map<String, Object> context = super.toMap();
+        context.put("APPLICATION_KEY", applicationKey);
+        context.put("APPLICATION_SECRET", applicationSecret);
+        return context;
+    }
 
     @Override
     public void fromMap(Map<String, Object> context) {
         super.fromMap(context);
+        setApplicationKey((String) context.get("APPLICATION_KEY"));
+        setApplicationSecret((String) context.get("APPLICATION_SECRET"));
     }
 
 }
