@@ -38,11 +38,11 @@ public class TokenHeaderProvider implements PowerAuthHeaderProvider<TokenHeaderD
      */
     @Override
     public void addHeader(StepContext<? extends TokenHeaderData, ?> stepContext) throws Exception {
-        TokenHeaderData model = stepContext.getModel();
-        RequestContext requestContext = stepContext.getRequestContext();
+        final TokenHeaderData model = stepContext.getModel();
+        final RequestContext requestContext = stepContext.getRequestContext();
 
-        String tokenId = model.getTokenId();
-        byte[] tokenSecret = Base64.getDecoder().decode(model.getTokenSecret());
+        final String tokenId = model.getTokenId();
+        final byte[] tokenSecret = Base64.getDecoder().decode(model.getTokenSecret());
 
         final String version = model.getVersion().value();
         final PowerAuthVersion powerAuthVersion = PowerAuthVersion.fromValue(version);
@@ -65,7 +65,7 @@ public class TokenHeaderProvider implements PowerAuthHeaderProvider<TokenHeaderD
             default -> throw new IllegalArgumentException("Unsupported version: " + stepContext.getModel().getVersion());
         }
 
-        PowerAuthTokenHttpHeader header = new PowerAuthTokenHttpHeader(
+        final PowerAuthTokenHttpHeader header = new PowerAuthTokenHttpHeader(
                 tokenId,
                 Base64.getEncoder().encodeToString(tokenDigest),
                 Base64.getEncoder().encodeToString(tokenNonce),
@@ -73,7 +73,7 @@ public class TokenHeaderProvider implements PowerAuthHeaderProvider<TokenHeaderD
                 version
         );
 
-        String headerValue = header.buildHttpHeader();
+        final String headerValue = header.buildHttpHeader();
         requestContext.setAuthorizationHeader(headerValue);
         requestContext.setAuthorizationHeaderName(PowerAuthTokenHttpHeader.HEADER_NAME);
         requestContext.getHttpHeaders().put(PowerAuthTokenHttpHeader.HEADER_NAME, headerValue);

@@ -44,6 +44,7 @@ import java.util.Map;
  *     <li>3.1</li>
  *     <li>3.2</li>
  *     <li>3.3</li>
+ *     <li>4.0</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
@@ -90,18 +91,18 @@ public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<
 
     @Override
     public StepContext<VerifyTokenStepModel, Map<String, Object>> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        VerifyTokenStepModel model = new VerifyTokenStepModel();
+        final VerifyTokenStepModel model = new VerifyTokenStepModel();
         model.fromMap(context);
 
-        RequestContext requestContext = RequestContext.builder()
+        final RequestContext requestContext = RequestContext.builder()
                 .httpMethod(HttpMethod.valueOf(model.getHttpMethod()))
                 .uri(model.getUriString())
                 .build();
 
-        StepContext<VerifyTokenStepModel, Map<String, Object>> stepContext =
+        final StepContext<VerifyTokenStepModel, Map<String, Object>> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
-        Map<String, String> map = new HashMap<>();
+        final Map<String, String> map = new HashMap<>();
         map.put("tokenId", model.getTokenId());
         map.put("tokenSecret", model.getTokenSecret());
         stepLogger.writeItem(

@@ -47,6 +47,7 @@ import java.util.Objects;
  *      <li>3.1</li>
  *      <li>3.2</li>
  *      <li>3.3</li>
+ *      <li>4.0</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
@@ -71,7 +72,7 @@ public class RemoveTokenStep extends AbstractBaseStep<RemoveTokenStepModel, Obje
             PowerAuthHeaderFactory powerAuthHeaderFactory,
             ResultStatusService resultStatusService,
             StepLoggerFactory stepLoggerFactory) {
-        super(PowerAuthStep.TOKEN_REMOVE, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
+        super(PowerAuthStep.TOKEN_REMOVE, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
@@ -94,24 +95,25 @@ public class RemoveTokenStep extends AbstractBaseStep<RemoveTokenStepModel, Obje
 
     @Override
     public StepContext<RemoveTokenStepModel, ObjectResponse<TokenRemoveResponse>> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        RemoveTokenStepModel model = new RemoveTokenStepModel();
+        final RemoveTokenStepModel model = new RemoveTokenStepModel();
         model.fromMap(context);
 
-        RequestContext requestContext = RequestContext.builder()
+        final int majorVersion = model.getVersion().getMajorVersion();
+        final RequestContext requestContext = RequestContext.builder()
                 .authenticationHttpMethod("POST")
                 .authenticationRequestUri("/pa/token/remove")
-                .uri(model.getUriString() + "/pa/v3/token/remove")
+                .uri(model.getUriString() + "/pa/v" + majorVersion + "/token/remove")
                 .build();
 
-        StepContext<RemoveTokenStepModel, ObjectResponse<TokenRemoveResponse>> stepContext =
+        final StepContext<RemoveTokenStepModel, ObjectResponse<TokenRemoveResponse>> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
         incrementCounter(model);
 
         // Prepare request
-        TokenRemoveRequest request = new TokenRemoveRequest();
+        final TokenRemoveRequest request = new TokenRemoveRequest();
         request.setTokenId(model.getTokenId());
-        ObjectRequest<TokenRemoveRequest> objectRequest = new ObjectRequest<>(request);
+        final ObjectRequest<TokenRemoveRequest> objectRequest = new ObjectRequest<>(request);
 
         requestContext.setRequestObject(objectRequest);
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
@@ -121,7 +123,7 @@ public class RemoveTokenStep extends AbstractBaseStep<RemoveTokenStepModel, Obje
 
     @Override
     public void processResponse(StepContext<RemoveTokenStepModel, ObjectResponse<TokenRemoveResponse>> stepContext) {
-        ObjectResponse<TokenRemoveResponse> responseWrapper =
+        final ObjectResponse<TokenRemoveResponse> responseWrapper =
                 Objects.requireNonNull(stepContext.getResponseContext().getResponseBodyObject());
 
         stepContext.getStepLogger().writeItem(

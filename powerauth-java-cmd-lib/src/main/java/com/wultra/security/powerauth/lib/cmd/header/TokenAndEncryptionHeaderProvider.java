@@ -36,9 +36,9 @@ public class TokenAndEncryptionHeaderProvider implements PowerAuthHeaderProvider
      */
     @Override
     public void addHeader(StepContext<? extends TokenAndEncryptionHeaderData, ?> stepContext) throws Exception {
-        TokenHeaderData tokenHeaderData = stepContext.getModel();
+        final TokenHeaderData tokenHeaderData = stepContext.getModel();
         POWER_AUTH_HEADER_FACTORY.getHeaderProvider(tokenHeaderData).addHeader(stepContext);
-        EncryptionHeaderData encryptionHeaderData = stepContext.getModel();
+        final EncryptionHeaderData encryptionHeaderData = stepContext.getModel();
         POWER_AUTH_HEADER_FACTORY.getHeaderProvider(encryptionHeaderData).addHeader(stepContext);
     }
 
