@@ -68,7 +68,7 @@ public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, Encr
     public CreateTokenStep(PowerAuthHeaderFactory powerAuthHeaderFactory,
                            ResultStatusService resultStatusService,
                            StepLoggerFactory stepLoggerFactory) {
-        super(PowerAuthStep.TOKEN_CREATE, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
+        super(PowerAuthStep.TOKEN_CREATE, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
@@ -94,10 +94,11 @@ public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, Encr
         final CreateTokenStepModel model = new CreateTokenStepModel();
         model.fromMap(context);
 
+        final int majorVersion = model.getVersion().getMajorVersion();
         final RequestContext requestContext = RequestContext.builder()
                 .authenticationHttpMethod("POST")
                 .authenticationRequestUri("/pa/token/create")
-                .uri(model.getUriString() + "/pa/v3/token/create")
+                .uri(model.getUriString() + "/pa/v" + majorVersion + "/token/create")
                 .build();
 
         final StepContext<CreateTokenStepModel, EncryptedResponse> stepContext = buildStepContext(stepLogger, model, requestContext);

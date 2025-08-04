@@ -47,6 +47,7 @@ import java.util.Map;
  *     <li>3.1</li>
  *     <li>3.2</li>
  *     <li>3.3</li>
+ *     <li>4.0</li>
  * </ul>
  *
  *  @author Roman Strobl, roman.strobl@wultra.com
@@ -67,7 +68,7 @@ public class TokenAndEncryptStep extends AbstractBaseStep<TokenAndEncryptStepMod
             PowerAuthHeaderFactory powerAuthHeaderFactory,
             ResultStatusService resultStatusService,
             StepLoggerFactory stepLoggerFactory) {
-        super(PowerAuthStep.TOKEN_ENCRYPT, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
+        super(PowerAuthStep.TOKEN_ENCRYPT, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
@@ -90,15 +91,15 @@ public class TokenAndEncryptStep extends AbstractBaseStep<TokenAndEncryptStepMod
 
     @Override
     public StepContext<TokenAndEncryptStepModel, EncryptedResponse> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        TokenAndEncryptStepModel model = new TokenAndEncryptStepModel();
+        final TokenAndEncryptStepModel model = new TokenAndEncryptStepModel();
         model.fromMap(context);
 
-        RequestContext requestContext = RequestContext.builder()
+        final RequestContext requestContext = RequestContext.builder()
                 .authenticationHttpMethod(model.getHttpMethod())
                 .uri(model.getUriString())
                 .build();
 
-        StepContext<TokenAndEncryptStepModel, EncryptedResponse> stepContext =
+        final StepContext<TokenAndEncryptStepModel, EncryptedResponse> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
         // Verify that HTTP method is set
