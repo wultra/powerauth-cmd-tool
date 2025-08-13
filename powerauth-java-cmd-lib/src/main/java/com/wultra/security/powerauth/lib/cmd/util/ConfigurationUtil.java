@@ -20,7 +20,8 @@ import com.wultra.security.powerauth.crypto.lib.enums.EcCurve;
 import com.wultra.security.powerauth.crypto.lib.model.exception.CryptoProviderException;
 import com.wultra.security.powerauth.crypto.lib.model.exception.GenericCryptoException;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
-import com.wultra.security.powerauth.crypto.lib.util.PqcDsaKeyConvertor;
+import com.wultra.security.powerauth.crypto.lib.v4.api.PqcDsaKeyConvertor;
+import com.wultra.security.powerauth.crypto.lib.v4.ml.MlDsaKeyConvertor;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLogger;
 import com.wultra.security.powerauth.lib.cmd.util.config.SdkConfiguration;
 import org.json.simple.JSONObject;
@@ -38,7 +39,7 @@ import java.util.Base64;
 public class ConfigurationUtil {
 
     private static final KeyConvertor KEY_CONVERTOR_EC = new KeyConvertor();
-    private static final PqcDsaKeyConvertor KEY_CONVERTOR_PQC_DSA = new PqcDsaKeyConvertor();
+    private static final PqcDsaKeyConvertor KEY_CONVERTOR_PQC_DSA = new MlDsaKeyConvertor();
 
     /**
      * Get application key value that is set in dictionary, or a default value.
