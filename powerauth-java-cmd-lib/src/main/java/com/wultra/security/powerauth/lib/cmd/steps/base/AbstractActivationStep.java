@@ -26,10 +26,11 @@ import com.wultra.security.powerauth.crypto.lib.encryptor.model.v3.EciesEncrypte
 import com.wultra.security.powerauth.crypto.lib.enums.EcCurve;
 import com.wultra.security.powerauth.crypto.lib.generator.KeyGenerator;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
-import com.wultra.security.powerauth.crypto.lib.util.PqcDsaKeyConvertor;
+import com.wultra.security.powerauth.crypto.lib.v4.api.PqcDsaKeyConvertor;
 import com.wultra.security.powerauth.crypto.lib.v4.api.SharedSecretClientContext;
 import com.wultra.security.powerauth.crypto.lib.v4.encryptor.model.context.AeadSecrets;
 import com.wultra.security.powerauth.crypto.lib.v4.encryptor.model.response.AeadEncryptedResponse;
+import com.wultra.security.powerauth.crypto.lib.v4.ml.MlDsaKeyConvertor;
 import com.wultra.security.powerauth.crypto.lib.v4.model.SharedSecretClientContextEcdhe;
 import com.wultra.security.powerauth.crypto.lib.v4.model.SharedSecretClientContextHybrid;
 import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
@@ -81,7 +82,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
     private static final EncryptorFactory ENCRYPTOR_FACTORY = new EncryptorFactory();
 
     private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
-    private static final PqcDsaKeyConvertor KEY_CONVERTOR_PQC_DSA = new PqcDsaKeyConvertor();
+    private static final PqcDsaKeyConvertor KEY_CONVERTOR_PQC_DSA = new MlDsaKeyConvertor();
 
     private static final com.wultra.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory KEY_FACTORY_V3 = new com.wultra.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory();
     private static final com.wultra.security.powerauth.crypto.client.v4.keyfactory.PowerAuthClientKeyFactory KEY_FACTORY_V4 = new com.wultra.security.powerauth.crypto.client.v4.keyfactory.PowerAuthClientKeyFactory();

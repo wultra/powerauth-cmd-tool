@@ -18,7 +18,8 @@ package com.wultra.security.powerauth.lib.cmd.steps.pojo;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.wultra.security.powerauth.crypto.lib.enums.EcCurve;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
-import com.wultra.security.powerauth.crypto.lib.util.PqcDsaKeyConvertor;
+import com.wultra.security.powerauth.crypto.lib.v4.api.PqcDsaKeyConvertor;
+import com.wultra.security.powerauth.crypto.lib.v4.ml.MlDsaKeyConvertor;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -49,7 +50,7 @@ public class ResultStatusObject {
     private static final Logger logger = LoggerFactory.getLogger(ResultStatusObject.class);
 
     private static final KeyConvertor KEY_CONVERTOR_EC = new KeyConvertor();
-    private static final PqcDsaKeyConvertor KEY_CONVERTOR_PQC_DSA = new PqcDsaKeyConvertor();
+    private static final PqcDsaKeyConvertor KEY_CONVERTOR_PQC_DSA = new MlDsaKeyConvertor();
 
     /**
      * Backward compatibility, sync all modifications to the JSON object
