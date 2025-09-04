@@ -272,8 +272,17 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
                 aeadResponseL2.getEncryptedData(),
                 aeadResponseL2.getTimestamp()
         ));
+
         final SharedSecretClientContext clientContext = securityContext.getSharedSecretClientContext();
+        // Convert activation layer 2 response from JSON to object and extract activation parameters
         final com.wultra.security.powerauth.rest.api.model.response.v4.ActivationLayer2Response responseL2 = MAPPER.readValue(decryptedDataL2, com.wultra.security.powerauth.rest.api.model.response.v4.ActivationLayer2Response.class);
+        context.getStepLogger().writeItem(
+                getStep().id() + "-response-decrypt-inner",
+                "Decrypted Layer 2 Response",
+                "Following layer 2 activation data were decrypted",
+                "OK",
+                responseL2
+        );
         final String activationId = responseL2.getActivationId();
         final String ctrDataBase64 = responseL2.getCtrData();
         final ServerPublicKeys serverPublicKeys = responseL2.getServerPublicKeys();
