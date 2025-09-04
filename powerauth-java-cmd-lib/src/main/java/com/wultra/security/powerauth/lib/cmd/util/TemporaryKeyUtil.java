@@ -393,7 +393,7 @@ public class TemporaryKeyUtil {
         stepContext.getAttributes().remove(TEMPORARY_CLIENT_CONTEXT);
     }
 
-    private static boolean validateHybridSignatures(Map<String, JwtSignatureData> signatureData, Map<String, PublicKey> publicKeys, SharedSecretAlgorithm algorithm) throws IOException, GenericCryptoException, InvalidKeyException, CryptoProviderException {
+    private static boolean validateHybridSignatures(Map<String, JwtSignatureData> signatureData, Map<String, PublicKey> publicKeys, SharedSecretAlgorithm algorithm) throws IOException, GenericCryptoException {
         if (algorithm != SharedSecretAlgorithm.EC_P384 && algorithm != SharedSecretAlgorithm.EC_P384_ML_L3) {
             return false;
         }
@@ -412,7 +412,7 @@ public class TemporaryKeyUtil {
         return signaturesValid;
     }
 
-    private static boolean validateJwtSignature(SignedJWT jwt, PublicKey publicKey, SharedSecretAlgorithm algorithm) throws IOException, GenericCryptoException, InvalidKeyException, CryptoProviderException {
+    private static boolean validateJwtSignature(SignedJWT jwt, PublicKey publicKey, SharedSecretAlgorithm algorithm) throws IOException {
         final Base64URL[] jwtParts = jwt.getParsedParts();
         final Base64URL encodedHeader = jwtParts[0];
         final Base64URL encodedPayload = jwtParts[1];
@@ -422,12 +422,17 @@ public class TemporaryKeyUtil {
         return validateEcSignature(signingInput, signatureBytes, publicKey, algorithm);
     }
 
-    private static boolean validateEcSignature(byte[] signingInput, byte[] signatureBytes, PublicKey publicKey, SharedSecretAlgorithm algorithm) throws GenericCryptoException, InvalidKeyException, CryptoProviderException {
-        return switch (algorithm) {
-            case EC_P256 -> SIGNATURE_UTILS.validateECDSASignature(EcCurve.P256, signingInput, signatureBytes, publicKey);
-            case EC_P384, EC_P384_ML_L3 -> SIGNATURE_UTILS.validateECDSASignature(EcCurve.P384, signingInput, signatureBytes, publicKey);
-            default -> throw new IllegalArgumentException("Unsupported shared secret algorithm: " + algorithm);
-        };
+    private static boolean validateEcSignature(byte[] signingInput, byte[] signatureBytes, PublicKey publicKey, SharedSecretAlgorithm algorithm) {
+        try {
+            return switch (algorithm) {
+                case EC_P256 -> SIGNATURE_UTILS.validateECDSASignature(EcCurve.P256, signingInput, signatureBytes, publicKey);
+                case EC_P384, EC_P384_ML_L3 -> SIGNATURE_UTILS.validateECDSASignature(EcCurve.P384, signingInput, signatureBytes, publicKey);
+                default -> throw new IllegalArgumentException("Unsupported shared secret algorithm: " + algorithm);
+            };
+        } catch (GenericCryptoException | InvalidKeyException | CryptoProviderException e) {
+            // Can happen in case of incorrect configuration, already logged by crypto library
+        }
+        return false;
     }
 
     private static byte[] convertRawSignatureToDER(byte[] rawSignature) throws IOException {

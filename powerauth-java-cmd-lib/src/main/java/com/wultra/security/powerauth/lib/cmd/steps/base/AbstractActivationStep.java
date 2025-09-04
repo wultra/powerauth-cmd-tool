@@ -419,14 +419,19 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
                     stepContext.getStepLogger().writeError(getStep().id() + "-error-missing-temporary-shared-secret", "Temporary shared secret is missing", "Temporary shared secret was not derived when adding encrypted request");
                     return;
                 }
+                final String temporaryKeyId = (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID);
+                if (temporaryKeyId == null) {
+                    stepContext.getStepLogger().writeError(getStep().id() + "-error-missing-temporary-key-id", "Temporary key identifier is missing", "Temporary key identifier is missing when adding encrypted request");
+                    return;
+                }
                 encryptorL1 = ENCRYPTOR_FACTORY.getClientEncryptor(
                         EncryptorId.APPLICATION_SCOPE_GENERIC,
-                        new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID)),
+                        new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, temporaryKeyId),
                         new AeadSecrets(sharedSecret.getEncoded(), model.getApplicationSecret())
                 );
                 encryptorL2 = ENCRYPTOR_FACTORY.getClientEncryptor(
                         EncryptorId.ACTIVATION_LAYER_2,
-                        new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID)),
+                        new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, temporaryKeyId),
                         new AeadSecrets(sharedSecret.getEncoded(), model.getApplicationSecret())
                 );
                 final SharedSecretClientContext clientContext;
