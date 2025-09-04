@@ -121,6 +121,12 @@ public class PrepareActivationStep extends AbstractActivationStep<PrepareActivat
                 buildStepContext(stepLogger, model, requestContext);
 
         addEncryptedRequest(stepContext);
+        if (stepContext.getSecurityContext() == null) {
+            // Security context could not be established, fail activation (e.g. due to unsupported application)
+            stepLogger.writeError("activation-missing-security-context", "Security context is missing", "Security context was not set up when preparing encrypted request");
+            stepLogger.writeDoneFailed("activation-create-error-security-context");
+            return null;
+        }
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
         return stepContext;
