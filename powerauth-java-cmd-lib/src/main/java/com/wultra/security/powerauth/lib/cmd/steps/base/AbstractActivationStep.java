@@ -370,7 +370,11 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
     protected void addEncryptedRequest(StepContext<M, EncryptedResponse> stepContext) throws Exception {
         final M model = stepContext.getModel();
         final SharedSecretAlgorithm sharedSecretAlgorithm = SecurityUtil.resolveSharedSecretAlgorithm(stepContext, EncryptorScope.APPLICATION_SCOPE);
-        fetchTemporaryKey(stepContext, EncryptorScope.APPLICATION_SCOPE, sharedSecretAlgorithm);
+        boolean temporaryKeyFetchSucceeded = fetchTemporaryKey(stepContext, EncryptorScope.APPLICATION_SCOPE, sharedSecretAlgorithm);
+        if (!temporaryKeyFetchSucceeded) {
+            // Error is already logged
+            return;
+        }
 
         final KeyPair deviceKeyPair;
         final ActivationSecurityContext securityContext;

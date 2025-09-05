@@ -231,13 +231,18 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
         final ResultStatusObject resultStatusObject = model.getResultStatus();
 
         final SharedSecretAlgorithm sharedSecretAlgorithm = SecurityUtil.resolveSharedSecretAlgorithm(stepContext, scope);
-        fetchTemporaryKey(stepContext, scope, sharedSecretAlgorithm);
+        boolean temporaryKeyFetchSucceeded = fetchTemporaryKey(stepContext, scope, sharedSecretAlgorithm);
+        if (!temporaryKeyFetchSucceeded) {
+            // Error is already logged
+            return;
+        }
+
+        final String temporaryKeyId = (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID);
 
         final ClientEncryptor<EncryptedRequest, EncryptedResponse> encryptor;
         if (securityContext == null) {
             switch (stepContext.getModel().getVersion().getMajorVersion()) {
                 case 3 -> {
-                    final String temporaryKeyId = (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID);
                     final String temporaryPublicKey = (String) stepContext.getAttributes().get(TEMPORARY_PUBLIC_KEY);
                     final PublicKey encryptionPublicKey = temporaryKeyId == null ?
                             resultStatusObject.getEcServerPublicKeyObject() :
@@ -248,7 +253,6 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
                     encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(encryptorId, encryptorParameters, encryptorSecrets);
                 }
                 case 4 -> {
-                    final String temporaryKeyId = (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID);
                     final SecretKey sharedSecret = (SecretKey) stepContext.getAttributes().get(TEMPORARY_SHARED_SECRET);
                     final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), applicationKey, resultStatusObject.getActivationId(), temporaryKeyId);
                     final EncryptorSecrets encryptorSecrets = new AeadSecrets(sharedSecret.getEncoded(), applicationSecret, Base64.getDecoder().decode(model.getResultStatus().getSharedInfo2Key()));
@@ -295,10 +299,13 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
      * @param stepContext Step context.
      * @param scope ECIES scope.
      * @param algorithm Shared secret algorithm.
+     * @return True if temporary key was successfully fetched.
      * @throws Exception In case request fails.
      */
-    public void fetchTemporaryKey(StepContext<M, R> stepContext, EncryptorScope scope, SharedSecretAlgorithm algorithm) throws Exception {
+    public boolean fetchTemporaryKey(StepContext<M, R> stepContext, EncryptorScope scope, SharedSecretAlgorithm algorithm) throws Exception {
         TemporaryKeyUtil.fetchTemporaryKey(getStep(), stepContext, scope, algorithm);
+        final M model = stepContext.getModel();
+        return !model.getVersion().useTemporaryKeys() || stepContext.getAttributes().containsKey(TEMPORARY_KEY_ID);
     }
 
     /**
