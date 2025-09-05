@@ -135,7 +135,11 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EncryptedRes
             return null;
         }
         final SharedSecretAlgorithm sharedSecretAlgorithm = SecurityUtil.resolveSharedSecretAlgorithm(stepContext, scope);
-        fetchTemporaryKey(stepContext, scope, sharedSecretAlgorithm);
+        boolean temporaryKeyFetchSucceeded = fetchTemporaryKey(stepContext, scope, sharedSecretAlgorithm);
+        if (!temporaryKeyFetchSucceeded) {
+            // Error is already logged
+            return null;
+        }
         final String temporaryKeyId = (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID);
         final ResultStatusObject resultStatusObject = model.getResultStatus();
 
