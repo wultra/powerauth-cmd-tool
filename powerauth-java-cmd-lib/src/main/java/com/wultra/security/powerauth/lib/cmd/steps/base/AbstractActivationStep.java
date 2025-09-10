@@ -234,6 +234,8 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         final byte[] salt = KEY_GENERATOR.generateRandomBytes(16);
         final byte[] cKnowledgeFactorSecretKey = EncryptedStorageUtil.storeKnowledgeFactorKey(password, knowledgeFactorKey, salt, KEY_GENERATOR);
 
+        final PublicKey devicePublicKey = securityContext.getEcDeviceKeyPair().getPublic();
+
         resultStatusObject.setVersion((long) model.getVersion().getMajorVersion());
         resultStatusObject.setActivationId(activationId);
         resultStatusObject.setCounter(0L);
@@ -245,6 +247,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         resultStatusObject.setKnowledgeFactorKeySaltBytes(salt);
         resultStatusObject.setPossessionFactorKeyObject(possessionFactorKey);
         resultStatusObject.setTransportMasterKeyObject(transportMasterKey);
+        resultStatusObject.setEcDevicePublicKeyObject(devicePublicKey);
 
         resultStatusObject.setSharedSecretAlgorithm(securityContext.getSharedSecretAlgorithm().toString());
         return resultStatusObject;
@@ -325,6 +328,9 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         final byte[] salt = KEY_GENERATOR.generateRandomBytes(16);
         final byte[] encryptedKnowledgeSecretKey = EncryptedStorageUtil.storeKnowledgeFactorKey(password, authenticationCodeKnowledgeSecretKey, salt, KEY_GENERATOR);
 
+        final PublicKey ecDevicePublicKey = securityContext.getEcDeviceKeyPair().getPublic();
+        final PublicKey pqcDevicePublicKey = securityContext.getPqcDeviceKeyPair() != null ? securityContext.getPqcDeviceKeyPair().getPublic() : null;
+
         resultStatusObject.setVersion((long) model.getVersion().getMajorVersion());
         resultStatusObject.setActivationId(activationId);
         resultStatusObject.setCounter(0L);
@@ -333,13 +339,19 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         resultStatusObject.setStatusBlobMacKeyObject(keyStatusMac);
         resultStatusObject.setSharedInfo2KeyObject(sharedInfo2Key);
         resultStatusObject.setEcServerPublicKey(serverPublicKeys.getEcdsa());
-        resultStatusObject.setPqcServerPublicKey(serverPublicKeys.getMldsa());
+        if (serverPublicKeys.getMldsa() != null) {
+            resultStatusObject.setPqcServerPublicKey(serverPublicKeys.getMldsa());
+        }
         // TODO - store encrypted crypto 4 private keys using updated vault mechanism
         resultStatusObject.setBiometryFactorKeyObject(authenticationCodeBiometrySecretKey);
         resultStatusObject.setKnowledgeFactorKeyEncryptedBytes(encryptedKnowledgeSecretKey);
         resultStatusObject.setKnowledgeFactorKeySaltBytes(salt);
         resultStatusObject.setPossessionFactorKeyObject(authenticationCodePossessionSecretKey);
         resultStatusObject.setSharedSecretAlgorithm(securityContext.getSharedSecretAlgorithm().toString());
+        resultStatusObject.setEcDevicePublicKeyObject(ecDevicePublicKey);
+        if (pqcDevicePublicKey != null) {
+            resultStatusObject.setPqcDevicePublicKeyObject(pqcDevicePublicKey);
+        }
         return resultStatusObject;
     }
 
@@ -380,7 +392,6 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         final ActivationSecurityContext securityContext;
         final ClientEncryptor<EncryptedRequest, EncryptedResponse> encryptorL1;
         final ClientEncryptor<EncryptedRequest, EncryptedResponse> encryptorL2;
-        final byte[] devicePublicKeyBytes;
         final Object requestL2Object;
         switch (model.getVersion().getMajorVersion()) {
             case 3 -> {
@@ -405,7 +416,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
                         .ecDeviceKeyPair(deviceKeyPair)
                         .sharedSecretAlgorithm(sharedSecretAlgorithm)
                         .build();
-                devicePublicKeyBytes = KEY_CONVERTOR.convertPublicKeyToBytes(EcCurve.P256, securityContext.getEcDeviceKeyPair().getPublic());
+                final byte[] devicePublicKeyBytes = KEY_CONVERTOR.convertPublicKeyToBytes(EcCurve.P256, securityContext.getEcDeviceKeyPair().getPublic());
                 final String devicePublicKeyBase64 = Base64.getEncoder().encodeToString(devicePublicKeyBytes);
                 com.wultra.security.powerauth.rest.api.model.request.v3.ActivationLayer2Request requestL2 = new com.wultra.security.powerauth.rest.api.model.request.v3.ActivationLayer2Request();
                 requestL2.setActivationName(model.getActivationName());
