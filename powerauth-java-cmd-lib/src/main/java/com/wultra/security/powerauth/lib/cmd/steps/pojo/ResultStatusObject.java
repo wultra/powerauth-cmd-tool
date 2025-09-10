@@ -226,6 +226,9 @@ public class ResultStatusObject {
     @JsonIgnore
     public PublicKey getPqcServerPublicKeyObject() throws Exception {
         String serverPublicKey = (String) jsonObject.get("pqcServerPublicKey");
+        if (serverPublicKey == null) {
+            return null;
+        }
         return KEY_CONVERTOR_PQC_DSA.convertBytesToPublicKey(Base64.getDecoder().decode(serverPublicKey));
     }
 
@@ -328,6 +331,9 @@ public class ResultStatusObject {
     @JsonIgnore
     public PublicKey getPqcDevicePublicKeyObject() throws Exception {
         String devicePublicKey = (String) jsonObject.get("pqcDevicePublicKey");
+        if (devicePublicKey == null) {
+            return null;
+        }
         return KEY_CONVERTOR_PQC_DSA.convertBytesToPublicKey(Base64.getDecoder().decode(devicePublicKey));
     }
 
