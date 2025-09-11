@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import javax.crypto.SecretKey;
 import java.security.PublicKey;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 
 /**
  * Activation status object
@@ -56,7 +57,7 @@ public class ResultStatusObject {
      * Backward compatibility, sync all modifications to the JSON object
      */
     @JsonIgnore
-    private JSONObject jsonObject = new JSONObject();
+    private JSONObject jsonObject = new JSONObject(new LinkedHashMap<>());
 
     /**
      * @return Activation ID
@@ -162,10 +163,16 @@ public class ResultStatusObject {
         return switch (version) {
             case 3 -> {
                 String serverPublicKey = (String) jsonObject.get("serverPublicKey");
+                if (serverPublicKey == null) {
+                    yield null;
+                }
                 yield KEY_CONVERTOR_EC.convertBytesToPublicKey(EcCurve.P256, Base64.getDecoder().decode(serverPublicKey));
             }
             case 4 -> {
                 String serverPublicKey = (String) jsonObject.get("ecServerPublicKey");
+                if (serverPublicKey == null) {
+                    yield null;
+                }
                 yield KEY_CONVERTOR_EC.convertBytesToPublicKey(EcCurve.P384, Base64.getDecoder().decode(serverPublicKey));
             }
             default -> throw new IllegalStateException("Unsupported version: " + version);
@@ -186,7 +193,7 @@ public class ResultStatusObject {
                 jsonObject.put("serverPublicKey", serverPublicKey);
             }
             case 4 -> {
-                String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(EcCurve.P256, serverPublicKeyObject));
+                String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(EcCurve.P384, serverPublicKeyObject));
                 jsonObject.put("ecServerPublicKey", serverPublicKey);
             }
             default -> throw new IllegalStateException("Unsupported version: " + version);
@@ -225,6 +232,9 @@ public class ResultStatusObject {
     @JsonIgnore
     public PublicKey getPqcServerPublicKeyObject() throws Exception {
         String serverPublicKey = (String) jsonObject.get("pqcServerPublicKey");
+        if (serverPublicKey == null) {
+            return null;
+        }
         return KEY_CONVERTOR_PQC_DSA.convertBytesToPublicKey(Base64.getDecoder().decode(serverPublicKey));
     }
 
@@ -234,7 +244,7 @@ public class ResultStatusObject {
      * @throws Exception when the public key cannot be encoded
      */
     @JsonIgnore
-    public void setPQCServerPublicKeyObject(PublicKey serverPublicKeyObject) throws Exception {
+    public void setPqcServerPublicKeyObject(PublicKey serverPublicKeyObject) throws Exception {
         String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_PQC_DSA.convertPublicKeyToBytes(serverPublicKeyObject));
         jsonObject.put("pqcServerPublicKey", serverPublicKey);
     }
@@ -252,6 +262,117 @@ public class ResultStatusObject {
      */
     public void setPqcServerPublicKey(String serverPublicKey) {
         jsonObject.put("pqcServerPublicKey", serverPublicKey);
+    }
+
+    /**
+     * @return Device EC public key
+     * @throws Exception when the public key cannot be decoded
+     */
+    @JsonIgnore
+    public PublicKey getEcDevicePublicKeyObject() throws Exception {
+        int version = getVersion().intValue();
+        return switch (version) {
+            case 3 -> {
+                String devicePublicKey = (String) jsonObject.get("devicePublicKey");
+                if (devicePublicKey == null) {
+                    yield null;
+                }
+                yield KEY_CONVERTOR_EC.convertBytesToPublicKey(EcCurve.P256, Base64.getDecoder().decode(devicePublicKey));
+            }
+            case 4 -> {
+                String devicePublicKey = (String) jsonObject.get("ecDevicePublicKey");
+                if (devicePublicKey == null) {
+                    yield null;
+                }
+                yield KEY_CONVERTOR_EC.convertBytesToPublicKey(EcCurve.P384, Base64.getDecoder().decode(devicePublicKey));
+            }
+            default -> throw new IllegalStateException("Unsupported version: " + version);
+        };
+    }
+
+    /**
+     * Sets EC device public key object
+     * @param devicePublicKeyObject Public key object
+     * @throws Exception when the public key cannot be encoded
+     */
+    @JsonIgnore
+    public void setEcDevicePublicKeyObject(PublicKey devicePublicKeyObject) throws Exception {
+        int version = getVersion().intValue();
+        switch (version) {
+            case 3 -> {
+                String devicePublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(EcCurve.P256, devicePublicKeyObject));
+                jsonObject.put("devicePublicKey", devicePublicKey);
+            }
+            case 4 -> {
+                String devicePublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(EcCurve.P384, devicePublicKeyObject));
+                jsonObject.put("ecDevicePublicKey", devicePublicKey);
+            }
+            default -> throw new IllegalStateException("Unsupported version: " + version);
+        }
+    }
+
+    /**
+     * @return Base64 encoded byte representation of the EC device public key
+     */
+    public String getEcDevicePublicKey() {
+        int version = getVersion().intValue();
+        return switch (version) {
+            case 3 -> (String) jsonObject.get("devicePublicKey");
+            case 4 -> (String) jsonObject.get("ecDevicePublicKey");
+            default -> throw new IllegalStateException("Unsupported version: " + version);
+        };
+    }
+
+    /**
+     * Sets EC device public key
+     * @param devicePublicKey Public key as base64
+     */
+    public void setEcDevicePublicKey(String devicePublicKey) {
+        int version = getVersion().intValue();
+        switch (version) {
+            case 3 -> jsonObject.put("devicePublicKey", devicePublicKey);
+            case 4 -> jsonObject.put("ecDevicePublicKey", devicePublicKey);
+            default -> throw new IllegalStateException("Unsupported version: " + version);
+        }
+    }
+
+    /**
+     * @return Device PQC public key
+     * @throws Exception when the public key cannot be decoded
+     */
+    @JsonIgnore
+    public PublicKey getPqcDevicePublicKeyObject() throws Exception {
+        String devicePublicKey = (String) jsonObject.get("pqcDevicePublicKey");
+        if (devicePublicKey == null) {
+            return null;
+        }
+        return KEY_CONVERTOR_PQC_DSA.convertBytesToPublicKey(Base64.getDecoder().decode(devicePublicKey));
+    }
+
+    /**
+     * Sets PQC device public key object
+     * @param devicePublicKeyObject Public key object
+     * @throws Exception when the public key cannot be encoded
+     */
+    @JsonIgnore
+    public void setPqcDevicePublicKeyObject(PublicKey devicePublicKeyObject) throws Exception {
+        String devicePublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_PQC_DSA.convertPublicKeyToBytes(devicePublicKeyObject));
+        jsonObject.put("pqcDevicePublicKey", devicePublicKey);
+    }
+
+    /**
+     * @return Base64 encoded byte representation of the PQC device public key
+     */
+    public String getPqcDevicePublicKey() {
+        return (String) jsonObject.get("pqcDevicePublicKey");
+    }
+
+    /**
+     * Sets PQC device public key
+     * @param devicePublicKey Public key as base64
+     */
+    public void setPqcDevicePublicKey(String devicePublicKey) {
+        jsonObject.put("pqcDevicePublicKey", devicePublicKey);
     }
 
     /**
