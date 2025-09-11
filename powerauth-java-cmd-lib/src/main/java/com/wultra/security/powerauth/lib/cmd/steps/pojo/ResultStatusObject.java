@@ -163,10 +163,16 @@ public class ResultStatusObject {
         return switch (version) {
             case 3 -> {
                 String serverPublicKey = (String) jsonObject.get("serverPublicKey");
+                if (serverPublicKey == null) {
+                    yield null;
+                }
                 yield KEY_CONVERTOR_EC.convertBytesToPublicKey(EcCurve.P256, Base64.getDecoder().decode(serverPublicKey));
             }
             case 4 -> {
                 String serverPublicKey = (String) jsonObject.get("ecServerPublicKey");
+                if (serverPublicKey == null) {
+                    yield null;
+                }
                 yield KEY_CONVERTOR_EC.convertBytesToPublicKey(EcCurve.P384, Base64.getDecoder().decode(serverPublicKey));
             }
             default -> throw new IllegalStateException("Unsupported version: " + version);
@@ -268,10 +274,16 @@ public class ResultStatusObject {
         return switch (version) {
             case 3 -> {
                 String devicePublicKey = (String) jsonObject.get("devicePublicKey");
+                if (devicePublicKey == null) {
+                    yield null;
+                }
                 yield KEY_CONVERTOR_EC.convertBytesToPublicKey(EcCurve.P256, Base64.getDecoder().decode(devicePublicKey));
             }
             case 4 -> {
                 String devicePublicKey = (String) jsonObject.get("ecDevicePublicKey");
+                if (devicePublicKey == null) {
+                    yield null;
+                }
                 yield KEY_CONVERTOR_EC.convertBytesToPublicKey(EcCurve.P384, Base64.getDecoder().decode(devicePublicKey));
             }
             default -> throw new IllegalStateException("Unsupported version: " + version);
