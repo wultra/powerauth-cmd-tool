@@ -105,37 +105,92 @@ public class ResultStatusObject {
     }
 
     /**
-     * @return Byte representation of the encrypted device private key
+     * @return Byte representation of the encrypted EC device private key
      */
     @JsonIgnore
-    public byte[] getEncryptedDevicePrivateKeyBytes() {
-        String encryptedDevicePrivateKey = (String) jsonObject.get("encryptedDevicePrivateKey");
+    public byte[] getEncryptedEcDevicePrivateKeyBytes() {
+        final int version = getVersion().intValue();
+        final String encryptedDevicePrivateKey = switch (version) {
+            case 3 -> (String) jsonObject.get("encryptedDevicePrivateKey");
+            case 4 -> (String) jsonObject.get("encryptedEcDevicePrivateKey");
+            default -> throw new IllegalStateException("Unsupported version: " + version);
+        };
+        if (encryptedDevicePrivateKey == null) {
+            return null;
+        }
         return Base64.getDecoder().decode(encryptedDevicePrivateKey);
     }
 
     /**
-     * Sets encrypted device private key
-     * @param encryptedDevicePrivateKeyBytes Encrypted device private key bytes
+     * Sets encrypted EC device private key
+     * @param encryptedDevicePrivateKeyBytes Encrypted EC device private key bytes
      */
     @JsonIgnore
-    public void setEncryptedDevicePrivateKeyBytes(byte[] encryptedDevicePrivateKeyBytes) {
-        String encryptedDevicePrivateKey = Base64.getEncoder().encodeToString(encryptedDevicePrivateKeyBytes);
-        jsonObject.put("encryptedDevicePrivateKey", encryptedDevicePrivateKey);
+    public void setEncryptedEcDevicePrivateKeyBytes(byte[] encryptedDevicePrivateKeyBytes) {
+        final int version = getVersion().intValue();
+        final String encryptedDevicePrivateKey = Base64.getEncoder().encodeToString(encryptedDevicePrivateKeyBytes);
+        switch (version) {
+            case 3 -> jsonObject.put("encryptedDevicePrivateKey", encryptedDevicePrivateKey);
+            case 4 -> jsonObject.put("encryptedEcDevicePrivateKey", encryptedDevicePrivateKey);
+            default -> throw new IllegalStateException("Unsupported version: " + version);
+        }
     }
 
     /**
-     * @return Base64 encoded byte representation of the encrypted device private key
+     * @return Base64 encoded byte representation of the encrypted EC device private key
      */
-    public String getEncryptedDevicePrivateKey() {
-        return (String) jsonObject.get("encryptedDevicePrivateKey");
+    public String getEncryptedEcDevicePrivateKey() {
+        return (String) jsonObject.get("encryptedEcDevicePrivateKey");
     }
 
     /**
-     * Sets encrypted device private key object
-     * @param encryptedDevicePrivateKey Encrypted device private key object
+     * Sets encrypted PQC device private key object
+     * @param encryptedDevicePrivateKey Encrypted PQC device private key object
      */
-    public void setEncryptedDevicePrivateKey(String encryptedDevicePrivateKey) {
-        jsonObject.put("encryptedDevicePrivateKey", encryptedDevicePrivateKey);
+    public void setEncryptedEcDevicePrivateKey(String encryptedDevicePrivateKey) {
+        jsonObject.put("encryptedEcDevicePrivateKey", encryptedDevicePrivateKey);
+    }
+
+    /**
+     * @return Byte representation of the encrypted PQC device private key
+     */
+    @JsonIgnore
+    public byte[] getEncryptedPqcDevicePrivateKeyBytes() {
+        final String encryptedDevicePrivateKey = (String) jsonObject.get("encryptedPqcDevicePrivateKey");
+        if (encryptedDevicePrivateKey == null) {
+            return null;
+        }
+        return Base64.getDecoder().decode(encryptedDevicePrivateKey);
+    }
+
+    /**
+     * Sets encrypted PQC device private key
+     * @param encryptedDevicePrivateKeyBytes Encrypted PQC device private key bytes
+     */
+    @JsonIgnore
+    public void setEncryptedPqcDevicePrivateKeyBytes(byte[] encryptedDevicePrivateKeyBytes) {
+        final String encryptedDevicePrivateKey = Base64.getEncoder().encodeToString(encryptedDevicePrivateKeyBytes);
+        jsonObject.put("encryptedPqcDevicePrivateKey", encryptedDevicePrivateKey);
+    }
+
+    /**
+     * @return Base64 encoded byte representation of the encrypted EC device private key
+     */
+    public String getEncryptedPqcDevicePrivateKey() {
+        return (String) jsonObject.get("encryptedPqcDevicePrivateKey");
+    }
+
+    /**
+     * Sets encrypted EC device private key object
+     * @param encryptedDevicePrivateKey Encrypted EC device private key object
+     */
+    public void setEncryptedPqcDevicePrivateKey(String encryptedDevicePrivateKey) {
+        final int version = getVersion().intValue();
+        switch (version) {
+            case 3 -> jsonObject.put("encryptedDevicePrivateKey", encryptedDevicePrivateKey);
+            case 4 -> jsonObject.put("encryptedPqcDevicePrivateKey", encryptedDevicePrivateKey);
+            default -> throw new IllegalStateException("Unsupported version: " + version);
+        }
     }
 
     /**

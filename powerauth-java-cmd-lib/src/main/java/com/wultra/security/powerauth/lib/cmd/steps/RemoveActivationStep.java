@@ -32,7 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -112,7 +112,7 @@ public class RemoveActivationStep extends AbstractBaseStep<RemoveStepModel, Obje
     @Override
     public void processResponse(StepContext<RemoveStepModel, ObjectResponse<ActivationRemoveResponse>> stepContext) {
         final String activationId = stepContext.getModel().getResultStatus().getActivationId();
-        final Map<String, Object> objectMap = new HashMap<>();
+        final Map<String, Object> objectMap = new LinkedHashMap<>();
         objectMap.put("activationId", activationId);
 
         stepContext.getStepLogger().writeItem(

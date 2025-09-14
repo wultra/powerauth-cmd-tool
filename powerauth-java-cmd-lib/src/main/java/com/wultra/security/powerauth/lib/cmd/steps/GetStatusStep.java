@@ -45,10 +45,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Helper class with step for getting activation status.
@@ -221,7 +218,7 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, Object> 
         }
 
 
-        final Map<String, Object> objectMap = new HashMap<>();
+        final Map<String, Object> objectMap = new LinkedHashMap<>();
         objectMap.put("activationId", resultStatusObject.getActivationId());
         objectMap.put("statusBlob", statusBlobInfo);
         objectMap.put("customObject", customObject);

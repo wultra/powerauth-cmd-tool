@@ -17,7 +17,6 @@
 package com.wultra.security.powerauth.lib.cmd.steps.base;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wultra.security.powerauth.crypto.client.vault.PowerAuthClientVault;
 import com.wultra.security.powerauth.crypto.lib.encryptor.ClientEncryptor;
 import com.wultra.security.powerauth.crypto.lib.encryptor.EncryptorFactory;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.*;
@@ -89,7 +88,8 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
 
     private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
 
-    private static final PowerAuthClientVault VAULT = new PowerAuthClientVault();
+    private static final com.wultra.security.powerauth.crypto.client.vault.PowerAuthClientVault VAULT_V3 = new com.wultra.security.powerauth.crypto.client.vault.PowerAuthClientVault();
+    private static final com.wultra.security.powerauth.crypto.client.v4.vault.PowerAuthClientVault VAULT_V4 = new com.wultra.security.powerauth.crypto.client.v4.vault.PowerAuthClientVault();
 
     private static final ObjectMapper MAPPER = RestClientConfiguration.defaultMapper();
 
@@ -128,7 +128,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
 
         resultStatusService.save(model);
 
-        final Map<String, Object> objectMap = new HashMap<>();
+        final Map<String, Object> objectMap = new LinkedHashMap<>();
         objectMap.put("activationId", resultStatusObject.getActivationId());
         objectMap.put("activationStatusFile", model.getStatusFileName());
         objectMap.put("activationStatusFileContent", model.getResultStatus());
@@ -220,7 +220,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         final SecretKey vaultUnlockMasterKey = KEY_FACTORY_V3.generateServerEncryptedVaultKey(masterSecretKey);
 
         // Encrypt the original device private key using the vault unlock key
-        final byte[] encryptedDevicePrivateKey = VAULT.encryptDevicePrivateKey(securityContext.getEcDeviceKeyPair().getPrivate(), vaultUnlockMasterKey);
+        final byte[] encryptedDevicePrivateKey = VAULT_V3.encryptDevicePrivateKey(securityContext.getEcDeviceKeyPair().getPrivate(), vaultUnlockMasterKey);
 
         final char[] password;
         if (model.getPassword() == null) {
@@ -240,7 +240,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         resultStatusObject.setActivationId(activationId);
         resultStatusObject.setCounter(0L);
         resultStatusObject.setCtrData(ctrDataBase64);
-        resultStatusObject.setEncryptedDevicePrivateKeyBytes(encryptedDevicePrivateKey);
+        resultStatusObject.setEncryptedEcDevicePrivateKeyBytes(encryptedDevicePrivateKey);
         resultStatusObject.setEcServerPublicKeyObject(serverPublicKey);
         resultStatusObject.setBiometryFactorKeyObject(biometryFactorKey);
         resultStatusObject.setKnowledgeFactorKeyEncryptedBytes(cKnowledgeFactorSecretKey);
@@ -314,6 +314,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         final SecretKey authenticationCodePossessionSecretKey = KEY_FACTORY_V4.generatePossessionFactorKey(activationSharedSecret);
         final SecretKey authenticationCodeKnowledgeSecretKey = KEY_FACTORY_V4.generateKnowledgeFactorKey(activationSharedSecret);
         final SecretKey authenticationCodeBiometrySecretKey = KEY_FACTORY_V4.generateBiometryFactorKey(activationSharedSecret);
+        final SecretKey vaultUnlockKekDevicePrivate = KEY_FACTORY_V4.generateKeyKekDevicePrivate(activationSharedSecret);
 
         final char[] password;
         if (model.getPassword() == null) {
@@ -331,6 +332,15 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         final PublicKey ecDevicePublicKey = securityContext.getEcDeviceKeyPair().getPublic();
         final PublicKey pqcDevicePublicKey = securityContext.getPqcDeviceKeyPair() != null ? securityContext.getPqcDeviceKeyPair().getPublic() : null;
 
+        // Encrypt device private keys
+        final byte[] encryptedEcDevicePrivateKey = VAULT_V4.encryptEcDevicePrivateKey(securityContext.getEcDeviceKeyPair().getPrivate(), vaultUnlockKekDevicePrivate);
+        final byte[] encryptedPqcDevicePrivateKey;
+        if (securityContext.getPqcDeviceKeyPair() != null) {
+            encryptedPqcDevicePrivateKey = VAULT_V4.encryptPqcDevicePrivateKey(securityContext.getPqcDeviceKeyPair().getPrivate(), vaultUnlockKekDevicePrivate);
+        } else {
+            encryptedPqcDevicePrivateKey = null;
+        }
+
         resultStatusObject.setVersion((long) model.getVersion().getMajorVersion());
         resultStatusObject.setActivationId(activationId);
         resultStatusObject.setCounter(0L);
@@ -342,7 +352,10 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         if (serverPublicKeys.getMldsa() != null) {
             resultStatusObject.setPqcServerPublicKey(serverPublicKeys.getMldsa());
         }
-        // TODO - store encrypted crypto 4 private keys using updated vault mechanism
+        resultStatusObject.setEncryptedEcDevicePrivateKeyBytes(encryptedEcDevicePrivateKey);
+        if (encryptedPqcDevicePrivateKey != null) {
+            resultStatusObject.setEncryptedPqcDevicePrivateKeyBytes(encryptedPqcDevicePrivateKey);
+        }
         resultStatusObject.setBiometryFactorKeyObject(authenticationCodeBiometrySecretKey);
         resultStatusObject.setKnowledgeFactorKeyEncryptedBytes(encryptedKnowledgeSecretKey);
         resultStatusObject.setKnowledgeFactorKeySaltBytes(salt);
