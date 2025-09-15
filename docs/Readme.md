@@ -201,6 +201,27 @@ Uses the `unlock` method to unlock the secure vault for an activation with activ
 
 _Note: If a `--password` option is not provided, this method requires interactive console input of the password, in order to unlock the knowledge related signature key._
 
+### Sign Data Using Asymmetric Algorithm
+
+Use this method to test obtaining the device private key and signing the data.
+
+```bash
+java -jar powerauth-java-cmd.jar \
+    --url "http://localhost:8080/enrollment-server" \
+    --status-file "/tmp/pa_status.json" \
+    --config-file "/tmp/pamk.json" \
+    --method "sign-asymmetric" \
+    --signature-type "possession_knowledge" \
+    --password "1234" \
+    --data-file "/tmp/request.json"
+```
+
+Uses the `sign-asymmetric` method to unlock the secure vault for an activation with activation ID stored in the status file `/tmp/pa_status.json`, by calling the PowerAuth Standard RESTful API endpoint `/pa/v3/vault/unlock` hosted on root URL `http://localhost:8080/enrollment-server`. Uses the master public key and application identifiers stored in the `/tmp/pamk.json` file. Unlocks the knowledge related signing key using `1234` as a password. The reason why vault is being unlocked is `SIGN_DATA`. The key identifier used for unlocking the vault is `KEK_DEVICE_PRIVATE`. 
+
+The unlocked device private key is then used for signing data using an asymmetric data signature algorithm. The asymmetric signature algorithm depends on the cryptography version.
+
+_Note: If a `--password` option is not provided, this method requires interactive console input of the password, in order to unlock the knowledge related signature key._
+
 ### Create Token
 
 Create a static token which can be used for repeated requests to data resources which support token based authentication.
