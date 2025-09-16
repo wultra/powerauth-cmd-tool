@@ -161,6 +161,7 @@ public class SignAsymmetricStep extends AbstractBaseStep<SignAsymmetricStepModel
         if (requestDataBytes == null) {
             stepContext.getStepLogger().writeError(getStep().id() + "-read-data-failed", "Reading request data failed", "Could not read request data for signing");
             stepContext.getStepLogger().writeDoneFailed(getStep().id() + "-failed");
+            return;
         }
 
         stepContext.getStepLogger().writeItem(
