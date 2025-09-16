@@ -570,6 +570,25 @@ public class Application {
 
                     stepExecutionService.execute(powerAuthStep, version, model);
                 }
+                case SIGN_ASYMMETRIC -> {
+                    final SignAsymmetricStepModel model = new SignAsymmetricStepModel();
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
+                    model.setHeaders(httpHeaders);
+                    model.setPassword(cmd.getOptionValue("p"));
+                    model.setResultStatus(resultStatusObject);
+                    model.setStatusFileName(statusFileName);
+                    model.setAuthenticationCodeType(PowerAuthCodeType.getEnumFromString(cmd.getOptionValue("l")));
+                    model.setUriString(uriString);
+                    model.setVersion(version);
+
+                    // Read the file with request data
+                    String dataFileName = cmd.getOptionValue("d");
+                    final byte[] dataFileBytes = FileUtil.readFileBytes(stepLogger, dataFileName, "request-data", "Request data file");
+                    model.setData(dataFileBytes);
+
+                    stepExecutionService.execute(powerAuthStep, version, model);
+                }
 
                 default -> {
                     System.err.println("Not recognized PowerAuth step: " + powerAuthStep);

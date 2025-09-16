@@ -198,6 +198,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
                 stepLogger.writeDoneOK(getStep().id() + "-success");
             } else if (!isDryRun(stepContext.getModel())) {
                 stepContext.getStepLogger().writeDoneFailed(getStep().id() + "-failed");
+                return null;
             }
         } catch (Exception exception) {
             stepLogger.writeError(getStep().id() + "-error-generic", exception);

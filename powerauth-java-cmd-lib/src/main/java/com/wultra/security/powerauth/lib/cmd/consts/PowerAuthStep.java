@@ -94,6 +94,11 @@ public enum PowerAuthStep {
     SIGN_ENCRYPT("sign-encrypt", "Sign and Encrypt Request", "sign-encrypt"),
 
     /**
+     * Unlock device private keys and sign data
+     */
+    SIGN_ASYMMETRIC("sign-asymmetric", "Sign Data Using Private Key", "sign-asymmetric"),
+
+    /**
      * Creating new token
      */
     TOKEN_CREATE("token-create", "Token Create", "create-token"),
