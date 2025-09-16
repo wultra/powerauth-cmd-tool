@@ -36,6 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -102,7 +103,7 @@ public class PrepareActivationStep extends AbstractActivationStep<PrepareActivat
         }
         final String activationCode = model.getActivationCode();
 
-        final Map<String, Object> objectMap = new HashMap<>();
+        final Map<String, Object> objectMap = new LinkedHashMap<>();
         objectMap.put("activationCode", activationCode);
         stepLogger.writeItem(
                 getStep().id() + "-activation-code",

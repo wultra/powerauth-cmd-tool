@@ -16,11 +16,12 @@
 package com.wultra.security.powerauth.lib.cmd.steps;
 
 import com.wultra.security.powerauth.crypto.client.keyfactory.PowerAuthClientKeyFactory;
-import com.wultra.security.powerauth.crypto.client.vault.PowerAuthClientVault;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedResponse;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
+import com.wultra.security.powerauth.crypto.lib.v4.api.PqcDsaKeyConvertor;
+import com.wultra.security.powerauth.crypto.lib.v4.ml.MlDsaKeyConvertor;
 import com.wultra.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
@@ -42,7 +43,7 @@ import javax.crypto.SecretKey;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Base64;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -65,9 +66,13 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Encr
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
-    private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
+    private static final KeyConvertor KEY_CONVERTOR_EC = new KeyConvertor();
+    private static final PqcDsaKeyConvertor KEY_CONVERTOR_PQC = new MlDsaKeyConvertor();
 
     private static final PowerAuthClientKeyFactory KEY_FACTORY = new PowerAuthClientKeyFactory();
+
+    private static final com.wultra.security.powerauth.crypto.client.vault.PowerAuthClientVault VAULT_V3 = new com.wultra.security.powerauth.crypto.client.vault.PowerAuthClientVault();
+    private static final com.wultra.security.powerauth.crypto.client.v4.vault.PowerAuthClientVault VAULT_V4 = new com.wultra.security.powerauth.crypto.client.v4.vault.PowerAuthClientVault();
 
     /**
      * Constructor
@@ -165,7 +170,7 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Encr
     public void processResponse(StepContext<VaultUnlockStepModel, EncryptedResponse> stepContext) throws Exception {
         final int majorVersion = stepContext.getModel().getVersion().getMajorVersion();
 
-        final Map<String, Object> objectMap = new HashMap<>();
+        final Map<String, Object> objectMap = new LinkedHashMap<>();
         switch (majorVersion) {
             case 3 -> {
                 final com.wultra.security.powerauth.rest.api.model.response.v3.VaultUnlockResponsePayload responsePayload = decryptResponse(stepContext, com.wultra.security.powerauth.rest.api.model.response.v3.VaultUnlockResponsePayload.class);
@@ -180,12 +185,11 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Encr
                     return;
                 }
 
-                final byte[] encryptedDevicePrivateKeyBytes = resultStatusObject.getEncryptedDevicePrivateKeyBytes();
+                final byte[] encryptedDevicePrivateKeyBytes = resultStatusObject.getEncryptedEcDevicePrivateKeyBytes();
                 final byte[] encryptedVaultEncryptionKey = Base64.getDecoder().decode(responsePayload.getEncryptedVaultEncryptionKey());
 
-                final PowerAuthClientVault vault = new PowerAuthClientVault();
-                final SecretKey vaultEncryptionKey = vault.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey);
-                final PrivateKey devicePrivateKey = vault.decryptDevicePrivateKey(encryptedDevicePrivateKeyBytes, vaultEncryptionKey);
+                final SecretKey vaultEncryptionKey = VAULT_V3.decryptVaultEncryptionKey(encryptedVaultEncryptionKey, transportMasterKey);
+                final PrivateKey devicePrivateKey = VAULT_V3.decryptDevicePrivateKey(encryptedDevicePrivateKeyBytes, vaultEncryptionKey);
                 final PublicKey serverPublicKey = resultStatusObject.getEcServerPublicKeyObject();
 
                 final SecretKey masterSecretKey = KEY_FACTORY.generateClientMasterSecretKey(devicePrivateKey, serverPublicKey);
@@ -193,9 +197,9 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Encr
                 final boolean equal = transportKeyDeduced.equals(transportMasterKey);
                 objectMap.put("activationId", resultStatusObject.getActivationId());
                 objectMap.put("encryptedVaultEncryptionKey", Base64.getEncoder().encodeToString(encryptedVaultEncryptionKey));
-                objectMap.put("transportMasterKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertSharedSecretKeyToBytes(transportMasterKey)));
-                objectMap.put("vaultEncryptionKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertSharedSecretKeyToBytes(vaultEncryptionKey)));
-                objectMap.put("devicePrivateKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR.convertPrivateKeyToBytes(devicePrivateKey)));
+                objectMap.put("transportMasterKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(transportMasterKey)));
+                objectMap.put("vaultEncryptionKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(vaultEncryptionKey)));
+                objectMap.put("devicePrivateKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPrivateKeyToBytes(devicePrivateKey)));
                 objectMap.put("privateKeyDecryptionSuccessful", (equal ? "true" : "false"));
             }
             case 4 -> {
@@ -203,6 +207,20 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Encr
                 final ResultStatusObject resultStatusObject = stepContext.getModel().getResultStatus();
                 objectMap.put("activationId", resultStatusObject.getActivationId());
                 objectMap.put("vaultEncryptionKey", responsePayload.getVaultEncryptionKey());
+
+                // Decrypt and show device private keys in case key identifier is KEK_DEVICE_PRIVATE
+                if ("KEK_DEVICE_PRIVATE".equals(stepContext.getModel().getKeyIdentifier())) {
+                    final byte[] vaultUnlockKekDevicePrivateBytes = Base64.getDecoder().decode(responsePayload.getVaultEncryptionKey());
+                    final SecretKey vaultUnlockKekDevicePrivate = KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(vaultUnlockKekDevicePrivateBytes);
+                    final byte[] encryptedEcDevicePrivateKeyBytes = resultStatusObject.getEncryptedEcDevicePrivateKeyBytes();
+                    final PrivateKey ecDevicePrivateKey = VAULT_V4.decryptEcDevicePrivateKey(encryptedEcDevicePrivateKeyBytes, vaultUnlockKekDevicePrivate);
+                    objectMap.put("deviceEcPrivateKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPrivateKeyToBytes(ecDevicePrivateKey)));
+                    if (resultStatusObject.getEncryptedPqcDevicePrivateKey() != null) {
+                        final byte[] encryptedPqcDevicePrivateKeyBytes = resultStatusObject.getEncryptedPqcDevicePrivateKeyBytes();
+                        final PrivateKey pqcDevicePrivateKey = VAULT_V4.decryptPqcDevicePrivateKey(encryptedPqcDevicePrivateKeyBytes, vaultUnlockKekDevicePrivate);
+                        objectMap.put("devicePqcPrivateKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR_PQC.convertPrivateKeyToBytes(pqcDevicePrivateKey)));
+                    }
+                }
             }
             default -> throw new IllegalArgumentException("Unsupported version: " + stepContext.getModel().getVersion());
         }
