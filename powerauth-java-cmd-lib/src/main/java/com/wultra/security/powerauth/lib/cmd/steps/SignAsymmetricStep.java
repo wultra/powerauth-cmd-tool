@@ -65,7 +65,7 @@ import java.util.Map;
 @Component("signAsymmetricStep")
 public class SignAsymmetricStep extends AbstractBaseStep<SignAsymmetricStepModel, EncryptedResponse> {
 
-    private static final String REASON_VAULT_UNLOCK = "SIGN_DATA";
+    private static final String REASON_VAULT_UNLOCK = "SIGN_WITH_DEVICE_PRIVATE_KEY";
     private static final String KEY_IDENTIFIER_KEK_DEVICE_PRIVATE = "KEK_DEVICE_PRIVATE";
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
