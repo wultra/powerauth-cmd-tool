@@ -197,9 +197,8 @@ public class SignAsymmetricStep extends AbstractBaseStep<SignAsymmetricStepModel
 
                 final SecretKey masterSecretKey = KEY_FACTORY.generateClientMasterSecretKey(devicePrivateKey, serverPublicKey);
                 final SecretKey transportKeyDeduced = KEY_FACTORY.generateServerTransportKey(masterSecretKey);
-                final boolean transportKeysEqual = transportKeyDeduced.equals(transportMasterKey);
 
-                if (!transportKeysEqual) {
+                if (!transportKeyDeduced.equals(transportMasterKey)) {
                     stepContext.getStepLogger().writeError(
                             getStep().id() + "-vault-unlock-failed",
                             "Vault Unlock Failed",
