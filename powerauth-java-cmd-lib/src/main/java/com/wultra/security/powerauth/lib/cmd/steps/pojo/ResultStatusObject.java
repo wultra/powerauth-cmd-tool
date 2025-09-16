@@ -203,7 +203,7 @@ public class ResultStatusObject {
         if (serverPublicKey == null) {
             return null;
         }
-        return KEY_CONVERTOR_EC.convertBytesToPublicKey(EcCurve.P384, Base64.getDecoder().decode(serverPublicKey));
+        return KEY_CONVERTOR_EC.convertBytesToPublicKey(resolveEcCurve(), Base64.getDecoder().decode(serverPublicKey));
     }
 
     /**
@@ -213,7 +213,8 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setEcServerPublicKeyObject(PublicKey serverPublicKeyObject) throws Exception {
-        String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(EcCurve.P384, serverPublicKeyObject));
+
+        String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(resolveEcCurve(), serverPublicKeyObject));
         jsonObject.put("ecServerPublicKey", serverPublicKey);
     }
 
@@ -281,7 +282,7 @@ public class ResultStatusObject {
         if (devicePublicKey == null) {
             return null;
         }
-        return KEY_CONVERTOR_EC.convertBytesToPublicKey(EcCurve.P384, Base64.getDecoder().decode(devicePublicKey));
+        return KEY_CONVERTOR_EC.convertBytesToPublicKey(resolveEcCurve(), Base64.getDecoder().decode(devicePublicKey));
     }
 
     /**
@@ -291,7 +292,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setEcDevicePublicKeyObject(PublicKey devicePublicKeyObject) throws Exception {
-        String devicePublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(EcCurve.P384, devicePublicKeyObject));
+        String devicePublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(resolveEcCurve(), devicePublicKeyObject));
         jsonObject.put("ecDevicePublicKey", devicePublicKey);
     }
 
@@ -686,6 +687,10 @@ public class ResultStatusObject {
             resultStatusObject = new ResultStatusObject();
         }
         return resultStatusObject;
+    }
+
+    private EcCurve resolveEcCurve() {
+        return getVersion().intValue() == 3 ? EcCurve.P256 : EcCurve.P384;
     }
 
 }
