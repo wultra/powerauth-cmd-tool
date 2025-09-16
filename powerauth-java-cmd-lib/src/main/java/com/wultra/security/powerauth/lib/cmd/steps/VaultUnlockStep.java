@@ -215,13 +215,13 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Encr
                 if ("KEK_DEVICE_PRIVATE".equals(stepContext.getModel().getKeyIdentifier())) {
                     final byte[] vaultUnlockKekDevicePrivateBytes = Base64.getDecoder().decode(responsePayload.getVaultEncryptionKey());
                     final SecretKey vaultUnlockKekDevicePrivate = KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(vaultUnlockKekDevicePrivateBytes);
-                    final byte[] encryptedEcDevicePrivateKeyBytes = Base64.getDecoder().decode(resultStatusObject.getEncryptedEcDevicePrivateKey());
-                    final PrivateKey encryptedEcDevicePrivateKey = VAULT_V4.decryptEcDevicePrivateKey(encryptedEcDevicePrivateKeyBytes, vaultUnlockKekDevicePrivate);
-                    objectMap.put("deviceEcPrivateKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPrivateKeyToBytes(encryptedEcDevicePrivateKey)));
+                    final byte[] encryptedEcDevicePrivateKeyBytes = resultStatusObject.getEncryptedEcDevicePrivateKeyBytes();
+                    final PrivateKey ecDevicePrivateKey = VAULT_V4.decryptEcDevicePrivateKey(encryptedEcDevicePrivateKeyBytes, vaultUnlockKekDevicePrivate);
+                    objectMap.put("deviceEcPrivateKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPrivateKeyToBytes(ecDevicePrivateKey)));
                     if (resultStatusObject.getEncryptedPqcDevicePrivateKey() != null) {
-                        final byte[] encryptedPqcDevicePrivateKeyBytes = Base64.getDecoder().decode(resultStatusObject.getEncryptedPqcDevicePrivateKey());
-                        final PrivateKey encryptedPqcDevicePrivateKey = VAULT_V4.decryptPqcDevicePrivateKey(encryptedPqcDevicePrivateKeyBytes, vaultUnlockKekDevicePrivate);
-                        objectMap.put("devicePqcPrivateKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR_PQC.convertPrivateKeyToBytes(encryptedPqcDevicePrivateKey)));
+                        final byte[] encryptedPqcDevicePrivateKeyBytes = resultStatusObject.getEncryptedPqcDevicePrivateKeyBytes();
+                        final PrivateKey pqcDevicePrivateKey = VAULT_V4.decryptPqcDevicePrivateKey(encryptedPqcDevicePrivateKeyBytes, vaultUnlockKekDevicePrivate);
+                        objectMap.put("devicePqcPrivateKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR_PQC.convertPrivateKeyToBytes(pqcDevicePrivateKey)));
                     }
                 }
             }
