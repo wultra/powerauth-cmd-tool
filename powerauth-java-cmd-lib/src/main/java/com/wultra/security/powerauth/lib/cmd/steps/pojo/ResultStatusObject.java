@@ -109,12 +109,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public byte[] getEncryptedEcDevicePrivateKeyBytes() {
-        final int version = getVersion().intValue();
-        final String encryptedDevicePrivateKey = switch (version) {
-            case 3 -> (String) jsonObject.get("encryptedDevicePrivateKey");
-            case 4 -> (String) jsonObject.get("encryptedEcDevicePrivateKey");
-            default -> throw new IllegalStateException("Unsupported version: " + version);
-        };
+        final String encryptedDevicePrivateKey = (String) jsonObject.get("encryptedEcDevicePrivateKey");
         if (encryptedDevicePrivateKey == null) {
             return null;
         }
@@ -127,13 +122,8 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setEncryptedEcDevicePrivateKeyBytes(byte[] encryptedDevicePrivateKeyBytes) {
-        final int version = getVersion().intValue();
         final String encryptedDevicePrivateKey = Base64.getEncoder().encodeToString(encryptedDevicePrivateKeyBytes);
-        switch (version) {
-            case 3 -> jsonObject.put("encryptedDevicePrivateKey", encryptedDevicePrivateKey);
-            case 4 -> jsonObject.put("encryptedEcDevicePrivateKey", encryptedDevicePrivateKey);
-            default -> throw new IllegalStateException("Unsupported version: " + version);
-        }
+        jsonObject.put("encryptedEcDevicePrivateKey", encryptedDevicePrivateKey);
     }
 
     /**
@@ -185,12 +175,7 @@ public class ResultStatusObject {
      * @param encryptedDevicePrivateKey Encrypted EC device private key object
      */
     public void setEncryptedPqcDevicePrivateKey(String encryptedDevicePrivateKey) {
-        final int version = getVersion().intValue();
-        switch (version) {
-            case 3 -> jsonObject.put("encryptedDevicePrivateKey", encryptedDevicePrivateKey);
-            case 4 -> jsonObject.put("encryptedPqcDevicePrivateKey", encryptedDevicePrivateKey);
-            default -> throw new IllegalStateException("Unsupported version: " + version);
-        }
+        jsonObject.put("encryptedPqcDevicePrivateKey", encryptedDevicePrivateKey);
     }
 
     /**
@@ -214,24 +199,11 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public PublicKey getEcServerPublicKeyObject() throws Exception {
-        int version = getVersion().intValue();
-        return switch (version) {
-            case 3 -> {
-                String serverPublicKey = (String) jsonObject.get("serverPublicKey");
-                if (serverPublicKey == null) {
-                    yield null;
-                }
-                yield KEY_CONVERTOR_EC.convertBytesToPublicKey(EcCurve.P256, Base64.getDecoder().decode(serverPublicKey));
-            }
-            case 4 -> {
-                String serverPublicKey = (String) jsonObject.get("ecServerPublicKey");
-                if (serverPublicKey == null) {
-                    yield null;
-                }
-                yield KEY_CONVERTOR_EC.convertBytesToPublicKey(EcCurve.P384, Base64.getDecoder().decode(serverPublicKey));
-            }
-            default -> throw new IllegalStateException("Unsupported version: " + version);
-        };
+        String serverPublicKey = (String) jsonObject.get("ecServerPublicKey");
+        if (serverPublicKey == null) {
+            return null;
+        }
+        return KEY_CONVERTOR_EC.convertBytesToPublicKey(EcCurve.P384, Base64.getDecoder().decode(serverPublicKey));
     }
 
     /**
@@ -241,30 +213,15 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setEcServerPublicKeyObject(PublicKey serverPublicKeyObject) throws Exception {
-        int version = getVersion().intValue();
-        switch (version) {
-            case 3 -> {
-                String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(EcCurve.P256, serverPublicKeyObject));
-                jsonObject.put("serverPublicKey", serverPublicKey);
-            }
-            case 4 -> {
-                String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(EcCurve.P384, serverPublicKeyObject));
-                jsonObject.put("ecServerPublicKey", serverPublicKey);
-            }
-            default -> throw new IllegalStateException("Unsupported version: " + version);
-        }
+        String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(EcCurve.P384, serverPublicKeyObject));
+        jsonObject.put("ecServerPublicKey", serverPublicKey);
     }
 
     /**
      * @return Base64 encoded byte representation of the EC server public key
      */
     public String getEcServerPublicKey() {
-        int version = getVersion().intValue();
-        return switch (version) {
-            case 3 -> (String) jsonObject.get("serverPublicKey");
-            case 4 -> (String) jsonObject.get("ecServerPublicKey");
-            default -> throw new IllegalStateException("Unsupported version: " + version);
-        };
+        return (String) jsonObject.get("ecServerPublicKey");
     }
 
     /**
@@ -272,12 +229,7 @@ public class ResultStatusObject {
      * @param serverPublicKey Public key as base64
      */
     public void setEcServerPublicKey(String serverPublicKey) {
-        int version = getVersion().intValue();
-        switch (version) {
-            case 3 -> jsonObject.put("serverPublicKey", serverPublicKey);
-            case 4 -> jsonObject.put("ecServerPublicKey", serverPublicKey);
-            default -> throw new IllegalStateException("Unsupported version: " + version);
-        }
+        jsonObject.put("ecServerPublicKey", serverPublicKey);
     }
 
     /**
@@ -325,24 +277,11 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public PublicKey getEcDevicePublicKeyObject() throws Exception {
-        int version = getVersion().intValue();
-        return switch (version) {
-            case 3 -> {
-                String devicePublicKey = (String) jsonObject.get("devicePublicKey");
-                if (devicePublicKey == null) {
-                    yield null;
-                }
-                yield KEY_CONVERTOR_EC.convertBytesToPublicKey(EcCurve.P256, Base64.getDecoder().decode(devicePublicKey));
-            }
-            case 4 -> {
-                String devicePublicKey = (String) jsonObject.get("ecDevicePublicKey");
-                if (devicePublicKey == null) {
-                    yield null;
-                }
-                yield KEY_CONVERTOR_EC.convertBytesToPublicKey(EcCurve.P384, Base64.getDecoder().decode(devicePublicKey));
-            }
-            default -> throw new IllegalStateException("Unsupported version: " + version);
-        };
+        String devicePublicKey = (String) jsonObject.get("ecDevicePublicKey");
+        if (devicePublicKey == null) {
+            return null;
+        }
+        return KEY_CONVERTOR_EC.convertBytesToPublicKey(EcCurve.P384, Base64.getDecoder().decode(devicePublicKey));
     }
 
     /**
@@ -352,30 +291,15 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setEcDevicePublicKeyObject(PublicKey devicePublicKeyObject) throws Exception {
-        int version = getVersion().intValue();
-        switch (version) {
-            case 3 -> {
-                String devicePublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(EcCurve.P256, devicePublicKeyObject));
-                jsonObject.put("devicePublicKey", devicePublicKey);
-            }
-            case 4 -> {
-                String devicePublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(EcCurve.P384, devicePublicKeyObject));
-                jsonObject.put("ecDevicePublicKey", devicePublicKey);
-            }
-            default -> throw new IllegalStateException("Unsupported version: " + version);
-        }
+        String devicePublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(EcCurve.P384, devicePublicKeyObject));
+        jsonObject.put("ecDevicePublicKey", devicePublicKey);
     }
 
     /**
      * @return Base64 encoded byte representation of the EC device public key
      */
     public String getEcDevicePublicKey() {
-        int version = getVersion().intValue();
-        return switch (version) {
-            case 3 -> (String) jsonObject.get("devicePublicKey");
-            case 4 -> (String) jsonObject.get("ecDevicePublicKey");
-            default -> throw new IllegalStateException("Unsupported version: " + version);
-        };
+        return (String) jsonObject.get("ecDevicePublicKey");
     }
 
     /**
@@ -383,12 +307,7 @@ public class ResultStatusObject {
      * @param devicePublicKey Public key as base64
      */
     public void setEcDevicePublicKey(String devicePublicKey) {
-        int version = getVersion().intValue();
-        switch (version) {
-            case 3 -> jsonObject.put("devicePublicKey", devicePublicKey);
-            case 4 -> jsonObject.put("ecDevicePublicKey", devicePublicKey);
-            default -> throw new IllegalStateException("Unsupported version: " + version);
-        }
+        jsonObject.put("ecDevicePublicKey", devicePublicKey);
     }
 
     /**
@@ -435,12 +354,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public SecretKey getBiometryFactorKeyObject() {
-        final String biometryFactorKey;
-        switch (getVersion().intValue()) {
-            case 3 -> biometryFactorKey = (String) jsonObject.get("signatureBiometryKey");
-            case 4 -> biometryFactorKey = (String) jsonObject.get("biometryFactorKey");
-            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
-        }
+        final String biometryFactorKey = (String) jsonObject.get("biometryFactorKey");
         if (biometryFactorKey == null) {
             return null;
         }
@@ -456,21 +370,14 @@ public class ResultStatusObject {
         final String biometryFactorKey = biometryFactorKeyObject != null
                 ? Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(biometryFactorKeyObject))
                 : null;
-        switch (getVersion().intValue()) {
-            case 3 -> jsonObject.put("signatureBiometryKey", biometryFactorKey);
-            case 4 -> jsonObject.put("biometryFactorKey", biometryFactorKey);
-        }
+        jsonObject.put("biometryFactorKey", biometryFactorKey);
     }
 
     /**
      * @return Base64 encoded byte representation of the biometry factor key
      */
     public String getBiometryFactorKey() {
-        return switch (getVersion().intValue()) {
-            case 3 -> (String) jsonObject.get("signatureBiometryKey");
-            case 4 -> (String) jsonObject.get("biometryFactorKey");
-            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
-        };
+        return (String) jsonObject.get("biometryFactorKey");
     }
 
     /**
@@ -478,11 +385,7 @@ public class ResultStatusObject {
      * @param biometryFactorKey Biometry factor key
      */
     public void setBiometryFactorKey(String biometryFactorKey) {
-        switch (getVersion().intValue()) {
-            case 3 -> jsonObject.put("signatureBiometryKey", biometryFactorKey);
-            case 4 -> jsonObject.put("biometryFactorKey", biometryFactorKey);
-            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
-        }
+        jsonObject.put("biometryFactorKey", biometryFactorKey);
     }
 
     /**
@@ -490,12 +393,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public byte[] getKnowledgeFactorKeyEncryptedBytes() {
-        String knowledgeFactorKeyEncrypted;
-        switch (getVersion().intValue()) {
-            case 3 -> knowledgeFactorKeyEncrypted = (String) jsonObject.get("signatureKnowledgeKeyEncrypted");
-            case 4 -> knowledgeFactorKeyEncrypted = (String) jsonObject.get("knowledgeFactorKeyEncrypted");
-            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
-        }
+        final String knowledgeFactorKeyEncrypted = (String) jsonObject.get("knowledgeFactorKeyEncrypted");
         return Base64.getDecoder().decode(knowledgeFactorKeyEncrypted);
     }
 
@@ -505,23 +403,15 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setKnowledgeFactorKeyEncryptedBytes(byte[] knowledgeFactorKeyEncryptedBytes) {
-        String knowledgeFactorKeyEncrypted = Base64.getEncoder().encodeToString(knowledgeFactorKeyEncryptedBytes);
-        switch (getVersion().intValue()) {
-            case 3 -> jsonObject.put("signatureKnowledgeKeyEncrypted", knowledgeFactorKeyEncrypted);
-            case 4 -> jsonObject.put("knowledgeFactorKeyEncrypted", knowledgeFactorKeyEncrypted);
-            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
-        }
+        final String knowledgeFactorKeyEncrypted = Base64.getEncoder().encodeToString(knowledgeFactorKeyEncryptedBytes);
+        jsonObject.put("knowledgeFactorKeyEncrypted", knowledgeFactorKeyEncrypted);
     }
 
     /**
      * @return Base64 encoded byte representation of the knowledge factor key
      */
     public String getKnowledgeFactorKeyEncrypted() {
-        return switch (getVersion().intValue()) {
-            case 3 -> (String) jsonObject.get("signatureKnowledgeKeyEncrypted");
-            case 4 -> (String) jsonObject.get("knowledgeFactorKeyEncrypted");
-            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
-        };
+        return (String) jsonObject.get("knowledgeFactorKeyEncrypted");
     }
 
     /**
@@ -529,11 +419,7 @@ public class ResultStatusObject {
      * @param knowledgeFactorKeyEncrypted Knowledge factor key encrypted value
      */
     public void setKnowledgeFactorKeyEncrypted(String knowledgeFactorKeyEncrypted) {
-        switch (getVersion().intValue()) {
-            case 3 -> jsonObject.put("signatureKnowledgeKeyEncrypted", knowledgeFactorKeyEncrypted);
-            case 4 -> jsonObject.put("knowledgeFactorKeyEncrypted", knowledgeFactorKeyEncrypted);
-            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
-        }
+        jsonObject.put("knowledgeFactorKeyEncrypted", knowledgeFactorKeyEncrypted);
     }
 
     /**
@@ -541,12 +427,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public byte[] getKnowledgeFactorKeySaltBytes() {
-        String knowledgeFactorKeySalt;
-        switch (getVersion().intValue()) {
-            case 3 -> knowledgeFactorKeySalt = (String) jsonObject.get("signatureKnowledgeKeySalt");
-            case 4 -> knowledgeFactorKeySalt = (String) jsonObject.get("knowledgeFactorKeySalt");
-            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
-        }
+        final String knowledgeFactorKeySalt = (String) jsonObject.get("knowledgeFactorKeySalt");
         return Base64.getDecoder().decode(knowledgeFactorKeySalt);
     }
 
@@ -556,23 +437,15 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setKnowledgeFactorKeySaltBytes(byte[] knowledgeFactorKeySaltBytes) {
-        String knowledgeFactorKeySalt = Base64.getEncoder().encodeToString(knowledgeFactorKeySaltBytes);
-        switch (getVersion().intValue()) {
-            case 3 -> jsonObject.put("signatureKnowledgeKeySalt", knowledgeFactorKeySalt);
-            case 4 -> jsonObject.put("knowledgeFactorKeySalt", knowledgeFactorKeySalt);
-            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
-        }
+        final String knowledgeFactorKeySalt = Base64.getEncoder().encodeToString(knowledgeFactorKeySaltBytes);
+        jsonObject.put("knowledgeFactorKeySalt", knowledgeFactorKeySalt);
     }
 
     /**
      * @return Knowledge factor salt
      */
     public String getKnowledgeFactorKeySalt() {
-        return switch (getVersion().intValue()) {
-            case 3 -> (String) jsonObject.get("signatureKnowledgeKeySalt");
-            case 4 -> (String) jsonObject.get("knowledgeFactorKeySalt");
-            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
-        };
+        return (String) jsonObject.get("knowledgeFactorKeySalt");
     }
 
     /**
@@ -580,11 +453,7 @@ public class ResultStatusObject {
      * @param knowledgeFactorKeySalt Knowledge factor key salt value
      */
     public void setKnowledgeFactorKeySalt(String knowledgeFactorKeySalt) {
-        switch (getVersion().intValue()) {
-            case 3 -> jsonObject.put("signatureKnowledgeKeySalt", knowledgeFactorKeySalt);
-            case 4 -> jsonObject.put("knowledgeFactorKeySalt", knowledgeFactorKeySalt);
-            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
-        }
+        jsonObject.put("knowledgeFactorKeySalt", knowledgeFactorKeySalt);
     }
 
     /**
@@ -592,12 +461,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public SecretKey getPossessionFactorKeyObject() {
-        final String possessionFactorKey;
-        switch (getVersion().intValue()) {
-            case 3 -> possessionFactorKey = (String) jsonObject.get("signaturePossessionKey");
-            case 4 -> possessionFactorKey = (String) jsonObject.get("possessionFactorKey");
-            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
-        }
+        final String possessionFactorKey = (String) jsonObject.get("possessionFactorKey");
         if (possessionFactorKey == null) {
             return null;
         }
@@ -610,23 +474,15 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setPossessionFactorKeyObject(SecretKey possessionFactorKeyObject) {
-        String possessionFactorKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(possessionFactorKeyObject));
-        switch (getVersion().intValue()) {
-            case 3 -> jsonObject.put("signaturePossessionKey", possessionFactorKey);
-            case 4 -> jsonObject.put("possessionFactorKey", possessionFactorKey);
-            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
-        }
+        final String possessionFactorKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(possessionFactorKeyObject));
+        jsonObject.put("possessionFactorKey", possessionFactorKey);
     }
 
     /**
      * @return Base64 encoded byte representation of the possession factor key
      */
     public String getPossessionFactorKey() {
-        return switch (getVersion().intValue()) {
-            case 3 -> (String) jsonObject.get("signaturePossessionKey");
-            case 4 -> (String) jsonObject.get("possessionFactorKey");
-            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
-        };
+        return (String) jsonObject.get("possessionFactorKey");
     }
 
     /**
@@ -634,11 +490,7 @@ public class ResultStatusObject {
      * @param possessionFactorKey Base64 encoded byte representation of the possession factor key
      */
     public void setPossessionFactorKey(String possessionFactorKey) {
-        switch (getVersion().intValue()) {
-            case 3 -> jsonObject.put("signaturePossessionKey", possessionFactorKey);
-            case 4 -> jsonObject.put("possessionFactorKey", possessionFactorKey);
-            default -> throw new IllegalStateException("Unsupported version: " + getVersion());
-        }
+        jsonObject.put("possessionFactorKey", possessionFactorKey);
     }
 
     /**
