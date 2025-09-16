@@ -143,10 +143,6 @@ public class SignAsymmetricStep extends AbstractBaseStep<SignAsymmetricStepModel
             default -> throw new IllegalArgumentException("Unsupported version: " + stepContext.getModel().getVersion());
         };
 
-        if (requestBytesPayload == null) {
-            return null;
-        }
-
         addEncryptedRequest(stepContext, model.getApplicationKey(), model.getApplicationSecret(), EncryptorId.VAULT_UNLOCK, requestBytesPayload, EncryptorScope.ACTIVATION_SCOPE);
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
