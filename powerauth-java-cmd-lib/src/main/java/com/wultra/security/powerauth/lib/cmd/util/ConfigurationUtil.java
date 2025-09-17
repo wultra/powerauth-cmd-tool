@@ -168,10 +168,6 @@ public class ConfigurationUtil {
                 stepLogger.writeDoneFailed("master-key-failed");
                 System.exit(1);
             }
-        } else {
-            stepLogger.writeError("master-key-error-public-key-missing", "Invalid Master Server Public Key", "Master Server Public Key not found in the config file");
-            stepLogger.writeDoneFailed("master-key-failed");
-            System.exit(1);
         }
         return null;
     }
@@ -196,10 +192,6 @@ public class ConfigurationUtil {
                 stepLogger.writeDoneFailed("master-key-failed");
                 System.exit(1);
             }
-        } else {
-            stepLogger.writeError("master-key-error-public-key-missing", "Invalid Master Server Public Key", "Master Server Public Key not found in the config file");
-            stepLogger.writeDoneFailed("master-key-failed");
-            System.exit(1);
         }
         return null;
     }
