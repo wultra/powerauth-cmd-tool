@@ -147,29 +147,26 @@ public class ConfigurationUtil {
      * @return Public key
      */
     private static PublicKey convertMasterPublicKeyEC(EcCurve ecCurve, String masterPublicKey, StepLogger stepLogger) {
-        if (masterPublicKey != null) {
-            try {
-                byte[] masterKeyBytes = Base64.getDecoder().decode(masterPublicKey);
-                return KEY_CONVERTOR_EC.convertBytesToPublicKey(ecCurve, masterKeyBytes);
-            } catch (IllegalArgumentException e) {
-                stepLogger.writeError("master-key-error-encoding", "Invalid Master Server Public Key", "Master Server Public Key must be stored in a valid Base64 encoding", e);
-                stepLogger.writeDoneFailed("master-key-failed");
-                System.exit(1);
-            } catch (InvalidKeySpecException e) {
-                stepLogger.writeError("master-key-error-format", "Invalid Master Server Public Key", "Master Server Public Key was stored in an incorrect format", e);
-                stepLogger.writeDoneFailed("master-key-failed");
-                System.exit(1);
-            } catch (CryptoProviderException e) {
-                stepLogger.writeError("master-key-error-cryptography-provider", "Cryptography Provider Error", "Cryptography provider is initialized incorrectly", e);
-                stepLogger.writeDoneFailed("master-key-failed");
-                System.exit(1);
-            } catch (GenericCryptoException e) {
-                stepLogger.writeError("master-key-error-cryptography-generic", "Cryptography Generic Error", "Cryptography error occurred", e);
-                stepLogger.writeDoneFailed("master-key-failed");
-                System.exit(1);
-            }
-        } else {
-            stepLogger.writeError("master-key-error-public-key-missing", "Invalid Master Server Public Key", "Master Server Public Key not found in the config file");
+        if (masterPublicKey == null) {
+            return null;
+        }
+        try {
+            byte[] masterKeyBytes = Base64.getDecoder().decode(masterPublicKey);
+            return KEY_CONVERTOR_EC.convertBytesToPublicKey(ecCurve, masterKeyBytes);
+        } catch (IllegalArgumentException e) {
+            stepLogger.writeError("master-key-error-encoding", "Invalid Master Server Public Key", "Master Server Public Key must be stored in a valid Base64 encoding", e);
+            stepLogger.writeDoneFailed("master-key-failed");
+            System.exit(1);
+        } catch (InvalidKeySpecException e) {
+            stepLogger.writeError("master-key-error-format", "Invalid Master Server Public Key", "Master Server Public Key was stored in an incorrect format", e);
+            stepLogger.writeDoneFailed("master-key-failed");
+            System.exit(1);
+        } catch (CryptoProviderException e) {
+            stepLogger.writeError("master-key-error-cryptography-provider", "Cryptography Provider Error", "Cryptography provider is initialized incorrectly", e);
+            stepLogger.writeDoneFailed("master-key-failed");
+            System.exit(1);
+        } catch (GenericCryptoException e) {
+            stepLogger.writeError("master-key-error-cryptography-generic", "Cryptography Generic Error", "Cryptography error occurred", e);
             stepLogger.writeDoneFailed("master-key-failed");
             System.exit(1);
         }
@@ -183,21 +180,18 @@ public class ConfigurationUtil {
      * @return Public key
      */
     private static PublicKey convertMasterPublicKeyMlDsa65(String masterPublicKey, StepLogger stepLogger) {
-        if (masterPublicKey != null) {
-            try {
-                byte[] masterKeyBytes = Base64.getDecoder().decode(masterPublicKey);
-                return KEY_CONVERTOR_PQC_DSA.convertBytesToPublicKey(masterKeyBytes);
-            } catch (IllegalArgumentException e) {
-                stepLogger.writeError("master-key-error-encoding", "Invalid Master Server Public Key", "Master Server Public Key must be stored in a valid Base64 encoding", e);
-                stepLogger.writeDoneFailed("master-key-failed");
-                System.exit(1);
-            } catch (GenericCryptoException e) {
-                stepLogger.writeError("master-key-error-cryptography-generic", "Cryptography Generic Error", "Cryptography error occurred", e);
-                stepLogger.writeDoneFailed("master-key-failed");
-                System.exit(1);
-            }
-        } else {
-            stepLogger.writeError("master-key-error-public-key-missing", "Invalid Master Server Public Key", "Master Server Public Key not found in the config file");
+        if (masterPublicKey == null) {
+            return null;
+        }
+        try {
+            byte[] masterKeyBytes = Base64.getDecoder().decode(masterPublicKey);
+            return KEY_CONVERTOR_PQC_DSA.convertBytesToPublicKey(masterKeyBytes);
+        } catch (IllegalArgumentException e) {
+            stepLogger.writeError("master-key-error-encoding", "Invalid Master Server Public Key", "Master Server Public Key must be stored in a valid Base64 encoding", e);
+            stepLogger.writeDoneFailed("master-key-failed");
+            System.exit(1);
+        } catch (GenericCryptoException e) {
+            stepLogger.writeError("master-key-error-cryptography-generic", "Cryptography Generic Error", "Cryptography error occurred", e);
             stepLogger.writeDoneFailed("master-key-failed");
             System.exit(1);
         }
