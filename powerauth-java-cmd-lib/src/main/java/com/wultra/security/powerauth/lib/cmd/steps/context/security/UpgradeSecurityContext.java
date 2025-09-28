@@ -21,18 +21,21 @@ import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedRequest
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedResponse;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
 import com.wultra.security.powerauth.crypto.lib.v4.api.SharedSecretClientContext;
+import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
+import com.wultra.security.powerauth.rest.api.model.request.v4.DevicePublicKeys;
 import lombok.Builder;
 import lombok.Data;
 
+import java.security.KeyPair;
+
 /**
- * Simple security context
+ * Security context for upgrade
  *
- * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  * @author Roman Strobl, roman.strobl@wultra.com
  */
 @Data
 @Builder
-public class SimpleSecurityContext implements SecurityContext {
+public class UpgradeSecurityContext implements SecurityContext {
 
     /**
      * Encryptor
@@ -40,13 +43,33 @@ public class SimpleSecurityContext implements SecurityContext {
     private ClientEncryptor<EncryptedRequest, EncryptedResponse> encryptor;
 
     /**
-     * Optional shared secret client context for shared secret derivation (V4)
+     * EC device key pair (ECDSA)
+     */
+    private KeyPair ecDeviceKeyPair;
+
+    /**
+     * PQC device key pair (ML-DSA)
+     */
+    private KeyPair pqcDeviceKeyPair;
+
+    /**
+     * Device public keys
+     */
+    private DevicePublicKeys devicePublicKeys;
+
+    /**
+     * Shared secret algorithm
+     */
+    private SharedSecretAlgorithm sharedSecretAlgorithm;
+
+    /**
+     * Shared secret client context for shared secret derivation
      */
     private SharedSecretClientContext sharedSecretClientContext;
 
     @Override
     public EncryptorScope getEncryptorScope() {
-        return encryptor != null ? encryptor.getEncryptorId().scope() : null;
+        return EncryptorScope.APPLICATION_SCOPE;
     }
 
 }

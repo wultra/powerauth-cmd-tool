@@ -39,6 +39,7 @@ import com.wultra.security.powerauth.lib.cmd.status.ResultStatusService;
 import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
+import com.wultra.security.powerauth.lib.cmd.steps.context.security.SimpleSecurityContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.ChangePasswordStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecret;
@@ -73,8 +74,6 @@ import java.util.Map;
 public class ChangePasswordStep extends AbstractBaseStep<ChangePasswordStepModel, EncryptedResponse> {
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
-
-    private static final String CHANGE_PASSWORD_CLIENT_CONTEXT = "changePasswordClientContext";
 
     private static final SharedSecretEcdhe SHARED_SECRET_ECDHE = new SharedSecretEcdhe();
     private static final SharedSecretHybrid SHARED_SECRET_HYBRID = new SharedSecretHybrid();
@@ -145,7 +144,7 @@ public class ChangePasswordStep extends AbstractBaseStep<ChangePasswordStepModel
         final SharedSecretResponse responsePayload = decryptResponse(stepContext, SharedSecretResponse.class);
 
         final SharedSecretAlgorithm sharedSecretAlgorithm = SecurityUtil.resolveSharedSecretAlgorithm(stepContext, EncryptorScope.ACTIVATION_SCOPE);
-        final SharedSecretClientContext clientContext = (SharedSecretClientContext) stepContext.getAttributes().get(CHANGE_PASSWORD_CLIENT_CONTEXT);
+        final SharedSecretClientContext clientContext = ((SimpleSecurityContext) stepContext.getSecurityContext()).getSharedSecretClientContext();
         final SecretKey knowledgeFactorKey = FactorKeyUtil.deriveFactorKey(responsePayload, clientContext, sharedSecretAlgorithm);
 
         final char[] password;
@@ -179,7 +178,7 @@ public class ChangePasswordStep extends AbstractBaseStep<ChangePasswordStepModel
         return switch (algorithm) {
             case EC_P384 -> {
                 final RequestCryptogram requestCryptogram = SHARED_SECRET_ECDHE.generateRequestCryptogram();
-                stepContext.getAttributes().put(CHANGE_PASSWORD_CLIENT_CONTEXT, requestCryptogram.getSharedSecretClientContext());
+                stepContext.setSecurityContext(SimpleSecurityContext.builder().sharedSecretClientContext(requestCryptogram.getSharedSecretClientContext()).build());
                 final SharedSecretRequestEcdhe requestEcdhe = (SharedSecretRequestEcdhe) requestCryptogram.getSharedSecretRequest();
                 final RequestSharedSecretEcdhe sharedSecretRequest = new RequestSharedSecretEcdhe();
                 sharedSecretRequest.setAlgorithm(algorithm.toString());
@@ -188,7 +187,7 @@ public class ChangePasswordStep extends AbstractBaseStep<ChangePasswordStepModel
             }
             case EC_P384_ML_L3 -> {
                 final RequestCryptogram requestCryptogram = SHARED_SECRET_HYBRID.generateRequestCryptogram();
-                stepContext.getAttributes().put(CHANGE_PASSWORD_CLIENT_CONTEXT, requestCryptogram.getSharedSecretClientContext());
+                stepContext.setSecurityContext(SimpleSecurityContext.builder().sharedSecretClientContext(requestCryptogram.getSharedSecretClientContext()).build());
                 final SharedSecretRequestHybrid requestHybrid = (SharedSecretRequestHybrid) requestCryptogram.getSharedSecretRequest();
                 final RequestSharedSecretHybrid sharedSecretRequest = new RequestSharedSecretHybrid();
                 sharedSecretRequest.setAlgorithm(algorithm.toString());

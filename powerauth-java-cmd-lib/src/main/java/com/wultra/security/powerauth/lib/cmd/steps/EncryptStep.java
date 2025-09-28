@@ -46,8 +46,6 @@ import java.security.PublicKey;
 import java.util.Base64;
 import java.util.Map;
 
-import static com.wultra.security.powerauth.lib.cmd.util.TemporaryKeyUtil.*;
-
 /**
  * Encrypt step encrypts request data using ECIES encryption in application or activation scope.
  *
@@ -140,7 +138,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EncryptedRes
             // Error is already logged
             return null;
         }
-        final String temporaryKeyId = (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID);
+        final String temporaryKeyId = stepContext.getTemporaryKeyContext().getTemporaryKeyId();
         final ResultStatusObject resultStatusObject = model.getResultStatus();
 
         // Prepare the encryption header
@@ -154,7 +152,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EncryptedRes
             case APPLICATION_SCOPE -> {
                 switch (model.getVersion().getMajorVersion()) {
                     case 3 -> {
-                        final String temporaryPublicKey = (String) stepContext.getAttributes().get(TEMPORARY_PUBLIC_KEY);
+                        final String temporaryPublicKey = stepContext.getTemporaryKeyContext().getTemporaryPublicKey();
                         final PublicKey encryptionPublicKey = temporaryPublicKey == null ?
                                 model.getMasterPublicKeyP256() :
                                 KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, java.util.Base64.getDecoder().decode(temporaryPublicKey));
@@ -162,7 +160,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EncryptedRes
                         encryptorSecrets = new ClientEciesSecrets(encryptionPublicKey, model.getApplicationSecret());
                     }
                     case 4 -> {
-                        final SecretKey temporarySharedSecret = (SecretKey) stepContext.getAttributes().get(TEMPORARY_SHARED_SECRET);
+                        final SecretKey temporarySharedSecret = stepContext.getTemporaryKeyContext().getTemporarySharedSecret();
                         encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, temporaryKeyId);
                         encryptorSecrets = new AeadSecrets(temporarySharedSecret.getEncoded(), model.getApplicationSecret());
                     }
@@ -180,7 +178,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EncryptedRes
             case ACTIVATION_SCOPE -> {
                 switch (model.getVersion().getMajorVersion()) {
                     case 3 -> {
-                        final String temporaryPublicKey = (String) stepContext.getAttributes().get(TEMPORARY_PUBLIC_KEY);
+                        final String temporaryPublicKey = stepContext.getTemporaryKeyContext().getTemporaryPublicKey();
                         final PublicKey encryptionPublicKey = temporaryPublicKey == null ?
                                 resultStatusObject.getEcServerPublicKeyObject() :
                                 KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, java.util.Base64.getDecoder().decode(temporaryPublicKey));
@@ -188,7 +186,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EncryptedRes
                         encryptorSecrets = new ClientEciesSecrets(encryptionPublicKey, model.getApplicationSecret(), Base64.getDecoder().decode(resultStatusObject.getTransportMasterKey()));
                     }
                     case 4 -> {
-                        final SecretKey temporarySharedSecret = (SecretKey) stepContext.getAttributes().get(TEMPORARY_SHARED_SECRET);
+                        final SecretKey temporarySharedSecret = stepContext.getTemporaryKeyContext().getTemporarySharedSecret();
                         if (temporarySharedSecret == null) {
                             stepLogger.writeError("encrypt-error-temporary-key", "Encrypt Request Failed", "Temporary key retrieval failed");
                             stepLogger.writeDoneFailed("encrypt-failed");

@@ -16,37 +16,39 @@
  */
 package com.wultra.security.powerauth.lib.cmd.steps.context.security;
 
-import com.wultra.security.powerauth.crypto.lib.encryptor.ClientEncryptor;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedRequest;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedResponse;
-import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
 import com.wultra.security.powerauth.crypto.lib.v4.api.SharedSecretClientContext;
 import lombok.Builder;
 import lombok.Data;
 
+import javax.crypto.SecretKey;
+
 /**
- * Simple security context
+ * Temporary key context used for deriving temporary keys.
  *
- * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  * @author Roman Strobl, roman.strobl@wultra.com
  */
 @Data
 @Builder
-public class SimpleSecurityContext implements SecurityContext {
+public class TemporaryKeyContext {
 
     /**
-     * Encryptor
+     * Temporary key identifier
      */
-    private ClientEncryptor<EncryptedRequest, EncryptedResponse> encryptor;
+    private String temporaryKeyId;
 
     /**
-     * Optional shared secret client context for shared secret derivation (V4)
+     * Temporary public key (V3)
+     */
+    private String temporaryPublicKey;
+
+    /**
+     * Shared secret client context for shared secret derivation (V4)
      */
     private SharedSecretClientContext sharedSecretClientContext;
 
-    @Override
-    public EncryptorScope getEncryptorScope() {
-        return encryptor != null ? encryptor.getEncryptorId().scope() : null;
-    }
+    /**
+     * Temporary shared secret (V4)
+     */
+    private SecretKey temporarySharedSecret;
 
 }

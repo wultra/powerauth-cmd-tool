@@ -19,6 +19,7 @@ package com.wultra.security.powerauth.lib.cmd.steps.context;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLogger;
 import com.wultra.security.powerauth.lib.cmd.steps.context.security.SecurityContext;
+import com.wultra.security.powerauth.lib.cmd.steps.context.security.TemporaryKeyContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import lombok.Data;
 
@@ -57,6 +58,11 @@ public class StepContext<M extends BaseStepData, R> {
      * Security context
      */
     private SecurityContext securityContext;
+
+    /**
+     * Temporary key context
+     */
+    private TemporaryKeyContext temporaryKeyContext;
 
     /**
      * Current step identification

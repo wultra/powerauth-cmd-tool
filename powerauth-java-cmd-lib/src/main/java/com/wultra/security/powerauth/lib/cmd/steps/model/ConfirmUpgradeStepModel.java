@@ -24,13 +24,13 @@ import lombok.EqualsAndHashCode;
 import java.util.Map;
 
 /**
- * Model representing step for committing upgrade between different PowerAuth protocol versions.
+ * Model representing step for confirming upgrade between different PowerAuth protocol versions.
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class CommitUpgradeStepModel extends BaseStepModel
+public class ConfirmUpgradeStepModel extends BaseStepModel
         implements ResultStatusChangeable, AuthorizationHeaderData {
 
     /**

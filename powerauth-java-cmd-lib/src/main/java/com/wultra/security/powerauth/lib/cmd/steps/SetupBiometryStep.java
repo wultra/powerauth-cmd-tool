@@ -38,6 +38,7 @@ import com.wultra.security.powerauth.lib.cmd.status.ResultStatusService;
 import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
+import com.wultra.security.powerauth.lib.cmd.steps.context.security.SimpleSecurityContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.SetupBiometryStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecret;
@@ -69,8 +70,6 @@ import java.util.Map;
 public class SetupBiometryStep extends AbstractBaseStep<SetupBiometryStepModel, EncryptedResponse> {
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
-
-    private static final String SETUP_BIOMETRY_CLIENT_CONTEXT = "setupBiometryClientContext";
 
     private static final SharedSecretEcdhe SHARED_SECRET_ECDHE = new SharedSecretEcdhe();
     private static final SharedSecretHybrid SHARED_SECRET_HYBRID = new SharedSecretHybrid();
@@ -140,7 +139,7 @@ public class SetupBiometryStep extends AbstractBaseStep<SetupBiometryStepModel, 
         final SharedSecretResponse responsePayload = decryptResponse(stepContext, SharedSecretResponse.class);
 
         final SharedSecretAlgorithm sharedSecretAlgorithm = SecurityUtil.resolveSharedSecretAlgorithm(stepContext, EncryptorScope.ACTIVATION_SCOPE);
-        final SharedSecretClientContext clientContext = (SharedSecretClientContext) stepContext.getAttributes().get(SETUP_BIOMETRY_CLIENT_CONTEXT);
+        final SharedSecretClientContext clientContext = ((SimpleSecurityContext) stepContext.getSecurityContext()).getSharedSecretClientContext();
         final SecretKey biometryFactorKey = FactorKeyUtil.deriveFactorKey(responsePayload, clientContext, sharedSecretAlgorithm);
         final ResultStatusObject resultStatusObject = stepContext.getModel().getResultStatus();
         resultStatusObject.setBiometryFactorKeyObject(biometryFactorKey);
@@ -161,7 +160,7 @@ public class SetupBiometryStep extends AbstractBaseStep<SetupBiometryStepModel, 
         return switch (algorithm) {
             case EC_P384 -> {
                 final RequestCryptogram requestCryptogram = SHARED_SECRET_ECDHE.generateRequestCryptogram();
-                stepContext.getAttributes().put(SETUP_BIOMETRY_CLIENT_CONTEXT, requestCryptogram.getSharedSecretClientContext());
+                stepContext.setSecurityContext(SimpleSecurityContext.builder().sharedSecretClientContext(requestCryptogram.getSharedSecretClientContext()).build());
                 final SharedSecretRequestEcdhe requestEcdhe = (SharedSecretRequestEcdhe) requestCryptogram.getSharedSecretRequest();
                 final RequestSharedSecretEcdhe sharedSecretRequest = new RequestSharedSecretEcdhe();
                 sharedSecretRequest.setAlgorithm(algorithm.toString());
@@ -170,7 +169,7 @@ public class SetupBiometryStep extends AbstractBaseStep<SetupBiometryStepModel, 
             }
             case EC_P384_ML_L3 -> {
                 final RequestCryptogram requestCryptogram = SHARED_SECRET_HYBRID.generateRequestCryptogram();
-                stepContext.getAttributes().put(SETUP_BIOMETRY_CLIENT_CONTEXT, requestCryptogram.getSharedSecretClientContext());
+                stepContext.setSecurityContext(SimpleSecurityContext.builder().sharedSecretClientContext(requestCryptogram.getSharedSecretClientContext()).build());
                 final SharedSecretRequestHybrid requestHybrid = (SharedSecretRequestHybrid) requestCryptogram.getSharedSecretRequest();
                 final RequestSharedSecretHybrid sharedSecretRequest = new RequestSharedSecretHybrid();
                 sharedSecretRequest.setAlgorithm(algorithm.toString());

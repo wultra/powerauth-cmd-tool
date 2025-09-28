@@ -26,8 +26,7 @@ import com.wultra.security.powerauth.lib.cmd.logging.StepLoggerFactory;
 import com.wultra.security.powerauth.lib.cmd.status.ResultStatusService;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
-import com.wultra.security.powerauth.lib.cmd.steps.model.CommitUpgradeStepModel;
-import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
+import com.wultra.security.powerauth.lib.cmd.steps.model.ConfirmUpgradeStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
@@ -36,21 +35,18 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 /**
- * Step for committing upgrade of PowerAuth protocol.
+ * Step for confirming upgrade of PowerAuth protocol.
  *
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
- *      <li>3.0</li>
- *      <li>3.1</li>
- *      <li>3.2</li>
- *      <li>3.3</li>
+ *      <li>4.0</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  * @author Roman Strobl, roman.strobl@wultra.com
  */
 @Component
-public class CommitUpgradeStep extends AbstractBaseStep<CommitUpgradeStepModel, Response> {
+public class ConfirmUpgradeStep extends AbstractBaseStep<ConfirmUpgradeStepModel, Response> {
 
     private static final ParameterizedTypeReference<Response> RESPONSE_TYPE_REFERENCE = new ParameterizedTypeReference<>() {};
 
@@ -63,11 +59,11 @@ public class CommitUpgradeStep extends AbstractBaseStep<CommitUpgradeStepModel, 
      * @param stepLoggerFactory Step logger factory
      */
     @Autowired
-    public CommitUpgradeStep(
+    public ConfirmUpgradeStep(
             PowerAuthHeaderFactory powerAuthHeaderFactory,
             ResultStatusService resultStatusService,
             StepLoggerFactory stepLoggerFactory) {
-        super(PowerAuthStep.UPGRADE_COMMIT, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
+        super(PowerAuthStep.UPGRADE_CONFIRM, PowerAuthVersion.VERSION_4, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
@@ -75,7 +71,7 @@ public class CommitUpgradeStep extends AbstractBaseStep<CommitUpgradeStepModel, 
     /**
      * Constructor for backward compatibility
      */
-    public CommitUpgradeStep() {
+    public ConfirmUpgradeStep() {
         this(
                 BackwardCompatibilityConst.POWER_AUTH_HEADER_FACTORY,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
@@ -89,23 +85,18 @@ public class CommitUpgradeStep extends AbstractBaseStep<CommitUpgradeStepModel, 
     }
 
     @Override
-    public StepContext<CommitUpgradeStepModel, Response> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        CommitUpgradeStepModel model = new CommitUpgradeStepModel();
+    public StepContext<ConfirmUpgradeStepModel, Response> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+        final ConfirmUpgradeStepModel model = new ConfirmUpgradeStepModel();
         model.fromMap(context);
 
-        ResultStatusObject resultStatusObject = model.getResultStatus();
-
-        RequestContext requestContext = RequestContext.builder()
+        final RequestContext requestContext = RequestContext.builder()
                 .authenticationHttpMethod("POST")
-                .authenticationRequestUri("/pa/upgrade/commit")
-                .uri(model.getUriString() + "/pa/v3/upgrade/commit")
+                .authenticationRequestUri("/pa/upgrade/confirm")
+                .uri(model.getUriString() + "/pa/v4/upgrade/confirm")
                 .build();
 
-        StepContext<CommitUpgradeStepModel, Response> stepContext =
+        final StepContext<ConfirmUpgradeStepModel, Response> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
-
-        // Make sure hash based counter is used for calculating the authentication code, in case of an error the version change is not saved
-        resultStatusObject.setVersion(3L);
 
         requestContext.setRequestObject(PowerAuthConst.EMPTY_JSON_BYTES);
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
@@ -114,15 +105,14 @@ public class CommitUpgradeStep extends AbstractBaseStep<CommitUpgradeStepModel, 
     }
 
     @Override
-    public void processResponse(StepContext<CommitUpgradeStepModel, Response> stepContext) throws Exception {
-        CommitUpgradeStepModel model = stepContext.getModel();
-
+    public void processResponse(StepContext<ConfirmUpgradeStepModel, Response> stepContext) throws Exception {
+        final ConfirmUpgradeStepModel model = stepContext.getModel();
         incrementCounter(model);
 
         stepContext.getStepLogger().writeItem(
                 getStep().id() + "-upgrade-done",
-                "Upgrade commit successfully completed",
-                "Upgrade commit was successfully completed",
+                "Upgrade confirmation successfully completed",
+                "Upgrade confirmation was successfully completed",
                 "OK",
                 null
 

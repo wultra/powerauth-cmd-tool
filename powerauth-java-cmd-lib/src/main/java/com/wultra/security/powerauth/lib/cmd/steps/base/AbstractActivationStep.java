@@ -65,8 +65,6 @@ import java.security.KeyPair;
 import java.security.PublicKey;
 import java.util.*;
 
-import static com.wultra.security.powerauth.lib.cmd.util.TemporaryKeyUtil.*;
-
 /**
  * Abstract step with common parts used in activations steps
  *
@@ -409,18 +407,24 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         switch (model.getVersion().getMajorVersion()) {
             case 3 -> {
                 deviceKeyPair = CLIENT_ACTIVATION_V3.generateDeviceKeyPair();
-                final String temporaryPublicKey = (String) stepContext.getAttributes().get(TEMPORARY_PUBLIC_KEY);
-                final PublicKey encryptionPublicKey = temporaryPublicKey == null ?
-                        model.getMasterPublicKeyP256() :
-                        KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, Base64.getDecoder().decode(temporaryPublicKey));
+                final PublicKey encryptionPublicKey;
+                final String temporaryKeyId;
+                if (model.getVersion().useTemporaryKeys()) {
+                    final String temporaryPublicKey = stepContext.getTemporaryKeyContext().getTemporaryPublicKey();
+                    temporaryKeyId = stepContext.getTemporaryKeyContext().getTemporaryKeyId();
+                    encryptionPublicKey = KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, Base64.getDecoder().decode(temporaryPublicKey));
+                } else {
+                    encryptionPublicKey = model.getMasterPublicKeyP256();
+                    temporaryKeyId = null;
+                }
                 encryptorL1 = ENCRYPTOR_FACTORY.getClientEncryptor(
                         EncryptorId.APPLICATION_SCOPE_GENERIC,
-                        new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID)),
+                        new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, temporaryKeyId),
                         new ClientEciesSecrets(encryptionPublicKey, model.getApplicationSecret())
                 );
                 encryptorL2 = ENCRYPTOR_FACTORY.getClientEncryptor(
                         EncryptorId.ACTIVATION_LAYER_2,
-                        new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID)),
+                        new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, temporaryKeyId),
                         new ClientEciesSecrets(encryptionPublicKey, model.getApplicationSecret())
                 );
                 securityContext = ActivationSecurityContext.builder()
@@ -442,12 +446,12 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
                 requestL2Object = requestL2;
             }
             case 4 -> {
-                final SecretKey sharedSecret = (SecretKey) stepContext.getAttributes().get(TEMPORARY_SHARED_SECRET);
+                final SecretKey sharedSecret = stepContext.getTemporaryKeyContext().getTemporarySharedSecret();
                 if (sharedSecret == null) {
                     stepContext.getStepLogger().writeError(getStep().id() + "-error-missing-temporary-shared-secret", "Temporary shared secret is missing", "Temporary shared secret was not derived when adding encrypted request");
                     return;
                 }
-                final String temporaryKeyId = (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID);
+                final String temporaryKeyId = stepContext.getTemporaryKeyContext().getTemporaryKeyId();
                 if (temporaryKeyId == null) {
                     stepContext.getStepLogger().writeError(getStep().id() + "-error-missing-temporary-key-id", "Temporary key identifier is missing", "Temporary key identifier is missing when adding encrypted request");
                     return;
