@@ -16,13 +16,10 @@
 package com.wultra.security.powerauth.lib.cmd.steps;
 
 import com.wultra.security.powerauth.crypto.client.v4.activation.PowerAuthClientActivation;
-import com.wultra.security.powerauth.crypto.client.v4.keyfactory.PowerAuthClientKeyFactory;
-import com.wultra.security.powerauth.crypto.client.v4.vault.PowerAuthClientVault;
 import com.wultra.security.powerauth.crypto.lib.encryptor.ClientEncryptor;
 import com.wultra.security.powerauth.crypto.lib.encryptor.EncryptorFactory;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.*;
 import com.wultra.security.powerauth.crypto.lib.enums.EcCurve;
-import com.wultra.security.powerauth.crypto.lib.generator.KeyGenerator;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
 import com.wultra.security.powerauth.crypto.lib.v4.api.PqcDsaKeyConvertor;
 import com.wultra.security.powerauth.crypto.lib.v4.api.SharedSecretClientContext;
@@ -53,7 +50,7 @@ import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.security.UpgradeSecurityContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
-import com.wultra.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
+import com.wultra.security.powerauth.lib.cmd.util.KeyDerivationUtil;
 import com.wultra.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import com.wultra.security.powerauth.lib.cmd.util.SecurityUtil;
 import com.wultra.security.powerauth.rest.api.model.request.v4.DevicePublicKeys;
@@ -65,12 +62,9 @@ import com.wultra.security.powerauth.rest.api.model.response.v4.UpgradeResponseP
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
-import org.springframework.util.Assert;
 
 import javax.crypto.SecretKey;
-import java.io.Console;
 import java.security.KeyPair;
-import java.security.PublicKey;
 import java.util.Base64;
 import java.util.Map;
 
@@ -89,12 +83,9 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, En
 
     private static final PowerAuthClientActivation CLIENT_ACTIVATION_V4 = new PowerAuthClientActivation();
     private static final EncryptorFactory ENCRYPTOR_FACTORY = new EncryptorFactory();
-    private static final PowerAuthClientKeyFactory KEY_FACTORY_V4 = new PowerAuthClientKeyFactory();
-    private static final PowerAuthClientVault VAULT_V4 = new PowerAuthClientVault();
 
     private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
     private static final PqcDsaKeyConvertor KEY_CONVERTOR_PQC_DSA = new MlDsaKeyConvertor();
-    private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
 
     private static final SharedSecretEcdhe SHARED_SECRET_ECDHE = new SharedSecretEcdhe();
     private static final SharedSecretHybrid SHARED_SECRET_HYBRID = new SharedSecretHybrid();
@@ -269,65 +260,12 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, En
             default -> throw new IllegalStateException("Unsupported shared secret algorithm: " + model.getSharedSecretAlgorithm());
         }
 
-        // Derive keys
-        final SecretKey tempKeyActSign = KEY_FACTORY_V4.generateKeyMacGetActTempKey(activationSharedSecret);
-        final SecretKey keyStatusMac = KEY_FACTORY_V4.generateKeyMacStatus(activationSharedSecret);
-        final SecretKey sharedInfo2Key = KEY_FACTORY_V4.generateSharedInfo2Key(activationSharedSecret);
-        final SecretKey authenticationCodePossessionSecretKey = KEY_FACTORY_V4.generatePossessionFactorKey(activationSharedSecret);
-        final SecretKey authenticationCodeKnowledgeSecretKey = KEY_FACTORY_V4.generateKnowledgeFactorKey(activationSharedSecret);
-        final SecretKey authenticationCodeBiometrySecretKey = KEY_FACTORY_V4.generateBiometryFactorKey(activationSharedSecret);
-        final SecretKey vaultUnlockKekDevicePrivate = KEY_FACTORY_V4.generateKeyKekDevicePrivate(activationSharedSecret);
-
-        final char[] password;
-        if (model.getPassword() == null) {
-            final Console console = System.console();
-            password = console.readPassword("Select a password to encrypt the knowledge related key: ");
-            Assert.state(password != null, "Not able to read a password from the console");
-        } else {
-            password = model.getPassword().toCharArray();
-        }
-
-        // Encrypt knowledge factor key
-        final byte[] salt = KEY_GENERATOR.generateRandomBytes(16);
-        final byte[] encryptedKnowledgeSecretKey = EncryptedStorageUtil.storeKnowledgeFactorKey(password, authenticationCodeKnowledgeSecretKey, salt, KEY_GENERATOR);
-
-        final PublicKey ecDevicePublicKey = securityContext.getEcDeviceKeyPair().getPublic();
-        final PublicKey pqcDevicePublicKey = securityContext.getPqcDeviceKeyPair() != null ? securityContext.getPqcDeviceKeyPair().getPublic() : null;
-
-        // Encrypt device private keys
-        final byte[] encryptedEcDevicePrivateKey = VAULT_V4.encryptEcDevicePrivateKey(securityContext.getEcDeviceKeyPair().getPrivate(), vaultUnlockKekDevicePrivate);
-        final byte[] encryptedPqcDevicePrivateKey;
-        if (securityContext.getPqcDeviceKeyPair() != null) {
-            encryptedPqcDevicePrivateKey = VAULT_V4.encryptPqcDevicePrivateKey(securityContext.getPqcDeviceKeyPair().getPrivate(), vaultUnlockKekDevicePrivate);
-        } else {
-            encryptedPqcDevicePrivateKey = null;
-        }
-
-        // Set version to 4 after upgrade, all keys have been successfully derived
+        // Set version to 4 after upgrade and update the counter data, derive keys
         resultStatusObject.setVersion(4L);
-
-        // Update the counter data for V4
         resultStatusObject.setCtrData(responsePayload.getCtrData());
-        resultStatusObject.setTemporaryKeyActSignRequestKeyObject(tempKeyActSign);
-        resultStatusObject.setStatusBlobMacKeyObject(keyStatusMac);
-        resultStatusObject.setSharedInfo2KeyObject(sharedInfo2Key);
-        resultStatusObject.setEcServerPublicKey(serverPublicKeys.getEcdsa());
-        if (serverPublicKeys.getMldsa() != null) {
-            resultStatusObject.setPqcServerPublicKey(serverPublicKeys.getMldsa());
-        }
-        resultStatusObject.setEncryptedEcDevicePrivateKeyBytes(encryptedEcDevicePrivateKey);
-        if (encryptedPqcDevicePrivateKey != null) {
-            resultStatusObject.setEncryptedPqcDevicePrivateKeyBytes(encryptedPqcDevicePrivateKey);
-        }
-        resultStatusObject.setBiometryFactorKeyObject(authenticationCodeBiometrySecretKey);
-        resultStatusObject.setKnowledgeFactorKeyEncryptedBytes(encryptedKnowledgeSecretKey);
-        resultStatusObject.setKnowledgeFactorKeySaltBytes(salt);
-        resultStatusObject.setPossessionFactorKeyObject(authenticationCodePossessionSecretKey);
         resultStatusObject.setSharedSecretAlgorithm(securityContext.getSharedSecretAlgorithm().toString());
-        resultStatusObject.setEcDevicePublicKeyObject(ecDevicePublicKey);
-        if (pqcDevicePublicKey != null) {
-            resultStatusObject.setPqcDevicePublicKeyObject(pqcDevicePublicKey);
-        }
+
+        KeyDerivationUtil.deriveKeysV4(activationSharedSecret, resultStatusObject, serverPublicKeys, securityContext.getEcDeviceKeyPair(), securityContext.getPqcDeviceKeyPair(), model.getPassword());
 
         resultStatusService.save(model);
 
