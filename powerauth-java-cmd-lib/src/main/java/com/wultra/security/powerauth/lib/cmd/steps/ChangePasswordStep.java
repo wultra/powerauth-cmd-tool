@@ -21,14 +21,8 @@ import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptedRespons
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorId;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
 import com.wultra.security.powerauth.crypto.lib.generator.KeyGenerator;
-import com.wultra.security.powerauth.crypto.lib.model.exception.GenericCryptoException;
 import com.wultra.security.powerauth.crypto.lib.v4.api.SharedSecretClientContext;
 import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
-import com.wultra.security.powerauth.crypto.lib.v4.model.request.RequestCryptogram;
-import com.wultra.security.powerauth.crypto.lib.v4.model.request.SharedSecretRequestEcdhe;
-import com.wultra.security.powerauth.crypto.lib.v4.model.request.SharedSecretRequestHybrid;
-import com.wultra.security.powerauth.crypto.lib.v4.sharedsecret.SharedSecretEcdhe;
-import com.wultra.security.powerauth.crypto.lib.v4.sharedsecret.SharedSecretHybrid;
 import com.wultra.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
@@ -41,15 +35,12 @@ import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.security.SimpleSecurityContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.ChangePasswordStepModel;
-import com.wultra.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecret;
-import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecretEcdhe;
-import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecretHybrid;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import com.wultra.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
-import com.wultra.security.powerauth.lib.cmd.util.FactorKeyUtil;
 import com.wultra.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import com.wultra.security.powerauth.lib.cmd.util.SecurityUtil;
+import com.wultra.security.powerauth.lib.cmd.util.SharedSecretUtil;
 import com.wultra.security.powerauth.rest.api.model.response.v4.SharedSecretResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
@@ -75,8 +66,6 @@ public class ChangePasswordStep extends AbstractBaseStep<ChangePasswordStepModel
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
-    private static final SharedSecretEcdhe SHARED_SECRET_ECDHE = new SharedSecretEcdhe();
-    private static final SharedSecretHybrid SHARED_SECRET_HYBRID = new SharedSecretHybrid();
     private static final ObjectMapper OBJECT_MAPPER = RestClientConfiguration.defaultMapper();
     private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
 
@@ -125,7 +114,10 @@ public class ChangePasswordStep extends AbstractBaseStep<ChangePasswordStepModel
         final StepContext<ChangePasswordStepModel, EncryptedResponse> stepContext = buildStepContext(stepLogger, model, requestContext);
 
         final SharedSecretAlgorithm sharedSecretAlgorithm = SecurityUtil.resolveSharedSecretAlgorithm(stepContext, EncryptorScope.ACTIVATION_SCOPE);
-        final RequestSharedSecret sharedSecretRequest = buildSharedSecretRequest(stepContext, sharedSecretAlgorithm);
+        final RequestSharedSecret sharedSecretRequest = SharedSecretUtil.buildSharedSecretRequest(
+                sharedSecretAlgorithm,
+                ctx -> stepContext.setSecurityContext(SimpleSecurityContext.builder().sharedSecretClientContext(ctx).build())
+        );
 
         final byte[] requestBytesPayload = OBJECT_MAPPER.writeValueAsBytes(sharedSecretRequest);
 
@@ -145,7 +137,7 @@ public class ChangePasswordStep extends AbstractBaseStep<ChangePasswordStepModel
 
         final SharedSecretAlgorithm sharedSecretAlgorithm = SecurityUtil.resolveSharedSecretAlgorithm(stepContext, EncryptorScope.ACTIVATION_SCOPE);
         final SharedSecretClientContext clientContext = ((SimpleSecurityContext) stepContext.getSecurityContext()).getSharedSecretClientContext();
-        final SecretKey knowledgeFactorKey = FactorKeyUtil.deriveFactorKey(responsePayload, clientContext, sharedSecretAlgorithm);
+        final SecretKey knowledgeFactorKey = SharedSecretUtil.deriveSharedSecret(responsePayload, clientContext, sharedSecretAlgorithm);
 
         final char[] password;
         final ChangePasswordStepModel model = stepContext.getModel();
@@ -172,31 +164,6 @@ public class ChangePasswordStep extends AbstractBaseStep<ChangePasswordStepModel
                 "OK",
                 Map.of("ecdhe", responsePayload.getEcdhe(),
                         "mlkem", responsePayload.getMlkem()));
-    }
-
-    private static RequestSharedSecret buildSharedSecretRequest(StepContext<? extends BaseStepData, ?> stepContext, SharedSecretAlgorithm algorithm) throws GenericCryptoException {
-        return switch (algorithm) {
-            case EC_P384 -> {
-                final RequestCryptogram requestCryptogram = SHARED_SECRET_ECDHE.generateRequestCryptogram();
-                stepContext.setSecurityContext(SimpleSecurityContext.builder().sharedSecretClientContext(requestCryptogram.getSharedSecretClientContext()).build());
-                final SharedSecretRequestEcdhe requestEcdhe = (SharedSecretRequestEcdhe) requestCryptogram.getSharedSecretRequest();
-                final RequestSharedSecretEcdhe sharedSecretRequest = new RequestSharedSecretEcdhe();
-                sharedSecretRequest.setAlgorithm(algorithm.toString());
-                sharedSecretRequest.setEcdhe(requestEcdhe.getEcClientPublicKey());
-                yield sharedSecretRequest;
-            }
-            case EC_P384_ML_L3 -> {
-                final RequestCryptogram requestCryptogram = SHARED_SECRET_HYBRID.generateRequestCryptogram();
-                stepContext.setSecurityContext(SimpleSecurityContext.builder().sharedSecretClientContext(requestCryptogram.getSharedSecretClientContext()).build());
-                final SharedSecretRequestHybrid requestHybrid = (SharedSecretRequestHybrid) requestCryptogram.getSharedSecretRequest();
-                final RequestSharedSecretHybrid sharedSecretRequest = new RequestSharedSecretHybrid();
-                sharedSecretRequest.setAlgorithm(algorithm.toString());
-                sharedSecretRequest.setEcdhe(requestHybrid.getEcClientPublicKey());
-                sharedSecretRequest.setMlkem(requestHybrid.getPqcEncapsulationKey());
-                yield sharedSecretRequest;
-            }
-            default -> throw new IllegalStateException("Unsupported algorithm for version 4: " + algorithm);
-        };
     }
 
 }

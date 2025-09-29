@@ -37,16 +37,7 @@ import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
 import com.wultra.security.powerauth.crypto.lib.util.SignatureUtils;
 import com.wultra.security.powerauth.crypto.lib.v4.api.PqcDsa;
 import com.wultra.security.powerauth.crypto.lib.v4.ml.MlDsa;
-import com.wultra.security.powerauth.crypto.lib.v4.model.SharedSecretClientContextEcdhe;
-import com.wultra.security.powerauth.crypto.lib.v4.model.SharedSecretClientContextHybrid;
 import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
-import com.wultra.security.powerauth.crypto.lib.v4.model.request.RequestCryptogram;
-import com.wultra.security.powerauth.crypto.lib.v4.model.request.SharedSecretRequestEcdhe;
-import com.wultra.security.powerauth.crypto.lib.v4.model.request.SharedSecretRequestHybrid;
-import com.wultra.security.powerauth.crypto.lib.v4.model.response.SharedSecretResponseEcdhe;
-import com.wultra.security.powerauth.crypto.lib.v4.model.response.SharedSecretResponseHybrid;
-import com.wultra.security.powerauth.crypto.lib.v4.sharedsecret.SharedSecretEcdhe;
-import com.wultra.security.powerauth.crypto.lib.v4.sharedsecret.SharedSecretHybrid;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
@@ -55,12 +46,9 @@ import com.wultra.security.powerauth.lib.cmd.steps.model.BaseStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.*;
 import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecret;
-import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecretEcdhe;
-import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecretHybrid;
-import com.wultra.security.powerauth.lib.cmd.steps.model.v4.response.ResponseSharedSecretEcdhe;
-import com.wultra.security.powerauth.lib.cmd.steps.model.v4.response.ResponseSharedSecretHybrid;
 import com.wultra.security.powerauth.rest.api.model.request.TemporaryKeyRequest;
 import com.wultra.security.powerauth.rest.api.model.response.TemporaryKeyResponse;
+import com.wultra.security.powerauth.rest.api.model.response.v4.SharedSecretResponse;
 import lombok.Data;
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1Integer;
@@ -99,8 +87,6 @@ public class TemporaryKeyUtil {
     private static final SignatureUtils SIGNATURE_UTILS = new SignatureUtils();
     private static final PqcDsa PQC_DSA = new MlDsa();
 
-    private static final SharedSecretEcdhe SHARED_SECRET_ECDHE = new SharedSecretEcdhe();
-    private static final SharedSecretHybrid SHARED_SECRET_HYBRID = new SharedSecretHybrid();
     private static final ObjectMapper OBJECT_MAPPER = RestClientConfiguration.defaultMapper();
 
     private static final PowerAuthClientKeyFactory CLIENT_KEY_FACTORY = new PowerAuthClientKeyFactory();
@@ -147,7 +133,10 @@ public class TemporaryKeyUtil {
             stepContext.setTemporaryKeyContext(TemporaryKeyContext.builder().build());
         }
         if (model.getVersion().getMajorVersion() == 4) {
-            final RequestSharedSecret request = buildSharedSecretRequest(stepContext, algorithm);
+            final RequestSharedSecret request = SharedSecretUtil.buildSharedSecretRequest(
+                    algorithm,
+                    ctx -> stepContext.getTemporaryKeyContext().setSharedSecretClientContext(ctx)
+            );
             builder.claim("sharedSecretRequest", request);
             builder.build();
         }
@@ -161,31 +150,6 @@ public class TemporaryKeyUtil {
             return null;
         }
         return signJwt(jwtClaims, signingKey);
-    }
-
-    private static RequestSharedSecret buildSharedSecretRequest(StepContext<? extends BaseStepData, ?> stepContext, SharedSecretAlgorithm algorithm) throws GenericCryptoException {
-        return switch (algorithm) {
-            case EC_P384 -> {
-                final RequestCryptogram requestCryptogram = SHARED_SECRET_ECDHE.generateRequestCryptogram();
-                stepContext.getTemporaryKeyContext().setSharedSecretClientContext(requestCryptogram.getSharedSecretClientContext());
-                final SharedSecretRequestEcdhe requestEcdhe = (SharedSecretRequestEcdhe) requestCryptogram.getSharedSecretRequest();
-                final RequestSharedSecretEcdhe sharedSecretRequest = new RequestSharedSecretEcdhe();
-                sharedSecretRequest.setAlgorithm(algorithm.toString());
-                sharedSecretRequest.setEcdhe(requestEcdhe.getEcClientPublicKey());
-                yield sharedSecretRequest;
-            }
-            case EC_P384_ML_L3 -> {
-                final RequestCryptogram requestCryptogram = SHARED_SECRET_HYBRID.generateRequestCryptogram();
-                stepContext.getTemporaryKeyContext().setSharedSecretClientContext(requestCryptogram.getSharedSecretClientContext());
-                final SharedSecretRequestHybrid requestHybrid = (SharedSecretRequestHybrid) requestCryptogram.getSharedSecretRequest();
-                final RequestSharedSecretHybrid sharedSecretRequest = new RequestSharedSecretHybrid();
-                sharedSecretRequest.setAlgorithm(algorithm.toString());
-                sharedSecretRequest.setEcdhe(requestHybrid.getEcClientPublicKey());
-                sharedSecretRequest.setMlkem(requestHybrid.getPqcEncapsulationKey());
-                yield sharedSecretRequest;
-            }
-            default -> throw new IllegalStateException("Unsupported algorithm for version 4: " + algorithm);
-        };
     }
 
     private static byte[] getSigningKey(StepContext<? extends BaseStepData, ?> stepContext, BaseStepModel model, EncryptorScope scope) throws Exception {
@@ -352,24 +316,8 @@ public class TemporaryKeyUtil {
 
     private static void handleSharedSecretResponse(StepContext<? extends BaseStepData, ?> stepContext, JWTClaimsSet claims, SharedSecretAlgorithm algorithm) throws GenericCryptoException {
         final Object claim = claims.getClaim("sharedSecretResponse");
-        final SecretKey sharedSecret = switch (algorithm) {
-            case EC_P384 -> {
-                final ResponseSharedSecretEcdhe serverResponse = OBJECT_MAPPER.convertValue(claim, ResponseSharedSecretEcdhe.class);
-                final SharedSecretClientContextEcdhe clientContext = (SharedSecretClientContextEcdhe) stepContext.getTemporaryKeyContext().getSharedSecretClientContext();
-                final SharedSecretResponseEcdhe sharedSecretResponseEcdhe = new SharedSecretResponseEcdhe();
-                sharedSecretResponseEcdhe.setEcServerPublicKey(serverResponse.getEcdhe());
-                yield SHARED_SECRET_ECDHE.computeSharedSecret(clientContext, sharedSecretResponseEcdhe);
-            }
-            case EC_P384_ML_L3 -> {
-                final ResponseSharedSecretHybrid serverResponse = OBJECT_MAPPER.convertValue(claim, ResponseSharedSecretHybrid.class);
-                final SharedSecretClientContextHybrid clientContext = (SharedSecretClientContextHybrid) stepContext.getTemporaryKeyContext().getSharedSecretClientContext();
-                final SharedSecretResponseHybrid sharedSecretResponseHybrid = new SharedSecretResponseHybrid();
-                sharedSecretResponseHybrid.setEcServerPublicKey(serverResponse.getEcdhe());
-                sharedSecretResponseHybrid.setPqcCiphertext(serverResponse.getMlkem());
-                yield SHARED_SECRET_HYBRID.computeSharedSecret(clientContext, sharedSecretResponseHybrid);
-            }
-            default -> throw new IllegalStateException("Unsupported algorithm for version 4: " + algorithm);
-        };
+        final SharedSecretResponse serverResponse = OBJECT_MAPPER.convertValue(claim, SharedSecretResponse.class);
+        final SecretKey sharedSecret = SharedSecretUtil.deriveSharedSecret(serverResponse, stepContext.getTemporaryKeyContext().getSharedSecretClientContext(), algorithm);
         stepContext.getTemporaryKeyContext().setTemporarySharedSecret(sharedSecret);
         stepContext.getTemporaryKeyContext().setSharedSecretClientContext(null);
     }

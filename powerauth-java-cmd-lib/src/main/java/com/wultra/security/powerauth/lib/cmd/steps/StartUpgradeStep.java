@@ -26,16 +26,7 @@ import com.wultra.security.powerauth.crypto.lib.v4.api.SharedSecretClientContext
 import com.wultra.security.powerauth.crypto.lib.v4.encryptor.model.context.AeadSecrets;
 import com.wultra.security.powerauth.crypto.lib.v4.encryptor.model.response.AeadEncryptedResponse;
 import com.wultra.security.powerauth.crypto.lib.v4.ml.MlDsaKeyConvertor;
-import com.wultra.security.powerauth.crypto.lib.v4.model.SharedSecretClientContextEcdhe;
-import com.wultra.security.powerauth.crypto.lib.v4.model.SharedSecretClientContextHybrid;
 import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
-import com.wultra.security.powerauth.crypto.lib.v4.model.request.RequestCryptogram;
-import com.wultra.security.powerauth.crypto.lib.v4.model.request.SharedSecretRequestEcdhe;
-import com.wultra.security.powerauth.crypto.lib.v4.model.request.SharedSecretRequestHybrid;
-import com.wultra.security.powerauth.crypto.lib.v4.model.response.SharedSecretResponseEcdhe;
-import com.wultra.security.powerauth.crypto.lib.v4.model.response.SharedSecretResponseHybrid;
-import com.wultra.security.powerauth.crypto.lib.v4.sharedsecret.SharedSecretEcdhe;
-import com.wultra.security.powerauth.crypto.lib.v4.sharedsecret.SharedSecretHybrid;
 import com.wultra.security.powerauth.http.PowerAuthEncryptionHttpHeader;
 import com.wultra.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
@@ -49,10 +40,14 @@ import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.security.UpgradeSecurityContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecret;
+import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecretEcdhe;
+import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecretHybrid;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import com.wultra.security.powerauth.lib.cmd.util.KeyDerivationUtil;
 import com.wultra.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import com.wultra.security.powerauth.lib.cmd.util.SecurityUtil;
+import com.wultra.security.powerauth.lib.cmd.util.SharedSecretUtil;
 import com.wultra.security.powerauth.rest.api.model.request.v4.DevicePublicKeys;
 import com.wultra.security.powerauth.rest.api.model.request.v4.SharedSecretRequest;
 import com.wultra.security.powerauth.rest.api.model.request.v4.UpgradeRequestPayload;
@@ -67,6 +62,7 @@ import javax.crypto.SecretKey;
 import java.security.KeyPair;
 import java.util.Base64;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Step for starting upgrade to PowerAuth protocol version 4.0.
@@ -86,9 +82,6 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, En
 
     private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
     private static final PqcDsaKeyConvertor KEY_CONVERTOR_PQC_DSA = new MlDsaKeyConvertor();
-
-    private static final SharedSecretEcdhe SHARED_SECRET_ECDHE = new SharedSecretEcdhe();
-    private static final SharedSecretHybrid SHARED_SECRET_HYBRID = new SharedSecretHybrid();
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
@@ -156,21 +149,26 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, En
                 new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, temporaryKeyId),
                 new AeadSecrets(sharedSecret.getEncoded(), model.getApplicationSecret())
         );
-        final SharedSecretClientContext clientContext;
-        final SharedSecretRequest sharedSecretRequest = new SharedSecretRequest();
-        sharedSecretRequest.setAlgorithm(model.getSharedSecretAlgorithm().toString());
+
+        final AtomicReference<SharedSecretClientContext> ctxRef = new AtomicReference<>();
+        final RequestSharedSecret requestSharedSecret = SharedSecretUtil.buildSharedSecretRequest(
+                model.getSharedSecretAlgorithm(),
+                ctxRef::set
+        );
+        final SharedSecretClientContext clientContext = ctxRef.get();
         final DevicePublicKeys devicePublicKeys = new DevicePublicKeys();
         final KeyPair ecDeviceKeyPair = CLIENT_ACTIVATION_V4.generateDeviceEcKeyPair();
         final KeyPair pqcDeviceKeyPair;
+        final SharedSecretRequest sharedSecretRequest = new SharedSecretRequest();
+        sharedSecretRequest.setAlgorithm(model.getSharedSecretAlgorithm().name());
         switch (model.getSharedSecretAlgorithm()) {
             case EC_P384 -> {
                 final byte[] ecPublicKeyBytes = KEY_CONVERTOR.convertPublicKeyToBytes(EcCurve.P384, ecDeviceKeyPair.getPublic());
                 final String ecPublicKeyBase64 = Base64.getEncoder().encodeToString(ecPublicKeyBytes);
                 devicePublicKeys.setEcdsa(ecPublicKeyBase64);
-                final RequestCryptogram requestCryptogram = SHARED_SECRET_ECDHE.generateRequestCryptogram();
-                clientContext = requestCryptogram.getSharedSecretClientContext();
-                sharedSecretRequest.setEcdhe(((SharedSecretRequestEcdhe)requestCryptogram.getSharedSecretRequest()).getEcClientPublicKey());
                 pqcDeviceKeyPair = null;
+
+                sharedSecretRequest.setEcdhe(((RequestSharedSecretEcdhe) requestSharedSecret).getEcdhe());
             }
             case EC_P384_ML_L3 -> {
                 final byte[] ecPublicKeyBytes = KEY_CONVERTOR.convertPublicKeyToBytes(EcCurve.P384, ecDeviceKeyPair.getPublic());
@@ -182,10 +180,8 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, En
                 final String pqcPublicKeyBase64 = Base64.getEncoder().encodeToString(pqcPublicKeyBytes);
                 devicePublicKeys.setMldsa(pqcPublicKeyBase64);
 
-                final RequestCryptogram requestCryptogram = SHARED_SECRET_HYBRID.generateRequestCryptogram();
-                clientContext = requestCryptogram.getSharedSecretClientContext();
-                sharedSecretRequest.setEcdhe(((SharedSecretRequestHybrid)requestCryptogram.getSharedSecretRequest()).getEcClientPublicKey());
-                sharedSecretRequest.setMlkem(((SharedSecretRequestHybrid)requestCryptogram.getSharedSecretRequest()).getPqcEncapsulationKey());
+                sharedSecretRequest.setEcdhe(((RequestSharedSecretHybrid) requestSharedSecret).getEcdhe());
+                sharedSecretRequest.setMlkem(((RequestSharedSecretHybrid) requestSharedSecret).getMlkem());
             }
             default -> throw new IllegalStateException("Unsupported shared secret algorithm: " + model.getSharedSecretAlgorithm());
         }
@@ -244,21 +240,7 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, En
         final SharedSecretClientContext clientContext = securityContext.getSharedSecretClientContext();
         final ServerPublicKeys serverPublicKeys = responsePayload.getServerPublicKeys();
         final SharedSecretResponse sharedSecretResponse = responsePayload.getSharedSecretResponse();
-        final SecretKey activationSharedSecret;
-        switch (model.getSharedSecretAlgorithm()) {
-            case EC_P384 -> {
-                final SharedSecretResponseEcdhe sharedSecretResponseEcdhe = new SharedSecretResponseEcdhe();
-                sharedSecretResponseEcdhe.setEcServerPublicKey(sharedSecretResponse.getEcdhe());
-                activationSharedSecret = SHARED_SECRET_ECDHE.computeSharedSecret((SharedSecretClientContextEcdhe) clientContext, sharedSecretResponseEcdhe);
-            }
-            case EC_P384_ML_L3 -> {
-                final SharedSecretResponseHybrid sharedSecretResponseHybrid = new SharedSecretResponseHybrid();
-                sharedSecretResponseHybrid.setEcServerPublicKey(sharedSecretResponse.getEcdhe());
-                sharedSecretResponseHybrid.setPqcCiphertext(sharedSecretResponse.getMlkem());
-                activationSharedSecret = SHARED_SECRET_HYBRID.computeSharedSecret((SharedSecretClientContextHybrid) clientContext, sharedSecretResponseHybrid);
-            }
-            default -> throw new IllegalStateException("Unsupported shared secret algorithm: " + model.getSharedSecretAlgorithm());
-        }
+        final SecretKey activationSharedSecret = SharedSecretUtil.deriveSharedSecret(sharedSecretResponse, clientContext, model.getSharedSecretAlgorithm());
 
         // Set version to 4 after upgrade and update the counter data, derive keys
         resultStatusObject.setVersion(4L);
