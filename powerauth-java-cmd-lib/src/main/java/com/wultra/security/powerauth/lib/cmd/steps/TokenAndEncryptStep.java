@@ -52,7 +52,7 @@ import java.util.Map;
  *
  *  @author Roman Strobl, roman.strobl@wultra.com
  */
-@Component
+@Component("tokenAndEncryptStep")
 public class TokenAndEncryptStep extends AbstractBaseStep<TokenAndEncryptStepModel, EncryptedResponse> {
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;

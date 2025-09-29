@@ -62,7 +62,7 @@ import java.util.stream.Stream;
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-@Component
+@Component("computeOfflineAuthenticationStep")
 public class ComputeOfflineAuthenticationStep extends AbstractBaseStep<ComputeOfflineAuthenticationStepModel, Void> {
 
     private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();

@@ -348,7 +348,7 @@ public class Application {
                     stepExecutionService.execute(powerAuthStep, version, model);
                 }
                 case ACTIVATION_REMOVE -> {
-                    final RemoveStepModel model = new RemoveStepModel();
+                    final RemoveActivationStepModel model = new RemoveActivationStepModel();
                     model.setApplicationKey(applicationKey);
                     model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);

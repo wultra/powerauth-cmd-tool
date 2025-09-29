@@ -31,7 +31,7 @@ import java.util.Map;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class RemoveStepModel extends BaseStepModel
+public class RemoveActivationStepModel extends BaseStepModel
         implements ResultStatusChangeable, AuthorizationHeaderData {
 
     /**

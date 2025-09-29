@@ -25,7 +25,7 @@ import com.wultra.security.powerauth.lib.cmd.header.PowerAuthHeaderFactory;
 import com.wultra.security.powerauth.lib.cmd.status.ResultStatusService;
 import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
-import com.wultra.security.powerauth.lib.cmd.steps.model.RemoveStepModel;
+import com.wultra.security.powerauth.lib.cmd.steps.model.RemoveActivationStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.base.AbstractBaseStep;
 import com.wultra.security.powerauth.rest.api.model.response.ActivationRemoveResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,7 +50,7 @@ import java.util.Map;
  * @author Roman Strobl, roman.strobl@wultra.com
  */
 @Component("removeActivationStep")
-public class RemoveActivationStep extends AbstractBaseStep<RemoveStepModel, ObjectResponse<ActivationRemoveResponse>> {
+public class RemoveActivationStep extends AbstractBaseStep<RemoveActivationStepModel, ObjectResponse<ActivationRemoveResponse>> {
 
     private static final ParameterizedTypeReference<ObjectResponse<ActivationRemoveResponse>> RESPONSE_TYPE_REFERENCE =
             new ParameterizedTypeReference<>() {};
@@ -89,8 +89,8 @@ public class RemoveActivationStep extends AbstractBaseStep<RemoveStepModel, Obje
     }
 
     @Override
-    public StepContext<RemoveStepModel, ObjectResponse<ActivationRemoveResponse>> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
-        final RemoveStepModel model = new RemoveStepModel();
+    public StepContext<RemoveActivationStepModel, ObjectResponse<ActivationRemoveResponse>> prepareStepContext(StepLogger stepLogger, Map<String, Object> context) throws Exception {
+        final RemoveActivationStepModel model = new RemoveActivationStepModel();
         model.fromMap(context);
 
         final RequestContext requestContext = RequestContext.builder()
@@ -99,7 +99,7 @@ public class RemoveActivationStep extends AbstractBaseStep<RemoveStepModel, Obje
                 .uri(model.getUriString() + "/pa/v3/activation/remove")
                 .build();
 
-        final StepContext<RemoveStepModel, ObjectResponse<ActivationRemoveResponse>> stepContext =
+        final StepContext<RemoveActivationStepModel, ObjectResponse<ActivationRemoveResponse>> stepContext =
                 buildStepContext(stepLogger, model, requestContext);
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
@@ -110,7 +110,7 @@ public class RemoveActivationStep extends AbstractBaseStep<RemoveStepModel, Obje
     }
 
     @Override
-    public void processResponse(StepContext<RemoveStepModel, ObjectResponse<ActivationRemoveResponse>> stepContext) {
+    public void processResponse(StepContext<RemoveActivationStepModel, ObjectResponse<ActivationRemoveResponse>> stepContext) {
         final String activationId = stepContext.getModel().getResultStatus().getActivationId();
         final Map<String, Object> objectMap = new LinkedHashMap<>();
         objectMap.put("activationId", activationId);

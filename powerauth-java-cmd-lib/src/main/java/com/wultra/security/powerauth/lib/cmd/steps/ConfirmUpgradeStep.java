@@ -45,7 +45,7 @@ import java.util.Map;
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-@Component
+@Component("confirmUpgradeStep")
 public class ConfirmUpgradeStep extends AbstractBaseStep<ConfirmUpgradeStepModel, Response> {
 
     private static final ParameterizedTypeReference<Response> RESPONSE_TYPE_REFERENCE = new ParameterizedTypeReference<>() {};

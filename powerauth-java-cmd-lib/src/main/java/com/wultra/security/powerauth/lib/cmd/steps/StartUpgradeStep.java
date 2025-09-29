@@ -84,7 +84,7 @@ import java.util.Map;
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-@Component
+@Component("startUpgradeStep")
 public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, EncryptedResponse> {
 
     private static final PowerAuthClientActivation CLIENT_ACTIVATION_V4 = new PowerAuthClientActivation();
