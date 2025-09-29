@@ -119,6 +119,9 @@ public class SecurityUtil {
      * @return Shared secret algorithm.
      */
     public static SharedSecretAlgorithm resolveSharedSecretAlgorithm(StepContext<?, ?> stepContext, EncryptorScope scope) {
+        if (stepContext.getModel().getVersion().getMajorVersion() == 3) {
+            return SharedSecretAlgorithm.EC_P256;
+        }
         return switch (scope) {
             case APPLICATION_SCOPE -> {
                 SharedSecretAlgorithm sharedSecretAlgorithm = getSharedSecretAlgorithm(stepContext);
