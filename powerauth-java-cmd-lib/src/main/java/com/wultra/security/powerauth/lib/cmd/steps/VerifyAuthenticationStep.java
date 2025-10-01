@@ -50,7 +50,7 @@ import java.util.Map;
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  * @author Petr Dvorak
  */
-@Component
+@Component("verifyAuthenticationStep")
 public class VerifyAuthenticationStep extends AbstractBaseStep<VerifyAuthenticationStepModel, ObjectResponse<Map<String, Object>>> {
 
     private static final ParameterizedTypeReference<ObjectResponse<Map<String, Object>>> RESPONSE_TYPE_REFERENCE =

@@ -1,4 +1,5 @@
 /*
+ * PowerAuth Command-line utility
  * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,13 +25,13 @@ import lombok.EqualsAndHashCode;
 import java.util.Map;
 
 /**
- * Model representing step for committing upgrade between different PowerAuth protocol versions.
+ * Model representing parameters of the step for removing activation.
  *
- * @author Roman Strobl, roman.strobl@wultra.com
+ * @author Petr Dvorak, petr@wultra.com
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class CommitUpgradeStepModel extends BaseStepModel
+public class RemoveActivationStepModel extends BaseStepModel
         implements ResultStatusChangeable, AuthorizationHeaderData {
 
     /**
@@ -48,14 +49,14 @@ public class CommitUpgradeStepModel extends BaseStepModel
      */
     private String applicationSecret;
 
-    @Override
-    public PowerAuthCodeType getAuthenticationCodeType() {
-        return PowerAuthCodeType.POSSESSION;
-    }
+    /**
+     * Password for the password related key encryption.
+     */
+    private String password;
 
     @Override
-    public String getPassword() {
-        throw new IllegalStateException("Not supported password value for possession factor type");
+    public PowerAuthCodeType getAuthenticationCodeType() {
+        return PowerAuthCodeType.POSSESSION_KNOWLEDGE;
     }
 
     @Override
@@ -64,6 +65,7 @@ public class CommitUpgradeStepModel extends BaseStepModel
         context.put("STATUS_FILENAME", statusFileName);
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
+        context.put("PASSWORD", password);
         return context;
     }
 
@@ -73,6 +75,7 @@ public class CommitUpgradeStepModel extends BaseStepModel
         setStatusFileName((String) context.get("STATUS_FILENAME"));
         setApplicationKey((String) context.get("APPLICATION_KEY"));
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
+        setPassword((String) context.get("PASSWORD"));
     }
 
 }

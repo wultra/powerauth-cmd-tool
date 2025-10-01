@@ -50,7 +50,7 @@ import java.util.Map;
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  * @author Petr Dvorak, petr@wultra.com
  */
-@Component
+@Component("verifyTokenStep")
 public class VerifyTokenStep extends AbstractBaseStep<VerifyTokenStepModel, Map<String, Object>> {
 
     private static final ParameterizedTypeReference<Map<String, Object>> RESPONSE_TYPE_REFERENCE = new ParameterizedTypeReference<>() {};

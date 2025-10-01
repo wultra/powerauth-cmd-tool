@@ -62,8 +62,6 @@ import java.lang.reflect.Type;
 import java.security.PublicKey;
 import java.util.*;
 
-import static com.wultra.security.powerauth.lib.cmd.util.TemporaryKeyUtil.*;
-
 /**
  * Abstract step with common execution patterns and methods
  *
@@ -238,32 +236,41 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             return;
         }
 
-        final String temporaryKeyId = (String) stepContext.getAttributes().get(TEMPORARY_KEY_ID);
 
         final ClientEncryptor<EncryptedRequest, EncryptedResponse> encryptor;
-        if (securityContext == null) {
+        if (securityContext == null || securityContext.getEncryptor() == null) {
             switch (stepContext.getModel().getVersion().getMajorVersion()) {
                 case 3 -> {
-                    final String temporaryPublicKey = (String) stepContext.getAttributes().get(TEMPORARY_PUBLIC_KEY);
-                    final PublicKey encryptionPublicKey = temporaryKeyId == null ?
-                            resultStatusObject.getEcServerPublicKeyObject() :
-                            KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, Base64.getDecoder().decode(temporaryPublicKey));
+                    final PublicKey encryptionPublicKey;
+                    final String temporaryKeyId;
+                    if (model.getVersion().useTemporaryKeys()) {
+                        temporaryKeyId = stepContext.getTemporaryKeyContext().getTemporaryKeyId();
+                        final String temporaryPublicKey = stepContext.getTemporaryKeyContext().getTemporaryPublicKey();
+                        encryptionPublicKey = KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, Base64.getDecoder().decode(temporaryPublicKey));
+                    } else {
+                        encryptionPublicKey = resultStatusObject.getEcServerPublicKeyObject();
+                        temporaryKeyId = null;
+                    }
                     final byte[] transportMasterKeyBytes = Base64.getDecoder().decode(resultStatusObject.getTransportMasterKey());
                     final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), applicationKey, resultStatusObject.getActivationId(), temporaryKeyId);
                     final EncryptorSecrets encryptorSecrets = new ClientEciesSecrets(encryptionPublicKey, applicationSecret, transportMasterKeyBytes);
                     encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(encryptorId, encryptorParameters, encryptorSecrets);
                 }
                 case 4 -> {
-                    final SecretKey sharedSecret = (SecretKey) stepContext.getAttributes().get(TEMPORARY_SHARED_SECRET);
-                    final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), applicationKey, resultStatusObject.getActivationId(), temporaryKeyId);
+                    final SecretKey sharedSecret = stepContext.getTemporaryKeyContext().getTemporarySharedSecret();
+                    final EncryptorParameters encryptorParameters = new EncryptorParameters(model.getVersion().value(), applicationKey, resultStatusObject.getActivationId(), stepContext.getTemporaryKeyContext().getTemporaryKeyId());
                     final EncryptorSecrets encryptorSecrets = new AeadSecrets(sharedSecret.getEncoded(), applicationSecret, Base64.getDecoder().decode(model.getResultStatus().getSharedInfo2Key()));
                     encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(encryptorId, encryptorParameters, encryptorSecrets);
                 }
                 default -> throw new IllegalStateException("Unsupported version: " + stepContext.getModel().getVersion());
             }
-            stepContext.setSecurityContext(SimpleSecurityContext.builder()
-                    .encryptor(encryptor)
-                    .build());
+            if (stepContext.getSecurityContext() == null) {
+                stepContext.setSecurityContext(SimpleSecurityContext.builder()
+                        .encryptor(encryptor)
+                        .build());
+            } else {
+                ((SimpleSecurityContext) stepContext.getSecurityContext()).setEncryptor(encryptor);
+            }
         } else {
             encryptor = securityContext.getEncryptor();
         }
@@ -306,7 +313,7 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
     public boolean fetchTemporaryKey(StepContext<M, R> stepContext, EncryptorScope scope, SharedSecretAlgorithm algorithm) throws Exception {
         TemporaryKeyUtil.fetchTemporaryKey(getStep(), stepContext, scope, algorithm);
         final M model = stepContext.getModel();
-        return !model.getVersion().useTemporaryKeys() || stepContext.getAttributes().containsKey(TEMPORARY_KEY_ID);
+        return !model.getVersion().useTemporaryKeys() || stepContext.getTemporaryKeyContext().getTemporaryKeyId() != null;
     }
 
     /**

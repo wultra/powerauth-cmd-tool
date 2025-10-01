@@ -1,5 +1,4 @@
 /*
- * PowerAuth Command-line utility
  * Copyright 2018 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,13 +24,13 @@ import lombok.EqualsAndHashCode;
 import java.util.Map;
 
 /**
- * Model representing parameters of the step for removing activation.
+ * Model representing step for confirming upgrade between different PowerAuth protocol versions.
  *
- * @author Petr Dvorak, petr@wultra.com
+ * @author Roman Strobl, roman.strobl@wultra.com
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class RemoveStepModel extends BaseStepModel
+public class ConfirmUpgradeStepModel extends BaseStepModel
         implements ResultStatusChangeable, AuthorizationHeaderData {
 
     /**
@@ -49,14 +48,14 @@ public class RemoveStepModel extends BaseStepModel
      */
     private String applicationSecret;
 
-    /**
-     * Password for the password related key encryption.
-     */
-    private String password;
-
     @Override
     public PowerAuthCodeType getAuthenticationCodeType() {
-        return PowerAuthCodeType.POSSESSION_KNOWLEDGE;
+        return PowerAuthCodeType.POSSESSION;
+    }
+
+    @Override
+    public String getPassword() {
+        throw new IllegalStateException("Not supported password value for possession factor type");
     }
 
     @Override
@@ -65,7 +64,6 @@ public class RemoveStepModel extends BaseStepModel
         context.put("STATUS_FILENAME", statusFileName);
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
-        context.put("PASSWORD", password);
         return context;
     }
 
@@ -75,7 +73,6 @@ public class RemoveStepModel extends BaseStepModel
         setStatusFileName((String) context.get("STATUS_FILENAME"));
         setApplicationKey((String) context.get("APPLICATION_KEY"));
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
-        setPassword((String) context.get("PASSWORD"));
     }
 
 }

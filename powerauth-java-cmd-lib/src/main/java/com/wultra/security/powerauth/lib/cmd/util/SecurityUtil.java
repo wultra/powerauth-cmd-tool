@@ -30,6 +30,7 @@ import com.wultra.security.powerauth.lib.cmd.steps.context.security.SimpleSecuri
 import com.wultra.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.ActivationData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.UpgradeData;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -118,6 +119,9 @@ public class SecurityUtil {
      * @return Shared secret algorithm.
      */
     public static SharedSecretAlgorithm resolveSharedSecretAlgorithm(StepContext<?, ?> stepContext, EncryptorScope scope) {
+        if (stepContext.getModel().getVersion().getMajorVersion() == 3) {
+            return SharedSecretAlgorithm.EC_P256;
+        }
         return switch (scope) {
             case APPLICATION_SCOPE -> {
                 SharedSecretAlgorithm sharedSecretAlgorithm = getSharedSecretAlgorithm(stepContext);
@@ -149,6 +153,8 @@ public class SecurityUtil {
             return activationModel.getSharedSecretAlgorithm();
         } else if (stepContext.getModel() instanceof EncryptStepModel encryptionModel) {
             return encryptionModel.getSharedSecretAlgorithm();
+        } else if (stepContext.getModel() instanceof UpgradeData upgradeModel) {
+            return upgradeModel.getSharedSecretAlgorithm();
         }
         throw new IllegalStateException("Invalid model for obtaining shared secret algorithm");
     }

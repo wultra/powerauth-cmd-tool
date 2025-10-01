@@ -17,6 +17,8 @@ package com.wultra.security.powerauth.lib.cmd.steps.pojo;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.wultra.security.powerauth.crypto.lib.enums.EcCurve;
+import com.wultra.security.powerauth.crypto.lib.model.exception.CryptoProviderException;
+import com.wultra.security.powerauth.crypto.lib.model.exception.GenericCryptoException;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
 import com.wultra.security.powerauth.crypto.lib.v4.api.PqcDsaKeyConvertor;
 import com.wultra.security.powerauth.crypto.lib.v4.ml.MlDsaKeyConvertor;
@@ -209,10 +211,10 @@ public class ResultStatusObject {
     /**
      * Sets EC server public key object
      * @param serverPublicKeyObject Public key object
-     * @throws Exception when the public key cannot be encoded
+     * @throws CryptoProviderException when the public key cannot be encoded
      */
     @JsonIgnore
-    public void setEcServerPublicKeyObject(PublicKey serverPublicKeyObject) throws Exception {
+    public void setEcServerPublicKeyObject(PublicKey serverPublicKeyObject) throws CryptoProviderException {
 
         String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(resolveEcCurve(), serverPublicKeyObject));
         jsonObject.put("ecServerPublicKey", serverPublicKey);
@@ -288,10 +290,10 @@ public class ResultStatusObject {
     /**
      * Sets EC device public key object
      * @param devicePublicKeyObject Public key object
-     * @throws Exception when the public key cannot be encoded
+     * @throws CryptoProviderException when the public key cannot be encoded
      */
     @JsonIgnore
-    public void setEcDevicePublicKeyObject(PublicKey devicePublicKeyObject) throws Exception {
+    public void setEcDevicePublicKeyObject(PublicKey devicePublicKeyObject) throws CryptoProviderException {
         String devicePublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(resolveEcCurve(), devicePublicKeyObject));
         jsonObject.put("ecDevicePublicKey", devicePublicKey);
     }
@@ -327,10 +329,10 @@ public class ResultStatusObject {
     /**
      * Sets PQC device public key object
      * @param devicePublicKeyObject Public key object
-     * @throws Exception when the public key cannot be encoded
+     * @throws GenericCryptoException when the public key cannot be encoded
      */
     @JsonIgnore
-    public void setPqcDevicePublicKeyObject(PublicKey devicePublicKeyObject) throws Exception {
+    public void setPqcDevicePublicKeyObject(PublicKey devicePublicKeyObject) throws GenericCryptoException {
         String devicePublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_PQC_DSA.convertPublicKeyToBytes(devicePublicKeyObject));
         jsonObject.put("pqcDevicePublicKey", devicePublicKey);
     }

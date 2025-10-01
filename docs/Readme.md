@@ -372,7 +372,7 @@ The encrypted data is sent to specified endpoint URL. The base URL is used for P
 
 ### Start Upgrade
 
-Use this method to start upgrade of a version `2` activation to version `3`.
+Use this method to start upgrade of a version `3` activation to version `4`.
 
 ```
 java -jar powerauth-java-cmd.jar \
@@ -382,21 +382,21 @@ java -jar powerauth-java-cmd.jar \
     --method "start-upgrade"
 ```
 
-The start upgrade request is sent to the server. The server response with generated hash based counter value `ctrData` which is later used for the first version `3.0` signature verification during commit upgrade.
+The start upgrade request is sent to the server. The server response contains a shared secret response, server public keys and  generated hash based counter value `ctrData` which is later used for the first version `4.0` signature verification during upgrade confirmation.
 
-### Commit Upgrade
+### Confirm Upgrade
 
-Use this method to commit upgrade of a version `2` activation to version `3`.
+Use this method to confirm upgrade of a version `3` activation to version `4`.
 
 ```
 java -jar powerauth-java-cmd.jar \
     --url "http://localhost:8080/enrollment-server" \
     --status-file "pa_status.json" \
     --config-file "config.json" \
-    --method "commit-upgrade"
+    --method "confirm-upgrade"
 ```
 
-The commit upgrade request is sent to the server including a version `3.0` signature. The server verifies the request signature and commits the upgrade of activation to version `3`.
+The confirm upgrade request is sent to the server including a version `4.0` signature. The server verifies the request signature and confirms the upgrade of activation to version `4`.
 
 ## Compute Offline Signature
 
@@ -456,7 +456,7 @@ usage: java -jar powerauth-java-cmd.jar
                                      'status', 'remove', 'sign', 'unlock', 'create-custom',
                                      'create-token', 'validate-token', 'remove-token', 'encrypt',
                                      'sign-encrypt', 'token-encrypt', 'start-upgrade', and
-                                     'commit-upgrade'.
+                                     'confirm-upgrade'.
  -o,--scope <arg>                    ECIES encryption scope: 'application' or 'activation'.
  -p,--password <arg>                 Password used for a knowledge related key encryption. If not
                                      specified, an interactive input is required.

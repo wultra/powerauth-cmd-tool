@@ -119,12 +119,12 @@ public enum PowerAuthStep {
     TOKEN_VALIDATE("token-validate", "Token Digest Validation", "validate-token"),
 
     /**
-     * Committing upgrade from activation version 2 to version 3
+     * Confirming upgrade from activation version 3 to version 4
      */
-    UPGRADE_COMMIT("upgrade-commit", "Upgrade Commit", "commit-upgrade"),
+    UPGRADE_CONFIRM("upgrade-confirm", "Upgrade Confirm", "confirm-upgrade"),
 
     /**
-     * Starting upgrade from activation version 2 to version 3
+     * Starting upgrade from activation version 3 to version 4
      */
     UPGRADE_START("upgrade-start", "Upgrade", "start-upgrade"),
 

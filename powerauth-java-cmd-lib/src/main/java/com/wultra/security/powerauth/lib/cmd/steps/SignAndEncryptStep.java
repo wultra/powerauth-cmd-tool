@@ -53,7 +53,7 @@ import java.util.Map;
  *  @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  *  @author Roman Strobl, roman.strobl@wultra.com
  */
-@Component
+@Component("signAndEncryptStep")
 public class SignAndEncryptStep extends AbstractBaseStep<VerifyAuthenticationStepModel, EncryptedResponse> {
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;

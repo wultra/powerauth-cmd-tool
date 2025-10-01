@@ -83,7 +83,7 @@ public class Application {
             options.addOption("hv", "help-versions", false, "PowerAuth supported versions and steps.");
             options.addOption("u", "url", true, "URL used for the request.");
             options.addOption("b", "base-url", true, "Base URL of the PowerAuth Standard RESTful API.");
-            options.addOption("m", "method", true, "What API method to call, available names are 'create', 'status', 'remove', 'sign', 'unlock', 'create-custom', 'create-token', 'validate-token', 'remove-token', 'encrypt', 'sign-encrypt', 'token-encrypt', 'start-upgrade', and 'commit-upgrade'.");
+            options.addOption("m", "method", true, "What API method to call, available names are 'create', 'status', 'remove', 'sign', 'unlock', 'create-custom', 'create-token', 'validate-token', 'remove-token', 'encrypt', 'sign-encrypt', 'token-encrypt', 'start-upgrade', and 'confirm-upgrade'.");
             options.addOption("c", "config-file", true, "Specifies a path to the config file with Base64 encoded server master public key, application ID and application secret.");
             options.addOption("s", "status-file", true, "Path to the file with the activation status, serving as the data persistence.");
             options.addOption("a", "activation-code", true, "In case the specified method is 'create', this field contains the activation key (a concatenation of a short activation ID and activation OTP).");
@@ -348,7 +348,7 @@ public class Application {
                     stepExecutionService.execute(powerAuthStep, version, model);
                 }
                 case ACTIVATION_REMOVE -> {
-                    final RemoveStepModel model = new RemoveStepModel();
+                    final RemoveActivationStepModel model = new RemoveActivationStepModel();
                     model.setApplicationKey(applicationKey);
                     model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
@@ -498,15 +498,19 @@ public class Application {
                     model.setApplicationKey(applicationKey);
                     model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);
-                    model.setStatusFileName(statusFileName);
+                    model.setMasterPublicKeyP384(masterPublicKeyP384);
+                    model.setMasterPublicKeyMlDsa65(masterPublicKeyMlDsa65);
+                    model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatus(resultStatusObject);
+                    model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
+                    model.setSharedSecretAlgorithm(algorithm);
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
                 }
-                case UPGRADE_COMMIT -> {
-                    final CommitUpgradeStepModel model = new CommitUpgradeStepModel();
+                case UPGRADE_CONFIRM -> {
+                    final ConfirmUpgradeStepModel model = new ConfirmUpgradeStepModel();
                     model.setApplicationKey(applicationKey);
                     model.setApplicationSecret(applicationSecret);
                     model.setHeaders(httpHeaders);

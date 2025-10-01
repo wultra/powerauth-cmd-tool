@@ -59,22 +59,22 @@ public class AuthorizationHeaderProvider implements PowerAuthHeaderProvider<Auth
      */
     @Override
     public void addHeader(StepContext<? extends AuthorizationHeaderData, ?> stepContext) throws Exception {
-        AuthorizationHeaderData model = stepContext.getModel();
-        RequestContext requestContext = stepContext.getRequestContext();
-        ResultStatusObject resultStatusObject = model.getResultStatus();
+        final AuthorizationHeaderData model = stepContext.getModel();
+        final RequestContext requestContext = stepContext.getRequestContext();
+        final ResultStatusObject resultStatusObject = model.getResultStatus();
 
         // Get the factor keys
-        SecretKey possessionFactorKey = resultStatusObject.getPossessionFactorKeyObject();
-        SecretKey biometryFactorKey = resultStatusObject.getBiometryFactorKeyObject();
+        final SecretKey possessionFactorKey = resultStatusObject.getPossessionFactorKeyObject();
+        final SecretKey biometryFactorKey = resultStatusObject.getBiometryFactorKeyObject();
 
         // Generate nonce
-        byte[] nonceBytes = KEY_GENERATOR.generateRandomBytes(16);
+        final byte[] nonceBytes = KEY_GENERATOR.generateRandomBytes(16);
 
-        byte[] requestBytes = HttpUtil.toRequestBytes(requestContext.getRequestObject());
+        final byte[] requestBytes = HttpUtil.toRequestBytes(requestContext.getRequestObject());
 
         // Compute the current PowerAuth authentication code for possession and knowledge factor
-        String authBaseString = PowerAuthHttpBody.getAuthenticationBaseString(requestContext.getAuthenticationHttpMethod(), requestContext.getAuthenticationRequestUri(), nonceBytes, requestBytes) + "&" + model.getApplicationSecret();
-        byte[] ctrData = CounterUtil.getCtrData(resultStatusObject, stepContext.getStepLogger());
+        final String authBaseString = PowerAuthHttpBody.getAuthenticationBaseString(requestContext.getAuthenticationHttpMethod(), requestContext.getAuthenticationRequestUri(), nonceBytes, requestBytes) + "&" + model.getApplicationSecret();
+        final byte[] ctrData = CounterUtil.getCtrData(resultStatusObject, stepContext.getStepLogger());
         final PowerAuthAuthenticationCodeFormat format = PowerAuthAuthenticationCodeFormat.getFormatForVersion(model.getVersion().value());
         final AuthenticationCodeConfiguration config = AuthenticationCodeConfiguration.forFormat(format);
 
@@ -82,25 +82,25 @@ public class AuthorizationHeaderProvider implements PowerAuthHeaderProvider<Auth
         if (PowerAuthCodeType.POSSESSION.equals(model.getAuthenticationCodeType())) {
             authSecretKeys = Collections.singletonList(possessionFactorKey);
         } else if (PowerAuthCodeType.POSSESSION_KNOWLEDGE.equals(model.getAuthenticationCodeType())) {
-            SecretKey knowledgeFactorKey = getKnowledgeKeyFactor(model);
+            final SecretKey knowledgeFactorKey = getKnowledgeKeyFactor(model);
             authSecretKeys = Arrays.asList(possessionFactorKey, knowledgeFactorKey);
         } else {
             if (biometryFactorKey == null) {
                 throw new IllegalStateException("Missing biometry factor key");
             }
-            SecretKey knowledgeFactorKey = getKnowledgeKeyFactor(model);
+            final SecretKey knowledgeFactorKey = getKnowledgeKeyFactor(model);
             authSecretKeys = KEY_FACTORY.keysForAuthenticationCodeType(model.getAuthenticationCodeType(), possessionFactorKey, knowledgeFactorKey, biometryFactorKey);
         }
 
-        String authCodeValue = switch (model.getVersion().getMajorVersion()) {
+        final String authCodeValue = switch (model.getVersion().getMajorVersion()) {
             case 3 -> CLIENT_AUTHENTICATION_V3.computeAuthCode(authBaseString.getBytes(StandardCharsets.UTF_8), authSecretKeys, ctrData, config);
             case 4 -> CLIENT_AUTHENTICATION_V4.computeAuthCode(authBaseString.getBytes(StandardCharsets.UTF_8), authSecretKeys, ctrData, config);
             default -> throw new IllegalStateException("Unsupported version: " + stepContext.getModel().getVersion());
         };
 
-        PowerAuthAuthorizationHttpHeader header = new PowerAuthAuthorizationHttpHeader(resultStatusObject.getActivationId(), model.getApplicationKey(), authCodeValue, model.getAuthenticationCodeType().toString(), Base64.getEncoder().encodeToString(nonceBytes), model.getVersion().value());
+        final PowerAuthAuthorizationHttpHeader header = new PowerAuthAuthorizationHttpHeader(resultStatusObject.getActivationId(), model.getApplicationKey(), authCodeValue, model.getAuthenticationCodeType().toString(), Base64.getEncoder().encodeToString(nonceBytes), model.getVersion().value());
 
-        Map<String, String> lowLevelData = new HashMap<>();
+        final Map<String, String> lowLevelData = new HashMap<>();
         lowLevelData.put("counter", String.valueOf(resultStatusObject.getCounter()));
         int version = resultStatusObject.getVersion().intValue();
         if (version >= 3) {
@@ -124,15 +124,15 @@ public class AuthorizationHeaderProvider implements PowerAuthHeaderProvider<Auth
                 lowLevelData
         );
 
-        String headerValue = header.buildHttpHeader();
+        final String headerValue = header.buildHttpHeader();
         requestContext.setAuthorizationHeader(headerValue);
         requestContext.setAuthorizationHeaderName(PowerAuthAuthorizationHttpHeader.HEADER_NAME);
         requestContext.getHttpHeaders().put(PowerAuthAuthorizationHttpHeader.HEADER_NAME, headerValue);
     }
 
     private <M extends AuthorizationHeaderData> SecretKey getKnowledgeKeyFactor(M model) throws Exception {
-        byte[] knowledgeKeyFactorSalt = model.getResultStatus().getKnowledgeFactorKeySaltBytes();
-        byte[] knowledgeKeyFactorEncryptedBytes = model.getResultStatus().getKnowledgeFactorKeyEncryptedBytes();
+        final byte[] knowledgeKeyFactorSalt = model.getResultStatus().getKnowledgeFactorKeySaltBytes();
+        final byte[] knowledgeKeyFactorEncryptedBytes = model.getResultStatus().getKnowledgeFactorKeyEncryptedBytes();
 
         // Ask for the password to unlock knowledge factor key
         final char[] password;
