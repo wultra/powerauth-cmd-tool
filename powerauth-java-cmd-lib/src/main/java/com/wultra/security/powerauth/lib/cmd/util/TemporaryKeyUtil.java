@@ -213,7 +213,8 @@ public class TemporaryKeyUtil {
         final RestClient restClient = RestClientFactory.getRestClient();
         try {
             final ObjectResponse<TemporaryKeyResponse> response = Objects.requireNonNull(restClient).postObject(uri, request, null, MapUtil.toMultiValueMap(headers), TemporaryKeyResponse.class);
-            stepContext.getStepLogger().writeItem(step.id() + "-temporary-key-fetched", "Temporary key fetched", "Temporary key was fetched from the server", "OK", null);
+            stepContext.getStepLogger().writeItem(step.id() + "-temporary-key-request-sent", "Temporary key request sent", "Temporary key request sent to the server", "OK", request);
+            stepContext.getStepLogger().writeItem(step.id() + "-temporary-key-fetched", "Temporary key fetched", "Temporary key was fetched from the server", "OK", response);
             handleTemporaryKeyResponse(step, stepContext, response, scope, algorithm);
         } catch (RestClientException ex) {
             stepContext.getStepLogger().writeServerCallError(step.id() + "-error-server-call", ex.getStatusCode().value(), ex.getResponse(), HttpUtil.flattenHttpHeaders(ex.getResponseHeaders()));
