@@ -138,7 +138,6 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EncryptedRes
             // Error is already logged
             return null;
         }
-        final String temporaryKeyId = stepContext.getTemporaryKeyContext().getTemporaryKeyId();
         final ResultStatusObject resultStatusObject = model.getResultStatus();
 
         // Prepare the encryption header
@@ -152,16 +151,22 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EncryptedRes
             case APPLICATION_SCOPE -> {
                 switch (model.getVersion().getMajorVersion()) {
                     case 3 -> {
-                        final String temporaryPublicKey = stepContext.getTemporaryKeyContext().getTemporaryPublicKey();
-                        final PublicKey encryptionPublicKey = temporaryPublicKey == null ?
-                                model.getMasterPublicKeyP256() :
-                                KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, java.util.Base64.getDecoder().decode(temporaryPublicKey));
+                        final PublicKey encryptionPublicKey;
+                        final String temporaryKeyId;
+                        if (model.getVersion().useTemporaryKeys()) {
+                            temporaryKeyId = stepContext.getTemporaryKeyContext().getTemporaryKeyId();
+                            final String temporaryPublicKey = stepContext.getTemporaryKeyContext().getTemporaryPublicKey();
+                            encryptionPublicKey = KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, java.util.Base64.getDecoder().decode(temporaryPublicKey));
+                        } else {
+                            temporaryKeyId = null;
+                            encryptionPublicKey = model.getMasterPublicKeyP256();
+                        }
                         encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, temporaryKeyId);
                         encryptorSecrets = new ClientEciesSecrets(encryptionPublicKey, model.getApplicationSecret());
                     }
                     case 4 -> {
                         final SecretKey temporarySharedSecret = stepContext.getTemporaryKeyContext().getTemporarySharedSecret();
-                        encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, temporaryKeyId);
+                        encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), null, stepContext.getTemporaryKeyContext().getTemporaryKeyId());
                         encryptorSecrets = new AeadSecrets(temporarySharedSecret.getEncoded(), model.getApplicationSecret());
                     }
                     default -> {
@@ -178,10 +183,16 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EncryptedRes
             case ACTIVATION_SCOPE -> {
                 switch (model.getVersion().getMajorVersion()) {
                     case 3 -> {
-                        final String temporaryPublicKey = stepContext.getTemporaryKeyContext().getTemporaryPublicKey();
-                        final PublicKey encryptionPublicKey = temporaryPublicKey == null ?
-                                resultStatusObject.getEcServerPublicKeyObject() :
-                                KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, java.util.Base64.getDecoder().decode(temporaryPublicKey));
+                        final PublicKey encryptionPublicKey;
+                        final String temporaryKeyId;
+                        if (model.getVersion().useTemporaryKeys()) {
+                            temporaryKeyId = stepContext.getTemporaryKeyContext().getTemporaryKeyId();
+                            final String temporaryPublicKey = stepContext.getTemporaryKeyContext().getTemporaryPublicKey();
+                            encryptionPublicKey = KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, java.util.Base64.getDecoder().decode(temporaryPublicKey));
+                        } else {
+                            temporaryKeyId = null;
+                            encryptionPublicKey = resultStatusObject.getEcServerPublicKeyObject();
+                        }
                         encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), resultStatusObject.getActivationId(), temporaryKeyId);
                         encryptorSecrets = new ClientEciesSecrets(encryptionPublicKey, model.getApplicationSecret(), Base64.getDecoder().decode(resultStatusObject.getTransportMasterKey()));
                     }
@@ -192,7 +203,7 @@ public class EncryptStep extends AbstractBaseStep<EncryptStepModel, EncryptedRes
                             stepLogger.writeDoneFailed("encrypt-failed");
                             return null;
                         }
-                        encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), resultStatusObject.getActivationId(), temporaryKeyId);
+                        encryptorParameters = new EncryptorParameters(model.getVersion().value(), model.getApplicationKey(), resultStatusObject.getActivationId(), stepContext.getTemporaryKeyContext().getTemporaryKeyId());
                         encryptorSecrets = new AeadSecrets(temporarySharedSecret.getEncoded(), model.getApplicationSecret(), Base64.getDecoder().decode(model.getResultStatus().getSharedInfo2Key()));
                     }
                     default -> {
