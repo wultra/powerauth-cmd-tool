@@ -44,7 +44,10 @@ import java.util.function.Consumer;
 public class SharedSecretUtil {
 
     private static final SharedSecretEcdhe SHARED_SECRET_ECDHE = new SharedSecretEcdhe();
-    private static final SharedSecretHybrid SHARED_SECRET_HYBRID = new SharedSecretHybrid();
+
+    private static final SharedSecretHybrid SHARED_SECRET_HYBRID_ML_L3 = new SharedSecretHybrid(SharedSecretAlgorithm.EC_P384_ML_L3);
+    private static final SharedSecretHybrid SHARED_SECRET_HYBRID_ML_L5 = new SharedSecretHybrid(SharedSecretAlgorithm.EC_P384_ML_L5);
+
 
     /**
      * Build shared secret request.
@@ -65,7 +68,11 @@ public class SharedSecretUtil {
                 yield sharedSecretRequest;
             }
             case EC_P384_ML_L3, EC_P384_ML_L5 -> {
-                final RequestCryptogram requestCryptogram = SHARED_SECRET_HYBRID.generateRequestCryptogram();
+                final RequestCryptogram requestCryptogram = switch (algorithm) {
+                    case EC_P384_ML_L3 -> SHARED_SECRET_HYBRID_ML_L3.generateRequestCryptogram();
+                    case EC_P384_ML_L5 -> SHARED_SECRET_HYBRID_ML_L5.generateRequestCryptogram();
+                    default -> null;
+                };
                 clientContextConsumer.accept(requestCryptogram.getSharedSecretClientContext());
                 final SharedSecretRequestHybrid requestHybrid = (SharedSecretRequestHybrid) requestCryptogram.getSharedSecretRequest();
                 final RequestSharedSecretHybrid sharedSecretRequest = new RequestSharedSecretHybrid();
@@ -97,7 +104,11 @@ public class SharedSecretUtil {
                 final SharedSecretResponseHybrid sharedSecretResponseHybrid = new SharedSecretResponseHybrid();
                 sharedSecretResponseHybrid.setEcServerPublicKey(sharedSecretResponse.getEcdhe());
                 sharedSecretResponseHybrid.setPqcCiphertext(sharedSecretResponse.getMlkem());
-                return SHARED_SECRET_HYBRID.computeSharedSecret((SharedSecretClientContextHybrid) clientContext, sharedSecretResponseHybrid);
+                return switch (sharedSecretAlgorithm) {
+                    case EC_P384_ML_L3 -> SHARED_SECRET_HYBRID_ML_L3.computeSharedSecret((SharedSecretClientContextHybrid) clientContext, sharedSecretResponseHybrid);
+                    case EC_P384_ML_L5 -> SHARED_SECRET_HYBRID_ML_L5.computeSharedSecret((SharedSecretClientContextHybrid) clientContext, sharedSecretResponseHybrid);
+                    default -> null;
+                };
             }
             default -> throw new IllegalStateException("Unsupported shared secret algorithm: " + sharedSecretAlgorithm);
         }
