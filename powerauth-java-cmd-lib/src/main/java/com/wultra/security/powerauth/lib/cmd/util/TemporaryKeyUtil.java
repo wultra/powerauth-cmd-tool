@@ -53,6 +53,7 @@ import lombok.Data;
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.DLSequence;
+import org.bouncycastle.jcajce.spec.MLDSAParameterSpec;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -85,8 +86,17 @@ public class TemporaryKeyUtil {
     private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
     private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
     private static final SignatureUtils SIGNATURE_UTILS = new SignatureUtils();
-    private static final PqcDsa PQC_DSA = new MlDsa();
+    private static PqcDsa pqcDsaMlL3;
+    private static PqcDsa pqcDsaMlL5;
 
+    static {
+        try {
+            pqcDsaMlL3 = new MlDsa(MLDSAParameterSpec.ml_dsa_65);
+            pqcDsaMlL5 = new MlDsa(MLDSAParameterSpec.ml_dsa_87);
+        } catch (GenericCryptoException e) {
+            // impossible case
+        }
+    }
     private static final ObjectMapper OBJECT_MAPPER = RestClientConfiguration.defaultMapper();
 
     private static final PowerAuthClientKeyFactory CLIENT_KEY_FACTORY = new PowerAuthClientKeyFactory();
@@ -247,6 +257,9 @@ public class TemporaryKeyUtil {
                 if (algorithm == SharedSecretAlgorithm.EC_P384_ML_L3 && signatureData.get("ML-DSA-65") == null) {
                     throw new IllegalStateException("Missing ML-DSA signature for algorithm: " + algorithm);
                 }
+                if (algorithm == SharedSecretAlgorithm.EC_P384_ML_L5 && signatureData.get("ML-DSA-87") == null) {
+                    throw new IllegalStateException("Missing ML-DSA signature for algorithm: " + algorithm);
+                }
                 final JWTClaimsSet claims = extractClaims(jwtResponse);
                 handleSharedSecretResponse(stepContext, claims, algorithm);
                 final Map<String, PublicKey> publicKeys = new HashMap<>();
@@ -266,6 +279,18 @@ public class TemporaryKeyUtil {
                             case APPLICATION_SCOPE -> {
                                 publicKeys.put("ES384", getEcMasterPublicKey(stepContext, algorithm));
                                 publicKeys.put("ML-DSA-65", getMlDsaMasterPublicKey(stepContext));
+                            }
+                        }
+                    }
+                    case EC_P384_ML_L5 -> {
+                        switch (scope) {
+                            case ACTIVATION_SCOPE -> {
+                                publicKeys.put("ES384", stepContext.getModel().getResultStatus().getEcServerPublicKeyObject());
+                                publicKeys.put("ML-DSA-87", stepContext.getModel().getResultStatus().getPqcServerPublicKeyObject());
+                            }
+                            case APPLICATION_SCOPE -> {
+                                publicKeys.put("ES384", getEcMasterPublicKey(stepContext, algorithm));
+                                publicKeys.put("ML-DSA-87", getMlDsaMasterPublicKey(stepContext));
                             }
                         }
                     }
@@ -324,7 +349,9 @@ public class TemporaryKeyUtil {
     }
 
     private static boolean validateHybridSignatures(Map<String, JwtSignatureData> signatureData, Map<String, PublicKey> publicKeys, SharedSecretAlgorithm algorithm) throws IOException, GenericCryptoException {
-        if (algorithm != SharedSecretAlgorithm.EC_P384 && algorithm != SharedSecretAlgorithm.EC_P384_ML_L3) {
+        if (algorithm != SharedSecretAlgorithm.EC_P384
+                && algorithm != SharedSecretAlgorithm.EC_P384_ML_L3
+                && algorithm != SharedSecretAlgorithm.EC_P384_ML_L5) {
             return false;
         }
         final JwtSignatureData signatureEc = signatureData.get("ES384");
@@ -337,7 +364,14 @@ public class TemporaryKeyUtil {
             final JwtSignatureData signatureMlDsa = signatureData.get("ML-DSA-65");
             final byte[] signingInputMlDsa = signatureMlDsa.getSigningInput().getBytes(StandardCharsets.UTF_8);
             final byte[] signatureMlDsaBytes = Base64URL.from(signatureMlDsa.getSignature()).decode();
-            signaturesValid = signaturesValid && PQC_DSA.verify(publicKeyMlDsa, signingInputMlDsa, signatureMlDsaBytes);
+            signaturesValid = signaturesValid && pqcDsaMlL3.verify(publicKeyMlDsa, signingInputMlDsa, signatureMlDsaBytes);
+        }
+        if (algorithm == SharedSecretAlgorithm.EC_P384_ML_L5) {
+            final PublicKey publicKeyMlDsa = publicKeys.get("ML-DSA-87");
+            final JwtSignatureData signatureMlDsa = signatureData.get("ML-DSA-87");
+            final byte[] signingInputMlDsa = signatureMlDsa.getSigningInput().getBytes(StandardCharsets.UTF_8);
+            final byte[] signatureMlDsaBytes = Base64URL.from(signatureMlDsa.getSignature()).decode();
+            signaturesValid = signaturesValid && pqcDsaMlL5.verify(publicKeyMlDsa, signingInputMlDsa, signatureMlDsaBytes);
         }
         return signaturesValid;
     }
@@ -356,7 +390,7 @@ public class TemporaryKeyUtil {
         try {
             return switch (algorithm) {
                 case EC_P256 -> SIGNATURE_UTILS.validateECDSASignature(EcCurve.P256, signingInput, signatureBytes, publicKey);
-                case EC_P384, EC_P384_ML_L3 -> SIGNATURE_UTILS.validateECDSASignature(EcCurve.P384, signingInput, signatureBytes, publicKey);
+                case EC_P384, EC_P384_ML_L3, EC_P384_ML_L5 -> SIGNATURE_UTILS.validateECDSASignature(EcCurve.P384, signingInput, signatureBytes, publicKey);
                 default -> throw new IllegalArgumentException("Unsupported shared secret algorithm: " + algorithm);
             };
         } catch (GenericCryptoException | InvalidKeyException | CryptoProviderException e) {
@@ -404,18 +438,18 @@ public class TemporaryKeyUtil {
         if (stepContext.getModel() instanceof ActivationData activationModel) {
             return switch (algorithm) {
                 case EC_P256 -> activationModel.getMasterPublicKeyP256();
-                case EC_P384, EC_P384_ML_L3 -> activationModel.getMasterPublicKeyP384();
+                case EC_P384, EC_P384_ML_L3, EC_P384_ML_L5 -> activationModel.getMasterPublicKeyP384();
                 default -> throw new IllegalArgumentException("Unsupported shared secret algorithm: " + algorithm);
             };
         } else if (stepContext.getModel() instanceof EncryptStepModel encryptionModel) {
             return switch (algorithm) {
                 case EC_P256 -> encryptionModel.getMasterPublicKeyP256();
-                case EC_P384, EC_P384_ML_L3 -> encryptionModel.getMasterPublicKeyP384();
+                case EC_P384, EC_P384_ML_L3, EC_P384_ML_L5 -> encryptionModel.getMasterPublicKeyP384();
                 default -> throw new IllegalArgumentException("Unsupported shared secret algorithm: " + algorithm);
             };
         } else if (stepContext.getModel() instanceof UpgradeData upgradeModel) {
             return switch (algorithm) {
-                case EC_P384, EC_P384_ML_L3 -> upgradeModel.getMasterPublicKeyP384();
+                case EC_P384, EC_P384_ML_L3, EC_P384_ML_L5 -> upgradeModel.getMasterPublicKeyP384();
                 default -> throw new IllegalArgumentException("Unsupported shared secret algorithm: " + algorithm);
             };
         }
@@ -424,11 +458,24 @@ public class TemporaryKeyUtil {
 
     private static PublicKey getMlDsaMasterPublicKey(StepContext<? extends BaseStepData, ?> stepContext) {
         if (stepContext.getModel() instanceof ActivationData activationModel) {
-            return activationModel.getMasterPublicKeyMlDsa65();
+            return switch (activationModel.getSharedSecretAlgorithm()) {
+                case EC_P384_ML_L3 -> activationModel.getMasterPublicKeyMlDsa65();
+                case EC_P384_ML_L5 -> activationModel.getMasterPublicKeyMlDsa87();
+                default -> null;
+            };
+
         } else if (stepContext.getModel() instanceof EncryptStepModel encryptionModel) {
-            return encryptionModel.getMasterPublicKeyMlDsa65();
+            return switch (encryptionModel.getSharedSecretAlgorithm()) {
+                case EC_P384_ML_L3 -> encryptionModel.getMasterPublicKeyMlDsa65();
+                case EC_P384_ML_L5 -> encryptionModel.getMasterPublicKeyMlDsa87();
+                default -> null;
+            };
         } else if (stepContext.getModel() instanceof UpgradeData upgradeModel) {
-            return upgradeModel.getMasterPublicKeyMlDsa65();
+            return switch (upgradeModel.getSharedSecretAlgorithm()) {
+                case EC_P384_ML_L3 -> upgradeModel.getMasterPublicKeyMlDsa65();
+                case EC_P384_ML_L5 -> upgradeModel.getMasterPublicKeyMlDsa87();
+                default -> null;
+            };
         }
         throw new IllegalStateException("Invalid model for obtaining ML-DSA master public key");
     }

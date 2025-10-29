@@ -70,9 +70,14 @@ public interface ActivationData extends ResultStatusChangeable, BaseStepData {
     PublicKey getMasterPublicKeyP384();
 
     /**
-     * @return Base64 encoded master public key for P-384.
+     * @return Base64 encoded master public key for ML-DSA-65.
      */
     PublicKey getMasterPublicKeyMlDsa65();
+
+    /**
+     * @return Base64 encoded master public key for ML-DSA-87.
+     */
+    PublicKey getMasterPublicKeyMlDsa87();
 
     /**
      * @return Knowledge key password.

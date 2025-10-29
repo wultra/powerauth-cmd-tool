@@ -208,6 +208,7 @@ public class Application {
             final PublicKey masterPublicKeyP256;
             final PublicKey masterPublicKeyP384;
             final PublicKey masterPublicKeyMlDsa65;
+            final PublicKey masterPublicKeyMlDsa87;
             if (mobileSdkConfig != null) {
                 // Extract simplified mobile SDK configuration
                 final SdkConfiguration config = SdkConfigurationSerializer.deserialize(mobileSdkConfig);
@@ -222,6 +223,7 @@ public class Application {
                 masterPublicKeyP256 = ConfigurationUtil.getMasterPublicKeyP256(config, stepLogger);
                 masterPublicKeyP384 = ConfigurationUtil.getMasterPublicKeyP384(config, stepLogger);
                 masterPublicKeyMlDsa65 = ConfigurationUtil.getMasterPublicKeyMlDsa65(config, stepLogger);
+                masterPublicKeyMlDsa87 = ConfigurationUtil.getMasterPublicKeyMlDsa87(config, stepLogger);
             } else {
                 // Fallback to traditional mobile SDK configuration
                 stepLogger.writeError("invalid-sdk-config", "Invalid Mobile SDK Config", "Mobile SDK Config is not valid");
@@ -313,6 +315,7 @@ public class Application {
                     model.setMasterPublicKeyP256(masterPublicKeyP256);
                     model.setMasterPublicKeyP384(masterPublicKeyP384);
                     model.setMasterPublicKeyMlDsa65(masterPublicKeyMlDsa65);
+                    model.setMasterPublicKeyMlDsa87(masterPublicKeyMlDsa87);
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatus(resultStatusObject);
                     model.setStatusFileName(statusFileName);
@@ -418,6 +421,7 @@ public class Application {
                     model.setMasterPublicKeyP256(masterPublicKeyP256);
                     model.setMasterPublicKeyP384(masterPublicKeyP384);
                     model.setMasterPublicKeyMlDsa65(masterPublicKeyMlDsa65);
+                    model.setMasterPublicKeyMlDsa87(masterPublicKeyMlDsa87);
                     model.setStatusFileName(statusFileName);
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatus(resultStatusObject);
@@ -436,6 +440,7 @@ public class Application {
                     model.setMasterPublicKeyP256(masterPublicKeyP256);
                     model.setMasterPublicKeyP384(masterPublicKeyP384);
                     model.setMasterPublicKeyMlDsa65(masterPublicKeyMlDsa65);
+                    model.setMasterPublicKeyMlDsa87(masterPublicKeyMlDsa87);
                     model.setResultStatus(resultStatusObject);
                     model.setScope(cmd.getOptionValue("o"));
                     model.setUriString(uriString);
@@ -500,6 +505,7 @@ public class Application {
                     model.setHeaders(httpHeaders);
                     model.setMasterPublicKeyP384(masterPublicKeyP384);
                     model.setMasterPublicKeyMlDsa65(masterPublicKeyMlDsa65);
+                    model.setMasterPublicKeyMlDsa87(masterPublicKeyMlDsa87);
                     model.setPassword(cmd.getOptionValue("p"));
                     model.setResultStatus(resultStatusObject);
                     model.setStatusFileName(statusFileName);

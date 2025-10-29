@@ -104,9 +104,18 @@ public class ConfigurationUtil {
      * @return Master public key.
      */
     public static PublicKey getMasterPublicKeyMlDsa65(SdkConfiguration config, StepLogger stepLogger) {
-        return convertMasterPublicKeyMlDsa65(config.masterPublicKeyMlDsa65(), stepLogger);
+        return convertMasterPublicKeyMlDsa(config.masterPublicKeyMlDsa65(), stepLogger);
     }
 
+    /**
+     * Extract master public key for ML-DSA-87 from mobile SDK configuration
+     * @param config Mobile SDK configuration.
+     * @param stepLogger Step logger instance.
+     * @return Master public key.
+     */
+    public static PublicKey getMasterPublicKeyMlDsa87(SdkConfiguration config, StepLogger stepLogger) {
+        return convertMasterPublicKeyMlDsa(config.masterPublicKeyMlDsa87(), stepLogger);
+    }
 
     /**
      * Get mobile SDK configuration.
@@ -174,12 +183,12 @@ public class ConfigurationUtil {
     }
 
     /**
-     * Convert master public key for ML-DSA-65 from String to PublicKey
+     * Convert master public key for ML-DSA from String to PublicKey
      * @param masterPublicKey Master public key
      * @param stepLogger Step logger
      * @return Public key
      */
-    private static PublicKey convertMasterPublicKeyMlDsa65(String masterPublicKey, StepLogger stepLogger) {
+    private static PublicKey convertMasterPublicKeyMlDsa(String masterPublicKey, StepLogger stepLogger) {
         if (masterPublicKey == null) {
             return null;
         }
@@ -197,4 +206,5 @@ public class ConfigurationUtil {
         }
         return null;
     }
+
 }

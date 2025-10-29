@@ -142,9 +142,9 @@ public class SecurityUtil {
      */
     public static SharedSecretAlgorithm getDefaultSharedSecretAlgorithm(PowerAuthVersion version) {
         return switch (version.getMajorVersion()) {
-            case 3: yield SharedSecretAlgorithm.EC_P256;
-            case 4: yield SharedSecretAlgorithm.EC_P384_ML_L3;
-            default: throw new IllegalArgumentException("Unsupported version: " + version);
+            case 3 -> SharedSecretAlgorithm.EC_P256;
+            case 4 -> SharedSecretAlgorithm.EC_P384_ML_L5;
+            default -> throw new IllegalArgumentException("Unsupported version: " + version);
         };
     }
 

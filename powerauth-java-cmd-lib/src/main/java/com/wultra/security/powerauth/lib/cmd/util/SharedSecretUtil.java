@@ -64,7 +64,7 @@ public class SharedSecretUtil {
                 sharedSecretRequest.setEcdhe(requestEcdhe.getEcClientPublicKey());
                 yield sharedSecretRequest;
             }
-            case EC_P384_ML_L3 -> {
+            case EC_P384_ML_L3, EC_P384_ML_L5 -> {
                 final RequestCryptogram requestCryptogram = SHARED_SECRET_HYBRID.generateRequestCryptogram();
                 clientContextConsumer.accept(requestCryptogram.getSharedSecretClientContext());
                 final SharedSecretRequestHybrid requestHybrid = (SharedSecretRequestHybrid) requestCryptogram.getSharedSecretRequest();
@@ -93,7 +93,7 @@ public class SharedSecretUtil {
                 sharedSecretResponseEcdhe.setEcServerPublicKey(sharedSecretResponse.getEcdhe());
                 return SHARED_SECRET_ECDHE.computeSharedSecret((SharedSecretClientContextEcdhe) clientContext, sharedSecretResponseEcdhe);
             }
-            case EC_P384_ML_L3 -> {
+            case EC_P384_ML_L3, EC_P384_ML_L5 -> {
                 final SharedSecretResponseHybrid sharedSecretResponseHybrid = new SharedSecretResponseHybrid();
                 sharedSecretResponseHybrid.setEcServerPublicKey(sharedSecretResponse.getEcdhe());
                 sharedSecretResponseHybrid.setPqcCiphertext(sharedSecretResponse.getMlkem());
