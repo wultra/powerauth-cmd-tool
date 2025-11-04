@@ -104,6 +104,11 @@ public class PrepareActivationStepModel extends BaseStepModel
     private PublicKey masterPublicKeyMlDsa65;
 
     /**
+     * Master Server Public Key for ML-DSA-87, a value specific for given application.
+     */
+    private PublicKey masterPublicKeyMlDsa87;
+
+    /**
      * Algorithm used for the shared secret derivation.
      */
     private SharedSecretAlgorithm sharedSecretAlgorithm;
@@ -126,6 +131,7 @@ public class PrepareActivationStepModel extends BaseStepModel
         context.put("MASTER_PUBLIC_KEY_P256", masterPublicKeyP256);
         context.put("MASTER_PUBLIC_KEY_P384", masterPublicKeyP384);
         context.put("MASTER_PUBLIC_KEY_MLDSA65", masterPublicKeyMlDsa65);
+        context.put("MASTER_PUBLIC_KEY_MLDSA87", masterPublicKeyMlDsa87);
         context.put("STATUS_FILENAME", statusFileName);
         context.put("ACTIVATION_CODE", activationCode);
         context.put("CUSTOM_ATTRIBUTES", customAttributes);
@@ -147,6 +153,7 @@ public class PrepareActivationStepModel extends BaseStepModel
         setMasterPublicKeyP256((PublicKey) context.get("MASTER_PUBLIC_KEY_P256"));
         setMasterPublicKeyP384((PublicKey) context.get("MASTER_PUBLIC_KEY_P384"));
         setMasterPublicKeyMlDsa65((PublicKey) context.get("MASTER_PUBLIC_KEY_MLDSA65"));
+        setMasterPublicKeyMlDsa87((PublicKey) context.get("MASTER_PUBLIC_KEY_MLDSA87"));
         setStatusFileName((String) context.get("STATUS_FILENAME"));
         setActivationCode((String) context.get("ACTIVATION_CODE"));
         setCustomAttributes((Map<String, Object>) context.get("CUSTOM_ATTRIBUTES"));

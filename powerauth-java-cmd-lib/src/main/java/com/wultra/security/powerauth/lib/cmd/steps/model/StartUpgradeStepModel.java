@@ -67,6 +67,11 @@ public class StartUpgradeStepModel extends BaseStepModel
     private PublicKey masterPublicKeyMlDsa65;
 
     /**
+     * Master Server Public Key for ML-DSA-87, a value specific for given application.
+     */
+    private PublicKey masterPublicKeyMlDsa87;
+
+    /**
      * Algorithm used for the shared secret derivation.
      */
     private SharedSecretAlgorithm sharedSecretAlgorithm;
@@ -85,6 +90,7 @@ public class StartUpgradeStepModel extends BaseStepModel
         context.put("PASSWORD", password);
         context.put("MASTER_PUBLIC_KEY_P384", masterPublicKeyP384);
         context.put("MASTER_PUBLIC_KEY_MLDSA65", masterPublicKeyMlDsa65);
+        context.put("MASTER_PUBLIC_KEY_MLDSA87", masterPublicKeyMlDsa87);
         context.put("SHARED_SECRET_ALGORITHM", sharedSecretAlgorithm);
         return context;
     }
@@ -98,6 +104,7 @@ public class StartUpgradeStepModel extends BaseStepModel
         setPassword((String) context.get("PASSWORD"));
         setMasterPublicKeyP384((PublicKey) context.get("MASTER_PUBLIC_KEY_P384"));
         setMasterPublicKeyMlDsa65((PublicKey) context.get("MASTER_PUBLIC_KEY_MLDSA65"));
+        setMasterPublicKeyMlDsa87((PublicKey) context.get("MASTER_PUBLIC_KEY_MLDSA87"));
         setSharedSecretAlgorithm((SharedSecretAlgorithm) context.get("SHARED_SECRET_ALGORITHM"));
     }
 

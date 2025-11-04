@@ -170,12 +170,12 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, En
 
                 sharedSecretRequest.setEcdhe(((RequestSharedSecretEcdhe) requestSharedSecret).getEcdhe());
             }
-            case EC_P384_ML_L3 -> {
+            case EC_P384_ML_L3, EC_P384_ML_L5 -> {
                 final byte[] ecPublicKeyBytes = KEY_CONVERTOR.convertPublicKeyToBytes(EcCurve.P384, ecDeviceKeyPair.getPublic());
                 final String ecPublicKeyBase64 = Base64.getEncoder().encodeToString(ecPublicKeyBytes);
                 devicePublicKeys.setEcdsa(ecPublicKeyBase64);
 
-                pqcDeviceKeyPair = CLIENT_ACTIVATION_V4.generateDevicePqcKeyPair();
+                pqcDeviceKeyPair = CLIENT_ACTIVATION_V4.generateDevicePqcKeyPair(sharedSecretAlgorithm);
                 final byte[] pqcPublicKeyBytes = KEY_CONVERTOR_PQC_DSA.convertPublicKeyToBytes(pqcDeviceKeyPair.getPublic());
                 final String pqcPublicKeyBase64 = Base64.getEncoder().encodeToString(pqcPublicKeyBytes);
                 devicePublicKeys.setMldsa(pqcPublicKeyBase64);
