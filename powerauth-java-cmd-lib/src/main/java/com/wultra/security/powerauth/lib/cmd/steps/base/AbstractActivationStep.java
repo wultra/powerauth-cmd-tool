@@ -115,14 +115,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
         objectMap.put("activationId", resultStatusObject.getActivationId());
         objectMap.put("activationStatusFile", model.getStatusFileName());
         objectMap.put("activationStatusFileContent", model.getResultStatus());
-        switch (model.getVersion().getMajorVersion()) {
-            case 3 -> objectMap.put("deviceKeyFingerprint", CLIENT_ACTIVATION_V3.computeActivationFingerprint(securityContext.getEcDeviceKeyPair().getPublic(), resultStatusObject.getEcServerPublicKeyObject(), resultStatusObject.getActivationId()));
-            case 4 -> {
-                // TODO - PQC support
-                objectMap.put("deviceKeyFingerprint", CLIENT_ACTIVATION_V4.computeActivationEcFingerprint(securityContext.getEcDeviceKeyPair().getPublic(), resultStatusObject.getEcServerPublicKeyObject(), resultStatusObject.getActivationId()));
-            }
-            default -> throw new IllegalStateException("Unsupported version: " + model.getVersion());
-        }
+        objectMap.put("deviceKeyFingerprint", computeActivationFingerprint(model.getVersion().getMajorVersion(), securityContext, resultStatusObject));
 
         stepContext.getStepLogger().writeItem(
                 getStep().id() + "-activation-done",
@@ -131,6 +124,33 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
                 "OK",
                 objectMap
         );
+    }
+
+    private String computeActivationFingerprint(int majorVersion, ActivationSecurityContext securityContext, ResultStatusObject resultStatusObject) throws Exception {
+        return switch (majorVersion) {
+            case 3 -> CLIENT_ACTIVATION_V3.computeActivationFingerprint(
+                    securityContext.getEcDeviceKeyPair().getPublic(),
+                    resultStatusObject.getEcServerPublicKeyObject(),
+                    resultStatusObject.getActivationId()
+            );
+            case 4 -> switch (securityContext.getSharedSecretAlgorithm()) {
+                case EC_P384 -> CLIENT_ACTIVATION_V4.computeActivationEcFingerprint(
+                        securityContext.getEcDeviceKeyPair().getPublic(),
+                        resultStatusObject.getEcServerPublicKeyObject(),
+                        resultStatusObject.getActivationId()
+                );
+                case EC_P384_ML_L3, EC_P384_ML_L5 -> CLIENT_ACTIVATION_V4.computeActivationHybridFingerprint(
+                        securityContext.getSharedSecretAlgorithm(),
+                        securityContext.getEcDeviceKeyPair().getPublic(),
+                        securityContext.getPqcDeviceKeyPair().getPublic(),
+                        resultStatusObject.getEcServerPublicKeyObject(),
+                        resultStatusObject.getPqcServerPublicKeyObject(),
+                        resultStatusObject.getActivationId()
+                );
+                default -> throw new IllegalStateException("Unsupported shared secret algorithm: " + securityContext.getSharedSecretAlgorithm());
+            };
+            default -> throw new IllegalStateException("Unsupported version: " + majorVersion);
+        };
     }
 
     /**
