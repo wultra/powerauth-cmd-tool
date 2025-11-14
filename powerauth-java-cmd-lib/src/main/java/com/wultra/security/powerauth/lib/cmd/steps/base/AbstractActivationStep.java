@@ -369,7 +369,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
                         devicePublicKeys.setEcdsa(ecPublicKeyBase64);
                         pqcDeviceKeyPair = null;
 
-                        sharedSecretRequest.setEncapsulationKeys(List.of(sharedSecretRequest.getEncapsulationKeys().get(0)));
+                        sharedSecretRequest.setEncapsulationKeys(List.of(requestSharedSecret.getEncapsulationKeys().get(0)));
                     }
                     case EC_P384_ML_L3, EC_P384_ML_L5 -> {
                         final byte[] ecPublicKeyBytes = KEY_CONVERTOR.convertPublicKeyToBytes(EcCurve.P384, ecDeviceKeyPair.getPublic());
