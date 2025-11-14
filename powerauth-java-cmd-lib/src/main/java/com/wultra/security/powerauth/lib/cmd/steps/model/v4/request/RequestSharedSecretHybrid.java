@@ -21,6 +21,8 @@ package com.wultra.security.powerauth.lib.cmd.steps.model.v4.request;
 
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * Model class for shared secret hybrid request.
  *
@@ -30,7 +32,6 @@ import lombok.Data;
 public class RequestSharedSecretHybrid implements RequestSharedSecret {
 
     private String algorithm;
-    private String ecdhe;
-    private String mlkem;
+    private List<String> encapsulatedKeys;
 
 }

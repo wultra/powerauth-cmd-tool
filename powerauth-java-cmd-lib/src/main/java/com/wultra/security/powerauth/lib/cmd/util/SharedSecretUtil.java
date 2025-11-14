@@ -60,7 +60,7 @@ public class SharedSecretUtil {
                 clientContextConsumer.accept(requestCryptogram.getSharedSecretClientContext());
                 final RequestSharedSecretEcdhe sharedSecretRequest = new RequestSharedSecretEcdhe();
                 sharedSecretRequest.setAlgorithm(algorithm.toString());
-                sharedSecretRequest.setEcdhe(request.getEncapsulationKeys().get(0));
+                sharedSecretRequest.setEncapsulationKeys(List.of(request.getEncapsulationKeys().get(0)));
                 yield sharedSecretRequest;
             }
             case EC_P384_ML_L3, EC_P384_ML_L5 -> {
@@ -73,8 +73,7 @@ public class SharedSecretUtil {
                 final DefaultSharedSecretRequest request = (DefaultSharedSecretRequest) requestCryptogram.getSharedSecretRequest();
                 final RequestSharedSecretHybrid sharedSecretRequest = new RequestSharedSecretHybrid();
                 sharedSecretRequest.setAlgorithm(algorithm.toString());
-                sharedSecretRequest.setEcdhe(request.getEncapsulationKeys().get(0));
-                sharedSecretRequest.setMlkem(request.getEncapsulationKeys().get(1));
+                sharedSecretRequest.setEncapsulatedKeys(List.of(request.getEncapsulationKeys().get(0), request.getEncapsulationKeys().get(1)));
                 yield sharedSecretRequest;
             }
             default -> throw new IllegalStateException("Unsupported algorithm for version 4: " + algorithm);

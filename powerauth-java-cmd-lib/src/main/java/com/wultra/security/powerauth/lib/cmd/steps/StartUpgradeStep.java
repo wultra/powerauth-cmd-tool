@@ -168,7 +168,7 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, En
                 devicePublicKeys.setEcdsa(ecPublicKeyBase64);
                 pqcDeviceKeyPair = null;
 
-                sharedSecretRequest.setEcdhe(((RequestSharedSecretEcdhe) requestSharedSecret).getEcdhe());
+                sharedSecretRequest.setEcdhe(((RequestSharedSecretEcdhe) requestSharedSecret).getEncapsulationKeys().get(0));
             }
             case EC_P384_ML_L3, EC_P384_ML_L5 -> {
                 final byte[] ecPublicKeyBytes = KEY_CONVERTOR.convertPublicKeyToBytes(EcCurve.P384, ecDeviceKeyPair.getPublic());
@@ -180,8 +180,8 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, En
                 final String pqcPublicKeyBase64 = Base64.getEncoder().encodeToString(pqcPublicKeyBytes);
                 devicePublicKeys.setMldsa(pqcPublicKeyBase64);
 
-                sharedSecretRequest.setEcdhe(((RequestSharedSecretHybrid) requestSharedSecret).getEcdhe());
-                sharedSecretRequest.setMlkem(((RequestSharedSecretHybrid) requestSharedSecret).getMlkem());
+                sharedSecretRequest.setEcdhe(((RequestSharedSecretHybrid) requestSharedSecret).getEncapsulatedKeys().get(0));
+                sharedSecretRequest.setMlkem(((RequestSharedSecretHybrid) requestSharedSecret).getEncapsulatedKeys().get(1));
             }
             default -> throw new IllegalStateException("Unsupported shared secret algorithm: " + model.getSharedSecretAlgorithm());
         }

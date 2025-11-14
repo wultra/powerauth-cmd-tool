@@ -21,6 +21,8 @@ package com.wultra.security.powerauth.lib.cmd.steps.model.v4.request;
 
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * Model class for shared secret ECHDE request.
  *
@@ -30,6 +32,6 @@ import lombok.Data;
 public class RequestSharedSecretEcdhe implements RequestSharedSecret {
 
     private String algorithm;
-    private String ecdhe;
+    private List<String> encapsulationKeys;
 
 }
