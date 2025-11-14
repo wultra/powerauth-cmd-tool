@@ -35,12 +35,12 @@ import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.security.SimpleSecurityContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.ChangePasswordStepModel;
-import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecret;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import com.wultra.security.powerauth.lib.cmd.util.EncryptedStorageUtil;
 import com.wultra.security.powerauth.lib.cmd.util.RestClientConfiguration;
 import com.wultra.security.powerauth.lib.cmd.util.SecurityUtil;
 import com.wultra.security.powerauth.lib.cmd.util.SharedSecretUtil;
+import com.wultra.security.powerauth.rest.api.model.request.v4.SharedSecretRequest;
 import com.wultra.security.powerauth.rest.api.model.response.v4.SharedSecretResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
@@ -114,7 +114,7 @@ public class ChangePasswordStep extends AbstractBaseStep<ChangePasswordStepModel
         final StepContext<ChangePasswordStepModel, EncryptedResponse> stepContext = buildStepContext(stepLogger, model, requestContext);
 
         final SharedSecretAlgorithm sharedSecretAlgorithm = SecurityUtil.resolveSharedSecretAlgorithm(stepContext, EncryptorScope.ACTIVATION_SCOPE);
-        final RequestSharedSecret sharedSecretRequest = SharedSecretUtil.buildSharedSecretRequest(
+        final SharedSecretRequest sharedSecretRequest = SharedSecretUtil.buildSharedSecretRequest(
                 sharedSecretAlgorithm,
                 ctx -> stepContext.setSecurityContext(SimpleSecurityContext.builder().sharedSecretClientContext(ctx).build())
         );
@@ -162,8 +162,8 @@ public class ChangePasswordStep extends AbstractBaseStep<ChangePasswordStepModel
                 "Password was changed",
                 "Password was successfully changed and new knowledge factor key was saved",
                 "OK",
-                Map.of("ecdhe", responsePayload.getEcdhe(),
-                        "mlkem", responsePayload.getMlkem()));
+                Map.of("ecdhe", responsePayload.getEncapsulatedKeys().get(0),
+                        "mlkem", responsePayload.getEncapsulatedKeys().get(1)));
     }
 
 }

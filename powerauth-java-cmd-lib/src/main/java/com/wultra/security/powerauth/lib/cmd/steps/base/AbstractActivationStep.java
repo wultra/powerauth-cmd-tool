@@ -38,9 +38,6 @@ import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.security.ActivationSecurityContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.PrepareActivationStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.ActivationData;
-import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecret;
-import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecretEcdhe;
-import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecretHybrid;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import com.wultra.security.powerauth.lib.cmd.util.KeyDerivationUtil;
 import com.wultra.security.powerauth.lib.cmd.util.RestClientConfiguration;
@@ -355,7 +352,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
                 );
 
                 final AtomicReference<SharedSecretClientContext> ctxRef = new AtomicReference<>();
-                final RequestSharedSecret requestSharedSecret = SharedSecretUtil.buildSharedSecretRequest(
+                final SharedSecretRequest requestSharedSecret = SharedSecretUtil.buildSharedSecretRequest(
                         model.getSharedSecretAlgorithm(),
                         ctxRef::set
                 );
@@ -372,7 +369,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
                         devicePublicKeys.setEcdsa(ecPublicKeyBase64);
                         pqcDeviceKeyPair = null;
 
-                        sharedSecretRequest.setEcdhe(((RequestSharedSecretEcdhe) requestSharedSecret).getEncapsulationKeys().get(0));
+                        sharedSecretRequest.setEncapsulationKeys(List.of(sharedSecretRequest.getEncapsulationKeys().get(0)));
                     }
                     case EC_P384_ML_L3, EC_P384_ML_L5 -> {
                         final byte[] ecPublicKeyBytes = KEY_CONVERTOR.convertPublicKeyToBytes(EcCurve.P384, ecDeviceKeyPair.getPublic());
@@ -384,8 +381,7 @@ public abstract class AbstractActivationStep<M extends ActivationData> extends A
                         final String pqcPublicKeyBase64 = Base64.getEncoder().encodeToString(pqcPublicKeyBytes);
                         devicePublicKeys.setMldsa(pqcPublicKeyBase64);
 
-                        sharedSecretRequest.setEcdhe(((RequestSharedSecretHybrid) requestSharedSecret).getEncapsulatedKeys().get(0));
-                        sharedSecretRequest.setMlkem(((RequestSharedSecretHybrid) requestSharedSecret).getEncapsulatedKeys().get(1));
+                        sharedSecretRequest.setEncapsulationKeys(List.of((requestSharedSecret.getEncapsulationKeys().get(0)), (requestSharedSecret.getEncapsulationKeys().get(1))));
                     }
                     default -> throw new IllegalStateException("Unsupported shared secret algorithm: " + model.getSharedSecretAlgorithm());
                 }

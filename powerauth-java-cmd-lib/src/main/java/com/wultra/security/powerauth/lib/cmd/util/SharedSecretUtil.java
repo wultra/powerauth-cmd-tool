@@ -25,9 +25,7 @@ import com.wultra.security.powerauth.crypto.lib.v4.model.request.DefaultSharedSe
 import com.wultra.security.powerauth.crypto.lib.v4.model.request.RequestCryptogram;
 import com.wultra.security.powerauth.crypto.lib.v4.model.response.DefaultSharedSecretResponse;
 import com.wultra.security.powerauth.crypto.lib.v4.sharedsecret.SharedSecretFactory;
-import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecret;
-import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecretEcdhe;
-import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecretHybrid;
+import com.wultra.security.powerauth.rest.api.model.request.v4.SharedSecretRequest;
 import com.wultra.security.powerauth.rest.api.model.response.v4.SharedSecretResponse;
 
 import javax.crypto.SecretKey;
@@ -52,13 +50,13 @@ public class SharedSecretUtil {
      * @return Shared secret request.
      * @throws GenericCryptoException Thrown in case of any cryptography error.
      */
-    public static RequestSharedSecret buildSharedSecretRequest(SharedSecretAlgorithm algorithm, Consumer<SharedSecretClientContext> clientContextConsumer) throws GenericCryptoException {
+    public static SharedSecretRequest buildSharedSecretRequest(SharedSecretAlgorithm algorithm, Consumer<SharedSecretClientContext> clientContextConsumer) throws GenericCryptoException {
         return switch (algorithm) {
             case EC_P384 -> {
                 final RequestCryptogram requestCryptogram = SHARED_SECRET_ECDHE.generateRequestCryptogram();
                 final DefaultSharedSecretRequest request = (DefaultSharedSecretRequest) requestCryptogram.getSharedSecretRequest();
                 clientContextConsumer.accept(requestCryptogram.getSharedSecretClientContext());
-                final RequestSharedSecretEcdhe sharedSecretRequest = new RequestSharedSecretEcdhe();
+                final SharedSecretRequest sharedSecretRequest = new SharedSecretRequest();
                 sharedSecretRequest.setAlgorithm(algorithm.toString());
                 sharedSecretRequest.setEncapsulationKeys(List.of(request.getEncapsulationKeys().get(0)));
                 yield sharedSecretRequest;
@@ -71,9 +69,9 @@ public class SharedSecretUtil {
                 };
                 clientContextConsumer.accept(requestCryptogram.getSharedSecretClientContext());
                 final DefaultSharedSecretRequest request = (DefaultSharedSecretRequest) requestCryptogram.getSharedSecretRequest();
-                final RequestSharedSecretHybrid sharedSecretRequest = new RequestSharedSecretHybrid();
+                final SharedSecretRequest sharedSecretRequest = new SharedSecretRequest();
                 sharedSecretRequest.setAlgorithm(algorithm.toString());
-                sharedSecretRequest.setEncapsulatedKeys(List.of(request.getEncapsulationKeys().get(0), request.getEncapsulationKeys().get(1)));
+                sharedSecretRequest.setEncapsulationKeys(List.of(request.getEncapsulationKeys().get(0), request.getEncapsulationKeys().get(1)));
                 yield sharedSecretRequest;
             }
             default -> throw new IllegalStateException("Unsupported algorithm for version 4: " + algorithm);
@@ -92,11 +90,11 @@ public class SharedSecretUtil {
         final DefaultSharedSecretResponse sharedSecretResponseObject = new DefaultSharedSecretResponse();
         switch (sharedSecretAlgorithm) {
             case EC_P384 -> {
-                sharedSecretResponseObject.setEncapsulatedKeys(List.of(sharedSecretResponse.getEcdhe()));
+                sharedSecretResponseObject.setEncapsulatedKeys(List.of(sharedSecretResponse.getEncapsulatedKeys().get(0)));
                 return SHARED_SECRET_ECDHE.computeSharedSecret((DefaultSharedSecretClientContext) clientContext, sharedSecretResponseObject);
             }
             case EC_P384_ML_L3, EC_P384_ML_L5 -> {
-                sharedSecretResponseObject.setEncapsulatedKeys(List.of(sharedSecretResponse.getEcdhe(), sharedSecretResponse.getMlkem()));
+                sharedSecretResponseObject.setEncapsulatedKeys(List.of(sharedSecretResponse.getEncapsulatedKeys().get(0), sharedSecretResponse.getEncapsulatedKeys().get(1)));
                 return switch (sharedSecretAlgorithm) {
                     case EC_P384_ML_L3 -> SHARED_SECRET_HYBRID_ML_L3.computeSharedSecret((DefaultSharedSecretClientContext) clientContext, sharedSecretResponseObject);
                     case EC_P384_ML_L5 -> SHARED_SECRET_HYBRID_ML_L5.computeSharedSecret((DefaultSharedSecretClientContext) clientContext, sharedSecretResponseObject);
