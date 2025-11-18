@@ -88,6 +88,7 @@ public class SharedSecretUtil {
      */
     public static SecretKey deriveSharedSecret(SharedSecretResponse sharedSecretResponse, SharedSecretClientContext clientContext, SharedSecretAlgorithm sharedSecretAlgorithm) throws GenericCryptoException {
         final DefaultSharedSecretResponse sharedSecretResponseObject = new DefaultSharedSecretResponse();
+        sharedSecretResponseObject.setSalt(sharedSecretResponse.getSalt());
         switch (sharedSecretAlgorithm) {
             case EC_P384 -> {
                 sharedSecretResponseObject.setEncapsulatedKeys(List.of(sharedSecretResponse.getEncapsulatedKeys().get(0)));
