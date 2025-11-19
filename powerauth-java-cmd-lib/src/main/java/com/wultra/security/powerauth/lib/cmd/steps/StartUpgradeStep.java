@@ -40,9 +40,6 @@ import com.wultra.security.powerauth.lib.cmd.steps.context.RequestContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.security.UpgradeSecurityContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.StartUpgradeStepModel;
-import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecret;
-import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecretEcdhe;
-import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecretHybrid;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import com.wultra.security.powerauth.lib.cmd.util.KeyDerivationUtil;
 import com.wultra.security.powerauth.lib.cmd.util.RestClientConfiguration;
@@ -61,6 +58,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.security.KeyPair;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -151,7 +149,7 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, En
         );
 
         final AtomicReference<SharedSecretClientContext> ctxRef = new AtomicReference<>();
-        final RequestSharedSecret requestSharedSecret = SharedSecretUtil.buildSharedSecretRequest(
+        final SharedSecretRequest requestSharedSecret = SharedSecretUtil.buildSharedSecretRequest(
                 model.getSharedSecretAlgorithm(),
                 ctxRef::set
         );
@@ -168,7 +166,7 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, En
                 devicePublicKeys.setEcdsa(ecPublicKeyBase64);
                 pqcDeviceKeyPair = null;
 
-                sharedSecretRequest.setEcdhe(((RequestSharedSecretEcdhe) requestSharedSecret).getEcdhe());
+                sharedSecretRequest.setEncapsulationKeys(List.of(requestSharedSecret.getEncapsulationKeys().get(0)));
             }
             case EC_P384_ML_L3, EC_P384_ML_L5 -> {
                 final byte[] ecPublicKeyBytes = KEY_CONVERTOR.convertPublicKeyToBytes(EcCurve.P384, ecDeviceKeyPair.getPublic());
@@ -180,8 +178,7 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, En
                 final String pqcPublicKeyBase64 = Base64.getEncoder().encodeToString(pqcPublicKeyBytes);
                 devicePublicKeys.setMldsa(pqcPublicKeyBase64);
 
-                sharedSecretRequest.setEcdhe(((RequestSharedSecretHybrid) requestSharedSecret).getEcdhe());
-                sharedSecretRequest.setMlkem(((RequestSharedSecretHybrid) requestSharedSecret).getMlkem());
+                sharedSecretRequest.setEncapsulationKeys(List.of(requestSharedSecret.getEncapsulationKeys().get(0), (requestSharedSecret.getEncapsulationKeys().get(1))));
             }
             default -> throw new IllegalStateException("Unsupported shared secret algorithm: " + model.getSharedSecretAlgorithm());
         }

@@ -45,8 +45,8 @@ import com.wultra.security.powerauth.lib.cmd.steps.context.security.TemporaryKey
 import com.wultra.security.powerauth.lib.cmd.steps.model.BaseStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.*;
-import com.wultra.security.powerauth.lib.cmd.steps.model.v4.request.RequestSharedSecret;
 import com.wultra.security.powerauth.rest.api.model.request.TemporaryKeyRequest;
+import com.wultra.security.powerauth.rest.api.model.request.v4.SharedSecretRequest;
 import com.wultra.security.powerauth.rest.api.model.response.TemporaryKeyResponse;
 import com.wultra.security.powerauth.rest.api.model.response.v4.SharedSecretResponse;
 import lombok.Data;
@@ -143,7 +143,7 @@ public class TemporaryKeyUtil {
             stepContext.setTemporaryKeyContext(TemporaryKeyContext.builder().build());
         }
         if (model.getVersion().getMajorVersion() == 4) {
-            final RequestSharedSecret request = SharedSecretUtil.buildSharedSecretRequest(
+            final SharedSecretRequest request = SharedSecretUtil.buildSharedSecretRequest(
                     algorithm,
                     ctx -> stepContext.getTemporaryKeyContext().setSharedSecretClientContext(ctx)
             );
