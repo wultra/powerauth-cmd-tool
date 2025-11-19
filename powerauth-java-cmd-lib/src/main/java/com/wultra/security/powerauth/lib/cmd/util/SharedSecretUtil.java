@@ -19,7 +19,6 @@ package com.wultra.security.powerauth.lib.cmd.util;
 import com.wultra.security.powerauth.crypto.lib.model.exception.GenericCryptoException;
 import com.wultra.security.powerauth.crypto.lib.v4.api.SharedSecret;
 import com.wultra.security.powerauth.crypto.lib.v4.api.SharedSecretClientContext;
-import com.wultra.security.powerauth.crypto.lib.v4.model.context.DefaultSharedSecretClientContext;
 import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
 import com.wultra.security.powerauth.crypto.lib.v4.model.request.DefaultSharedSecretRequest;
 import com.wultra.security.powerauth.crypto.lib.v4.model.request.RequestCryptogram;
@@ -39,9 +38,9 @@ import java.util.function.Consumer;
  */
 public class SharedSecretUtil {
 
-    private static final SharedSecret<DefaultSharedSecretRequest, DefaultSharedSecretResponse, DefaultSharedSecretClientContext> SHARED_SECRET_ECDHE = SharedSecretFactory.getEcdhe();
-    private static final SharedSecret<DefaultSharedSecretRequest, DefaultSharedSecretResponse, DefaultSharedSecretClientContext> SHARED_SECRET_HYBRID_ML_L3 = SharedSecretFactory.getHybridMlL3();
-    private static final SharedSecret<DefaultSharedSecretRequest, DefaultSharedSecretResponse, DefaultSharedSecretClientContext> SHARED_SECRET_HYBRID_ML_L5 = SharedSecretFactory.getHybridMlL5();
+    private static final SharedSecret SHARED_SECRET_ECDHE = SharedSecretFactory.getEcdhe();
+    private static final SharedSecret SHARED_SECRET_HYBRID_ML_L3 = SharedSecretFactory.getHybridMlL3();
+    private static final SharedSecret SHARED_SECRET_HYBRID_ML_L5 = SharedSecretFactory.getHybridMlL5();
 
     /**
      * Build shared secret request.
@@ -92,13 +91,13 @@ public class SharedSecretUtil {
         switch (sharedSecretAlgorithm) {
             case EC_P384 -> {
                 sharedSecretResponseObject.setEncapsulatedKeys(List.of(sharedSecretResponse.getEncapsulatedKeys().get(0)));
-                return SHARED_SECRET_ECDHE.computeSharedSecret((DefaultSharedSecretClientContext) clientContext, sharedSecretResponseObject);
+                return SHARED_SECRET_ECDHE.computeSharedSecret(clientContext, sharedSecretResponseObject);
             }
             case EC_P384_ML_L3, EC_P384_ML_L5 -> {
                 sharedSecretResponseObject.setEncapsulatedKeys(List.of(sharedSecretResponse.getEncapsulatedKeys().get(0), sharedSecretResponse.getEncapsulatedKeys().get(1)));
                 return switch (sharedSecretAlgorithm) {
-                    case EC_P384_ML_L3 -> SHARED_SECRET_HYBRID_ML_L3.computeSharedSecret((DefaultSharedSecretClientContext) clientContext, sharedSecretResponseObject);
-                    case EC_P384_ML_L5 -> SHARED_SECRET_HYBRID_ML_L5.computeSharedSecret((DefaultSharedSecretClientContext) clientContext, sharedSecretResponseObject);
+                    case EC_P384_ML_L3 -> SHARED_SECRET_HYBRID_ML_L3.computeSharedSecret(clientContext, sharedSecretResponseObject);
+                    case EC_P384_ML_L5 -> SHARED_SECRET_HYBRID_ML_L5.computeSharedSecret(clientContext, sharedSecretResponseObject);
                     default -> null;
                 };
             }
