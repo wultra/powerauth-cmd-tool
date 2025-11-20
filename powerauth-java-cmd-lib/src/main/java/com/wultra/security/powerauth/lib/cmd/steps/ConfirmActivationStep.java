@@ -103,6 +103,9 @@ public class ConfirmActivationStep extends AbstractBaseStep<ConfirmActivationSte
         final ObjectRequest<ActivationConfirmRequest> objectRequest = new ObjectRequest<>(activationConfirmRequest);
         requestContext.setRequestObject(objectRequest);
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
+
+        incrementCounter(model);
+
         return stepContext;
     }
 
