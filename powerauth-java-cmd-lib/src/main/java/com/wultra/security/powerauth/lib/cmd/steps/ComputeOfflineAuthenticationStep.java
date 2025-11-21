@@ -21,6 +21,7 @@ import com.wultra.security.powerauth.crypto.lib.enums.EcCurve;
 import com.wultra.security.powerauth.crypto.lib.generator.KeyGenerator;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
 import com.wultra.security.powerauth.crypto.lib.util.SignatureUtils;
+import com.wultra.security.powerauth.crypto.lib.v4.kdf.Kmac;
 import com.wultra.security.powerauth.http.PowerAuthHttpBody;
 import com.wultra.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
@@ -64,6 +65,8 @@ import java.util.stream.Stream;
  */
 @Component("computeOfflineAuthenticationStep")
 public class ComputeOfflineAuthenticationStep extends AbstractBaseStep<ComputeOfflineAuthenticationStepModel, Void> {
+
+    private static final byte[] KMAC_OFFLINE_SIGNATURE_CUSTOM_BYTES = "PA4MAC-QR".getBytes(StandardCharsets.UTF_8);
 
     private static final KeyGenerator KEY_GENERATOR = new KeyGenerator();
     private static final KeyConvertor KEY_CONVERTOR = new KeyConvertor();
@@ -178,22 +181,20 @@ public class ComputeOfflineAuthenticationStep extends AbstractBaseStep<ComputeOf
         final String nonce = parts[parts.length - 2];
         final String signatureLine = parts[parts.length - 1];
         final String totp = (parts.length > 7 && parts[parts.length - 3].matches("^[0-9]+$")) ? parts[parts.length - 3] : null;
-
-        // 1 = KEY_SERVER_PRIVATE was used to sign data (personalized offline signature), otherwise return error
-        final String signatureType = signatureLine.substring(0, 1);
-        if (!"1".equals(signatureType)) {
-            stepLogger.writeError(getStep().id() + "-error-invalid-signature-type", "Invalid signature type", "Personalized offline signature expected, however other signature type is used");
-            stepLogger.writeDoneFailed(getStep().id() + "-failed");
-            return null;
-        }
-
         try {
-            // Verify ECDSA signature from the offline data, return error in case of invalid signature
-            final String ecdsaSignature = signatureLine.substring(1);
-            final byte[] serverPublicKeyBytes = Base64.getDecoder().decode(resultStatusObject.getEcServerPublicKey());
             final boolean dataSignatureValid;
+            final String signatureType = signatureLine.substring(0, 1);
             switch (resultStatusObject.getVersion().intValue()) {
                 case 3 -> {
+                    // 1 = KEY_SERVER_PRIVATE was used to sign data (personalized offline signature), otherwise return error
+                    if (!"1".equals(signatureType)) {
+                        stepLogger.writeError(getStep().id() + "-error-invalid-signature-type", "Invalid signature type", "Personalized offline signature expected, however other signature type is used");
+                        stepLogger.writeDoneFailed(getStep().id() + "-failed");
+                        return null;
+                    }
+                    // Verify ECDSA signature from the offline data, return error in case of invalid signature
+                    final String ecdsaSignature = signatureLine.substring(1);
+                    final byte[] serverPublicKeyBytes = Base64.getDecoder().decode(resultStatusObject.getEcServerPublicKey());
                     final ECPublicKey serverPublicKey = (ECPublicKey) KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P256, serverPublicKeyBytes);
                     final String offlineDataWithoutSignature = offlineData.substring(0, offlineData.length() - ecdsaSignature.length());
                     dataSignatureValid = SIGNATURE_UTILS.validateECDSASignature(
@@ -203,13 +204,29 @@ public class ComputeOfflineAuthenticationStep extends AbstractBaseStep<ComputeOf
                             serverPublicKey);
                 }
                 case 4 -> {
-                    final ECPublicKey serverPublicKey = (ECPublicKey) KEY_CONVERTOR.convertBytesToPublicKey(EcCurve.P384, serverPublicKeyBytes);
-                    final String offlineDataWithoutSignature = offlineData.substring(0, offlineData.length() - ecdsaSignature.length());
-                    dataSignatureValid = SIGNATURE_UTILS.validateECDSASignature(
-                            EcCurve.P384,
-                            offlineDataWithoutSignature.getBytes(StandardCharsets.UTF_8),
-                            Base64.getDecoder().decode(ecdsaSignature),
-                            serverPublicKey);
+                    // 2 = KEY_MAC_PERSONALIZED_DATA was used to sign data, otherwise return error
+                    if (!"2".equals(signatureType)) {
+                        stepLogger.writeError(getStep().id() + "-error-invalid-signature-type", "Invalid signature type", "Personalized offline MAC expected, however other signature type is used");
+                        stepLogger.writeDoneFailed(getStep().id() + "-failed");
+                        return null;
+                    }
+
+                    // Compute KMAC-256 of '{DATA}\n{NONCE}\n{KEY_MAC_PERSONALIZED_DATA}
+                    // {DATA} consist of data from request plus optional generated proximity TOTP value
+                    final String tag = signatureLine.substring(1);
+                    final String offlineDataWithoutSignature = offlineData.substring(0, offlineData.length() - tag.length());
+                    final byte[] kmacData = (offlineDataWithoutSignature.getBytes(StandardCharsets.UTF_8));
+
+                    final SecretKey keyMacPersonalisedData = resultStatusObject.getMacPersonalizedDataKeyObject();
+
+                    // Construct KMAC-256 tag
+                    final byte[] tagKmac = Kmac.kmac256(keyMacPersonalisedData, kmacData, KMAC_OFFLINE_SIGNATURE_CUSTOM_BYTES, 32);
+                    final String tagCalculated = Base64.getEncoder().encodeToString(tagKmac);
+
+                    // Compare tags
+                    final byte[] tagBytes = Base64.getDecoder().decode(tag);
+                    final byte[] tagCalculatedBytes = Base64.getDecoder().decode(tagCalculated);
+                    dataSignatureValid = Arrays.equals(tagBytes, tagCalculatedBytes);
                 }
                 default -> throw new IllegalArgumentException("Unsupported version: " + resultStatusObject.getVersion());
             }

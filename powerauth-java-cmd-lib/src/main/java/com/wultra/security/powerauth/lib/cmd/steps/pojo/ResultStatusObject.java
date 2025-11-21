@@ -660,6 +660,43 @@ public class ResultStatusObject {
     }
 
     /**
+     * @return Key for personalized data used in offline code tags (V4)
+     */
+    @JsonIgnore
+    public SecretKey getMacPersonalizedDataKeyObject() {
+        final String getMacPersonalizedDataKey = getMacPersonalizedDataKey();
+        if (getMacPersonalizedDataKey == null) {
+            return null;
+        }
+        return KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(Base64.getDecoder().decode(getMacPersonalizedDataKey));
+    }
+
+    /**
+     * @return Key for personalized data used in offline code tags (V4)
+     */
+    public String getMacPersonalizedDataKey() {
+        return (String) jsonObject.get("macPersonalizedDataKey");
+    }
+
+    /**
+     * Sets key for personalized data used in offline code tags (V4)
+     * @param macPersonalizedDataKey Key for personalized data used in offline code tags
+     */
+    @JsonIgnore
+    public void setMacPersonalizedDataKey(SecretKey macPersonalizedDataKey) {
+        String macPersonalizedDataKeyBase64 = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(macPersonalizedDataKey));
+        jsonObject.put("macPersonalizedDataKey", macPersonalizedDataKeyBase64);
+    }
+
+    /**
+     * Sets key for personalized data used in offline code tags (V4)
+     * @param macPersonalizedDataKey Key for personalized data used in offline code tags
+     */
+    public void MacPersonalizedDataKey(String macPersonalizedDataKey) {
+        jsonObject.put("macPersonalizedDataKey", macPersonalizedDataKey);
+    }
+
+    /**
      * @return Used PowerAuth version
      */
     public Long getVersion() {

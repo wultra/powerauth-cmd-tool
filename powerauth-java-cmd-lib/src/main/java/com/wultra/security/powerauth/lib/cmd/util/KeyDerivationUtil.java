@@ -111,6 +111,7 @@ public final class KeyDerivationUtil {
         final SecretKey knowledgeKey = KEY_FACTORY_V4.generateKnowledgeFactorKey(activationSharedSecret);
         final SecretKey biometryKey = KEY_FACTORY_V4.generateBiometryFactorKey(activationSharedSecret);
         final SecretKey vaultKekDevicePriv = KEY_FACTORY_V4.generateKeyKekDevicePrivate(activationSharedSecret);
+        final SecretKey keyMacPersonalizedData = KEY_FACTORY_V4.generateKeyMacPersonalizedData(activationSharedSecret);
 
         final byte[] encEcPriv = VAULT_V4.encryptEcDevicePrivateKey(ecDeviceKeyPair.getPrivate(), vaultKekDevicePriv);
         final byte[] encPqcPriv = pqcDeviceKeyPair != null ? VAULT_V4.encryptPqcDevicePrivateKey(pqcDeviceKeyPair.getPrivate(), vaultKekDevicePriv) : null;
@@ -138,6 +139,7 @@ public final class KeyDerivationUtil {
         if (pqcDeviceKeyPair != null) {
             resultStatusObject.setPqcDevicePublicKeyObject(pqcDeviceKeyPair.getPublic());
         }
+        resultStatusObject.setMacPersonalizedDataKey(keyMacPersonalizedData);
     }
 
 }
