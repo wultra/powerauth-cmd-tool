@@ -98,6 +98,8 @@ public class AuthorizationHeaderProvider implements PowerAuthHeaderProvider<Auth
             default -> throw new IllegalStateException("Unsupported version: " + stepContext.getModel().getVersion());
         };
 
+        CounterUtil.incrementCounter(model.getResultStatus());
+
         final PowerAuthAuthorizationHttpHeader header = new PowerAuthAuthorizationHttpHeader(resultStatusObject.getActivationId(), model.getApplicationKey(), authCodeValue, model.getAuthenticationCodeType().toString(), Base64.getEncoder().encodeToString(nonceBytes), model.getVersion().value());
 
         final Map<String, String> lowLevelData = new HashMap<>();

@@ -104,8 +104,6 @@ public class RemoveActivationStep extends AbstractBaseStep<RemoveActivationStepM
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
-        incrementCounter(model);
-
         return stepContext;
     }
 

@@ -144,6 +144,8 @@ public class ComputeOfflineAuthenticationStep extends AbstractBaseStep<ComputeOf
             return null;
         }
 
+        CounterUtil.incrementCounter(model.getResultStatus());
+
         final Map<String, String> resultMap = new HashMap<>();
         resultMap.put("offlineAuthentication", offlineAuth);
 
@@ -154,8 +156,6 @@ public class ComputeOfflineAuthenticationStep extends AbstractBaseStep<ComputeOf
                 "OK",
                 resultMap
         );
-
-        incrementCounter(stepContext.getModel());
 
         return stepContext;
     }
@@ -255,6 +255,7 @@ public class ComputeOfflineAuthenticationStep extends AbstractBaseStep<ComputeOf
                         AuthenticationCodeConfiguration.decimal());
                 default -> throw new IllegalStateException("Unsupported version: " + resultStatusObject.getVersion());
             };
+
         } catch (Exception ex) {
             stepLogger.writeError(getStep().id() + "-error-cryptography", "Cryptography error", ex.getMessage());
             stepLogger.writeDoneFailed(getStep().id() + "-failed");

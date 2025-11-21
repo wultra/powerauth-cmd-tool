@@ -42,7 +42,6 @@ import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.security.SimpleSecurityContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
-import com.wultra.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import com.wultra.security.powerauth.lib.cmd.util.*;
 import jakarta.annotation.Nonnull;
@@ -384,17 +383,6 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
         context.setStep(getStep());
         context.setStepLogger(stepLogger);
         return context;
-    }
-
-    /**
-     * Increments the counter
-     * @param model Model
-     * @param <RS> Type of the model with result status
-     * @throws Exception when an error during saving the model occurred
-     */
-    protected <RS extends ResultStatusChangeable> void incrementCounter(RS model) throws Exception {
-        CounterUtil.incrementCounter(model);
-        resultStatusService.save(model);
     }
 
     /**

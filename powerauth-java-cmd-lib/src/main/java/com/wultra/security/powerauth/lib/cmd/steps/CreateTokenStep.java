@@ -107,8 +107,6 @@ public class CreateTokenStep extends AbstractBaseStep<CreateTokenStepModel, Encr
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
-        incrementCounter(model);
-
         return stepContext;
     }
 
