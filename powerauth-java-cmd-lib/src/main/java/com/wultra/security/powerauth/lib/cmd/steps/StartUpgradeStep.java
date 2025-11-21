@@ -205,6 +205,9 @@ public class StartUpgradeStep extends AbstractBaseStep<StartUpgradeStepModel, En
         // The version has to be enforced to 3.3 for so that the authentication is calculated using the previous protocol version
         model.setVersion(PowerAuthVersion.V3_3);
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
+
+        incrementCounter(model);
+
         model.setVersion(PowerAuthVersion.V4_0);
 
         // The encryption header uses the exact version configured for the step
