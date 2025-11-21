@@ -101,16 +101,11 @@ public class ConfirmUpgradeStep extends AbstractBaseStep<ConfirmUpgradeStepModel
         requestContext.setRequestObject(PowerAuthConst.EMPTY_JSON_BYTES);
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
-        incrementCounter(model);
-
         return stepContext;
     }
 
     @Override
     public void processResponse(StepContext<ConfirmUpgradeStepModel, Response> stepContext) throws Exception {
-        final ConfirmUpgradeStepModel model = stepContext.getModel();
-        incrementCounter(model);
-
         stepContext.getStepLogger().writeItem(
                 getStep().id() + "-upgrade-done",
                 "Upgrade confirmation successfully completed",

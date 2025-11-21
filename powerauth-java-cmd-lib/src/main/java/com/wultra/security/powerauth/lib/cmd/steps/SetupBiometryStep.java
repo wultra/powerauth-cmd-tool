@@ -120,8 +120,6 @@ public class SetupBiometryStep extends AbstractBaseStep<SetupBiometryStepModel, 
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
-        incrementCounter(model);
-
         return stepContext;
     }
 

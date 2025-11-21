@@ -163,8 +163,6 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Encr
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
-        incrementCounter(model);
-
         return stepContext;
     }
 

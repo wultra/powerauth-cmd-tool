@@ -110,8 +110,6 @@ public class VerifyAuthenticationStep extends AbstractBaseStep<VerifyAuthenticat
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
-        incrementCounter(model);
-
         return stepContext;
     }
 

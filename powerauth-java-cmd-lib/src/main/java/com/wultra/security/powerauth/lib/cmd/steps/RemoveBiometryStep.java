@@ -100,8 +100,6 @@ public class RemoveBiometryStep extends AbstractBaseStep<RemoveBiometryStepModel
         requestContext.setRequestObject(PowerAuthConst.EMPTY_JSON_BYTES);
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
-        incrementCounter(model);
-
         return stepContext;
     }
 

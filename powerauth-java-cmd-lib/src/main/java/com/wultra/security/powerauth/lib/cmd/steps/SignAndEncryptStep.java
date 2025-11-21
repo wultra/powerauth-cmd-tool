@@ -143,8 +143,6 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifyAuthenticationSte
 
         addEncryptedRequest(stepContext, model.getApplicationKey(), model.getApplicationSecret(), EncryptorId.ACTIVATION_SCOPE_GENERIC, requestDataBytes, EncryptorScope.ACTIVATION_SCOPE);
 
-        incrementCounter(model);
-
         return stepContext;
     }
 

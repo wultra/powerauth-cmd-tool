@@ -116,8 +116,6 @@ public class RemoveTokenStep extends AbstractBaseStep<RemoveTokenStepModel, Obje
         requestContext.setRequestObject(objectRequest);
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
-        incrementCounter(model);
-
         return stepContext;
     }
 

@@ -20,8 +20,6 @@ import com.wultra.security.powerauth.crypto.lib.generator.HashBasedCounter;
 import com.wultra.security.powerauth.crypto.lib.model.exception.GenericCryptoException;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLogger;
-import com.wultra.security.powerauth.lib.cmd.steps.model.BaseStepModel;
-import com.wultra.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import org.springframework.util.Assert;
 
@@ -38,27 +36,12 @@ public class CounterUtil {
     /**
      * Get counter data. In activation version 2, numeric counter is converted to counter data. In version 3 the
      * counter data is available in model.
-     *
-     * <p>Keeps backward compatibility with former approaches</p>
-     *
-     * @param model Step model.
-     * @param stepLogger Step logger.
-     * @return Counter data.
-     */
-    public static byte[] getCtrData(BaseStepModel model, StepLogger stepLogger) {
-        return getCtrData(model.getResultStatus(), stepLogger);
-    }
-
-    /**
-     * Get counter data. In activation version 2, numeric counter is converted to counter data. In version 3 the
-     * counter data is available in model.
      * @param resultStatusObject Activation status object.
      * @param stepLogger Step logger.
      * @return Counter data.
      */
     public static byte[] getCtrData(ResultStatusObject resultStatusObject, StepLogger stepLogger) {
         byte[] ctrData = new byte[16];
-        long counter = resultStatusObject.getCounter();
         int version = resultStatusObject.getVersion().intValue();
         switch (version) {
             case 3, 4 -> {
@@ -83,15 +66,13 @@ public class CounterUtil {
     }
 
     /**
-     * Increment counter value in step model.
+     * Increment counter value in result status object
      *
-     * @param model Step model.
+     * @param resultStatusObject Result status object.
      * @throws GenericCryptoException In case counter value could not be incremented.
      */
-    public static void incrementCounter(BaseStepData model) throws GenericCryptoException {
+    public static void incrementCounter(ResultStatusObject resultStatusObject) throws GenericCryptoException {
         // Increment the numeric counter
-        ResultStatusObject resultStatusObject = model.getResultStatus();
-
         Long counter = resultStatusObject.getCounter();
         counter += 1;
         resultStatusObject.setCounter(counter);

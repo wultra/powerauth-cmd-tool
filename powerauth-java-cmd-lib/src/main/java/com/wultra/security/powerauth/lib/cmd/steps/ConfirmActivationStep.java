@@ -104,17 +104,11 @@ public class ConfirmActivationStep extends AbstractBaseStep<ConfirmActivationSte
         requestContext.setRequestObject(objectRequest);
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
-        incrementCounter(model);
-
         return stepContext;
     }
 
     @Override
     public void processResponse(StepContext<ConfirmActivationStepModel, Response> stepContext) throws Exception {
-        final ConfirmActivationStepModel model = stepContext.getModel();
-
-        incrementCounter(model);
-
         stepContext.getStepLogger().writeItem(
                 getStep().id() + "-activation-confirm-done",
                 "Activation confirm successfully completed",

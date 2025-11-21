@@ -147,8 +147,6 @@ public class SignAsymmetricStep extends AbstractBaseStep<SignAsymmetricStepModel
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
-        incrementCounter(model);
-
         return stepContext;
     }
 

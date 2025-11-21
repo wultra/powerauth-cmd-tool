@@ -125,8 +125,6 @@ public class ChangePasswordStep extends AbstractBaseStep<ChangePasswordStepModel
 
         powerAuthHeaderFactory.getHeaderProvider(model).addHeader(stepContext);
 
-        incrementCounter(model);
-
         return stepContext;
     }
 
