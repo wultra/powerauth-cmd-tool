@@ -139,7 +139,7 @@ public final class KeyDerivationUtil {
         if (pqcDeviceKeyPair != null) {
             resultStatusObject.setPqcDevicePublicKeyObject(pqcDeviceKeyPair.getPublic());
         }
-        resultStatusObject.setMacPersonalizedDataKey(keyMacPersonalizedData);
+        resultStatusObject.setMacPersonalizedDataKeyObject(keyMacPersonalizedData);
     }
 
 }

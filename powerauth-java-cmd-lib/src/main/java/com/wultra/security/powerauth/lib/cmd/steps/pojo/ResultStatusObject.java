@@ -683,7 +683,7 @@ public class ResultStatusObject {
      * @param macPersonalizedDataKey Key for personalized data used in offline code tags
      */
     @JsonIgnore
-    public void setMacPersonalizedDataKey(SecretKey macPersonalizedDataKey) {
+    public void setMacPersonalizedDataKeyObject(SecretKey macPersonalizedDataKey) {
         String macPersonalizedDataKeyBase64 = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(macPersonalizedDataKey));
         jsonObject.put("macPersonalizedDataKey", macPersonalizedDataKeyBase64);
     }
@@ -692,7 +692,7 @@ public class ResultStatusObject {
      * Sets key for personalized data used in offline code tags (V4)
      * @param macPersonalizedDataKey Key for personalized data used in offline code tags
      */
-    public void MacPersonalizedDataKey(String macPersonalizedDataKey) {
+    public void setMacPersonalizedDataKey(String macPersonalizedDataKey) {
         jsonObject.put("macPersonalizedDataKey", macPersonalizedDataKey);
     }
 
