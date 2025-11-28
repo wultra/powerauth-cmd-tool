@@ -219,9 +219,7 @@ public class ComputeOfflineAuthenticationStep extends AbstractBaseStep<ComputeOf
 
                     final SecretKey keyMacPersonalisedData = resultStatusObject.getMacPersonalizedDataKeyObject();
                     if (keyMacPersonalisedData == null) {
-                        stepLogger.writeError(getStep().id() + "-error-missing-key-mac", "Missing MAC key", "Missing MAC key for computing signature of offline data");
-                        stepLogger.writeDoneFailed(getStep().id() + "-failed");
-                        return null;
+                        throw new IllegalStateException("The macPersonalizedDataKey is missing");
                     }
 
                     // Construct KMAC-256 tag
