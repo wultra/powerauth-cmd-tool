@@ -82,6 +82,9 @@ public class SdkConfigurationSerializer {
         }
         for (int i = 0; i < keyCount; i++) {
             final Byte keyId = reader.readByte();
+            if (keyId == null) {
+                throw new IllegalArgumentException("Missing key identifier in SDK configuration");
+            }
             final byte[] publicKey = reader.readData(0);
             if (publicKey == null) {
                 throw new IllegalArgumentException("Missing public key in SDK configuration");
