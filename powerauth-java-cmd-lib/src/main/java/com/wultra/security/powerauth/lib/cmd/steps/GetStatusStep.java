@@ -23,6 +23,7 @@ import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
 import com.wultra.security.powerauth.crypto.lib.enums.ProtocolVersion;
 import com.wultra.security.powerauth.crypto.lib.generator.KeyGenerator;
 import com.wultra.security.powerauth.crypto.lib.model.ActivationStatusBlobInfo;
+import com.wultra.security.powerauth.crypto.lib.model.exception.GenericCryptoException;
 import com.wultra.security.powerauth.crypto.lib.v4.encryptor.model.response.AeadEncryptedResponse;
 import com.wultra.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
@@ -181,11 +182,7 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, Object> 
 
                 final SecretKey transportMasterKey = resultStatusObject.getTransportMasterKeyObject();
                 if (transportMasterKey == null) {
-                    stepContext.getStepLogger().writeError(
-                            getStep().id() + "-failed",
-                            "Get Status Failed",
-                            "The transportMasterKey is null");
-                    return;
+                    throw new IllegalStateException("The transportMasterKey is missing");
                 }
 
                 final ActivationStatusBlobInfo statusBlobRaw = CLIENT_ACTIVATION_V3.getStatusFromEncryptedBlob(cStatusBlob, challenge, cStatusBlobNonce, transportMasterKey);
@@ -202,13 +199,13 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, Object> 
                 final byte[] statusBlob = Base64.getDecoder().decode(statusResponse.getActivationStatus());
                 final byte[] statusBlobData = Arrays.copyOfRange(statusBlob, 0, 48);
                 final byte[] statusBlobMac = Arrays.copyOfRange(statusBlob, 48, 80);
+                final SecretKey statusBlobMacKey = resultStatusObject.getStatusBlobMacKeyObject();
+                if (statusBlobMacKey == null) {
+                    throw new IllegalStateException("The statusBlobMacKey is missing");
+                }
                 // Verify MAC
-                if (!CLIENT_ACTIVATION_V4.verifyStatusMac(statusBlobData, statusBlobMac, resultStatusObject.getStatusBlobMacKeyObject(), ProtocolVersion.fromValue(stepContext.getModel().getVersion().value()))) {
-                    stepContext.getStepLogger().writeError(
-                            getStep().id() + "-failed",
-                            "MAC verification failed",
-                            "Failed MAC verification for status blob");
-                    return;
+                if (!CLIENT_ACTIVATION_V4.verifyStatusMac(statusBlobData, statusBlobMac, statusBlobMacKey, ProtocolVersion.fromValue(stepContext.getModel().getVersion().value()))) {
+                    throw new GenericCryptoException("Failed MAC verification for status blob");
                 }
                 final ActivationStatusBlobInfo statusBlobRaw = CLIENT_ACTIVATION_V4.getStatusFromBlob(statusBlobData);
                 statusBlobInfo = ExtendedActivationStatusBlobInfo.copy(statusBlobRaw);

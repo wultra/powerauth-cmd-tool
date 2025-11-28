@@ -170,6 +170,9 @@ public class TemporaryKeyUtil {
                 case APPLICATION_SCOPE -> appSecretBytes;
                 case ACTIVATION_SCOPE -> {
                     final SecretKey transportMasterKey = model.getResultStatus().getTransportMasterKeyObject();
+                    if (transportMasterKey == null) {
+                        throw new IllegalStateException("Missing transport master key");
+                    }
                     final SecretKey secretKeyBytes = KEY_GENERATOR.deriveSecretKeyHmac(transportMasterKey, appSecretBytes);
                     yield KEY_CONVERTOR.convertSharedSecretKeyToBytes(secretKeyBytes);
                 }
@@ -342,7 +345,15 @@ public class TemporaryKeyUtil {
 
     private static void handleSharedSecretResponse(StepContext<? extends BaseStepData, ?> stepContext, JWTClaimsSet claims, SharedSecretAlgorithm algorithm) throws GenericCryptoException {
         final Object claim = claims.getClaim("sharedSecretResponse");
+        if (claim == null) {
+            stepContext.getStepLogger().writeError(stepContext.getStep().id() + "-error-missing-shared-secret-response", "Shared secret response is missing");
+            return;
+        }
         final SharedSecretResponse serverResponse = OBJECT_MAPPER.convertValue(claim, SharedSecretResponse.class);
+        if (serverResponse == null) {
+            stepContext.getStepLogger().writeError(stepContext.getStep().id() + "-error-invalid-shared-secret-response", "Shared secret response is invalid");
+            return;
+        }
         final SecretKey sharedSecret = SharedSecretUtil.deriveSharedSecret(serverResponse, stepContext.getTemporaryKeyContext().getSharedSecretClientContext(), algorithm);
         stepContext.getTemporaryKeyContext().setTemporarySharedSecret(sharedSecret);
         stepContext.getTemporaryKeyContext().setSharedSecretClientContext(null);

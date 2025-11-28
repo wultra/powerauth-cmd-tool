@@ -218,6 +218,11 @@ public class ComputeOfflineAuthenticationStep extends AbstractBaseStep<ComputeOf
                     final byte[] kmacData = (offlineDataWithoutSignature.getBytes(StandardCharsets.UTF_8));
 
                     final SecretKey keyMacPersonalisedData = resultStatusObject.getMacPersonalizedDataKeyObject();
+                    if (keyMacPersonalisedData == null) {
+                        stepLogger.writeError(getStep().id() + "-error-missing-key-mac", "Missing MAC key", "Missing MAC key for computing signature of offline data");
+                        stepLogger.writeDoneFailed(getStep().id() + "-failed");
+                        return null;
+                    }
 
                     // Construct KMAC-256 tag
                     final byte[] tagKmac = Kmac.kmac256(keyMacPersonalisedData, kmacData, KMAC_OFFLINE_SIGNATURE_CUSTOM_BYTES, 32);
