@@ -700,7 +700,12 @@ public class ResultStatusObject {
      * @return Used PowerAuth version
      */
     public Long getVersion() {
-        return (Long) jsonObject.get("version");
+        Long version = (Long) jsonObject.get("version");
+        if (version == null) {
+            // Existing V3 result status may not have the version set yet
+            version = 3L;
+        }
+        return version;
     }
 
     /**
