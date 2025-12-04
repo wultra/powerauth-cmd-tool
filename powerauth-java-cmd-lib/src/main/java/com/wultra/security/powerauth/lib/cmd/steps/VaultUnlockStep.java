@@ -22,6 +22,7 @@ import com.wultra.security.powerauth.crypto.lib.encryptor.model.EncryptorScope;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
 import com.wultra.security.powerauth.crypto.lib.v4.api.PqcDsaKeyConvertor;
 import com.wultra.security.powerauth.crypto.lib.v4.ml.MlDsaKeyConvertor;
+import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
 import com.wultra.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
@@ -216,7 +217,8 @@ public class VaultUnlockStep extends AbstractBaseStep<VaultUnlockStepModel, Encr
                     final byte[] encryptedEcDevicePrivateKeyBytes = resultStatusObject.getEncryptedEcDevicePrivateKeyBytes();
                     final PrivateKey ecDevicePrivateKey = VAULT_V4.decryptEcDevicePrivateKey(encryptedEcDevicePrivateKeyBytes, vaultUnlockKekDevicePrivate);
                     objectMap.put("deviceEcPrivateKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPrivateKeyToBytes(ecDevicePrivateKey)));
-                    if (resultStatusObject.getEncryptedPqcDevicePrivateKey() != null) {
+                    if (resultStatusObject.getSharedSecretAlgorithm().equals(SharedSecretAlgorithm.EC_P384_ML_L3.name())
+                            || resultStatusObject.getSharedSecretAlgorithm().equals(SharedSecretAlgorithm.EC_P384_ML_L5.name())) {
                         final byte[] encryptedPqcDevicePrivateKeyBytes = resultStatusObject.getEncryptedPqcDevicePrivateKeyBytes();
                         final PrivateKey pqcDevicePrivateKey = VAULT_V4.decryptPqcDevicePrivateKey(encryptedPqcDevicePrivateKeyBytes, vaultUnlockKekDevicePrivate);
                         objectMap.put("devicePqcPrivateKey", Base64.getEncoder().encodeToString(KEY_CONVERTOR_PQC.convertPrivateKeyToBytes(pqcDevicePrivateKey)));

@@ -24,6 +24,7 @@ import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
 import com.wultra.security.powerauth.crypto.lib.util.SignatureUtils;
 import com.wultra.security.powerauth.crypto.lib.v4.api.PqcDsa;
 import com.wultra.security.powerauth.crypto.lib.v4.ml.MlDsa;
+import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
 import com.wultra.security.powerauth.lib.cmd.consts.BackwardCompatibilityConst;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
@@ -223,7 +224,8 @@ public class SignAsymmetricStep extends AbstractBaseStep<SignAsymmetricStepModel
                 final byte[] signatureEc = SIGNATURE_UTILS.computeECDSASignature(EcCurve.P384, requestDataBytes, ecDevicePrivateKey);
                 objectMap.put("signatureEc", Base64.getEncoder().encodeToString(signatureEc));
 
-                if (resultStatusObject.getEncryptedPqcDevicePrivateKey() != null) {
+                if (resultStatusObject.getSharedSecretAlgorithm().equals(SharedSecretAlgorithm.EC_P384_ML_L3.name())
+                    || resultStatusObject.getSharedSecretAlgorithm().equals(SharedSecretAlgorithm.EC_P384_ML_L5.name())) {
                     final byte[] encryptedPqcDevicePrivateKeyBytes = Base64.getDecoder().decode(resultStatusObject.getEncryptedPqcDevicePrivateKey());
                     final PrivateKey pqcDevicePrivateKey = VAULT_V4.decryptPqcDevicePrivateKey(encryptedPqcDevicePrivateKeyBytes, vaultUnlockKekDevicePrivate);
                     final byte[] signaturePqc = PQC_DSA.sign(pqcDevicePrivateKey, requestDataBytes);
