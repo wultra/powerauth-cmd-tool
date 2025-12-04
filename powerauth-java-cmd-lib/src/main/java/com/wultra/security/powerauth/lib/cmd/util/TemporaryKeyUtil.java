@@ -170,9 +170,6 @@ public class TemporaryKeyUtil {
                 case APPLICATION_SCOPE -> appSecretBytes;
                 case ACTIVATION_SCOPE -> {
                     final SecretKey transportMasterKey = model.getResultStatus().getTransportMasterKeyObject();
-                    if (transportMasterKey == null) {
-                        throw new IllegalStateException("The transportMasterKey is missing");
-                    }
                     final SecretKey secretKeyBytes = KEY_GENERATOR.deriveSecretKeyHmac(transportMasterKey, appSecretBytes);
                     yield KEY_CONVERTOR.convertSharedSecretKeyToBytes(secretKeyBytes);
                 }

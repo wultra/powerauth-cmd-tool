@@ -111,11 +111,11 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public byte[] getEncryptedEcDevicePrivateKeyBytes() {
-        final String encryptedDevicePrivateKey = (String) jsonObject.get("encryptedEcDevicePrivateKey");
-        if (encryptedDevicePrivateKey == null) {
-            return null;
+        final String encryptedEcDevicePrivateKey = getEncryptedEcDevicePrivateKey();
+        if (encryptedEcDevicePrivateKey == null) {
+            throw new IllegalStateException("Encrypted EC device private key is missing.");
         }
-        return Base64.getDecoder().decode(encryptedDevicePrivateKey);
+        return Base64.getDecoder().decode(encryptedEcDevicePrivateKey);
     }
 
     /**
@@ -136,8 +136,8 @@ public class ResultStatusObject {
     }
 
     /**
-     * Sets encrypted PQC device private key object
-     * @param encryptedDevicePrivateKey Encrypted PQC device private key object
+     * Sets encrypted EC device private key object
+     * @param encryptedDevicePrivateKey Encrypted EC device private key object
      */
     public void setEncryptedEcDevicePrivateKey(String encryptedDevicePrivateKey) {
         jsonObject.put("encryptedEcDevicePrivateKey", encryptedDevicePrivateKey);
@@ -148,11 +148,11 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public byte[] getEncryptedPqcDevicePrivateKeyBytes() {
-        final String encryptedDevicePrivateKey = (String) jsonObject.get("encryptedPqcDevicePrivateKey");
-        if (encryptedDevicePrivateKey == null) {
-            return null;
+        final String encryptedPqcDevicePrivateKey = getEncryptedPqcDevicePrivateKey();
+        if (encryptedPqcDevicePrivateKey == null) {
+            throw new IllegalStateException("Encrypted PQC device private key is missing.");
         }
-        return Base64.getDecoder().decode(encryptedDevicePrivateKey);
+        return Base64.getDecoder().decode(encryptedPqcDevicePrivateKey);
     }
 
     /**
@@ -173,8 +173,8 @@ public class ResultStatusObject {
     }
 
     /**
-     * Sets encrypted EC device private key object
-     * @param encryptedDevicePrivateKey Encrypted EC device private key object
+     * Sets encrypted PQC device private key
+     * @param encryptedDevicePrivateKey Encrypted PQC device private key
      */
     public void setEncryptedPqcDevicePrivateKey(String encryptedDevicePrivateKey) {
         jsonObject.put("encryptedPqcDevicePrivateKey", encryptedDevicePrivateKey);
@@ -201,11 +201,11 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public PublicKey getEcServerPublicKeyObject() throws Exception {
-        String serverPublicKey = (String) jsonObject.get("ecServerPublicKey");
-        if (serverPublicKey == null) {
-            return null;
+        final String ecServerPublicKey = getEcServerPublicKey();
+        if (ecServerPublicKey == null) {
+            throw new IllegalStateException("EC server public key is missing.");
         }
-        return KEY_CONVERTOR_EC.convertBytesToPublicKey(resolveEcCurve(), Base64.getDecoder().decode(serverPublicKey));
+        return KEY_CONVERTOR_EC.convertBytesToPublicKey(resolveEcCurve(), Base64.getDecoder().decode(ecServerPublicKey));
     }
 
     /**
@@ -215,8 +215,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setEcServerPublicKeyObject(PublicKey serverPublicKeyObject) throws CryptoProviderException {
-
-        String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(resolveEcCurve(), serverPublicKeyObject));
+        final String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(resolveEcCurve(), serverPublicKeyObject));
         jsonObject.put("ecServerPublicKey", serverPublicKey);
     }
 
@@ -241,11 +240,11 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public PublicKey getPqcServerPublicKeyObject() throws Exception {
-        String serverPublicKey = (String) jsonObject.get("pqcServerPublicKey");
-        if (serverPublicKey == null) {
-            return null;
+        final String pqcServerPublicKey = getPqcServerPublicKey();
+        if (pqcServerPublicKey == null) {
+            throw new IllegalStateException("PQC server public key is missing.");
         }
-        return KEY_CONVERTOR_PQC_DSA.convertBytesToPublicKey(Base64.getDecoder().decode(serverPublicKey));
+        return KEY_CONVERTOR_PQC_DSA.convertBytesToPublicKey(Base64.getDecoder().decode(pqcServerPublicKey));
     }
 
     /**
@@ -255,7 +254,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setPqcServerPublicKeyObject(PublicKey serverPublicKeyObject) throws Exception {
-        String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_PQC_DSA.convertPublicKeyToBytes(serverPublicKeyObject));
+        final String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_PQC_DSA.convertPublicKeyToBytes(serverPublicKeyObject));
         jsonObject.put("pqcServerPublicKey", serverPublicKey);
     }
 
@@ -280,11 +279,11 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public PublicKey getEcDevicePublicKeyObject() throws Exception {
-        String devicePublicKey = (String) jsonObject.get("ecDevicePublicKey");
-        if (devicePublicKey == null) {
-            return null;
+        final String ecDevicePublicKey = getEcDevicePublicKey();
+        if (ecDevicePublicKey == null) {
+            throw new IllegalStateException("EC device public key is missing.");
         }
-        return KEY_CONVERTOR_EC.convertBytesToPublicKey(resolveEcCurve(), Base64.getDecoder().decode(devicePublicKey));
+        return KEY_CONVERTOR_EC.convertBytesToPublicKey(resolveEcCurve(), Base64.getDecoder().decode(ecDevicePublicKey));
     }
 
     /**
@@ -294,7 +293,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setEcDevicePublicKeyObject(PublicKey devicePublicKeyObject) throws CryptoProviderException {
-        String devicePublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(resolveEcCurve(), devicePublicKeyObject));
+        final String devicePublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(resolveEcCurve(), devicePublicKeyObject));
         jsonObject.put("ecDevicePublicKey", devicePublicKey);
     }
 
@@ -319,11 +318,11 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public PublicKey getPqcDevicePublicKeyObject() throws Exception {
-        String devicePublicKey = (String) jsonObject.get("pqcDevicePublicKey");
-        if (devicePublicKey == null) {
-            return null;
+        final String pqcDevicePublicKey = getPqcDevicePublicKey();
+        if (pqcDevicePublicKey == null) {
+            throw new IllegalStateException("PQC device public key is missing.");
         }
-        return KEY_CONVERTOR_PQC_DSA.convertBytesToPublicKey(Base64.getDecoder().decode(devicePublicKey));
+        return KEY_CONVERTOR_PQC_DSA.convertBytesToPublicKey(Base64.getDecoder().decode(pqcDevicePublicKey));
     }
 
     /**
@@ -333,7 +332,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setPqcDevicePublicKeyObject(PublicKey devicePublicKeyObject) throws GenericCryptoException {
-        String devicePublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_PQC_DSA.convertPublicKeyToBytes(devicePublicKeyObject));
+        final String devicePublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_PQC_DSA.convertPublicKeyToBytes(devicePublicKeyObject));
         jsonObject.put("pqcDevicePublicKey", devicePublicKey);
     }
 
@@ -357,7 +356,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public SecretKey getBiometryFactorKeyObject() {
-        final String biometryFactorKey = (String) jsonObject.get("biometryFactorKey");
+        final String biometryFactorKey = getBiometryFactorKey();
         if (biometryFactorKey == null) {
             return null;
         }
@@ -396,7 +395,10 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public byte[] getKnowledgeFactorKeyEncryptedBytes() {
-        final String knowledgeFactorKeyEncrypted = (String) jsonObject.get("knowledgeFactorKeyEncrypted");
+        final String knowledgeFactorKeyEncrypted = getKnowledgeFactorKeyEncrypted();
+        if (knowledgeFactorKeyEncrypted == null) {
+            throw new IllegalStateException("Encrypted knowledge factor key is missing.");
+        }
         return Base64.getDecoder().decode(knowledgeFactorKeyEncrypted);
     }
 
@@ -430,7 +432,10 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public byte[] getKnowledgeFactorKeySaltBytes() {
-        final String knowledgeFactorKeySalt = (String) jsonObject.get("knowledgeFactorKeySalt");
+        final String knowledgeFactorKeySalt = getKnowledgeFactorKeySalt();
+        if (knowledgeFactorKeySalt == null) {
+            throw new IllegalStateException("Knowledge factor key salt is missing.");
+        }
         return Base64.getDecoder().decode(knowledgeFactorKeySalt);
     }
 
@@ -464,10 +469,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public SecretKey getPossessionFactorKeyObject() {
-        final String possessionFactorKey = (String) jsonObject.get("possessionFactorKey");
-        if (possessionFactorKey == null) {
-            return null;
-        }
+        final String possessionFactorKey = getPossessionFactorKey();
         return KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(Base64.getDecoder().decode(possessionFactorKey));
     }
 
@@ -478,6 +480,9 @@ public class ResultStatusObject {
     @JsonIgnore
     public void setPossessionFactorKeyObject(SecretKey possessionFactorKeyObject) {
         final String possessionFactorKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(possessionFactorKeyObject));
+        if (possessionFactorKey == null) {
+            throw new IllegalStateException("Possession factor key is missing.");
+        }
         jsonObject.put("possessionFactorKey", possessionFactorKey);
     }
 
@@ -501,9 +506,9 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public SecretKey getTransportMasterKeyObject() {
-        final String transportMasterKey = (String) jsonObject.get("transportMasterKey");
+        final String transportMasterKey = getTransportMasterKey();
         if (transportMasterKey == null) {
-            return null;
+            throw new IllegalStateException("Transport master key is missing.");
         }
         return KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(Base64.getDecoder().decode(transportMasterKey));
     }
@@ -514,7 +519,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setTransportMasterKeyObject(SecretKey transportMasterKeyObject) {
-        String transportMasterKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(transportMasterKeyObject));
+        final String transportMasterKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(transportMasterKeyObject));
         jsonObject.put("transportMasterKey", transportMasterKey);
     }
 
@@ -555,7 +560,7 @@ public class ResultStatusObject {
     public SecretKey getTemporaryKeyActSignRequestKeyObject() {
         final String temporaryKeyActSignRequestKey = getTemporaryKeyActSignRequestKey();
         if (temporaryKeyActSignRequestKey == null) {
-            return null;
+            throw new IllegalStateException("Temporary key signing key is missing.");
         }
         return KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(Base64.getDecoder().decode(temporaryKeyActSignRequestKey));
     }
@@ -573,7 +578,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setTemporaryKeyActSignRequestKeyObject(SecretKey temporaryKeyActSignRequestKey) {
-        String temporaryKeyActSignRequestKeyBase64 = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(temporaryKeyActSignRequestKey));
+        final String temporaryKeyActSignRequestKeyBase64 = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(temporaryKeyActSignRequestKey));
         jsonObject.put("temporaryKeyActSignRequestKey", temporaryKeyActSignRequestKeyBase64);
     }
 
@@ -586,13 +591,13 @@ public class ResultStatusObject {
     }
 
     /**
-     * @return Key for for verifying MAC for status blob (V4)
+     * @return Key for verifying MAC for status blob (V4)
      */
     @JsonIgnore
     public SecretKey getStatusBlobMacKeyObject() {
         final String statusBlobMacKey = getStatusBlobMacKey();
         if (statusBlobMacKey == null) {
-            return null;
+            throw new IllegalStateException("Status blob MAC key is missing.");
         }
         return KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(Base64.getDecoder().decode(statusBlobMacKey));
     }
@@ -610,13 +615,13 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setStatusBlobMacKeyObject(SecretKey statusBlobMacKey) {
-        String statusBlobMacKeyBase64 = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(statusBlobMacKey));
+        final String statusBlobMacKeyBase64 = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(statusBlobMacKey));
         jsonObject.put("statusBlobMacKey", statusBlobMacKeyBase64);
     }
 
     /**
      * Sets key for verifying MAC for status blob
-     * @param statusBlobMacKey Key for key for verifying MAC for status blob
+     * @param statusBlobMacKey Key for verifying MAC for status blob
      */
     public void setStatusBlobMacKey(String statusBlobMacKey) {
         jsonObject.put("statusBlobMacKey", statusBlobMacKey);
@@ -629,7 +634,7 @@ public class ResultStatusObject {
     public SecretKey getSharedInfo2KeyObject() {
         final String sharedInfo2Key = getSharedInfo2Key();
         if (sharedInfo2Key == null) {
-            return null;
+            throw new IllegalStateException("SharedInfo2 key is missing.");
         }
         return KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(Base64.getDecoder().decode(sharedInfo2Key));
     }
@@ -647,7 +652,7 @@ public class ResultStatusObject {
      */
     @JsonIgnore
     public void setSharedInfo2KeyObject(SecretKey sharedInfo2Key) {
-        String sharedInfo2KeyBase64 = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(sharedInfo2Key));
+        final String sharedInfo2KeyBase64 = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(sharedInfo2Key));
         jsonObject.put("sharedInfo2Key", sharedInfo2KeyBase64);
     }
 
@@ -660,37 +665,37 @@ public class ResultStatusObject {
     }
 
     /**
-     * @return Key for personalized data used in offline code tags (V4)
+     * @return Key for personalized data used in offline code MAC (V4)
      */
     @JsonIgnore
     public SecretKey getMacPersonalizedDataKeyObject() {
-        final String getMacPersonalizedDataKey = getMacPersonalizedDataKey();
-        if (getMacPersonalizedDataKey == null) {
-            return null;
+        final String macPersonalizedDataKey = getMacPersonalizedDataKey();
+        if (macPersonalizedDataKey == null) {
+            throw new IllegalStateException("Offline personalized data MAC key is missing.");
         }
-        return KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(Base64.getDecoder().decode(getMacPersonalizedDataKey));
+        return KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(Base64.getDecoder().decode(macPersonalizedDataKey));
     }
 
     /**
-     * @return Key for personalized data used in offline code tags (V4)
+     * @return Key for personalized data used in offline code MAC (V4)
      */
     public String getMacPersonalizedDataKey() {
         return (String) jsonObject.get("macPersonalizedDataKey");
     }
 
     /**
-     * Sets key for personalized data used in offline code tags (V4)
-     * @param macPersonalizedDataKey Key for personalized data used in offline code tags
+     * Sets key for personalized data used in offline code MAC (V4)
+     * @param macPersonalizedDataKey Key for personalized data used in offline code MAC
      */
     @JsonIgnore
     public void setMacPersonalizedDataKeyObject(SecretKey macPersonalizedDataKey) {
-        String macPersonalizedDataKeyBase64 = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(macPersonalizedDataKey));
+        final String macPersonalizedDataKeyBase64 = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertSharedSecretKeyToBytes(macPersonalizedDataKey));
         jsonObject.put("macPersonalizedDataKey", macPersonalizedDataKeyBase64);
     }
 
     /**
-     * Sets key for personalized data used in offline code tags (V4)
-     * @param macPersonalizedDataKey Key for personalized data used in offline code tags
+     * Sets key for personalized data used in offline code MAC (V4)
+     * @param macPersonalizedDataKey Key for personalized data used in offline code MAC
      */
     public void setMacPersonalizedDataKey(String macPersonalizedDataKey) {
         jsonObject.put("macPersonalizedDataKey", macPersonalizedDataKey);

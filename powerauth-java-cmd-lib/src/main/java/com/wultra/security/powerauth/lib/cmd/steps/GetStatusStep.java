@@ -181,9 +181,6 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, Object> 
                 byte[] challenge = (byte[]) stepContext.getAttributes().get(ATTRIBUTE_CHALLENGE);
 
                 final SecretKey transportMasterKey = resultStatusObject.getTransportMasterKeyObject();
-                if (transportMasterKey == null) {
-                    throw new IllegalStateException("The transportMasterKey is missing");
-                }
 
                 final ActivationStatusBlobInfo statusBlobRaw = CLIENT_ACTIVATION_V3.getStatusFromEncryptedBlob(cStatusBlob, challenge, cStatusBlobNonce, transportMasterKey);
                 statusBlobInfo = ExtendedActivationStatusBlobInfo.copy(statusBlobRaw);
@@ -200,9 +197,6 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, Object> 
                 final byte[] statusBlobData = Arrays.copyOfRange(statusBlob, 0, 48);
                 final byte[] statusBlobMac = Arrays.copyOfRange(statusBlob, 48, 80);
                 final SecretKey statusBlobMacKey = resultStatusObject.getStatusBlobMacKeyObject();
-                if (statusBlobMacKey == null) {
-                    throw new IllegalStateException("The statusBlobMacKey is missing");
-                }
                 // Verify MAC
                 if (!CLIENT_ACTIVATION_V4.verifyStatusMac(statusBlobData, statusBlobMac, statusBlobMacKey, ProtocolVersion.fromValue(stepContext.getModel().getVersion().value()))) {
                     throw new GenericCryptoException("Failed MAC verification for status blob");
