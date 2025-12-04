@@ -358,7 +358,7 @@ public class ResultStatusObject {
     public SecretKey getBiometryFactorKeyObject() {
         final String biometryFactorKey = getBiometryFactorKey();
         if (biometryFactorKey == null) {
-            throw new IllegalStateException("Biometry factor key is missing.");
+            return null;
         }
         return KEY_CONVERTOR_EC.convertBytesToSharedSecretKey(Base64.getDecoder().decode(biometryFactorKey));
     }

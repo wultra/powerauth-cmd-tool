@@ -85,6 +85,9 @@ public class AuthorizationHeaderProvider implements PowerAuthHeaderProvider<Auth
             final SecretKey knowledgeFactorKey = getKnowledgeKeyFactor(model);
             authSecretKeys = Arrays.asList(possessionFactorKey, knowledgeFactorKey);
         } else {
+            if (biometryFactorKey == null) {
+                throw new IllegalStateException("Missing biometry factor key");
+            }
             final SecretKey knowledgeFactorKey = getKnowledgeKeyFactor(model);
             authSecretKeys = KEY_FACTORY.keysForAuthenticationCodeType(model.getAuthenticationCodeType(), possessionFactorKey, knowledgeFactorKey, biometryFactorKey);
         }
