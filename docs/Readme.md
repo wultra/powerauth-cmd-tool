@@ -118,7 +118,7 @@ Uses the `create` method to activate a PowerAuth Reference client by calling the
 
 _Note: If a `--password` option is not provided, this method requires interactive console input of the password, in order to encrypt the knowledge-related authentication key._
 
-_Note: In case auto-commit mode is not used (default), the activation needs to be committed on the server  using the [PowerAuth Server RESTful API](https://github.com/wultra/powerauth-server/blob/develop/docs/WebServices-Methods-V4.md#method-commitactivation)._
+_Note: In case auto-commit mode is not used (default), the activation needs to be committed on the server using the [PowerAuth Server RESTful API](https://github.com/wultra/powerauth-server/blob/develop/docs/WebServices-Methods-V4.md#method-commitactivation)._
 
 ### Get Activation Status
 
