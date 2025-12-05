@@ -107,23 +107,23 @@ public class AuthAndEncryptStep extends AbstractBaseStep<VerifyAuthenticationSte
 
         // Verify that HTTP method is set
         if (model.getHttpMethod() == null) {
-            stepLogger.writeError("sign-encrypt-error-http-method", "HTTP method not specified", "Specify HTTP method to use for sending request");
-            stepLogger.writeDoneFailed("sign-encrypt-failed");
+            stepLogger.writeError("auth-encrypt-error-http-method", "HTTP method not specified", "Specify HTTP method to use for sending request");
+            stepLogger.writeDoneFailed("auth-encrypt-failed");
             return null;
         }
 
         // Verify HTTP method, only POST is supported
         if (!HttpMethod.POST.name().equals(model.getHttpMethod().toUpperCase())) {
-            stepLogger.writeError("sign-encrypt-error-http-method-invalid", "Sign and Encrypt Request Failed", "Unsupported HTTP method: " + model.getHttpMethod().toUpperCase());
-            stepLogger.writeDoneFailed("sign-encrypt-failed");
+            stepLogger.writeError("auth-encrypt-error-http-method-invalid", "Sign and Encrypt Request Failed", "Unsupported HTTP method: " + model.getHttpMethod().toUpperCase());
+            stepLogger.writeDoneFailed("auth-encrypt-failed");
             return null;
         }
 
         // Read data which needs to be encrypted
         final byte[] requestDataBytes = model.getData();
         if (requestDataBytes == null) {
-            stepLogger.writeError("sign-encrypt-error-file", "Sign and Encrypt Request Failed", "Request data for encryption and signing is null.");
-            stepLogger.writeDoneFailed("sign-encrypt-failed");
+            stepLogger.writeError("auth-encrypt-error-file", "Sign and Encrypt Request Failed", "Request data for encryption and signing is null.");
+            stepLogger.writeDoneFailed("auth-encrypt-failed");
             return null;
         }
 
