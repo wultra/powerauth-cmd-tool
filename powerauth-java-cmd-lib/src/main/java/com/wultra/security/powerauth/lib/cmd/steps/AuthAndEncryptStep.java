@@ -40,7 +40,7 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 /**
- * Sign and encrypt step signs request data and performs encryption using ECIES encryption in activation scope.
+ * Authenticate and encrypt step authenticates request data and performs encryption using ECIES encryption in activation scope.
  *
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
@@ -48,13 +48,14 @@ import java.util.Map;
  *     <li>3.1</li>
  *     <li>3.2</li>
  *     <li>3.3</li>
+ *     <li>4.0</li>
  * </ul>
  *
  *  @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  *  @author Roman Strobl, roman.strobl@wultra.com
  */
-@Component("signAndEncryptStep")
-public class SignAndEncryptStep extends AbstractBaseStep<VerifyAuthenticationStepModel, EncryptedResponse> {
+@Component("authAndEncryptStep")
+public class AuthAndEncryptStep extends AbstractBaseStep<VerifyAuthenticationStepModel, EncryptedResponse> {
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
@@ -65,7 +66,7 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifyAuthenticationSte
      * @param stepLoggerFactory Step logger factory
      */
     @Autowired
-    public SignAndEncryptStep(
+    public AuthAndEncryptStep(
             PowerAuthHeaderFactory powerAuthHeaderFactory,
             ResultStatusService resultStatusService,
             StepLoggerFactory stepLoggerFactory) {
@@ -77,7 +78,7 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifyAuthenticationSte
     /**
      * Constructor for backward compatibility
      */
-    public SignAndEncryptStep() {
+    public AuthAndEncryptStep() {
         this(
                 BackwardCompatibilityConst.POWER_AUTH_HEADER_FACTORY,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
