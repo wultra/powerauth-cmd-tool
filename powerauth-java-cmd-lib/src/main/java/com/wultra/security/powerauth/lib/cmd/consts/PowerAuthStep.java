@@ -91,7 +91,7 @@ public enum PowerAuthStep {
     /**
      * Send and verify a signed and encrypted request
      */
-    SIGN_ENCRYPT("sign-encrypt", "Sign and Encrypt Request", "sign-encrypt"),
+    AUTHENTICATE_ENCRYPT("authenticate-encrypt", "Authenticate and Encrypt Request", "auth-encrypt"),
 
     /**
      * Unlock device private keys and sign data

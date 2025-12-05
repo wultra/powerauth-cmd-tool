@@ -44,6 +44,7 @@ import java.util.Map;
  *      <li>3.1</li>
  *      <li>3.2</li>
  *      <li>3.3</li>
+ *      <li>4.0</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
@@ -67,7 +68,7 @@ public class RemoveActivationStep extends AbstractBaseStep<RemoveActivationStepM
     public RemoveActivationStep(PowerAuthHeaderFactory powerAuthHeaderFactory,
                                 ResultStatusService resultStatusService,
                                 StepLoggerFactory stepLoggerFactory) {
-        super(PowerAuthStep.ACTIVATION_REMOVE, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
+        super(PowerAuthStep.ACTIVATION_REMOVE, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
@@ -93,10 +94,11 @@ public class RemoveActivationStep extends AbstractBaseStep<RemoveActivationStepM
         final RemoveActivationStepModel model = new RemoveActivationStepModel();
         model.fromMap(context);
 
+        final int majorVersion = model.getVersion().getMajorVersion();
         final RequestContext requestContext = RequestContext.builder()
                 .authenticationHttpMethod("POST")
                 .authenticationRequestUri("/pa/activation/remove")
-                .uri(model.getUriString() + "/pa/v3/activation/remove")
+                .uri(model.getUriString() + "/pa/v" + majorVersion + "/activation/remove")
                 .build();
 
         final StepContext<RemoveActivationStepModel, ObjectResponse<ActivationRemoveResponse>> stepContext =

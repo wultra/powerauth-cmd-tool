@@ -59,6 +59,7 @@ import java.util.stream.Stream;
  *     <li>3.1</li>
  *     <li>3.2</li>
  *     <li>3.3</li>
+ *     <li>4.0</li>
  * </ul>
  *
  * @author Roman Strobl, roman.strobl@wultra.com

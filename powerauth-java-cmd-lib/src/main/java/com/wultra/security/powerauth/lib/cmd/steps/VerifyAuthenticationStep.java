@@ -45,6 +45,7 @@ import java.util.Map;
  *     <li>3.1</li>
  *     <li>3.2</li>
  *     <li>3.3</li>
+ *     <li>4.0</li>
  * </ul>
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com

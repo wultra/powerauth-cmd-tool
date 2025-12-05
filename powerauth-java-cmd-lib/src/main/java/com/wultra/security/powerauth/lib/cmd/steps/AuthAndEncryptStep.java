@@ -40,7 +40,7 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 /**
- * Sign and encrypt step signs request data and performs encryption using ECIES encryption in activation scope.
+ * Authenticate and encrypt step authenticates request data and performs encryption using ECIES encryption in activation scope.
  *
  * <p><b>PowerAuth protocol versions:</b>
  * <ul>
@@ -48,13 +48,14 @@ import java.util.Map;
  *     <li>3.1</li>
  *     <li>3.2</li>
  *     <li>3.3</li>
+ *     <li>4.0</li>
  * </ul>
  *
  *  @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  *  @author Roman Strobl, roman.strobl@wultra.com
  */
-@Component("signAndEncryptStep")
-public class SignAndEncryptStep extends AbstractBaseStep<VerifyAuthenticationStepModel, EncryptedResponse> {
+@Component("authAndEncryptStep")
+public class AuthAndEncryptStep extends AbstractBaseStep<VerifyAuthenticationStepModel, EncryptedResponse> {
 
     private final PowerAuthHeaderFactory powerAuthHeaderFactory;
 
@@ -65,11 +66,11 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifyAuthenticationSte
      * @param stepLoggerFactory Step logger factory
      */
     @Autowired
-    public SignAndEncryptStep(
+    public AuthAndEncryptStep(
             PowerAuthHeaderFactory powerAuthHeaderFactory,
             ResultStatusService resultStatusService,
             StepLoggerFactory stepLoggerFactory) {
-        super(PowerAuthStep.SIGN_ENCRYPT, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
+        super(PowerAuthStep.AUTHENTICATE_ENCRYPT, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
@@ -77,7 +78,7 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifyAuthenticationSte
     /**
      * Constructor for backward compatibility
      */
-    public SignAndEncryptStep() {
+    public AuthAndEncryptStep() {
         this(
                 BackwardCompatibilityConst.POWER_AUTH_HEADER_FACTORY,
                 BackwardCompatibilityConst.RESULT_STATUS_SERVICE,
@@ -106,23 +107,23 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifyAuthenticationSte
 
         // Verify that HTTP method is set
         if (model.getHttpMethod() == null) {
-            stepLogger.writeError("sign-encrypt-error-http-method", "HTTP method not specified", "Specify HTTP method to use for sending request");
-            stepLogger.writeDoneFailed("sign-encrypt-failed");
+            stepLogger.writeError("auth-encrypt-error-http-method", "HTTP method not specified", "Specify HTTP method to use for sending request");
+            stepLogger.writeDoneFailed("auth-encrypt-failed");
             return null;
         }
 
         // Verify HTTP method, only POST is supported
         if (!HttpMethod.POST.name().equals(model.getHttpMethod().toUpperCase())) {
-            stepLogger.writeError("sign-encrypt-error-http-method-invalid", "Sign and Encrypt Request Failed", "Unsupported HTTP method: " + model.getHttpMethod().toUpperCase());
-            stepLogger.writeDoneFailed("sign-encrypt-failed");
+            stepLogger.writeError("auth-encrypt-error-http-method-invalid", "Sign and Encrypt Request Failed", "Unsupported HTTP method: " + model.getHttpMethod().toUpperCase());
+            stepLogger.writeDoneFailed("auth-encrypt-failed");
             return null;
         }
 
         // Read data which needs to be encrypted
         final byte[] requestDataBytes = model.getData();
         if (requestDataBytes == null) {
-            stepLogger.writeError("sign-encrypt-error-file", "Sign and Encrypt Request Failed", "Request data for encryption and signing is null.");
-            stepLogger.writeDoneFailed("sign-encrypt-failed");
+            stepLogger.writeError("auth-encrypt-error-file", "Sign and Encrypt Request Failed", "Request data for encryption and signing is null.");
+            stepLogger.writeDoneFailed("auth-encrypt-failed");
             return null;
         }
 
