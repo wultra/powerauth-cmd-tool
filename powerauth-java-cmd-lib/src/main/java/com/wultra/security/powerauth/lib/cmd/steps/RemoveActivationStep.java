@@ -68,7 +68,7 @@ public class RemoveActivationStep extends AbstractBaseStep<RemoveActivationStepM
     public RemoveActivationStep(PowerAuthHeaderFactory powerAuthHeaderFactory,
                                 ResultStatusService resultStatusService,
                                 StepLoggerFactory stepLoggerFactory) {
-        super(PowerAuthStep.ACTIVATION_REMOVE, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
+        super(PowerAuthStep.ACTIVATION_REMOVE, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }

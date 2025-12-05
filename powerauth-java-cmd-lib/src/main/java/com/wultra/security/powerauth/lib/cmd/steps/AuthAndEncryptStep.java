@@ -70,7 +70,7 @@ public class AuthAndEncryptStep extends AbstractBaseStep<VerifyAuthenticationSte
             PowerAuthHeaderFactory powerAuthHeaderFactory,
             ResultStatusService resultStatusService,
             StepLoggerFactory stepLoggerFactory) {
-        super(PowerAuthStep.AUTHENTICATE_ENCRYPT, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
+        super(PowerAuthStep.AUTHENTICATE_ENCRYPT, PowerAuthVersion.ALL_VERSIONS, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
