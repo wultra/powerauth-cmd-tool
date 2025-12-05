@@ -69,7 +69,7 @@ public class SignAndEncryptStep extends AbstractBaseStep<VerifyAuthenticationSte
             PowerAuthHeaderFactory powerAuthHeaderFactory,
             ResultStatusService resultStatusService,
             StepLoggerFactory stepLoggerFactory) {
-        super(PowerAuthStep.SIGN_ENCRYPT, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
+        super(PowerAuthStep.AUTHENTICATE_ENCRYPT, PowerAuthVersion.VERSION_3, resultStatusService, stepLoggerFactory);
 
         this.powerAuthHeaderFactory = powerAuthHeaderFactory;
     }
