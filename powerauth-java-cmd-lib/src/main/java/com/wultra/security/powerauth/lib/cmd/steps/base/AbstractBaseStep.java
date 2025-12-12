@@ -42,6 +42,7 @@ import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.security.SimpleSecurityContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
+import com.wultra.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import com.wultra.security.powerauth.lib.cmd.util.*;
 import jakarta.annotation.Nonnull;
@@ -180,6 +181,8 @@ public abstract class AbstractBaseStep<M extends BaseStepData, R> implements Bas
             stepContext = prepareStepContext(stepLogger, context);
             if (stepContext == null) {
                 return null;
+            } else if (stepContext.getModel() instanceof ResultStatusChangeable resultStatus) {
+                resultStatusService.save(resultStatus);
             }
         } catch (EciesException e) {
             stepLogger.writeError(getStep().id() + "-error-encryption", e);
