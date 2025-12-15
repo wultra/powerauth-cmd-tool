@@ -90,7 +90,7 @@
 
         <!-- Wultra Dependencies -->
         <powerauth-restful-integration>2.0.0-SNAPSHOT</powerauth-restful-integration>
-        <powerauth-crypto.version>2.0.0-SNAPSHOT</powerauth-crypto.version>
+        <powerauth-crypto.version>2.0.0</powerauth-crypto.version>
         <wultra-core.version>2.0.0-SNAPSHOT</wultra-core.version>
     </properties>
 
