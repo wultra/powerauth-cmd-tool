@@ -19,6 +19,7 @@ package com.wultra.security.powerauth.lib.cmd.util;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSObjectJSON;
 import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
@@ -49,15 +50,10 @@ import com.wultra.security.powerauth.rest.api.model.request.TemporaryKeyRequest;
 import com.wultra.security.powerauth.rest.api.model.request.v4.SharedSecretRequest;
 import com.wultra.security.powerauth.rest.api.model.response.TemporaryKeyResponse;
 import com.wultra.security.powerauth.rest.api.model.response.v4.SharedSecretResponse;
-import lombok.Data;
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.DLSequence;
 import org.bouncycastle.jcajce.spec.MLDSAParameterSpec;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
@@ -72,6 +68,7 @@ import java.security.interfaces.ECPublicKey;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Helper class for fetching temporary keys.
@@ -100,7 +97,6 @@ public class TemporaryKeyUtil {
     private static final ObjectMapper OBJECT_MAPPER = RestClientConfiguration.defaultMapper();
 
     private static final PowerAuthClientKeyFactory CLIENT_KEY_FACTORY = new PowerAuthClientKeyFactory();
-    private static final JSONParser JSON_PARSER = new JSONParser();
 
     /**
      * Fetch temporary key for encryption from the server and store it into the step context.
@@ -250,7 +246,9 @@ public class TemporaryKeyUtil {
                 temporaryKeyId = (String) decodedJWT.getJWTClaimsSet().getClaim("sub");
             }
             case 4 -> {
-                final Map<String, JwtSignatureData> signatureData = extractSignatureData(jwtResponse);
+                final JWSObjectJSON jwsObjectJSON = JWSObjectJSON.parse(jwtResponse);
+                final Map<String, JwtSignatureData> signatureData = extractSignatureData(jwsObjectJSON);
+
                 if (signatureData.get("ES384") == null) {
                     throw new IllegalStateException("Missing EC signature for algorithm: " + algorithm);
                 }
@@ -260,7 +258,7 @@ public class TemporaryKeyUtil {
                 if (algorithm == SharedSecretAlgorithm.EC_P384_ML_L5 && signatureData.get("ML-DSA-87") == null) {
                     throw new IllegalStateException("Missing ML-DSA signature for algorithm: " + algorithm);
                 }
-                final JWTClaimsSet claims = extractClaims(jwtResponse);
+                final JWTClaimsSet claims = JWTClaimsSet.parse(jwsObjectJSON.getPayload().toJSONObject());
                 handleSharedSecretResponse(stepContext, claims, algorithm);
                 final Map<String, PublicKey> publicKeys = new HashMap<>();
                 switch (algorithm) {
@@ -308,31 +306,18 @@ public class TemporaryKeyUtil {
         stepContext.getTemporaryKeyContext().setTemporaryKeyId(temporaryKeyId);
     }
 
-    private static Map<String, JwtSignatureData> extractSignatureData(String jwtJson) throws ParseException {
-        final JSONObject jwtObject = (JSONObject) JSON_PARSER.parse(jwtJson);
-        final JSONArray signatures = (JSONArray) jwtObject.get("signatures");
-        final String payloadB64 = (String) jwtObject.get("payload");
-        final Map<String, JwtSignatureData> result = new HashMap<>();
-        for (Object sigObj : signatures) {
-            final JSONObject sigEntry = (JSONObject) sigObj;
-            final String protectedB64 = (String) sigEntry.get("protected");
-            final String signatureB64 = (String) sigEntry.get("signature");
-            final String protectedJson = new String(Base64.getUrlDecoder().decode(protectedB64), StandardCharsets.UTF_8);
-            final JSONObject protectedHeader = (JSONObject) JSON_PARSER.parse(protectedJson);
-            final String alg = (String) protectedHeader.get("alg");
-            final String signingInput = protectedB64 + "." + payloadB64;
-            result.put(alg, new JwtSignatureData(signatureB64, signingInput));
-        }
-        return result;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static JWTClaimsSet extractClaims(String jwtJson) throws java.text.ParseException, ParseException {
-        JSONObject jwtObject = (JSONObject) JSON_PARSER.parse(jwtJson);
-        String payloadBase64 = (String) jwtObject.get("payload");
-        String payloadJson = new String(Base64.getUrlDecoder().decode(payloadBase64), StandardCharsets.UTF_8);
-        final JSONObject payload = (JSONObject) JSON_PARSER.parse(payloadJson);
-        return JWTClaimsSet.parse(payload);
+    private static Map<String, JwtSignatureData> extractSignatureData(final JWSObjectJSON jwsJson) {
+        return jwsJson.getSignatures().stream().collect(
+                Collectors.toMap(
+                        signature -> signature.getHeader().getAlgorithm().getName(),
+                        signature -> {
+                            final String protectedHeaderB64 = signature.getHeader().toBase64URL().toString();
+                            final String payloadB64 = jwsJson.getPayload().toBase64URL().toString();
+                            final String signingInput = protectedHeaderB64 + "." + payloadB64;
+                            return new JwtSignatureData(signature.getSignature().toString(), signingInput);
+                        },
+                        (existing, replacement) -> replacement)
+        );
     }
 
     private static void handlePublicKeyResponse(StepContext<? extends BaseStepData, ?> stepContext, JWTClaimsSet claims) {
@@ -361,22 +346,22 @@ public class TemporaryKeyUtil {
             return false;
         }
         final JwtSignatureData signatureEc = signatureData.get("ES384");
-        final byte[] signingInputEc = signatureEc.getSigningInput().getBytes(StandardCharsets.UTF_8);
-        final byte[] signatureEcBytes = convertRawSignatureToDER(Base64URL.from(signatureEc.getSignature()).decode());
+        final byte[] signingInputEc = signatureEc.signingInput().getBytes(StandardCharsets.UTF_8);
+        final byte[] signatureEcBytes = convertRawSignatureToDER(Base64URL.from(signatureEc.signature()).decode());
         final PublicKey publicKeyEc = publicKeys.get("ES384");
         boolean signaturesValid = validateEcSignature(signingInputEc, signatureEcBytes, publicKeyEc, algorithm);
         if (algorithm == SharedSecretAlgorithm.EC_P384_ML_L3) {
             final PublicKey publicKeyMlDsa = publicKeys.get("ML-DSA-65");
             final JwtSignatureData signatureMlDsa = signatureData.get("ML-DSA-65");
-            final byte[] signingInputMlDsa = signatureMlDsa.getSigningInput().getBytes(StandardCharsets.UTF_8);
-            final byte[] signatureMlDsaBytes = Base64URL.from(signatureMlDsa.getSignature()).decode();
+            final byte[] signingInputMlDsa = signatureMlDsa.signingInput().getBytes(StandardCharsets.UTF_8);
+            final byte[] signatureMlDsaBytes = Base64URL.from(signatureMlDsa.signature()).decode();
             signaturesValid = signaturesValid && pqcDsaMlL3.verify(publicKeyMlDsa, signingInputMlDsa, signatureMlDsaBytes);
         }
         if (algorithm == SharedSecretAlgorithm.EC_P384_ML_L5) {
             final PublicKey publicKeyMlDsa = publicKeys.get("ML-DSA-87");
             final JwtSignatureData signatureMlDsa = signatureData.get("ML-DSA-87");
-            final byte[] signingInputMlDsa = signatureMlDsa.getSigningInput().getBytes(StandardCharsets.UTF_8);
-            final byte[] signatureMlDsaBytes = Base64URL.from(signatureMlDsa.getSignature()).decode();
+            final byte[] signingInputMlDsa = signatureMlDsa.signingInput().getBytes(StandardCharsets.UTF_8);
+            final byte[] signatureMlDsaBytes = Base64URL.from(signatureMlDsa.signature()).decode();
             signaturesValid = signaturesValid && pqcDsaMlL5.verify(publicKeyMlDsa, signingInputMlDsa, signatureMlDsaBytes);
         }
         return signaturesValid;
@@ -486,12 +471,6 @@ public class TemporaryKeyUtil {
         throw new IllegalStateException("Invalid model for obtaining ML-DSA master public key");
     }
 
-    @Data
-    private static class JwtSignatureData {
-
-        public final String signature;
-        public final String signingInput;
-
-    }
+    private record JwtSignatureData(String signature, String signingInput) { }
 
 }
