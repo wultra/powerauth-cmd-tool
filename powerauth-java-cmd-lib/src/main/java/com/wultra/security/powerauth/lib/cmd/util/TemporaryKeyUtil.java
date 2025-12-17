@@ -258,7 +258,7 @@ public class TemporaryKeyUtil {
                 if (algorithm == SharedSecretAlgorithm.EC_P384_ML_L5 && signatureData.get("ML-DSA-87") == null) {
                     throw new IllegalStateException("Missing ML-DSA signature for algorithm: " + algorithm);
                 }
-                final JWTClaimsSet claims = JWTClaimsSet.parse(jwsObjectJSON.getPayload().toJSONObject());;
+                final JWTClaimsSet claims = JWTClaimsSet.parse(jwsObjectJSON.getPayload().toJSONObject());
                 handleSharedSecretResponse(stepContext, claims, algorithm);
                 final Map<String, PublicKey> publicKeys = new HashMap<>();
                 switch (algorithm) {
