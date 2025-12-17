@@ -315,7 +315,8 @@ public class TemporaryKeyUtil {
                             final String payloadB64 = jwsJson.getPayload().toBase64URL().toString();
                             final String signingInput = protectedHeaderB64 + "." + payloadB64;
                             return new JwtSignatureData(signature.getSignature().toString(), signingInput);
-                        })
+                        },
+                        (existing, replacement) -> replacement)
         );
     }
 
