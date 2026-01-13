@@ -247,6 +247,10 @@ public class TemporaryKeyUtil {
             }
             case 4 -> {
                 final JWSObjectJSON jwsObjectJSON = JWSObjectJSON.parse(jwtResponse);
+                if (jwsObjectJSON.getPayload() == null || jwsObjectJSON.getPayload().toJSONObject() == null) {
+                    throw new IllegalStateException("Missing JWS payload");
+                }
+
                 final Map<String, JwtSignatureData> signatureData = extractSignatureData(jwsObjectJSON);
 
                 if (signatureData.get("ES384") == null) {
