@@ -5,6 +5,7 @@
 
     <modelVersion>4.0.0</modelVersion>
     <artifactId>powerauth-java-cmd-lib</artifactId>
+    <name>powerauth-java-cmd-lib</name>
     <description>PowerAuth Command-line Utility - Java Library</description>
 
     <parent>
