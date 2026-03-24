@@ -19,11 +19,11 @@ package com.wultra.security.powerauth.lib.cmd.util;
 import com.wultra.security.powerauth.crypto.lib.enums.EcCurve;
 import com.wultra.security.powerauth.crypto.lib.model.exception.CryptoProviderException;
 import com.wultra.security.powerauth.crypto.lib.model.exception.GenericCryptoException;
+import com.wultra.security.powerauth.crypto.lib.sdk.SdkConfiguration;
 import com.wultra.security.powerauth.crypto.lib.util.KeyConvertor;
 import com.wultra.security.powerauth.crypto.lib.v4.api.PqcDsaKeyConvertor;
 import com.wultra.security.powerauth.crypto.lib.v4.ml.MlDsaKeyConvertor;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLogger;
-import com.wultra.security.powerauth.lib.cmd.util.config.SdkConfiguration;
 import org.json.simple.JSONObject;
 
 import java.security.PublicKey;

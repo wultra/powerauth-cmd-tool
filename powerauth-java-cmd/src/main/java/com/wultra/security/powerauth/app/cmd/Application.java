@@ -18,6 +18,8 @@ package com.wultra.security.powerauth.app.cmd;
 
 import com.wultra.security.powerauth.app.cmd.exception.ExecutionException;
 import com.wultra.security.powerauth.crypto.lib.enums.PowerAuthCodeType;
+import com.wultra.security.powerauth.crypto.lib.sdk.SdkConfiguration;
+import com.wultra.security.powerauth.crypto.lib.sdk.SdkConfigurationSerializer;
 import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
 import com.wultra.security.powerauth.lib.cmd.CmdLibApplication;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthStep;
@@ -29,8 +31,6 @@ import com.wultra.security.powerauth.lib.cmd.steps.base.StepProvider;
 import com.wultra.security.powerauth.lib.cmd.steps.model.*;
 import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import com.wultra.security.powerauth.lib.cmd.util.*;
-import com.wultra.security.powerauth.lib.cmd.util.config.SdkConfiguration;
-import com.wultra.security.powerauth.lib.cmd.util.config.SdkConfigurationSerializer;
 import org.apache.commons.cli.*;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.simple.JSONObject;
