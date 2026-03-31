@@ -212,9 +212,10 @@ public class ResultStatusObject {
      * Sets EC server public key object
      * @param serverPublicKeyObject Public key object
      * @throws CryptoProviderException when the public key cannot be encoded
+     * @throws GenericCryptoException when the public key conversion fails
      */
     @JsonIgnore
-    public void setEcServerPublicKeyObject(PublicKey serverPublicKeyObject) throws CryptoProviderException {
+    public void setEcServerPublicKeyObject(PublicKey serverPublicKeyObject) throws CryptoProviderException, GenericCryptoException {
         final String serverPublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(resolveEcCurve(), serverPublicKeyObject));
         jsonObject.put("ecServerPublicKey", serverPublicKey);
     }
@@ -290,9 +291,10 @@ public class ResultStatusObject {
      * Sets EC device public key object
      * @param devicePublicKeyObject Public key object
      * @throws CryptoProviderException when the public key cannot be encoded
+     * @throws GenericCryptoException when the public key conversion fails
      */
     @JsonIgnore
-    public void setEcDevicePublicKeyObject(PublicKey devicePublicKeyObject) throws CryptoProviderException {
+    public void setEcDevicePublicKeyObject(PublicKey devicePublicKeyObject) throws CryptoProviderException, GenericCryptoException {
         final String devicePublicKey = Base64.getEncoder().encodeToString(KEY_CONVERTOR_EC.convertPublicKeyToBytes(resolveEcCurve(), devicePublicKeyObject));
         jsonObject.put("ecDevicePublicKey", devicePublicKey);
     }
