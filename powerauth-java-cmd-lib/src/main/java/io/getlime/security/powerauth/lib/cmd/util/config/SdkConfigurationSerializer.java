@@ -77,7 +77,7 @@ public class SdkConfigurationSerializer {
         final byte[] appKey = reader.readData(16);
         final byte[] appSecret = reader.readData(16);
         final Integer keyCount = reader.readCount();
-        if (appKey == null || appSecret == null || keyCount != 1) {
+        if (appKey == null || appSecret == null || keyCount == null || keyCount < 1) {
             // Unexpected data
             return null;
         }
