@@ -17,6 +17,7 @@
 package com.wultra.security.powerauth.lib.cmd.util;
 
 import com.wultra.security.powerauth.crypto.lib.generator.HashBasedCounter;
+import com.wultra.security.powerauth.crypto.lib.model.exception.CryptoProviderException;
 import com.wultra.security.powerauth.crypto.lib.model.exception.GenericCryptoException;
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import com.wultra.security.powerauth.lib.cmd.logging.StepLogger;
@@ -70,8 +71,9 @@ public class CounterUtil {
      *
      * @param resultStatusObject Result status object.
      * @throws GenericCryptoException In case counter value could not be incremented.
+     * @throws CryptoProviderException In case crypto provider is initialized incorrectly.
      */
-    public static void incrementCounter(ResultStatusObject resultStatusObject) throws GenericCryptoException {
+    public static void incrementCounter(ResultStatusObject resultStatusObject) throws GenericCryptoException, CryptoProviderException {
         // Increment the numeric counter
         Long counter = resultStatusObject.getCounter();
         counter += 1;

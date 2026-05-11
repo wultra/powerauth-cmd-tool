@@ -40,7 +40,7 @@ public class HttpUtil {
     public static Map<String, String> flattenHttpHeaders(HttpHeaders headers) {
         Map<String, String> result = new HashMap<>();
         if (headers != null) {
-            for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
+            for (Map.Entry<String, List<String>> entry : headers.headerSet()) {
                 result.put(entry.getKey(), headers.getFirst(entry.getKey()));
             }
         }
