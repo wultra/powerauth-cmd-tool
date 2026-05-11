@@ -74,7 +74,7 @@ public class RemoveActivationStepModel extends BaseStepModel
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
         context.put("PASSWORD", password);
-        context.put("AUTHENTICATION_CODE_TYPE", authenticationCodeType.toString());
+        context.put("AUTHENTICATION_CODE_TYPE", getAuthenticationCodeType().toString());
         return context;
     }
 
