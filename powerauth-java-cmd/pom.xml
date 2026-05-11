@@ -84,7 +84,7 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
-                    <!-- BC provider must be extracted so JCE can verify its signature (jar:nested:// breaks JceSecurity) -->
+                    <!-- BC provider must be extracted so JCE can verify its signature when loaded from a Spring Boot nested jar -->
                     <requiresUnpack>
                         <dependency>
                             <groupId>org.bouncycastle</groupId>
