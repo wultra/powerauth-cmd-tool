@@ -60,6 +60,14 @@ public class RemoveActivationStepModel extends BaseStepModel
     private PowerAuthCodeType authenticationCodeType;
 
     @Override
+    public PowerAuthCodeType getAuthenticationCodeType() {
+        if (authenticationCodeType != null) {
+            return authenticationCodeType;
+        }
+        return PowerAuthCodeType.POSSESSION_KNOWLEDGE;
+    }
+
+    @Override
     public Map<String, Object> toMap() {
         Map<String, Object> context = super.toMap();
         context.put("STATUS_FILENAME", statusFileName);

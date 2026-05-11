@@ -359,7 +359,9 @@ public class Application {
                     model.setResultStatus(resultStatusObject);
                     model.setStatusFileName(statusFileName);
                     model.setUriString(uriString);
-                    model.setAuthenticationCodeType(PowerAuthCodeType.getEnumFromString(cmd.getOptionValue("l")));
+                    if (cmd.hasOption("l")) {
+                        model.setAuthenticationCodeType(PowerAuthCodeType.getEnumFromString(cmd.getOptionValue("l")));
+                    }
                     model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
