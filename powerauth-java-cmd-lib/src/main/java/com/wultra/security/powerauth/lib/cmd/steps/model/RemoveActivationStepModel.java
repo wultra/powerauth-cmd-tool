@@ -54,10 +54,10 @@ public class RemoveActivationStepModel extends BaseStepModel
      */
     private String password;
 
-    @Override
-    public PowerAuthCodeType getAuthenticationCodeType() {
-        return PowerAuthCodeType.POSSESSION_KNOWLEDGE;
-    }
+    /**
+     * PowerAuth authentication code type
+     */
+    private PowerAuthCodeType authenticationCodeType;
 
     @Override
     public Map<String, Object> toMap() {
@@ -66,6 +66,7 @@ public class RemoveActivationStepModel extends BaseStepModel
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
         context.put("PASSWORD", password);
+        context.put("AUTHENTICATION_CODE_TYPE", authenticationCodeType.toString());
         return context;
     }
 
@@ -76,6 +77,7 @@ public class RemoveActivationStepModel extends BaseStepModel
         setApplicationKey((String) context.get("APPLICATION_KEY"));
         setApplicationSecret((String) context.get("APPLICATION_SECRET"));
         setPassword((String) context.get("PASSWORD"));
+        setAuthenticationCodeType(PowerAuthCodeType.getEnumFromString((String) context.get("AUTHENTICATION_CODE_TYPE")));
     }
 
 }
