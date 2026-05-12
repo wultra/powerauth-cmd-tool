@@ -16,7 +16,6 @@
  */
 package com.wultra.security.powerauth.lib.cmd.steps.base;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wultra.security.powerauth.crypto.lib.encryptor.ClientEncryptor;
 import com.wultra.security.powerauth.crypto.lib.encryptor.EncryptorFactory;
 import com.wultra.security.powerauth.crypto.lib.encryptor.model.*;
@@ -48,6 +47,7 @@ import com.wultra.security.powerauth.rest.api.model.request.v4.SharedSecretReque
 import com.wultra.security.powerauth.rest.api.model.response.v4.ServerPublicKeys;
 import com.wultra.security.powerauth.rest.api.model.response.v4.SharedSecretResponse;
 import org.springframework.core.ParameterizedTypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 import javax.crypto.SecretKey;
 import java.security.KeyPair;

@@ -17,12 +17,14 @@
 package com.wultra.security.powerauth.lib.cmd.logging;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.util.DefaultIndenter;
-import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.wultra.core.rest.model.base.request.ObjectRequest;
+import tools.jackson.core.JsonEncoding;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.ObjectWriteContext;
+import tools.jackson.core.util.DefaultIndenter;
+import tools.jackson.core.util.DefaultPrettyPrinter;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -36,28 +38,30 @@ import java.util.Map;
  */
 public class JsonStepLogger implements StepLogger {
 
-    private JsonGenerator generator;
-    private OutputStream outputStream;
+    private final JsonGenerator generator;
+    private final OutputStream outputStream;
+
+    private final JsonMapper mapper;
 
     /**
      * Create a new logger that outputs to the stream.
      * @param outputStream Output stream.
      */
     public JsonStepLogger(OutputStream outputStream) {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.enable(SerializationFeature.INDENT_OUTPUT);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-        DefaultPrettyPrinter pp = new DefaultPrettyPrinter();
-        pp.indentArraysWith( DefaultIndenter.SYSTEM_LINEFEED_INSTANCE );
-        pp.indentObjectsWith( DefaultIndenter.SYSTEM_LINEFEED_INSTANCE );
-        mapper.setDefaultPrettyPrinter(pp);
-        try {
-            this.generator = mapper.getFactory().createGenerator(outputStream);
-            this.generator.setPrettyPrinter(pp);
-            this.outputStream = outputStream;
-        } catch (IOException e) {
-            //
-        }
+        final DefaultPrettyPrinter pp = new DefaultPrettyPrinter();
+        pp.indentArraysWith(DefaultIndenter.SYSTEM_LINEFEED_INSTANCE);
+        pp.indentObjectsWith(DefaultIndenter.SYSTEM_LINEFEED_INSTANCE);
+
+        mapper = JsonMapper.builder()
+                .enable(SerializationFeature.INDENT_OUTPUT)
+                .defaultPrettyPrinter(pp)
+
+                .changeDefaultPropertyInclusion(incl ->
+                        incl.withValueInclusion(JsonInclude.Include.NON_EMPTY)
+                )
+                .build();
+        this.generator = mapper.tokenStreamFactory().createGenerator(ObjectWriteContext.empty(), outputStream, JsonEncoding.UTF8);
+        this.outputStream = outputStream;
     }
 
     /**
@@ -80,15 +84,12 @@ public class JsonStepLogger implements StepLogger {
      *     "steps" : [
      * </pre>
      */
-    @Override public void start() {
-        try {
-            generator.writeStartObject();
-            generator.writeFieldName("steps");
-            generator.writeStartArray();
-            // don't flush now, lazily wait for a logged item
-        } catch (IOException e) {
-            //
-        }
+    @Override
+    public void start() {
+        generator.writeStartObject();
+        generator.writeName("steps");
+        generator.writeStartArray();
+        // don't flush now, lazily wait for a logged item
     }
 
     /**
@@ -99,19 +100,16 @@ public class JsonStepLogger implements StepLogger {
      * @param status Step status result.
      * @param object Custom object associated with the step.
      */
-    @Override public void writeItem(String id, String name, String description, String status, Object object) {
-        try {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", id);
-            map.put("name", name);
-            map.put("description", description);
-            map.put("status", status);
-            map.put("object", object);
-            generator.writeObject(map);
-            flush();
-        } catch (IOException e) {
-            //
-        }
+    @Override
+    public void writeItem(String id, String name, String description, String status, Object object) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", id);
+        map.put("name", name);
+        map.put("description", description);
+        map.put("status", status);
+        map.put("object", object);
+        mapper.writer().writeValue(generator, map);
+        flush();
     }
 
     /**
@@ -123,7 +121,8 @@ public class JsonStepLogger implements StepLogger {
      * @param requestObject Request object, in case of the POST, PUT, DELETE method.
      * @param headers HTTP request headers.
      */
-    @Override public void writeServerCall(String id, String uri, String method, Object requestObject, byte[] requestBytes, Map<String, ?> headers) {
+    @Override
+    public void writeServerCall(String id, String uri, String method, Object requestObject, byte[] requestBytes, Map<String, ?> headers) {
         Map<String, Object> map = new HashMap<>();
         map.put("url", uri);
         map.put("method", method);
@@ -146,7 +145,8 @@ public class JsonStepLogger implements StepLogger {
      * @param responseObject HTTP response object.
      * @param headers HTTP response headers.
      */
-    @Override public void writeServerCallOK(String id, Object responseObject, Map<String, ?> headers) {
+    @Override
+    public void writeServerCallOK(String id, Object responseObject, Map<String, ?> headers) {
         String name = "Response 200 - OK";
         String desc = "Endpoint was called successfully";
         String status = "OK";
@@ -163,7 +163,8 @@ public class JsonStepLogger implements StepLogger {
      * @param responseObject HTTP response object.
      * @param headers HTTP response headers.
      */
-    @Override public void writeServerCallError(String id, int statusCode, Object responseObject, Map<String, ?> headers) {
+    @Override
+    public void writeServerCallError(String id, int statusCode, Object responseObject, Map<String, ?> headers) {
         String name = "Response " + statusCode + " - ERROR";
         String desc = "Endpoint was called with an error";
         String status = "ERROR";
@@ -181,15 +182,12 @@ public class JsonStepLogger implements StepLogger {
      * }
      * </pre>
      */
-    @Override public void close() {
-        try {
-            generator.writeEndArray();
-            generator.writeEndObject();
-            flush();
-            generator.close();
-        } catch (IOException e) {
-            //
-        }
+    @Override
+    public void close() {
+        generator.writeEndArray();
+        generator.writeEndObject();
+        flush();
+        generator.close();
     }
 
     /**
@@ -197,7 +195,8 @@ public class JsonStepLogger implements StepLogger {
      * @param id Step ID.
      * @param e Network exception.
      */
-    @Override public void writeServerCallConnectionError(String id, Exception e) {
+    @Override
+    public void writeServerCallConnectionError(String id, Exception e) {
         String name = "Connection Error";
         writeError(id, name, e.getMessage(), e);
     }
@@ -207,7 +206,8 @@ public class JsonStepLogger implements StepLogger {
      * @param id Step ID.
      * @param errorMessage Error message.
      */
-    @Override public void writeError(String id, String errorMessage) {
+    @Override
+    public void writeError(String id, String errorMessage) {
         writeError(id, null, errorMessage, null);
     }
 
@@ -217,7 +217,8 @@ public class JsonStepLogger implements StepLogger {
      * @param id Step ID.
      * @param exception Exception that should be logged.
      */
-    @Override public void writeError(String id, Exception exception) {
+    @Override
+    public void writeError(String id, Exception exception) {
         writeError(id, null, exception.getMessage(), exception);
     }
 
@@ -227,7 +228,8 @@ public class JsonStepLogger implements StepLogger {
      * @param name Error name.
      * @param errorMessage Error message.
      */
-    @Override public void writeError(String id, String name, String errorMessage) {
+    @Override
+    public void writeError(String id, String name, String errorMessage) {
         writeError(id, name, errorMessage, null);
     }
 
@@ -238,7 +240,8 @@ public class JsonStepLogger implements StepLogger {
      * @param errorMessage Error message.
      * @param exception Exception that caused the error.
      */
-    @Override public void writeError(String id, String name, String errorMessage, Exception exception) {
+    @Override
+    public void writeError(String id, String name, String errorMessage, Exception exception) {
         String status = "ERROR";
         writeItem(id, name, errorMessage, status, exception);
     }
@@ -247,7 +250,8 @@ public class JsonStepLogger implements StepLogger {
      * Write information about successfully finished execution.
      * @param id Step ID.
      */
-    @Override public void writeDoneOK(String id) {
+    @Override
+    public void writeDoneOK(String id) {
         String name = "Done";
         String desc = "Execution has successfully finished";
         String status = "DONE";
@@ -258,7 +262,8 @@ public class JsonStepLogger implements StepLogger {
      * Write information about incorrectly finished execution.
      * @param id Step ID.
      */
-    @Override public void writeDoneFailed(String id) {
+    @Override
+    public void writeDoneFailed(String id) {
         String name = "Done";
         String desc = "Execution has failed";
         String status = "FAILED";
