@@ -70,10 +70,10 @@ public class CounterUtil {
      * Increment counter value in result status object
      *
      * @param resultStatusObject Result status object.
-     * @throws GenericCryptoException In case counter value could not be incremented.
      * @throws CryptoProviderException In case crypto provider is initialized incorrectly.
+     * @throws GenericCryptoException In case counter value could not be incremented.
      */
-    public static void incrementCounter(ResultStatusObject resultStatusObject) throws GenericCryptoException, CryptoProviderException {
+    public static void incrementCounter(ResultStatusObject resultStatusObject) throws CryptoProviderException, GenericCryptoException {
         // Increment the numeric counter
         Long counter = resultStatusObject.getCounter();
         counter += 1;
