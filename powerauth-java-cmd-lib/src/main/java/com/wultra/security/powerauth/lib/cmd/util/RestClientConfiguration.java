@@ -34,8 +34,6 @@ public class RestClientConfiguration {
 
     static {
         mapper = JsonMapper.builder()
-                .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .enable(DeserializationFeature.USE_LONG_FOR_INTS)
                 .changeDefaultPropertyInclusion(incl ->
                         incl.withValueInclusion(JsonInclude.Include.NON_NULL)
