@@ -16,7 +16,6 @@
  */
 package com.wultra.security.powerauth.lib.cmd.util;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSObjectJSON;
@@ -57,6 +56,7 @@ import org.bouncycastle.jcajce.spec.MLDSAParameterSpec;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
+import tools.jackson.databind.ObjectMapper;
 
 import javax.crypto.SecretKey;
 import java.io.IOException;
