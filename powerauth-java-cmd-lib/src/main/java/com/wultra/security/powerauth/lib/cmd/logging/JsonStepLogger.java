@@ -20,7 +20,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.wultra.core.rest.model.base.request.ObjectRequest;
 import tools.jackson.core.JsonEncoding;
 import tools.jackson.core.JsonGenerator;
-import tools.jackson.core.ObjectWriteContext;
 import tools.jackson.core.util.DefaultIndenter;
 import tools.jackson.core.util.DefaultPrettyPrinter;
 import tools.jackson.databind.SerializationFeature;
@@ -60,7 +59,9 @@ public class JsonStepLogger implements StepLogger {
                         incl.withValueInclusion(JsonInclude.Include.NON_EMPTY)
                 )
                 .build();
-        this.generator = mapper.tokenStreamFactory().createGenerator(ObjectWriteContext.empty(), outputStream, JsonEncoding.UTF8);
+        // Use the mapper as the ObjectWriteContext so INDENT_OUTPUT and the configured
+        // DefaultPrettyPrinter are honored by the generator.
+        this.generator = mapper.createGenerator(outputStream, JsonEncoding.UTF8);
         this.outputStream = outputStream;
     }
 
