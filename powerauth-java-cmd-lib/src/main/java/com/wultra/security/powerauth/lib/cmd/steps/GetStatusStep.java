@@ -169,6 +169,7 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, Object> 
 
         final ExtendedActivationStatusBlobInfo statusBlobInfo;
         final Map<String, Object> customObject;
+        final Long timestampBlockExpire;
         switch (stepContext.getModel().getVersion().getMajorVersion()) {
             case 3 -> {
                 final boolean useChallenge = !stepContext.getModel().getVersion().equals(PowerAuthVersion.V3_0);
@@ -184,6 +185,7 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, Object> 
 
                 final ActivationStatusBlobInfo statusBlobRaw = CLIENT_ACTIVATION_V3.getStatusFromEncryptedBlob(cStatusBlob, challenge, cStatusBlobNonce, transportMasterKey);
                 statusBlobInfo = ExtendedActivationStatusBlobInfo.copy(statusBlobRaw);
+                timestampBlockExpire = null;
             }
             case 4 -> {
                 final SimpleSecurityContext securityContext = (SimpleSecurityContext) stepContext.getSecurityContext();
@@ -204,6 +206,7 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, Object> 
                 final ActivationStatusBlobInfo statusBlobRaw = CLIENT_ACTIVATION_V4.getStatusFromBlob(statusBlobData);
                 statusBlobInfo = ExtendedActivationStatusBlobInfo.copy(statusBlobRaw);
                 customObject = statusResponse.getCustomObject();
+                timestampBlockExpire = statusResponse.getTimestampBlockExpire();
             }
             default -> throw new IllegalArgumentException("Unsupported version: " + stepContext.getModel().getVersion());
         }
@@ -213,6 +216,9 @@ public class GetStatusStep extends AbstractBaseStep<GetStatusStepModel, Object> 
         objectMap.put("activationId", resultStatusObject.getActivationId());
         objectMap.put("statusBlob", statusBlobInfo);
         objectMap.put("customObject", customObject);
+        if (stepContext.getModel().getVersion().getMajorVersion() == 4) {
+            objectMap.put("timestampBlockExpire", timestampBlockExpire);
+        }
 
         stepContext.getStepLogger().writeItem(
                 getStep().id() + "-obtained",
