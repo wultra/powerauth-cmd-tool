@@ -43,7 +43,6 @@ import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.security.TemporaryKeyContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.BaseStepModel;
-import com.wultra.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.*;
 import com.wultra.security.powerauth.rest.api.model.request.TemporaryKeyRequest;
 import com.wultra.security.powerauth.rest.api.model.request.v4.SharedSecretRequest;
@@ -430,21 +429,10 @@ public class TemporaryKeyUtil {
     }
 
     private static PublicKey getEcMasterPublicKey(StepContext<? extends BaseStepData, ?> stepContext, SharedSecretAlgorithm algorithm) {
-        if (stepContext.getModel() instanceof ActivationData activationModel) {
+        if (stepContext.getModel() instanceof MasterPublicKeyData model) {
             return switch (algorithm) {
-                case EC_P256 -> activationModel.getMasterPublicKeyP256();
-                case EC_P384, EC_P384_ML_L3, EC_P384_ML_L5 -> activationModel.getMasterPublicKeyP384();
-                default -> throw new IllegalArgumentException("Unsupported shared secret algorithm: " + algorithm);
-            };
-        } else if (stepContext.getModel() instanceof EncryptStepModel encryptionModel) {
-            return switch (algorithm) {
-                case EC_P256 -> encryptionModel.getMasterPublicKeyP256();
-                case EC_P384, EC_P384_ML_L3, EC_P384_ML_L5 -> encryptionModel.getMasterPublicKeyP384();
-                default -> throw new IllegalArgumentException("Unsupported shared secret algorithm: " + algorithm);
-            };
-        } else if (stepContext.getModel() instanceof UpgradeData upgradeModel) {
-            return switch (algorithm) {
-                case EC_P384, EC_P384_ML_L3, EC_P384_ML_L5 -> upgradeModel.getMasterPublicKeyP384();
+                case EC_P256 -> model.getMasterPublicKeyP256();
+                case EC_P384, EC_P384_ML_L3, EC_P384_ML_L5 -> model.getMasterPublicKeyP384();
                 default -> throw new IllegalArgumentException("Unsupported shared secret algorithm: " + algorithm);
             };
         }
@@ -452,23 +440,10 @@ public class TemporaryKeyUtil {
     }
 
     private static PublicKey getMlDsaMasterPublicKey(StepContext<? extends BaseStepData, ?> stepContext) {
-        if (stepContext.getModel() instanceof ActivationData activationModel) {
-            return switch (activationModel.getSharedSecretAlgorithm()) {
-                case EC_P384_ML_L3 -> activationModel.getMasterPublicKeyMlDsa65();
-                case EC_P384_ML_L5 -> activationModel.getMasterPublicKeyMlDsa87();
-                default -> null;
-            };
-
-        } else if (stepContext.getModel() instanceof EncryptStepModel encryptionModel) {
-            return switch (encryptionModel.getSharedSecretAlgorithm()) {
-                case EC_P384_ML_L3 -> encryptionModel.getMasterPublicKeyMlDsa65();
-                case EC_P384_ML_L5 -> encryptionModel.getMasterPublicKeyMlDsa87();
-                default -> null;
-            };
-        } else if (stepContext.getModel() instanceof UpgradeData upgradeModel) {
-            return switch (upgradeModel.getSharedSecretAlgorithm()) {
-                case EC_P384_ML_L3 -> upgradeModel.getMasterPublicKeyMlDsa65();
-                case EC_P384_ML_L5 -> upgradeModel.getMasterPublicKeyMlDsa87();
+        if (stepContext.getModel() instanceof MasterPublicKeyData model) {
+            return switch (model.getSharedSecretAlgorithm()) {
+                case EC_P384_ML_L3 -> model.getMasterPublicKeyMlDsa65();
+                case EC_P384_ML_L5 -> model.getMasterPublicKeyMlDsa87();
                 default -> null;
             };
         }

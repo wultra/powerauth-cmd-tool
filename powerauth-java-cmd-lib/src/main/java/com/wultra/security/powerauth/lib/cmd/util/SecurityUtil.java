@@ -27,13 +27,10 @@ import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlg
 import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.security.SimpleSecurityContext;
-import com.wultra.security.powerauth.lib.cmd.steps.model.EncryptStepModel;
-import com.wultra.security.powerauth.lib.cmd.steps.model.data.ActivationData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
-import com.wultra.security.powerauth.lib.cmd.steps.model.data.UpgradeData;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.SharedSecretData;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -51,10 +48,8 @@ public class SecurityUtil {
      * @param value Object value to be encrypted
      * @return Cryptogram value of the provided object.
      * @throws EncryptorException when an error during object encryption occurred
-     * @throws IOException when an error during object encryption occurred
      */
-    public static EncryptedRequest encryptObject(ClientEncryptor<?, ?> encryptor, Object value)
-            throws EncryptorException, IOException {
+    public static EncryptedRequest encryptObject(ClientEncryptor<?, ?> encryptor, Object value) throws EncryptorException {
         ByteArrayOutputStream baosL = new ByteArrayOutputStream();
         RestClientConfiguration.defaultMapper().writeValue(baosL, value);
         return encryptor.encryptRequest(baosL.toByteArray());
@@ -149,12 +144,8 @@ public class SecurityUtil {
     }
 
     private static SharedSecretAlgorithm getSharedSecretAlgorithm(StepContext<? extends BaseStepData, ?> stepContext) {
-        if (stepContext.getModel() instanceof ActivationData activationModel) {
-            return activationModel.getSharedSecretAlgorithm();
-        } else if (stepContext.getModel() instanceof EncryptStepModel encryptionModel) {
-            return encryptionModel.getSharedSecretAlgorithm();
-        } else if (stepContext.getModel() instanceof UpgradeData upgradeModel) {
-            return upgradeModel.getSharedSecretAlgorithm();
+        if (stepContext.getModel() instanceof SharedSecretData model) {
+            return model.getSharedSecretAlgorithm();
         }
         throw new IllegalStateException("Invalid model for obtaining shared secret algorithm");
     }

@@ -1,6 +1,6 @@
 /*
  * PowerAuth Command-line utility
- * Copyright 2021 Wultra s.r.o.
+ * Copyright 2026 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,19 @@
  */
 package com.wultra.security.powerauth.lib.cmd.steps.model.data;
 
-import com.wultra.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
+import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
 
 /**
- * Data used in upgrade step
+ * Data providing the shared secret algorithm used for key derivation.
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public interface UpgradeData extends ResultStatusChangeable, BaseStepData, MasterPublicKeyData {
+public interface SharedSecretData {
 
     /**
-     * @return Application key.
+     * @return Shared secret algorithm.
      */
-    String getApplicationKey();
-
-    /**
-     * @return Application secret.
-     */
-    String getApplicationSecret();
+    SharedSecretAlgorithm getSharedSecretAlgorithm();
 
 }
+
