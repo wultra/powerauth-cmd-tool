@@ -152,11 +152,7 @@ public class FetchConfigStep extends AbstractBaseStep<FetchConfigStepModel, Encr
                 encryptorSecrets = new AeadSecrets(temporarySharedSecret.getEncoded(), model.getApplicationSecret(), Base64.getDecoder().decode(resultStatusObject.getSharedInfo2Key()));
                 header = new PowerAuthEncryptionHttpHeader(model.getApplicationKey(), activationId, model.getVersion().value());
             }
-            default -> {
-                stepLogger.writeError("fetch-config-error-scope", "Fetch Configuration Failed", "Unsupported encryption scope: " + model.getScope());
-                stepLogger.writeDoneFailed("fetch-config-failed");
-                return null;
-            }
+            default -> throw new IllegalStateException("Unsupported encryption scope: " + scope);
         }
 
         final ClientEncryptor<EncryptedRequest, EncryptedResponse> encryptor = ENCRYPTOR_FACTORY.getClientEncryptor(encryptorId, encryptorParameters, encryptorSecrets);
