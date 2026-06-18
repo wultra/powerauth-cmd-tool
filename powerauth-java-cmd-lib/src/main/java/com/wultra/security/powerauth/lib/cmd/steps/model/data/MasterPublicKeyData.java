@@ -16,6 +16,8 @@
  */
 package com.wultra.security.powerauth.lib.cmd.steps.model.data;
 
+import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
+
 import java.security.PublicKey;
 
 /**
@@ -28,7 +30,12 @@ import java.security.PublicKey;
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public interface MasterPublicKeyData extends SharedSecretData {
+public interface MasterPublicKeyData {
+
+    /**
+     * @return Shared secret algorithm.
+     */
+    SharedSecretAlgorithm getSharedSecretAlgorithm();
 
     /**
      * @return Master public key for P-256, or {@code null} if the P-256 curve is not supported.

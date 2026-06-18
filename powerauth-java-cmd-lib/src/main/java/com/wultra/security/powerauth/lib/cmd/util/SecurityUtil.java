@@ -28,7 +28,7 @@ import com.wultra.security.powerauth.lib.cmd.consts.PowerAuthVersion;
 import com.wultra.security.powerauth.lib.cmd.steps.context.StepContext;
 import com.wultra.security.powerauth.lib.cmd.steps.context.security.SimpleSecurityContext;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.BaseStepData;
-import com.wultra.security.powerauth.lib.cmd.steps.model.data.SharedSecretData;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.MasterPublicKeyData;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -144,7 +144,7 @@ public class SecurityUtil {
     }
 
     private static SharedSecretAlgorithm getSharedSecretAlgorithm(StepContext<? extends BaseStepData, ?> stepContext) {
-        if (stepContext.getModel() instanceof SharedSecretData model) {
+        if (stepContext.getModel() instanceof MasterPublicKeyData model) {
             return model.getSharedSecretAlgorithm();
         }
         throw new IllegalStateException("Invalid model for obtaining shared secret algorithm");
