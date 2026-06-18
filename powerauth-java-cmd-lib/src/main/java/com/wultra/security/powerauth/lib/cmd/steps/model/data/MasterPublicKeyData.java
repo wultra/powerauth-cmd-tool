@@ -22,8 +22,6 @@ import java.security.PublicKey;
 
 /**
  * Data providing master public keys used for key derivation.
- * Extends {@link SharedSecretData} so both the algorithm and the keys
- * are available via a single interface check.
  * <p>
  * The P-256 key is optional: models that do not support the P-256 curve
  * (e.g. the upgrade step) return {@code null} from the default implementation.
