@@ -100,7 +100,7 @@ public class FetchConfigStep extends AbstractBaseStep<FetchConfigStepModel, Encr
         final FetchConfigStepModel model = new FetchConfigStepModel();
         model.fromMap(context);
 
-        final EncryptorScope scope = switch (String.valueOf(model.getScope())) {
+        final EncryptorScope scope = switch (model.getScope()) {
             case "activation" -> EncryptorScope.ACTIVATION_SCOPE;
             case "application" -> EncryptorScope.APPLICATION_SCOPE;
             default -> null;
