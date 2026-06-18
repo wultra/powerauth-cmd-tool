@@ -430,11 +430,15 @@ public class TemporaryKeyUtil {
 
     private static PublicKey getEcMasterPublicKey(StepContext<? extends BaseStepData, ?> stepContext, SharedSecretAlgorithm algorithm) {
         if (stepContext.getModel() instanceof MasterPublicKeyData model) {
-            return switch (algorithm) {
+            final PublicKey key = switch (algorithm) {
                 case EC_P256 -> model.getMasterPublicKeyP256();
                 case EC_P384, EC_P384_ML_L3, EC_P384_ML_L5 -> model.getMasterPublicKeyP384();
                 default -> throw new IllegalArgumentException("Unsupported shared secret algorithm: " + algorithm);
             };
+            if (key == null) {
+                throw new IllegalStateException("EC master public key is not available for algorithm: " + algorithm);
+            }
+            return key;
         }
         throw new IllegalStateException("Invalid model for obtaining ECDSA master public key");
     }
