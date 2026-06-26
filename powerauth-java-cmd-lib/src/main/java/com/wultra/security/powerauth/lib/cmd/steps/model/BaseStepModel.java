@@ -22,6 +22,7 @@ import com.wultra.security.powerauth.lib.cmd.steps.pojo.ResultStatusObject;
 import lombok.Data;
 import org.json.simple.JSONObject;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -117,7 +118,7 @@ public class BaseStepModel implements BaseStepData {
         context.put("BASE_URI_STRING", baseUriString);
         context.put("STATUS_OBJECT", resultStatusObject);
         context.put("VERSION", version);
-        return context;
+        return Collections.unmodifiableMap(context);
     }
 
     /**

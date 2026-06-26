@@ -19,11 +19,14 @@ package com.wultra.security.powerauth.lib.cmd.steps.model;
 
 import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.MasterPublicKeyData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.security.PublicKey;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -34,8 +37,7 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class EncryptStepModel extends BaseStepModel
-        implements EncryptionHeaderData, DryRunCapable {
-
+        implements EncryptionHeaderData, DryRunCapable, MasterPublicKeyData {
     /**
      * Request data.
      */
@@ -88,7 +90,7 @@ public class EncryptStepModel extends BaseStepModel
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> context = super.toMap();
+        Map<String, Object> context = new HashMap<>(super.toMap());
         context.put("DATA", data);
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
@@ -99,7 +101,7 @@ public class EncryptStepModel extends BaseStepModel
         context.put("MASTER_PUBLIC_KEY_MLDSA87", masterPublicKeyMlDsa87);
         context.put("SCOPE", scope);
         context.put("SHARED_SECRET_ALGORITHM", sharedSecretAlgorithm);
-        return context;
+        return Collections.unmodifiableMap(context);
     }
 
     @Override

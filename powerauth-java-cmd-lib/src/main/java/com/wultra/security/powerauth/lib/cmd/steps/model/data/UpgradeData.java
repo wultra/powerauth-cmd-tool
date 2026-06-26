@@ -16,17 +16,14 @@
  */
 package com.wultra.security.powerauth.lib.cmd.steps.model.data;
 
-import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
 import com.wultra.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
-
-import java.security.PublicKey;
 
 /**
  * Data used in upgrade step
  *
  * @author Roman Strobl, roman.strobl@wultra.com
  */
-public interface UpgradeData extends ResultStatusChangeable, BaseStepData {
+public interface UpgradeData extends ResultStatusChangeable, BaseStepData, MasterPublicKeyData {
 
     /**
      * @return Application key.
@@ -37,25 +34,5 @@ public interface UpgradeData extends ResultStatusChangeable, BaseStepData {
      * @return Application secret.
      */
     String getApplicationSecret();
-
-    /**
-     * @return Base64 encoded master public key for P-384.
-     */
-    PublicKey getMasterPublicKeyP384();
-
-    /**
-     * @return Base64 encoded master public key for ML-DSA-65.
-     */
-    PublicKey getMasterPublicKeyMlDsa65();
-
-    /**
-     * @return Base64 encoded master public key for ML-DSA-87.
-     */
-    PublicKey getMasterPublicKeyMlDsa87();
-
-    /**
-     * @return Shared secret algorithm.
-     */
-    SharedSecretAlgorithm getSharedSecretAlgorithm();
 
 }

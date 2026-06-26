@@ -22,6 +22,8 @@ import com.wultra.security.powerauth.lib.cmd.steps.model.feature.ResultStatusCha
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -69,13 +71,13 @@ public class RemoveActivationStepModel extends BaseStepModel
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> context = super.toMap();
+        Map<String, Object> context = new HashMap<>(super.toMap());
         context.put("STATUS_FILENAME", statusFileName);
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
         context.put("PASSWORD", password);
         context.put("AUTHENTICATION_CODE_TYPE", getAuthenticationCodeType().toString());
-        return context;
+        return Collections.unmodifiableMap(context);
     }
 
     @Override

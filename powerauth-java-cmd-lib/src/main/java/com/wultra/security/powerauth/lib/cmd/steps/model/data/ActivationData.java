@@ -16,10 +16,8 @@
  */
 package com.wultra.security.powerauth.lib.cmd.steps.model.data;
 
-import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
 import com.wultra.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
 
-import java.security.PublicKey;
 import java.util.Map;
 
 /**
@@ -27,7 +25,7 @@ import java.util.Map;
  *
  * @author Lukas Lukovsky, lukas.lukovsky@wultra.com
  */
-public interface ActivationData extends ResultStatusChangeable, BaseStepData {
+public interface ActivationData extends ResultStatusChangeable, BaseStepData, MasterPublicKeyData {
 
     /**
      * @return Activation name.
@@ -60,26 +58,6 @@ public interface ActivationData extends ResultStatusChangeable, BaseStepData {
     Map<String, String> getIdentityAttributes();
 
     /**
-     * @return Base64 encoded master public key for P-256.
-     */
-    PublicKey getMasterPublicKeyP256();
-
-    /**
-     * @return Base64 encoded master public key for P-384.
-     */
-    PublicKey getMasterPublicKeyP384();
-
-    /**
-     * @return Base64 encoded master public key for ML-DSA-65.
-     */
-    PublicKey getMasterPublicKeyMlDsa65();
-
-    /**
-     * @return Base64 encoded master public key for ML-DSA-87.
-     */
-    PublicKey getMasterPublicKeyMlDsa87();
-
-    /**
      * @return Knowledge key password.
      */
     String getPassword();
@@ -88,10 +66,5 @@ public interface ActivationData extends ResultStatusChangeable, BaseStepData {
      * @return User device platform.
      */
     String getPlatform();
-
-    /**
-     * @return Shared secret algorithm.
-     */
-    SharedSecretAlgorithm getSharedSecretAlgorithm();
 
 }

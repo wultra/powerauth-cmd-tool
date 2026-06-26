@@ -21,6 +21,8 @@ import com.wultra.security.powerauth.lib.cmd.steps.model.feature.DryRunCapable;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -60,13 +62,13 @@ public class VerifyTokenStepModel extends BaseStepModel
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> context = super.toMap();
+        Map<String, Object> context = new HashMap<>(super.toMap());
         context.put("TOKEN_ID", tokenId);
         context.put("TOKEN_SECRET", tokenSecret);
         context.put("HTTP_METHOD", httpMethod);
         context.put("DATA", data);
         context.put("DRY_RUN", dryRun);
-        return context;
+        return Collections.unmodifiableMap(context);
     }
 
     @Override

@@ -1,6 +1,6 @@
 /*
  * PowerAuth Command-line utility
- * Copyright 2018 Wultra s.r.o.
+ * Copyright 2026 Wultra s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,8 @@
 package com.wultra.security.powerauth.lib.cmd.steps.model;
 
 import com.wultra.security.powerauth.crypto.lib.v4.model.context.SharedSecretAlgorithm;
-import com.wultra.security.powerauth.lib.cmd.steps.model.data.ActivationData;
 import com.wultra.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderData;
-import com.wultra.security.powerauth.lib.cmd.steps.model.feature.ResultStatusChangeable;
+import com.wultra.security.powerauth.lib.cmd.steps.model.data.MasterPublicKeyData;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -29,49 +28,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Model representing parameters of the step for preparing a new activation (key exchange).
+ * Model representing parameters of the step for fetching the secure configuration over end-to-end
+ * encryption (V4 only).
  *
- * @author Petr Dvorak, petr@wultra.com
+ * @author Roman Strobl, roman.strobl@wultra.com
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class PrepareActivationStepModel extends BaseStepModel
-        implements ActivationData, ResultStatusChangeable, EncryptionHeaderData {
-
-    /**
-     * File name of the file with stored activation status.
-     */
-    private String statusFileName;
-
-    /**
-     * Activation code, in following format: "XXXXX-XXXXX-XXXXX-XXXXX" where each "X" is from Base32.
-     */
-    private String activationCode;
-
-    /**
-     * Custom attributes.
-     */
-    private Map<String, Object> customAttributes;
-
-    /**
-     * Additional activation OTP, supported by PowerAuth Server {@code 0.24+}.
-     */
-    private String additionalActivationOtp;
-
-    /**
-     * Activation name.
-     */
-    private String activationName;
-
-    /**
-     * User device platform
-     */
-    private String platform;
-
-    /**
-     * Information about user device.
-     */
-    private String deviceInfo;
+public class FetchConfigStepModel extends BaseStepModel
+        implements EncryptionHeaderData, MasterPublicKeyData {
 
     /**
      * Application key.
@@ -82,11 +47,6 @@ public class PrepareActivationStepModel extends BaseStepModel
      * Application secret.
      */
     private String applicationSecret;
-
-    /**
-     * Password for the password related key encryption.
-     */
-    private String password;
 
     /**
      * Master Server Public Key for P-256, a value specific for given application.
@@ -114,57 +74,36 @@ public class PrepareActivationStepModel extends BaseStepModel
     private SharedSecretAlgorithm sharedSecretAlgorithm;
 
     /**
-     * Constructor
+     * Encryption scope: {@code application} or {@code activation}.
      */
-    public PrepareActivationStepModel() {
-        customAttributes = new HashMap<>();
-    }
-
-    @Override
-    public Map<String, String> getIdentityAttributes() {
-        return Collections.emptyMap();
-    }
+    private String scope;
 
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> context = new HashMap<>(super.toMap());
+        context.put("APPLICATION_KEY", applicationKey);
+        context.put("APPLICATION_SECRET", applicationSecret);
         context.put("MASTER_PUBLIC_KEY_P256", masterPublicKeyP256);
         context.put("MASTER_PUBLIC_KEY_P384", masterPublicKeyP384);
         context.put("MASTER_PUBLIC_KEY_MLDSA65", masterPublicKeyMlDsa65);
         context.put("MASTER_PUBLIC_KEY_MLDSA87", masterPublicKeyMlDsa87);
-        context.put("STATUS_FILENAME", statusFileName);
-        context.put("ACTIVATION_CODE", activationCode);
-        context.put("CUSTOM_ATTRIBUTES", customAttributes);
-        context.put("ADDITIONAL_ACTIVATION_OTP", additionalActivationOtp);
-        context.put("PASSWORD", password);
-        context.put("ACTIVATION_NAME", activationName);
-        context.put("PLATFORM", platform);
-        context.put("DEVICE_INFO", deviceInfo);
-        context.put("APPLICATION_KEY", applicationKey);
-        context.put("APPLICATION_SECRET", applicationSecret);
+        context.put("SCOPE", scope);
         context.put("SHARED_SECRET_ALGORITHM", sharedSecretAlgorithm);
         return Collections.unmodifiableMap(context);
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public void fromMap(Map<String, Object> context) {
         super.fromMap(context);
+        setApplicationKey((String) context.get("APPLICATION_KEY"));
+        setApplicationSecret((String) context.get("APPLICATION_SECRET"));
         setMasterPublicKeyP256((PublicKey) context.get("MASTER_PUBLIC_KEY_P256"));
         setMasterPublicKeyP384((PublicKey) context.get("MASTER_PUBLIC_KEY_P384"));
         setMasterPublicKeyMlDsa65((PublicKey) context.get("MASTER_PUBLIC_KEY_MLDSA65"));
         setMasterPublicKeyMlDsa87((PublicKey) context.get("MASTER_PUBLIC_KEY_MLDSA87"));
-        setStatusFileName((String) context.get("STATUS_FILENAME"));
-        setActivationCode((String) context.get("ACTIVATION_CODE"));
-        setCustomAttributes((Map<String, Object>) context.get("CUSTOM_ATTRIBUTES"));
-        setAdditionalActivationOtp((String) context.get("ADDITIONAL_ACTIVATION_OTP"));
-        setPassword((String) context.get("PASSWORD"));
-        setActivationName((String) context.get("ACTIVATION_NAME"));
-        setPlatform((String) context.get("PLATFORM"));
-        setDeviceInfo((String) context.get("DEVICE_INFO"));
-        setApplicationKey((String) context.get("APPLICATION_KEY"));
-        setApplicationSecret((String) context.get("APPLICATION_SECRET"));
+        setScope((String) context.get("SCOPE"));
         setSharedSecretAlgorithm((SharedSecretAlgorithm) context.get("SHARED_SECRET_ALGORITHM"));
     }
 
 }
+

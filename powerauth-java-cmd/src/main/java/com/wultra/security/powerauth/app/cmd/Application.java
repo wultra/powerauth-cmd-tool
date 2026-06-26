@@ -83,7 +83,7 @@ public class Application {
             options.addOption("hv", "help-versions", false, "PowerAuth supported versions and steps.");
             options.addOption("u", "url", true, "URL used for the request.");
             options.addOption("b", "base-url", true, "Base URL of the PowerAuth Standard RESTful API.");
-            options.addOption("m", "method", true, "What API method to call, available names are 'create', 'status', 'remove', 'authenticate', 'unlock', 'create-custom', 'create-token', 'validate-token', 'remove-token', 'encrypt', 'authenticate-encrypt', 'token-encrypt', 'start-upgrade', and 'confirm-upgrade'.");
+            options.addOption("m", "method", true, "What API method to call. Use --help-steps to see available method names.");
             options.addOption("c", "config-file", true, "Specifies a path to the config file with Base64 encoded server master public key, application ID and application secret.");
             options.addOption("s", "status-file", true, "Path to the file with the activation status, serving as the data persistence.");
             options.addOption("a", "activation-code", true, "In case the specified method is 'create', this field contains the activation key (a concatenation of a short activation ID and activation OTP).");
@@ -455,6 +455,24 @@ public class Application {
                     String dataFileName = cmd.getOptionValue("d");
                     final byte[] dataFileBytes = FileUtil.readFileBytes(stepLogger, dataFileName, "request-data", "Request data file");
                     model.setData(dataFileBytes);
+
+                    stepExecutionService.execute(powerAuthStep, version, model);
+                }
+                case CONFIG_FETCH -> {
+                    final FetchConfigStepModel model = new FetchConfigStepModel();
+                    model.setApplicationKey(applicationKey);
+                    model.setApplicationSecret(applicationSecret);
+                    model.setHeaders(httpHeaders);
+                    model.setMasterPublicKeyP256(masterPublicKeyP256);
+                    model.setMasterPublicKeyP384(masterPublicKeyP384);
+                    model.setMasterPublicKeyMlDsa65(masterPublicKeyMlDsa65);
+                    model.setMasterPublicKeyMlDsa87(masterPublicKeyMlDsa87);
+                    model.setResultStatus(resultStatusObject);
+                    model.setScope(cmd.getOptionValue("o"));
+                    model.setUriString(uriString);
+                    model.setBaseUriString(baseUriString);
+                    model.setSharedSecretAlgorithm(algorithm);
+                    model.setVersion(version);
 
                     stepExecutionService.execute(powerAuthStep, version, model);
                 }

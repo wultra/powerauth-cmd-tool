@@ -84,6 +84,11 @@ public enum PowerAuthStep {
     ENCRYPT("encrypt", "Encrypt Request", "encrypt"),
 
     /**
+     * Fetch the secure configuration over end-to-end encryption
+     */
+    CONFIG_FETCH("config-fetch", "Fetch Configuration", "fetch-config"),
+
+    /**
      * Change password for the knowledge factor
      */
     PASSWORD_CHANGE("password-change", "Change Password", "change-password"),
