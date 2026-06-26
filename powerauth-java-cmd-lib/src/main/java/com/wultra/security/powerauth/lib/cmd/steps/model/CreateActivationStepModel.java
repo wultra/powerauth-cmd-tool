@@ -24,6 +24,7 @@ import lombok.EqualsAndHashCode;
 
 import java.security.PublicKey;
 import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -121,7 +122,7 @@ public class CreateActivationStepModel extends BaseStepModel
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> context = super.toMap();
+        Map<String, Object> context = new HashMap<>(super.toMap());
         context.put("IDENTITY_ATTRIBUTES", identityAttributes);
         context.put("CUSTOM_ATTRIBUTES", customAttributes);
         context.put("ACTIVATION_OTP", activationOtp);
@@ -137,7 +138,7 @@ public class CreateActivationStepModel extends BaseStepModel
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
         context.put("SHARED_SECRET_ALGORITHM", sharedSecretAlgorithm);
-        return context;
+        return Collections.unmodifiableMap(context);
     }
 
     @Override

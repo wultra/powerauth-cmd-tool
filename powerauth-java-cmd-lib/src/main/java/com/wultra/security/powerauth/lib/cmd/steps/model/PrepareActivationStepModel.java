@@ -127,7 +127,7 @@ public class PrepareActivationStepModel extends BaseStepModel
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> context = super.toMap();
+        Map<String, Object> context = new HashMap<>(super.toMap());
         context.put("MASTER_PUBLIC_KEY_P256", masterPublicKeyP256);
         context.put("MASTER_PUBLIC_KEY_P384", masterPublicKeyP384);
         context.put("MASTER_PUBLIC_KEY_MLDSA65", masterPublicKeyMlDsa65);
@@ -143,7 +143,7 @@ public class PrepareActivationStepModel extends BaseStepModel
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
         context.put("SHARED_SECRET_ALGORITHM", sharedSecretAlgorithm);
-        return context;
+        return Collections.unmodifiableMap(context);
     }
 
     @Override

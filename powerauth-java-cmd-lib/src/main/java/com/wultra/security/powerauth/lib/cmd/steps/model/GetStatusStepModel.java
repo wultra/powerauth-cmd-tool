@@ -20,6 +20,8 @@ import com.wultra.security.powerauth.lib.cmd.steps.model.data.EncryptionHeaderDa
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -43,10 +45,10 @@ public class GetStatusStepModel extends BaseStepModel implements EncryptionHeade
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> context = super.toMap();
+        Map<String, Object> context = new HashMap<>(super.toMap());
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
-        return context;
+        return Collections.unmodifiableMap(context);
     }
 
     @Override

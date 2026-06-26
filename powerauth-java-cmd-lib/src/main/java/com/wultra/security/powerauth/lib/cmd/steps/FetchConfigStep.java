@@ -47,6 +47,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Fetch config step fetches the secure configuration over end-to-end encryption in the application or

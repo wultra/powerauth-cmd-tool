@@ -24,6 +24,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.security.PublicKey;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -83,7 +85,7 @@ public class StartUpgradeStepModel extends BaseStepModel
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> context = super.toMap();
+        Map<String, Object> context = new HashMap<>(super.toMap());
         context.put("STATUS_FILENAME", statusFileName);
         context.put("APPLICATION_KEY", applicationKey);
         context.put("APPLICATION_SECRET", applicationSecret);
@@ -92,7 +94,7 @@ public class StartUpgradeStepModel extends BaseStepModel
         context.put("MASTER_PUBLIC_KEY_MLDSA65", masterPublicKeyMlDsa65);
         context.put("MASTER_PUBLIC_KEY_MLDSA87", masterPublicKeyMlDsa87);
         context.put("SHARED_SECRET_ALGORITHM", sharedSecretAlgorithm);
-        return context;
+        return Collections.unmodifiableMap(context);
     }
 
     @Override
