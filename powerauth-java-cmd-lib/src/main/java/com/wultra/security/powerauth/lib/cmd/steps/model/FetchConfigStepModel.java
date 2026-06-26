@@ -35,6 +35,7 @@ import java.util.Map;
 @EqualsAndHashCode(callSuper = true)
 public class FetchConfigStepModel extends BaseStepModel
         implements EncryptionHeaderData, MasterPublicKeyData {
+
     /**
      * Application key.
      */
