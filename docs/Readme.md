@@ -374,6 +374,110 @@ Uses the `remove-token` method to remove a previously created token for an activ
 
 _Note: If a `--password` option is not provided, this method requires interactive console input of the password, in order to unlock the knowledge-related authentication key._
 
+### Get Pending Operation
+
+The list of pending transaction can be obtained in the operation endpoint using [Token Based Authentication](https://github.com/wultra/powerauth-restful-integration/blob/develop/docs/RESTful-API-for-Spring.md#use-token-based-authentication). This used the method `validate-token`. For method detail check the Validate Token above.
+
+```bash
+java -jar powerauth-java-cmd.jar \
+    --url "http://localhost:8080/enrollment-server/api/auth/token/app/operation/list" \
+    --status-file "/tmp/pa_status.json" \
+    --config-file "/tmp/pamk.json" \
+    --method "validate-token" \
+    --http-method "POST" \
+    --data-file "/tmp/request.json" \
+    --version "4.0" \
+    --token-id "66b8b981-a89d-4fc2-bd49-1c05f937a6f2" \
+    --token-secret "xfb1NUXAPbvDZK8qyNVGyw=="
+```
+
+### Claim Non-Personalized Operation
+
+A non-personalized operation can be claimed on the server using [Token Based Authentication](https://github.com/wultra/powerauth-restful-integration/blob/develop/docs/RESTful-API-for-Spring.md#use-token-based-authentication). This used the method `validate-token`. For method detail check the Validate Token above.
+
+```bash
+java -jar powerauth-java-cmd.jar \
+    --url "http://localhost:8080/enrollment-server/api/auth/token/app/operation/detail/claim" \
+    --status-file "/tmp/pa_status.json" \
+    --config-file "/tmp/pamk.json" \
+    --method "validate-token" \
+    --http-method "POST" \
+    --data-file "/tmp/request.json" \
+    --version "4.0" \
+    --token-id "66b8b981-a89d-4fc2-bd49-1c05f937a6f2" \
+    --token-secret "xfb1NUXAPbvDZK8qyNVGyw=="
+```
+
+The example of the request.json:
+
+```json
+{
+    "requestObject": {
+    "id": "id of the operation to be claimed"
+  }
+}
+```
+
+### Get Operation Detail
+
+An  operation can be obtained from the server using [Token Based Authentication](https://github.com/wultra/powerauth-restful-integration/blob/develop/docs/RESTful-API-for-Spring.md#use-token-based-authentication). This used the method `validate-token`. For method detail check the Validate Token above.
+
+```bash
+java -jar powerauth-java-cmd.jar \
+    --url "http://localhost:8080/enrollment-server/api/auth/token/app/operation/detail" \
+    --status-file "/tmp/pa_status.json" \
+    --config-file "/tmp/pamk.json" \
+    --method "validate-token" \
+    --http-method "POST" \
+    --data-file "/tmp/request.json" \
+    --version "4.0" \
+    --token-id "66b8b981-a89d-4fc2-bd49-1c05f937a6f2" \
+    --token-secret "xfb1NUXAPbvDZK8qyNVGyw=="
+```
+
+The example of the request.json:
+
+```json
+{
+    "requestObject": {
+    "id": "id of the operation"
+  }
+}
+```
+
+### Approve Operation
+
+An operation can be approved on the server This used the method `authenticate`. For method detail check the Validate the Authentication Code above. The `data` claim from the response of get operation detail method is required. 
+
+
+
+```bash
+java -jar powerauth-java-cmd.jar \
+    --url "http://localhost:8080/enrollment-server/api/auth/token/app/operation/authorize" \
+    --status-file "/tmp/pa_status.json" \
+    --config-file "/tmp/pamk.json" \
+    --method "authenticate" \
+    --http-method "POST" \
+    --resource-id "/operation/authorize" \
+    --auth-code-type "possession_knowledge" \
+    --data-file "/tmp/request.json" \
+    --version "4.0" \
+    --password "1234"
+```
+
+The example of the request.json:
+
+```json
+{
+  "requestObject": {
+    "id": "id of operation to be approved",
+    "data": "operation data that has been signed - has to correspond with the operation data returned in detail or claim API  "
+  }
+}
+```
+
+The parameter `auth-code-type` must correspond with expected factors required to approve the operation.
+
 ### Custom Attributes for Activation
 
 Use this method to create an activation using the custom identity attributes.
