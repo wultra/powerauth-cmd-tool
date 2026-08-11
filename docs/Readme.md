@@ -474,7 +474,7 @@ The example of the request.json:
 }
 ```
 
-The parameter `auth-code-type` must correspond with expected factors required to approve the operation.
+The parameter `auth-code-type` must correspond to expected factors required to approve the operation.
 
 ### Custom Attributes for Activation
 
