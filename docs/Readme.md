@@ -447,9 +447,7 @@ The example of the request.json:
 
 ### Approve Operation
 
-An operation can be approved on the server This used the method `authenticate`. For method detail check the Validate the Authentication Code above. The `data` claim from the response of get operation detail method is required. 
-
-
+An operation can be approved on the server using the `authenticate` method (see [Validate the Authentication Code](#validate-the-authentication-code)). The `data` field from the Get Operation Detail / Claim response must be included in the request.
 
 ```bash
 java -jar powerauth-java-cmd.jar \
