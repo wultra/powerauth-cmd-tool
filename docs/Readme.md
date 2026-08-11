@@ -393,7 +393,7 @@ java -jar powerauth-java-cmd.jar \
 
 ### Claim Non-Personalized Operation
 
-A non-personalized operation can be claimed on the server using [Token Based Authentication](https://github.com/wultra/powerauth-restful-integration/blob/develop/docs/RESTful-API-for-Spring.md#use-token-based-authentication). This used the method `validate-token`. For method detail check the Validate Token above.
+A non-personalized operation can be claimed on the server using [Token Based Authentication](https://github.com/wultra/powerauth-restful-integration/blob/develop/docs/RESTful-API-for-Spring.md#use-token-based-authentication). This uses the `validate-token` method; see [Validate Token](#validate-token) above for details.
 
 ```bash
 java -jar powerauth-java-cmd.jar \
