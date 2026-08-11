@@ -412,8 +412,8 @@ The example of the request.json:
 
 ```json
 {
-    "requestObject": {
-    "id": "id of the operation to be claimed"
+  "requestObject": {
+    "id": "ID of the operation to be claimed"
   }
 }
 ```
