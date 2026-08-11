@@ -469,7 +469,7 @@ The example of the request.json:
 {
   "requestObject": {
     "id": "id of operation to be approved",
-    "data": "operation data that has been signed - has to correspond with the operation data returned in detail or claim API  "
+    "data": "Operation data that has been signed; must match the operation data returned by the detail or claim API"
   }
 }
 ```
