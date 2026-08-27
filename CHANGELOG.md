@@ -2,11 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## 2.2.0 - 2026-07-23
+## [2.2.0] - 2026-07-23
 
 ### Added
 
@@ -24,3 +25,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Command line tool does not indent steps in JSON logger [(#689)](https://github.com/wultra/powerauth-cmd-tool/issues/689)
 - JCE cannot authenticate the provider BC [(#681)](https://github.com/wultra/powerauth-cmd-tool/issues/681)
+
+[unreleased]: https://github.com/wultra/powerauth-cmd-tool/compare/2.2.0...HEAD
+[2.2.0]: https://github.com/wultra/powerauth-cmd-tool/releases/tag/2.2.0
